@@ -1,6 +1,8 @@
 package mcp
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type RPCResponse struct {
 	Error    *string

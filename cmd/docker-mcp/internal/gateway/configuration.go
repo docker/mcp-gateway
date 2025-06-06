@@ -21,10 +21,11 @@ type Configurator interface {
 }
 
 type Configuration struct {
-	serverNames []string
-	servers     map[string]catalog.Server
-	config      map[string]map[string]any
-	secrets     map[string]string
+	serverNames         []string
+	httpServerEndpoints map[string]string
+	servers             map[string]catalog.Server
+	config              map[string]map[string]any
+	secrets             map[string]string
 }
 
 type ServerConfig struct {
@@ -42,7 +43,7 @@ func (c *Configuration) DockerImages() []string {
 	uniqueDockerImages := map[string]bool{}
 
 	for _, serverName := range c.serverNames {
-		serverConfig, tools, found := c.Find(serverName)
+		serverConfig, tools, _, found := c.Find(serverName)
 
 		switch {
 		case !found:
@@ -64,11 +65,17 @@ func (c *Configuration) DockerImages() []string {
 	return dockerImages
 }
 
-func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]catalog.Tool, bool) {
+func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]catalog.Tool, *string, bool) {
+	// is it an http server?
+	endpoint, ok := c.httpServerEndpoints[serverName]
+	if ok {
+		return nil, nil, &endpoint, true
+	}
+
 	// Is it in the catalog?
 	server, ok := c.servers[serverName]
 	if !ok {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
 
 	// Is it an MCP Server?
@@ -80,7 +87,7 @@ func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]cata
 				serverName: c.config[serverName],
 			},
 			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
-		}, nil, true
+		}, nil, nil, true
 	}
 
 	// Then it's a POCI?
@@ -88,7 +95,7 @@ func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]cata
 	for _, tool := range server.Tools {
 		byName[tool.Name] = tool
 	}
-	return nil, &byName, true
+	return nil, &byName, nil, true
 }
 
 type FileBasedConfiguration struct {
@@ -181,6 +188,7 @@ func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan 
 
 func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, error) {
 	var serverNames []string
+	var httpServerEndpoints map[string]string
 
 	if len(c.ServerNames) > 0 {
 		serverNames = c.ServerNames
@@ -191,6 +199,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 
 		serverNames = registryConfig.ServerNames()
+		httpServerEndpoints = registryConfig.HttpServerEndpoints()
 	}
 
 	mcpCatalog, err := c.readCatalog(ctx)
@@ -220,10 +229,11 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	}
 
 	return Configuration{
-		serverNames: serverNames,
-		servers:     servers,
-		config:      serversConfig,
-		secrets:     secrets,
+		serverNames:         serverNames,
+		servers:             servers,
+		config:              serversConfig,
+		secrets:             secrets,
+		httpServerEndpoints: httpServerEndpoints,
 	}, nil
 }
 

@@ -34,16 +34,96 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	errs, ctx := errgroup.WithContext(ctx)
 	errs.SetLimit(runtime.NumCPU())
 	for _, serverName := range serverNames {
-		serverConfig, toolGroup, found := configuration.Find(serverName)
+		serverConfig, toolGroup, endpoint, found := configuration.Find(serverName)
 
 		switch {
 		case !found:
 			log("  - MCP server not found:", serverName)
 
+		case endpoint != nil:
+			errs.Go(func() error {
+				client, err := g.startSSEMCPClient(ctx, serverName, *endpoint, &readOnly)
+				if err != nil {
+					logf("  > Can't connect to %s: %s", serverName, err)
+					return nil
+				}
+				defer client.Close()
+
+				var capabilities Capabilities
+
+				tools, err := client.ListTools(ctx, mcp.ListToolsRequest{})
+				if err != nil {
+					logf("  > Can't list tools %s: %s", serverName, err)
+				} else {
+					for _, tool := range tools.Tools {
+						if !isToolEnabled(serverName, "", tool.Name, g.ToolNames) {
+							continue
+						}
+						capabilities.Tools = append(capabilities.Tools, server.ServerTool{
+							Tool:    tool,
+							Handler: g.mcpServerToolHandlerSSE(serverName, *endpoint, tool.Annotations),
+						})
+					}
+				}
+
+				prompts, err := client.ListPrompts(ctx, mcp.ListPromptsRequest{})
+				if err == nil {
+					for _, prompt := range prompts.Prompts {
+						capabilities.Prompts = append(capabilities.Prompts, server.ServerPrompt{
+							Prompt:  prompt,
+							Handler: g.mcpServerPromptHandlerSSE(serverName, *endpoint),
+						})
+					}
+				}
+
+				resources, err := client.ListResources(ctx, mcp.ListResourcesRequest{})
+				if err == nil {
+					for _, resource := range resources.Resources {
+						capabilities.Resources = append(capabilities.Resources, server.ServerResource{
+							Resource: resource,
+							Handler:  g.mcpServerResourceHandlerSSE(serverName, *endpoint),
+						})
+					}
+				}
+
+				resourceTemplates, err := client.ListResourceTemplates(ctx, mcp.ListResourceTemplatesRequest{})
+				if err == nil {
+					for _, resourceTemplate := range resourceTemplates.ResourceTemplates {
+						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ServerResourceTemplate{
+							ResourceTemplate: resourceTemplate,
+							Handler:          g.mcpServerResourceTemplateHandlerSSE(serverName, *endpoint),
+						})
+					}
+				}
+
+				var log string
+				if len(capabilities.Tools) > 0 {
+					log += fmt.Sprintf(" (%d tools)", len(capabilities.Tools))
+				}
+				if len(capabilities.Prompts) > 0 {
+					log += fmt.Sprintf(" (%d prompts)", len(capabilities.Prompts))
+				}
+				if len(capabilities.Resources) > 0 {
+					log += fmt.Sprintf(" (%d resources)", len(capabilities.Resources))
+				}
+				if len(capabilities.ResourceTemplates) > 0 {
+					log += fmt.Sprintf(" (%d resourceTemplates)", len(capabilities.ResourceTemplates))
+				}
+				if log != "" {
+					logf("  > %s:%s", serverName, log)
+				}
+
+				lock.Lock()
+				allCapabilities = append(allCapabilities, capabilities)
+				lock.Unlock()
+
+				return nil
+			})
+
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
-				client, err := g.startMCPClient(ctx, *serverConfig, &readOnly)
+				client, err := g.startStdioMCPClient(ctx, *serverConfig, &readOnly)
 				if err != nil {
 					logf("  > Can't start %s: %s", serverConfig.Name, err)
 					return nil
@@ -62,7 +142,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						}
 						capabilities.Tools = append(capabilities.Tools, server.ServerTool{
 							Tool:    tool,
-							Handler: g.mcpServerToolHandler(*serverConfig, tool.Annotations),
+							Handler: g.mcpServerToolHandlerStdio(*serverConfig, tool.Annotations),
 						})
 					}
 				}
@@ -72,7 +152,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, prompt := range prompts.Prompts {
 						capabilities.Prompts = append(capabilities.Prompts, server.ServerPrompt{
 							Prompt:  prompt,
-							Handler: g.mcpServerPromptHandler(*serverConfig),
+							Handler: g.mcpServerPromptHandlerStdio(*serverConfig),
 						})
 					}
 				}
@@ -82,7 +162,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, resource := range resources.Resources {
 						capabilities.Resources = append(capabilities.Resources, server.ServerResource{
 							Resource: resource,
-							Handler:  g.mcpServerResourceHandler(*serverConfig),
+							Handler:  g.mcpServerResourceHandlerStdio(*serverConfig),
 						})
 					}
 				}
@@ -92,7 +172,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, resourceTemplate := range resourceTemplates.ResourceTemplates {
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ServerResourceTemplate{
 							ResourceTemplate: resourceTemplate,
-							Handler:          g.mcpServerResourceTemplateHandler(*serverConfig),
+							Handler:          g.mcpServerResourceTemplateHandlerStdio(*serverConfig),
 						})
 					}
 				}

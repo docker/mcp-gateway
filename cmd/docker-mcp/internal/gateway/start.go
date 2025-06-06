@@ -66,7 +66,27 @@ func (g *Gateway) runToolContainer(ctx context.Context, tool catalog.Tool, reque
 	return mcp.NewToolResultText(string(out)), nil
 }
 
-func (g *Gateway) startMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.StdioClient, error) {
+func (g *Gateway) startSSEMCPClient(ctx context.Context, serverName string, endpoint string, readOnly *bool) (mcpclient.MCPClient, error) {
+	client := mcpclient.NewSSEClient(serverName, endpoint)
+
+	initRequest := mcp.InitializeRequest{}
+	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
+	initRequest.Params.ClientInfo = mcp.Implementation{
+		Name:    "docker",
+		Version: "1.0.0",
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
+	if _, err := client.Initialize(ctx, initRequest, g.Verbose); err != nil {
+		return nil, fmt.Errorf("initializing %s: %w", endpoint, err)
+	}
+
+	return client, nil
+}
+
+func (g *Gateway) startStdioMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.MCPClient, error) {
 	image := serverConfig.Spec.Image
 
 	args, env := g.argsAndEnv(serverConfig, readOnly)
