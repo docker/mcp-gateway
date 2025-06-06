@@ -15,6 +15,7 @@ require (
 	github.com/google/go-containerregistry v0.20.3
 	github.com/mark3labs/mcp-go v0.27.1
 	github.com/mikefarah/yq/v4 v4.45.1
+	github.com/r3labs/sse/v2 v2.10.0
 	github.com/sigstore/cosign/v2 v2.5.0
 	github.com/sigstore/sigstore v1.9.4
 	github.com/spf13/cobra v1.9.1
@@ -110,7 +111,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/r3labs/sse v0.0.0-20210224172625-26fe804710bc // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect

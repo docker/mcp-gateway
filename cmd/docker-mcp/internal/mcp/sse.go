@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/r3labs/sse"
+	"github.com/r3labs/sse/v2"
 )
 
 type sseMCPClient struct {
@@ -46,7 +46,8 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 
 	ctxClient, cancel := context.WithCancel(context.WithoutCancel(ctx))
 
-	sseClient := sse.NewClient(c.initiationEndpoint)
+	// 1 MB max buffer size allows things like large screenshots to be sent
+	sseClient := sse.NewClient(c.initiationEndpoint, sse.ClientMaxBufferSize(1<<20))
 	c.close = func() error {
 		cancel()
 		return nil
