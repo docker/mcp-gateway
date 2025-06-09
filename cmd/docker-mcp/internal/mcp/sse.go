@@ -44,19 +44,19 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 		return nil, fmt.Errorf("failed to parse initiation endpoint: %w", err)
 	}
 
-	ctxClient, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	ctxResponses, cancelResponses := context.WithCancel(context.WithoutCancel(ctx))
 
-	// 1 MB max buffer size allows things like large screenshots to be sent
-	sseClient := sse.NewClient(c.initiationEndpoint, sse.ClientMaxBufferSize(1<<20))
+	// 5 MB max buffer size allows things like large screenshots to be sent
+	sseClient := sse.NewClient(c.initiationEndpoint, sse.ClientMaxBufferSize((1<<20)*5))
 	c.close = func() error {
-		cancel()
+		cancelResponses()
 		return nil
 	}
 
 	sessionPathCh := make(chan string)
 
 	go func() {
-		_ = c.readResponses(ctxClient, sseClient, sessionPathCh)
+		_ = c.readResponses(ctxResponses, sseClient, sessionPathCh)
 		if debug {
 			ep := "[uninitialized]"
 
@@ -69,8 +69,9 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 
 	// Wait for the session endpoint after subscribing
 	select {
-	case <-ctxClient.Done():
-		return nil, ctxClient.Err()
+	case <-ctx.Done():
+		cancelResponses()
+		return nil, ctx.Err()
 	case sessionPath := <-sessionPathCh:
 		sessionEndpoint := fmt.Sprintf("%s://%s%s", parsedUrl.Scheme, parsedUrl.Host, sessionPath)
 		if debug {
@@ -80,13 +81,10 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 	}
 
 	var result mcp.InitializeResult
-	errs := make(chan error)
+
+	errCh := make(chan error)
 	go func() {
-		<-ctxClient.Done()
-		errs <- errors.New("client closed")
-	}()
-	go func() {
-		errs <- func() error {
+		errCh <- func() error {
 			params := struct {
 				ProtocolVersion string                 `json:"protocolVersion"`
 				ClientInfo      mcp.Implementation     `json:"clientInfo"`
@@ -121,7 +119,13 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 		}()
 	}()
 
-	return &result, <-errs
+	err = <-errCh
+	if err != nil {
+		cancelResponses() // cancel the response reader
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 func (c *sseMCPClient) Close() error {
