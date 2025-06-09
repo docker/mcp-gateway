@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -13,29 +14,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/interceptors"
 )
-
-type Config struct {
-	Options
-	ServerNames  []string
-	CatalogPath  string
-	ConfigPath   string
-	RegistryPath string
-	SecretsPath  string
-}
-
-type Options struct {
-	Port             int
-	Transport        string
-	ToolNames        []string
-	Verbose          bool
-	KeepContainers   bool
-	LogCalls         bool
-	BlockSecrets     bool
-	VerifySignatures bool
-	DryRun           bool
-	Watch            bool
-}
 
 type Gateway struct {
 	Options
@@ -59,7 +39,6 @@ func NewGateway(config Config, dockerCli command.Cli) *Gateway {
 	}
 }
 
-//nolint:gocyclo
 func (g *Gateway) Run(ctx context.Context) error {
 	start := time.Now()
 
@@ -106,7 +85,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 	log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
-	toolCallbacks := callbacks(g.LogCalls, g.BlockSecrets)
+	toolCallbacks := interceptors.Callbacks(g.LogCalls, g.BlockSecrets)
 
 	// TODO: cleanup stopped servers. That happens in stdio over TCP mode.
 	var (
@@ -131,8 +110,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 		lock.Lock()
 		changeListeners = append(changeListeners, func(newConfig *Capabilities) {
-			mcpServer.DeleteTools(toolNames(current.Tools)...)
-			mcpServer.DeletePrompts(promptNames(current.Prompts)...)
+			mcpServer.DeleteTools(current.ToolNames()...)
+			mcpServer.DeletePrompts(current.PromptNames()...)
 			mcpServer.AddTools(newConfig.Tools...)
 			mcpServer.AddPrompts(newConfig.Prompts...)
 
@@ -185,36 +164,33 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 
 	// Start the server
-	switch {
-	case strings.EqualFold(g.Transport, "sse") && g.Port > 0:
-		log("> Starting SSE server on port", g.Port)
+	switch strings.ToLower(g.Transport) {
+	case "stdio":
+		if g.Port == 0 {
+			log("> Start stdio server")
+			return startStdioServer(ctx, newMCPServer, os.Stdin, os.Stdout)
+		}
 
-		return startSseServer(ctx, newMCPServer, ln)
-	case strings.EqualFold(g.Transport, "stdio") && g.Port == 0:
-		log("> Starting STDIO server")
-
-		return startStdioServer(ctx, newMCPServer, os.Stdin, os.Stdout)
-	case strings.EqualFold(g.Transport, "stdio") && g.Port > 0:
-		log("> Starting STDIO over TCP server on port", g.Port)
-
+		log("> Start stdio over TCP server on port", g.Port)
 		return startStdioOverTCPServer(ctx, newMCPServer, ln)
+
+	case "sse":
+		if g.Port == 0 {
+			return errors.New("missing 'port' for 'sse' server")
+		}
+
+		log("> Start sse server on port", g.Port)
+		return startSseServer(ctx, newMCPServer, ln)
+
+	case "streaming":
+		if g.Port == 0 {
+			return errors.New("missing 'port' for streaming server")
+		}
+
+		log("> Start streaming server on port", g.Port)
+		return startStreamingServer(ctx, newMCPServer, ln)
+
 	default:
-		return fmt.Errorf("unknown transport %q, expected 'stdio' or 'sse'", g.Transport)
+		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
 	}
-}
-
-func toolNames(tools []server.ServerTool) []string {
-	var names []string
-	for _, tool := range tools {
-		names = append(names, tool.Tool.Name)
-	}
-	return names
-}
-
-func promptNames(tools []server.ServerPrompt) []string {
-	var names []string
-	for _, tool := range tools {
-		names = append(names, tool.Prompt.Name)
-	}
-	return names
 }

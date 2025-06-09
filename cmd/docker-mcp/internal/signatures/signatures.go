@@ -48,7 +48,6 @@ func Verify(ctx context.Context, images []string) error {
 	errs, ctxVerify := errgroup.WithContext(ctx)
 	errs.SetLimit(2)
 	for _, img := range images {
-		img := img
 		errs.Go(func() error {
 			ref, err := name.NewDigest(img)
 			if err != nil {
@@ -72,7 +71,7 @@ func Verify(ctx context.Context, images []string) error {
 			}
 
 			if !bundleVerified {
-				return fmt.Errorf("bundle verification failed")
+				return errors.New("bundle verification failed")
 			}
 
 			return nil

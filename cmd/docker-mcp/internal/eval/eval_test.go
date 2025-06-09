@@ -8,7 +8,7 @@ import (
 
 func TestEvaluateConstant(t *testing.T) {
 	assert.Equal(t, "constant", Evaluate("constant", nil))
-	assert.Equal(t, "", Evaluate("", nil))
+	assert.Empty(t, Evaluate("", nil))
 }
 
 func TestEvaluate(t *testing.T) {
@@ -25,8 +25,8 @@ func TestDotted(t *testing.T) {
 }
 
 func TestEvaluateUnknown(t *testing.T) {
-	assert.Equal(t, "", Evaluate("{{unknown}}", nil))
-	assert.Equal(t, "", Evaluate("{{top.unknown}}", map[string]any{"top": nil}))
+	assert.Empty(t, Evaluate("{{unknown}}", nil))
+	assert.Empty(t, Evaluate("{{top.unknown}}", map[string]any{"top": nil}))
 }
 
 func TestAtlassian(t *testing.T) {
@@ -59,4 +59,34 @@ func TestEvaluateInto(t *testing.T) {
 
 	assert.Equal(t, []string{"v"}, Evaluate("{{k|into}}", map[string]any{"k": "v"}))
 	assert.Equal(t, []string{"v1", "v2"}, Evaluate("{{k|into}}", map[string]any{"k": []string{"v1", "v2"}}))
+}
+
+func TestEvaluateFirst(t *testing.T) {
+	assert.Equal(t, "v", Evaluate("{{k|first}}", map[string]any{"k": "v"}))
+	assert.Equal(t, "v1", Evaluate("{{k|first}}", map[string]any{"k": []string{"v1", "v2"}}))
+	assert.Empty(t, Evaluate("{{k|first}}", map[string]any{"k": []string{}}))
+	assert.Empty(t, Evaluate("{{k|first}}", map[string]any{"k": nil}))
+
+	assert.Equal(t, []string{"v"}, Evaluate("{{k|first|into}}", map[string]any{"k": "v"}))
+	assert.Equal(t, []string{"v1"}, Evaluate("{{k|first|into}}", map[string]any{"k": []string{"v1", "v2"}}))
+}
+
+func TestEvaluateLast(t *testing.T) {
+	assert.Equal(t, "v", Evaluate("{{k|last}}", map[string]any{"k": "v"}))
+	assert.Equal(t, "v2", Evaluate("{{k|last}}", map[string]any{"k": []string{"v1", "v2"}}))
+	assert.Empty(t, Evaluate("{{k|last}}", map[string]any{"k": []string{}}))
+	assert.Empty(t, Evaluate("{{k|last}}", map[string]any{"k": nil}))
+
+	assert.Equal(t, []string{"v"}, Evaluate("{{k|last|into}}", map[string]any{"k": "v"}))
+	assert.Equal(t, []string{"v2"}, Evaluate("{{k|last|into}}", map[string]any{"k": []string{"v1", "v2"}}))
+}
+
+func TestEvaluateOr(t *testing.T) {
+	assert.Equal(t, "default", Evaluate("{{k|or:default}}", map[string]any{"k": nil}))
+	assert.Equal(t, "default", Evaluate("{{k|or:default}}", map[string]any{"k": ""}))
+	assert.Equal(t, "v", Evaluate("{{k|or:default}}", map[string]any{"k": "v"}))
+
+	assert.Equal(t, "v", Evaluate("{{k|or:v}}", map[string]any{"k": []string{}}))
+	assert.Equal(t, []string{}, Evaluate("{{k|or:[]}}", map[string]any{"k": []string{}}))
+	assert.Equal(t, []string{"default"}, Evaluate("{{k|or:[default]}}", map[string]any{"k": []string{}}))
 }

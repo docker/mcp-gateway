@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //go:embed testdata/*
@@ -103,13 +104,14 @@ func Test_yq_list(t *testing.T) {
 				assert.Error(t, err)
 				return
 			}
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, *tc.result, *result)
 		})
 	}
 }
 
 func readTestData(t *testing.T, path string) []byte {
+	t.Helper()
 	file := "testdata/" + path
 	content, err := testData.ReadFile(file)
 	if err != nil {
@@ -176,35 +178,36 @@ func Test_yq_add_del(t *testing.T) {
 			original := readTestData(t, filepath.Join("add_del", tc.original))
 			if len(original) == 0 {
 				afterDelFromEmpty, err := p.Del([]byte{}, "my-server")
-				assert.NoError(t, err)
-				assert.Equal(t, "", string(afterDelFromEmpty))
+				require.NoError(t, err)
+				assert.Empty(t, string(afterDelFromEmpty))
 			}
 			result, err := p.Add(original, MCPServerSTDIO{
 				Name:    "my-server",
 				Command: "docker",
 				Args:    []string{"mcp", "gateway", "run"},
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, string(readTestData(t, filepath.Join("add_del", tc.afterAdd))), string(result))
 			afterDel, err := p.Del(result, "my-server")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, string(readTestData(t, filepath.Join("add_del", tc.afterDel))), string(afterDel))
 			afterDel2, err := p.Del(result, "my-server")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, string(readTestData(t, filepath.Join("add_del", tc.afterDel))), string(afterDel2))
 		})
 	}
 }
 
 func getYQProcessor(t *testing.T, cfg any) yqProcessor {
+	t.Helper()
 	switch e := cfg.(type) {
 	case globalCfg:
 		temp, err := NewGlobalCfgProcessor(e)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		return temp.p
 	case localCfg:
 		temp, err := NewLocalCfgProcessor(e, "")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		return temp.p
 	default:
 		t.Fatalf("unknown cfg type: %T", cfg)

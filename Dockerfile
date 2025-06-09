@@ -7,7 +7,6 @@ FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:${GOLANGCI_LINT_VERSION}
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache git
 COPY go.* ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -29,10 +28,11 @@ EOD
 FROM base AS do-format
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go install golang.org/x/tools/cmd/goimports@latest
+    go install golang.org/x/tools/cmd/goimports@latest \
+    && go install mvdan.cc/gofumpt@latest
 COPY . .
 RUN goimports -local github.com/docker/mcp-cli -w .
-RUN gofmt -s -w .
+RUN gofumpt -w .
 
 FROM scratch AS format
 COPY --from=do-format /app .

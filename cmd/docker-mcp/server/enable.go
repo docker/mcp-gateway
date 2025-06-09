@@ -9,7 +9,6 @@ import (
 
 	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/config"
-	registryconfig "github.com/docker/mcp-cli/cmd/docker-mcp/internal/config"
 )
 
 func Disable(ctx context.Context, dockerClient config.VolumeInspecter, serverNames []string) error {
@@ -27,24 +26,24 @@ func update(ctx context.Context, dockerClient config.VolumeInspecter, add []stri
 		return fmt.Errorf("reading registry config: %w", err)
 	}
 
-	registry, err := registryconfig.ParseRegistryConfig(registryYAML)
+	registry, err := config.ParseRegistryConfig(registryYAML)
 	if err != nil {
 		return fmt.Errorf("parsing registry config: %w", err)
 	}
 
-	catalog, err := catalog.Get()
+	catalog, err := catalog.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	updatedRegistry := registryconfig.Registry{
-		Servers: map[string]registryconfig.Tile{},
+	updatedRegistry := config.Registry{
+		Servers: map[string]config.Tile{},
 	}
 
 	// Keep only servers that are still in the catalog.
 	for serverName := range registry.Servers {
 		if serverSpec, found := catalog.Servers[serverName]; found {
-			updatedRegistry.Servers[serverName] = registryconfig.Tile{
+			updatedRegistry.Servers[serverName] = config.Tile{
 				Ref: serverSpec.Ref,
 			}
 		}
@@ -53,7 +52,7 @@ func update(ctx context.Context, dockerClient config.VolumeInspecter, add []stri
 	// Enable servers.
 	for _, serverName := range add {
 		if serverSpec, found := catalog.Servers[serverName]; found {
-			updatedRegistry.Servers[serverName] = registryconfig.Tile{
+			updatedRegistry.Servers[serverName] = config.Tile{
 				Ref: serverSpec.Ref,
 			}
 		} else {

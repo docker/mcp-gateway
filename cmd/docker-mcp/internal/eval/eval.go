@@ -43,6 +43,15 @@ func evaluateTerm(term string, config map[string]any) any {
 			value = evaluate(value, volumeTarget)
 		case "into":
 			value = into(value)
+		case "first":
+			value = first(value)
+		case "last":
+			value = last(value)
+		default:
+			if strings.HasPrefix(f, "or:") {
+				_, rest, _ := strings.Cut(f, ":")
+				value = or(value, rest)
+			}
 		}
 	}
 
@@ -53,7 +62,7 @@ func evaluate(value any, fn func(v any) string) any {
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Slice {
 		list := make([]string, v.Len())
-		for i := range len(list) {
+		for i := range list {
 			list[i] = fn(v.Index(i).Interface())
 		}
 		return list

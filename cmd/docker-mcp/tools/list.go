@@ -9,7 +9,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-//nolint:gocyclo
 func List(ctx context.Context, version string, debug bool, show, tool, format string) error {
 	c, err := start(ctx, version, debug)
 	if err != nil {

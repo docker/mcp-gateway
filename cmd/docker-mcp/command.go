@@ -21,7 +21,7 @@ import (
 	"github.com/docker/mcp-cli/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-cli/cmd/docker-mcp/server"
 	"github.com/docker/mcp-cli/cmd/docker-mcp/tools"
-	version "github.com/docker/mcp-cli/pkg/config"
+	"github.com/docker/mcp-cli/cmd/docker-mcp/version"
 )
 
 // Note: We use a custom help template to make it more brief.
@@ -61,9 +61,9 @@ func rootCommand(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.
 
 			return nil
 		},
-		Version: fmt.Sprintf("%s, commit %s", version.Version, version.Commit()),
+		Version: version.Version,
 	}
-	cmd.SetVersionTemplate("Docker MCP Plugin\n{{.Version}}\n")
+	cmd.SetVersionTemplate("{{.Version}}\n")
 	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
 	cmd.SetHelpTemplate(helpTemplate)
 
@@ -128,7 +128,7 @@ func gatewayCommand(dockerCli command.Cli) *cobra.Command {
 	runCmd.Flags().StringVar(&options.SecretsPath, "secrets", "", "path to a .env file containing secrets (default to using Docker Deskop's secrets API)")
 	runCmd.Flags().StringArrayVar(&options.ToolNames, "tools", options.ToolNames, "List of tools to enable")
 	runCmd.Flags().IntVar(&options.Port, "port", options.Port, "TCP port to listen on (default is to listen on stdio)")
-	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio or sse (default is stdio)")
+	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming (default is stdio)")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
 	runCmd.Flags().BoolVar(&options.BlockSecrets, "block-secrets", options.BlockSecrets, "Block secrets from being/received sent to/from tools")
 	runCmd.Flags().BoolVar(&options.VerifySignatures, "verify-signatures", options.VerifySignatures, "Verify signatures of the server images")

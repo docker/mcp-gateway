@@ -79,10 +79,10 @@ func WriteCatalogFile(name string, content []byte) error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(file, content, 0644)
+	return os.WriteFile(file, content, 0o644)
 }
 
 func assertConfigDirsExist() error {
@@ -92,7 +92,7 @@ func assertConfigDirsExist() error {
 	}
 	dir := filepath.Join(homeDir, ".docker", configDir, catalogsDir)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return os.MkdirAll(dir, 0755)
+		return os.MkdirAll(dir, 0o755)
 	}
 	return nil
 }
@@ -115,8 +115,8 @@ func writeConfig(cfg *Config) error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(configFilePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configFilePath), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(configFilePath, data, 0644)
+	return os.WriteFile(configFilePath, data, 0o644)
 }

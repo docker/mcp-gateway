@@ -3,7 +3,6 @@ package secret
 import (
 	"io"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/docker/docker-credential-helpers/client"
@@ -44,17 +43,6 @@ func (store *CredStoreProvider) DeleteSecret(id string) error {
 	return store.credentialHelper.Delete(getSecretKey(id))
 }
 
-func DefaultCredentialHelper() string {
-	switch runtime.GOOS {
-	case "darwin":
-		return "docker-credential-osxkeychain"
-	case "windows":
-		return "docker-credential-wincred.exe"
-	default:
-		return "docker-credential-pass"
-	}
-}
-
 func GetHelper() credentials.Helper {
 	credentialHelperPath := desktop.Paths().CredentialHelperPath()
 	return Helper{
@@ -91,7 +79,7 @@ type Helper struct {
 }
 
 func (h Helper) List() (map[string]string, error) {
-	return nil, nil
+	return map[string]string{}, nil
 }
 
 // Add stores new credentials.

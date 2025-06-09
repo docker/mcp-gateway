@@ -66,7 +66,7 @@ Key points:
 - Via a developer portal, 3rd parties can add OAuth clients (config with client_id, client_secret, redirect_uri).
 - We provide a secure and easy way to store and access secrets.
 
-### Pre authorization (`docker mcp auth notion my-server`)
+### Pre-authorization (`docker mcp auth notion my-server`)
 ```mermaid
 sequenceDiagram
     participant A as Authorisation Server

@@ -21,7 +21,7 @@ type rule struct {
 }
 
 func (r *rule) matches(content string) bool {
-	var lower = strings.ToLower(content)
+	lower := strings.ToLower(content)
 
 	for _, kw := range r.keywords {
 		if strings.Contains(lower, strings.ToLower(kw)) {

@@ -26,7 +26,6 @@ type ServerResourceTemplate struct {
 	Handler          server.ResourceTemplateHandlerFunc
 }
 
-//nolint:gocyclo
 func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string) (*Capabilities, error) {
 	var (
 		lock            sync.Mutex
@@ -188,6 +187,22 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 		Resources:         serverResources,
 		ResourceTemplates: serverResourceTemplates,
 	}, nil
+}
+
+func (c *Capabilities) ToolNames() []string {
+	var names []string
+	for _, tool := range c.Tools {
+		names = append(names, tool.Tool.Name)
+	}
+	return names
+}
+
+func (c *Capabilities) PromptNames() []string {
+	var names []string
+	for _, prompt := range c.Prompts {
+		names = append(names, prompt.Prompt.Name)
+	}
+	return names
 }
 
 func isToolEnabled(serverName, serverImage, toolName string, enabledTools []string) bool {

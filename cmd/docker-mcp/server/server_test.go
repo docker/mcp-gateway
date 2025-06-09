@@ -151,9 +151,9 @@ func setup(t *testing.T, options ...option) (context.Context, string, config.Vol
 
 func writeFile(t *testing.T, path string, content []byte) {
 	t.Helper()
-	err := os.MkdirAll(filepath.Dir(path), 0755)
+	err := os.MkdirAll(filepath.Dir(path), 0o755)
 	require.NoError(t, err)
-	err = os.WriteFile(path, content, 0644)
+	err = os.WriteFile(path, content, 0o644)
 	require.NoError(t, err)
 }
 
@@ -188,6 +188,7 @@ func withoutPromptsVolume() option {
 
 func withEmptyPromptsVolume() option {
 	return func(t *testing.T, _ string, dockerAPI *fakeDockerAPI) {
+		t.Helper()
 		dockerAPI.inspectErr = nil
 
 		cmdOutput := config.CmdOutput
@@ -200,6 +201,7 @@ func withEmptyPromptsVolume() option {
 
 func withRegistryYamlInPromptsVolume(yaml string) option {
 	return func(t *testing.T, _ string, dockerAPI *fakeDockerAPI) {
+		t.Helper()
 		dockerAPI.inspectErr = nil
 
 		cmdOutput := config.CmdOutput
@@ -212,6 +214,7 @@ func withRegistryYamlInPromptsVolume(yaml string) option {
 
 func withRegistryYaml(yaml string) option {
 	return func(t *testing.T, home string, _ *fakeDockerAPI) {
+		t.Helper()
 		writeFile(t, filepath.Join(home, ".docker/mcp/registry.yaml"), []byte(yaml))
 	}
 }
@@ -222,6 +225,7 @@ func withEmptyRegistryYaml() option {
 
 func withCatalog(yaml string) option {
 	return func(t *testing.T, home string, _ *fakeDockerAPI) {
+		t.Helper()
 		writeFile(t, filepath.Join(home, ".docker/mcp/catalogs/docker-mcp.yaml"), []byte(yaml))
 	}
 }

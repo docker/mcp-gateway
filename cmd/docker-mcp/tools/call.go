@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 func Call(ctx context.Context, version string, debug bool, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("no tool name provided")
+		return errors.New("no tool name provided")
 	}
 	toolName := args[0]
 
@@ -77,7 +78,7 @@ func parseArgs(args []string) map[string]any {
 		}
 	}
 
-	// MCP servers return an error if the args are empty so we make sure
+	// MCP servers return an error if the args are empty, so we make sure
 	// there is at least one argument
 	if len(parsed) == 0 {
 		parsed["args"] = "..."

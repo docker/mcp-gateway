@@ -72,7 +72,6 @@ func newShowCommand() *cobra.Command {
 	return cmd
 }
 
-//nolint:gocyclo
 func runShow(ctx context.Context, name string, opts showOpts) error {
 	cfg, err := ReadConfigWithDefaultCatalog(ctx)
 	if err != nil {

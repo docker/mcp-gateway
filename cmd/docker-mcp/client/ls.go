@@ -124,7 +124,7 @@ func parseLocalProjectConfigs(projectRoot string, config Config) ProjectConfigs 
 			continue
 		}
 		cfg := processor.Parse()
-		cfg.MCPClientCfgBase.ConfigName = v
+		cfg.ConfigName = v
 		result.data[v] = cfg
 	}
 	return result
@@ -192,7 +192,7 @@ func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
 			continue
 		}
 		cfg := processor.ParseConfig()
-		cfg.MCPClientCfgBase.ConfigName = v
+		cfg.ConfigName = v
 		result[v] = cfg
 	}
 	err := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")

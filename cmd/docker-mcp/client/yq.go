@@ -36,7 +36,7 @@ func newYQProcessor(yq YQ, path string) (*yqProcessor, error) {
 }
 
 func (c *yqProcessor) Parse(data []byte) (*MCPJSONLists, error) {
-	tmpJSON, err := yq.Evaluate(c.YQ.List, data, c.decoder, yq.NewJSONEncoder())
+	tmpJSON, err := yq.Evaluate(c.List, data, c.decoder, yq.NewJSONEncoder())
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (c *yqProcessor) Add(data []byte, server MCPServerSTDIO) ([]byte, error) {
 	if len(data) == 0 {
 		data = []byte("null")
 	}
-	expression := os.Expand(c.YQ.Set, func(s string) string { return expandSetQuery(s, server) })
+	expression := os.Expand(c.Set, func(s string) string { return expandSetQuery(s, server) })
 	return yq.Evaluate(expression, data, c.decoder, c.encoder)
 }
 

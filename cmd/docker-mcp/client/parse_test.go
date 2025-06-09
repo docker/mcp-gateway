@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_UnmarshalMCPJSONList(t *testing.T) {
@@ -60,7 +61,7 @@ func Test_UnmarshalMCPJSONList(t *testing.T) {
 				assert.Error(t, err)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tc.result, result)
 		})
 	}

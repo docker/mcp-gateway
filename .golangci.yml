@@ -1,40 +1,51 @@
+version: "2"
 linters:
-  enable-all: false
-  disable-all: true
+  default: none
   enable:
+    - containedctx
+    - copyloopvar
     - errcheck
-    - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
+    - ginkgolinter
+    - gocritic
     - govet
+    - importas      # Enforces consistent import aliases.
     - ineffassign
-    - lll
     - misspell
     - nakedret
     - nolintlint
     - revive
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
-linters-settings:
-  gocritic:
-    disabled-checks:
-      - dupArg
-      - assignOp
-      - captLocal
-      - ifElseChain
-      - singleCaseSwitch
-      - dupSubExpr
-      - appendAssign
-      - exitAfterDefer
-      - unslice
-  gocyclo:
-    min-complexity: 16
-  goimports:
-    local-prefixes: github.com/docker/mcp-cli
-  lll:
-    line-length: 200
+    - usestdlibvars
+    - noctx
+    - nilnil
+    - testifylint
+    - intrange
+    - thelper
 
+  settings:
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - exitAfterDefer
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofmt:
+      simplify: false
+      rewrite-rules:
+        - pattern: interface{}
+          replacement: any
+    goimports:
+      local-prefixes:
+        - github.com/docker/mcp-cli

@@ -42,7 +42,7 @@ func NewStdioCmdClient(name string, command string, env []string, args ...string
 
 func (c *stdioMCPClient) Initialize(ctx context.Context, request mcp.InitializeRequest, debug bool) (*mcp.InitializeResult, error) {
 	if c.initialized.Load() {
-		return nil, fmt.Errorf("client already initialized")
+		return nil, errors.New("client already initialized")
 	}
 
 	ctxCmd, cancel := context.WithCancel(context.WithoutCancel(ctx))

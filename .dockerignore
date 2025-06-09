@@ -1,6 +1,5 @@
 *
 !/cmd/**/*
-!/pkg/**/*
 !/go.mod
 !/go.sum
 !/.golangci.yml

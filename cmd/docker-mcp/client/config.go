@@ -4,15 +4,15 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
 )
 
@@ -84,9 +84,7 @@ func getSupportedMCPClients(cfg Config) []string {
 	for k := range cfg.Project {
 		tmp[k] = struct{}{}
 	}
-	result := maps.Keys(tmp)
-	sort.Strings(result)
-	return result
+	return slices.Sorted(maps.Keys(tmp))
 }
 
 type ErrVendorNotFound struct {

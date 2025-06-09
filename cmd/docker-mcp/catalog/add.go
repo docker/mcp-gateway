@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -70,7 +71,7 @@ func validateArgs(args ParsedAddArgs) error {
 		return fmt.Errorf("catalog %q is a remote catalog", args.Dst)
 	}
 	if args.Dst == args.Src {
-		return fmt.Errorf("cannot add server to the same catalog")
+		return errors.New("cannot add server to the same catalog")
 	}
 	return nil
 }

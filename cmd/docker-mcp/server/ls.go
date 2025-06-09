@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/config"
-	registryconfig "github.com/docker/mcp-cli/cmd/docker-mcp/internal/config"
 )
 
 func List(ctx context.Context, dockerClient config.VolumeInspecter) ([]string, error) {
@@ -13,7 +12,7 @@ func List(ctx context.Context, dockerClient config.VolumeInspecter) ([]string, e
 		return nil, err
 	}
 
-	registry, err := registryconfig.ParseRegistryConfig(registryYAML)
+	registry, err := config.ParseRegistryConfig(registryYAML)
 	if err != nil {
 		return nil, err
 	}

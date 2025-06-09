@@ -33,7 +33,7 @@ func RmCommand() *cobra.Command {
 
 func validateArgs(args []string, opts rmOpts) error {
 	if len(args) == 0 && !opts.All {
-		return fmt.Errorf("either provide a secret name or use --all to remove all secrets")
+		return errors.New("either provide a secret name or use --all to remove all secrets")
 	}
 	return nil
 }

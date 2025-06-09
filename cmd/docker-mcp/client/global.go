@@ -127,8 +127,10 @@ func containsMCPDocker(in []MCPServerSTDIO) bool {
 	return false
 }
 
-type cfgAdd func([]byte, MCPServerSTDIO) ([]byte, error)
-type cfgDel func([]byte, string) ([]byte, error)
+type (
+	cfgAdd func([]byte, MCPServerSTDIO) ([]byte, error)
+	cfgDel func([]byte, string) ([]byte, error)
+)
 
 func updateConfig(file string, add cfgAdd, del cfgDel, key string, server *MCPServerSTDIO) error {
 	dir := filepath.Dir(file)
@@ -136,7 +138,7 @@ func updateConfig(file string, add cfgAdd, del cfgDel, key string, server *MCPSe
 		if !os.IsNotExist(err) {
 			return err
 		}
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 	}
@@ -156,10 +158,10 @@ func updateConfig(file string, add cfgAdd, del cfgDel, key string, server *MCPSe
 		}
 	}
 
-	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(file, data, 0644)
+	return os.WriteFile(file, data, 0o644)
 }
 
 type MCPClientCfg struct {
@@ -173,8 +175,7 @@ func classifyError(err error) *CfgError {
 		return nil
 	}
 	errType := "unknown"
-	switch {
-	case os.IsPermission(err):
+	if os.IsPermission(err) {
 		errType = "permission"
 	}
 	return &CfgError{

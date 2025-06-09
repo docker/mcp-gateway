@@ -57,10 +57,10 @@ func writeConfigFile(name string, content []byte) error {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, content, 0644)
+	return os.WriteFile(path, content, 0o644)
 }
 
 func FilePath(name string) (string, error) {
