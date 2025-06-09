@@ -21,11 +21,10 @@ type Configurator interface {
 }
 
 type Configuration struct {
-	serverNames         []string
-	httpServerEndpoints map[string]string
-	servers             map[string]catalog.Server
-	config              map[string]map[string]any
-	secrets             map[string]string
+	serverNames []string
+	servers     map[string]catalog.Server
+	config      map[string]map[string]any
+	secrets     map[string]string
 }
 
 type ServerConfig struct {
@@ -43,12 +42,12 @@ func (c *Configuration) DockerImages() []string {
 	uniqueDockerImages := map[string]bool{}
 
 	for _, serverName := range c.serverNames {
-		serverConfig, tools, _, found := c.Find(serverName)
+		serverConfig, tools, found := c.Find(serverName)
 
 		switch {
 		case !found:
 			log("MCP server not found:", serverName)
-		case serverConfig != nil:
+		case serverConfig != nil && serverConfig.Spec.Image != "":
 			uniqueDockerImages[serverConfig.Spec.Image] = true
 		case tools != nil:
 			for _, tool := range *tools {
@@ -65,21 +64,15 @@ func (c *Configuration) DockerImages() []string {
 	return dockerImages
 }
 
-func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]catalog.Tool, *string, bool) {
-	// is it an http server?
-	endpoint, ok := c.httpServerEndpoints[serverName]
-	if ok {
-		return nil, nil, &endpoint, true
-	}
-
+func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]catalog.Tool, bool) {
 	// Is it in the catalog?
 	server, ok := c.servers[serverName]
 	if !ok {
-		return nil, nil, nil, false
+		return nil, nil, false
 	}
 
 	// Is it an MCP Server?
-	if server.Image != "" {
+	if server.Image != "" || server.SSEEndpoint != "" {
 		return &ServerConfig{
 			Name: serverName,
 			Spec: server,
@@ -87,7 +80,7 @@ func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]cata
 				serverName: c.config[serverName],
 			},
 			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
-		}, nil, nil, true
+		}, nil, true
 	}
 
 	// Then it's a POCI?
@@ -95,7 +88,7 @@ func (c *Configuration) Find(serverName string) (*ServerConfig, *map[string]cata
 	for _, tool := range server.Tools {
 		byName[tool.Name] = tool
 	}
-	return nil, &byName, nil, true
+	return nil, &byName, true
 }
 
 type FileBasedConfiguration struct {
@@ -188,7 +181,6 @@ func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan 
 
 func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, error) {
 	var serverNames []string
-	var httpServerEndpoints map[string]string
 
 	if len(c.ServerNames) > 0 {
 		serverNames = c.ServerNames
@@ -199,7 +191,6 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 
 		serverNames = registryConfig.ServerNames()
-		httpServerEndpoints = registryConfig.HttpServerEndpoints()
 	}
 
 	mcpCatalog, err := c.readCatalog(ctx)
@@ -229,11 +220,10 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	}
 
 	return Configuration{
-		serverNames:         serverNames,
-		servers:             servers,
-		config:              serversConfig,
-		secrets:             secrets,
-		httpServerEndpoints: httpServerEndpoints,
+		serverNames: serverNames,
+		servers:     servers,
+		config:      serversConfig,
+		secrets:     secrets,
 	}, nil
 }
 

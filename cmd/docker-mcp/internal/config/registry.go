@@ -11,9 +11,8 @@ type Registry struct {
 }
 
 type Tile struct {
-	Ref      string         `yaml:"ref"`
-	Endpoint string         `yaml:"endpoint,omitempty"`
-	Config   map[string]any `yaml:"config,omitempty"`
+	Ref    string         `yaml:"ref"`
+	Config map[string]any `yaml:"config,omitempty"`
 }
 
 func ParseRegistryConfig(registryYaml []byte) (Registry, error) {
@@ -34,16 +33,4 @@ func (r *Registry) ServerNames() []string {
 	sort.Strings(names)
 
 	return names
-}
-
-func (r *Registry) HttpServerEndpoints() map[string]string {
-	endpoints := make(map[string]string)
-
-	for name, tile := range r.Servers {
-		if tile.Endpoint != "" {
-			endpoints[name] = tile.Endpoint
-		}
-	}
-
-	return endpoints
 }
