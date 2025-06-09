@@ -168,7 +168,7 @@ func (c *sseMCPClient) readResponses(ctx context.Context, sseClient *sse.Client,
 }
 
 func (c *sseMCPClient) doHTTPRequest(ctx context.Context, jsonData []byte) error {
-	req, err := http.NewRequestWithContext(ctx, "POST", *c.sessionEndpoint, bytes.NewReader(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, *c.sessionEndpoint, bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
