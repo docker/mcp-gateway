@@ -10,7 +10,7 @@ import (
 	client "github.com/docker/mcp-cli/cmd/docker-mcp/internal/mcp"
 )
 
-func start(ctx context.Context, version string, debug bool) (client.MCPClient, error) {
+func start(ctx context.Context, version string, debug bool) (client.Client, error) {
 	var args []string
 	if version == "2" {
 		args = []string{"mcp", "gateway", "run"}

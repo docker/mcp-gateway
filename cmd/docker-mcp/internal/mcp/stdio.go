@@ -31,7 +31,7 @@ type stdioMCPClient struct {
 	initialized atomic.Bool
 }
 
-func NewStdioCmdClient(name string, command string, env []string, args ...string) MCPClient {
+func NewStdioCmdClient(name string, command string, env []string, args ...string) Client {
 	return &stdioMCPClient{
 		name:    name,
 		command: command,

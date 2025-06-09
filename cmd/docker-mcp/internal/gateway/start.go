@@ -66,7 +66,7 @@ func (g *Gateway) runToolContainer(ctx context.Context, tool catalog.Tool, reque
 	return mcp.NewToolResultText(string(out)), nil
 }
 
-func (g *Gateway) startSSEMCPClient(ctx context.Context, serverName string, endpoint string, readOnly *bool) (mcpclient.MCPClient, error) {
+func (g *Gateway) startSSEMCPClient(ctx context.Context, serverName string, endpoint string) (mcpclient.Client, error) {
 	client := mcpclient.NewSSEClient(serverName, endpoint)
 
 	initRequest := mcp.InitializeRequest{}
@@ -86,7 +86,7 @@ func (g *Gateway) startSSEMCPClient(ctx context.Context, serverName string, endp
 	return client, nil
 }
 
-func (g *Gateway) startStdioMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.MCPClient, error) {
+func (g *Gateway) startStdioMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.Client, error) {
 	image := serverConfig.Spec.Image
 
 	args, env := g.argsAndEnv(serverConfig, readOnly)

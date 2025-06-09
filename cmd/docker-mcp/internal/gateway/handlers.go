@@ -18,10 +18,10 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) server.ToolHandlerFunc {
 
 func (g *Gateway) mcpServerToolHandler(serverConfig ServerConfig, annotations mcp.ToolAnnotation) server.ToolHandlerFunc {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		var client mcpclient.MCPClient
+		var client mcpclient.Client
 		var err error
 		if serverConfig.Spec.SSEEndpoint != "" {
-			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint, annotations.ReadOnlyHint)
+			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 		} else {
 			client, err = g.startStdioMCPClient(ctx, serverConfig, annotations.ReadOnlyHint)
 		}
@@ -36,10 +36,10 @@ func (g *Gateway) mcpServerToolHandler(serverConfig ServerConfig, annotations mc
 
 func (g *Gateway) mcpServerPromptHandler(serverConfig ServerConfig) server.PromptHandlerFunc {
 	return func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		var client mcpclient.MCPClient
+		var client mcpclient.Client
 		var err error
 		if serverConfig.Spec.SSEEndpoint != "" {
-			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint, &readOnly)
+			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 		} else {
 			client, err = g.startStdioMCPClient(ctx, serverConfig, &readOnly)
 		}
@@ -54,10 +54,10 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig ServerConfig) server.Promp
 
 func (g *Gateway) mcpServerResourceHandler(serverConfig ServerConfig) server.ResourceHandlerFunc {
 	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		var client mcpclient.MCPClient
+		var client mcpclient.Client
 		var err error
 		if serverConfig.Spec.SSEEndpoint != "" {
-			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint, &readOnly)
+			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 		} else {
 			client, err = g.startStdioMCPClient(ctx, serverConfig, &readOnly)
 		}
@@ -77,10 +77,10 @@ func (g *Gateway) mcpServerResourceHandler(serverConfig ServerConfig) server.Res
 
 func (g *Gateway) mcpServerResourceTemplateHandler(serverConfig ServerConfig) server.ResourceTemplateHandlerFunc {
 	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		var client mcpclient.MCPClient
+		var client mcpclient.Client
 		var err error
 		if serverConfig.Spec.SSEEndpoint != "" {
-			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint, &readOnly)
+			client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 		} else {
 			client, err = g.startStdioMCPClient(ctx, serverConfig, &readOnly)
 		}

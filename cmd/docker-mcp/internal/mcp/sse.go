@@ -27,7 +27,7 @@ type sseMCPClient struct {
 	initialized atomic.Bool
 }
 
-func NewSSEClient(name string, endpoint string) MCPClient {
+func NewSSEClient(name string, endpoint string) Client {
 	return &sseMCPClient{
 		name:               name,
 		initiationEndpoint: endpoint,
@@ -39,7 +39,7 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 		return nil, fmt.Errorf("client already initialized")
 	}
 
-	parsedUrl, err := url.Parse(c.initiationEndpoint)
+	parsedURL, err := url.Parse(c.initiationEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse initiation endpoint: %w", err)
 	}
@@ -73,7 +73,7 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 		cancelResponses()
 		return nil, ctx.Err()
 	case sessionPath := <-sessionPathCh:
-		sessionEndpoint := fmt.Sprintf("%s://%s%s", parsedUrl.Scheme, parsedUrl.Host, sessionPath)
+		sessionEndpoint := fmt.Sprintf("%s://%s%s", parsedURL.Scheme, parsedURL.Host, sessionPath)
 		if debug {
 			fmt.Fprintf(os.Stderr, "  - connected to session endpoint for %s: %s\n", c.name, sessionEndpoint)
 		}
@@ -109,7 +109,7 @@ func (c *sseMCPClient) Initialize(ctx context.Context, request mcp.InitializeReq
 				return fmt.Errorf("failed to marshal initialized notification: %w", err)
 			}
 
-			err = c.doHttpRequest(ctx, data)
+			err = c.doHTTPRequest(ctx, data)
 			if err != nil {
 				return err
 			}
@@ -167,7 +167,7 @@ func (c *sseMCPClient) readResponses(ctx context.Context, sseClient *sse.Client,
 	})
 }
 
-func (c *sseMCPClient) doHttpRequest(ctx context.Context, jsonData []byte) error {
+func (c *sseMCPClient) doHTTPRequest(ctx context.Context, jsonData []byte) error {
 	req, err := http.NewRequestWithContext(ctx, "POST", *c.sessionEndpoint, bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -203,7 +203,7 @@ func (c *sseMCPClient) sendRequest(ctx context.Context, method string, params an
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	err = c.doHttpRequest(ctx, data)
+	err = c.doHTTPRequest(ctx, data)
 	if err != nil {
 		return nil, err
 	}
