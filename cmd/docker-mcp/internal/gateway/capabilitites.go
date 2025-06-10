@@ -10,8 +10,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"golang.org/x/sync/errgroup"
-
-	mcpclient "github.com/docker/mcp-cli/cmd/docker-mcp/internal/mcp"
 )
 
 type Capabilities struct {
@@ -44,20 +42,10 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
-				var client mcpclient.Client
-				var err error
-				if serverConfig.Spec.SSEEndpoint != "" {
-					client, err = g.startSSEMCPClient(ctx, serverConfig.Name, serverConfig.Spec.SSEEndpoint)
-					if err != nil {
-						logf("  > Can't connect to %s: %s", serverConfig.Name, err)
-						return nil
-					}
-				} else {
-					client, err = g.startStdioMCPClient(ctx, *serverConfig, &readOnly)
-					if err != nil {
-						logf("  > Can't start %s: %s", serverConfig.Name, err)
-						return nil
-					}
+				client, err := g.startMCPClient(ctx, *serverConfig, &readOnly)
+				if err != nil {
+					logf("  > Can't start %s: %s", serverConfig.Name, err)
+					return nil
 				}
 				defer client.Close()
 

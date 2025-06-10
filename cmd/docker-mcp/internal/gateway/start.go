@@ -66,43 +66,29 @@ func (g *Gateway) runToolContainer(ctx context.Context, tool catalog.Tool, reque
 	return mcp.NewToolResultText(string(out)), nil
 }
 
-func (g *Gateway) startSSEMCPClient(ctx context.Context, serverName string, endpoint string) (mcpclient.Client, error) {
-	client := mcpclient.NewSSEClient(serverName, endpoint)
+func (g *Gateway) startMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.Client, error) {
+	var client mcpclient.Client
 
-	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = mcp.Implementation{
-		Name:    "docker",
-		Version: "1.0.0",
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-
-	if _, err := client.Initialize(ctx, initRequest, g.Verbose); err != nil {
-		return nil, fmt.Errorf("initializing %s: %w", endpoint, err)
-	}
-
-	return client, nil
-}
-
-func (g *Gateway) startStdioMCPClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.Client, error) {
-	image := serverConfig.Spec.Image
-
-	args, env := g.argsAndEnv(serverConfig, readOnly)
-
-	command := expandEnvList(eval.EvaluateList(serverConfig.Spec.Command, serverConfig.Config), env)
-	if len(command) == 0 {
-		log("  - Running server", imageBaseName(image), "with", args)
+	if serverConfig.Spec.SSEEndpoint != "" {
+		client = mcpclient.NewSSEClient(serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 	} else {
-		log("  - Running server", imageBaseName(image), "with", args, "and command", command)
-	}
+		image := serverConfig.Spec.Image
 
-	var runArgs []string
-	runArgs = append(runArgs, args...)
-	runArgs = append(runArgs, image)
-	runArgs = append(runArgs, command...)
-	client := mcpclient.NewStdioCmdClient(serverConfig.Name, "docker", env, runArgs...)
+		args, env := g.argsAndEnv(serverConfig, readOnly)
+
+		command := expandEnvList(eval.EvaluateList(serverConfig.Spec.Command, serverConfig.Config), env)
+		if len(command) == 0 {
+			log("  - Running server", imageBaseName(image), "with", args)
+		} else {
+			log("  - Running server", imageBaseName(image), "with", args, "and command", command)
+		}
+
+		var runArgs []string
+		runArgs = append(runArgs, args...)
+		runArgs = append(runArgs, image)
+		runArgs = append(runArgs, command...)
+		client = mcpclient.NewStdioCmdClient(serverConfig.Name, "docker", env, runArgs...)
+	}
 
 	initRequest := mcp.InitializeRequest{}
 	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
@@ -115,7 +101,11 @@ func (g *Gateway) startStdioMCPClient(ctx context.Context, serverConfig ServerCo
 	defer cancel()
 
 	if _, err := client.Initialize(ctx, initRequest, g.Verbose); err != nil {
-		return nil, fmt.Errorf("initializing %s: %w", image, err)
+		initializedObject := serverConfig.Spec.Image
+		if serverConfig.Spec.SSEEndpoint != "" {
+			initializedObject = serverConfig.Spec.SSEEndpoint
+		}
+		return nil, fmt.Errorf("initializing %s: %w", initializedObject, err)
 	}
 
 	return client, nil
