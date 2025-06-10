@@ -93,13 +93,9 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, request mcp.InitializeR
 	}()
 
 	var result mcp.InitializeResult
-	errs := make(chan error)
+	errCh := make(chan error)
 	go func() {
-		<-ctxCmd.Done()
-		errs <- errors.New(stderr.String())
-	}()
-	go func() {
-		errs <- func() error {
+		errCh <- func() error {
 			params := struct {
 				ProtocolVersion string                 `json:"protocolVersion"`
 				ClientInfo      mcp.Implementation     `json:"clientInfo"`
@@ -110,7 +106,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, request mcp.InitializeR
 				Capabilities:    request.Params.Capabilities,
 			}
 
-			if err := c.request(ctx, "initialize", params, &result); err != nil {
+			if err := c.request(ctxCmd, "initialize", params, &result); err != nil {
 				return err
 			}
 
@@ -129,7 +125,19 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, request mcp.InitializeR
 		}()
 	}()
 
-	return &result, <-errs
+	select {
+	case <-ctxCmd.Done():
+		return nil, errors.New(stderr.String())
+	case <-ctx.Done():
+		cancel() // need to also cancel command if timed out or cancelled from parent
+		return nil, ctx.Err()
+	case err := <-errCh:
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &result, nil
 }
 
 func (c *stdioMCPClient) Close() error {
