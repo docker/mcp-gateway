@@ -1,4 +1,4 @@
-module github.com/docker/mcp-cli
+module github.com/docker/docker-mcp
 
 go 1.24.4
 

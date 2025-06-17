@@ -17,7 +17,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/logs"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/logs"
 )
 
 type stdioMCPClient struct {

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/logs"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/logs"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
 )
 
 const image = "davidgageot135/http-proxy@sha256:e021c46e5201ab824b846c956252f13e4bb5612ca30bc51e3fbbdff5d5273db6"

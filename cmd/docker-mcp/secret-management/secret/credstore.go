@@ -8,7 +8,7 @@ import (
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/desktop"
 )
 
 type CredStoreProvider struct {

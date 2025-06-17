@@ -7,7 +7,7 @@ import (
 
 	cerrdefs "github.com/containerd/errdefs"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/docker"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
 )
 
 const busybox = "busybox@sha256:37f7b378a29ceb4c551b1b5582e27747b855bbfaa73fa11914fe0df028dc581f"

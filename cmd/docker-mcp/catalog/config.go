@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/user"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/user"
 )
 
 const (

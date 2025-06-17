@@ -12,8 +12,8 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/docker"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/version"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/version"
 )
 
 func main() {

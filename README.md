@@ -1,6 +1,6 @@
 # Docker MCP CLI
 
-![build](https://github.com/docker/mcp-cli/actions/workflows/ci.yml/badge.svg)
+![build](https://github.com/docker/docker-mcp/actions/workflows/ci.yml/badge.svg)
 
 A Docker CLI plugin that provides a gateway for the Model Context Protocol (MCP), enabling seamless integration between AI language models and Docker-based MCP servers.
 
@@ -39,8 +39,8 @@ The Docker MCP CLI serves as a gateway that:
 
 ```bash
 # Clone the repository
-git clone https://github.com/docker/mcp-cli.git
-cd mcp-cli
+git clone https://github.com/docker/docker-mcp.git
+cd docker-mcp
 
 # Build and install the plugin
 make docker-mcp
@@ -229,5 +229,5 @@ This project follows a Code of Conduct. Please review it in [CODE_OF_CONDUCT.md]
 
 - 📖 [MCP Specification](https://spec.modelcontextprotocol.io/)
 - 🐳 [Docker Desktop Documentation](https://docs.docker.com/desktop/)
-- 🐛 [Report Issues](https://github.com/docker/mcp-cli/issues)
-- 💬 [Discussions](https://github.com/docker/mcp-cli/discussions)
+- 🐛 [Report Issues](https://github.com/docker/docker-mcp/issues)
+- 💬 [Discussions](https://github.com/docker/docker-mcp/discussions)

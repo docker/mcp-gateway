@@ -53,4 +53,4 @@ formatters:
           replacement: any
     goimports:
       local-prefixes:
-        - github.com/docker/mcp-cli
+        - github.com/docker/docker-mcp

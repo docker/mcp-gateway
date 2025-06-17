@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/docker"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/user"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/user"
 )
 
 func ReadConfig(ctx context.Context, docker docker.Client) ([]byte, error) {

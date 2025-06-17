@@ -10,9 +10,9 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/eval"
-	mcpclient "github.com/docker/mcp-cli/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/eval"
+	mcpclient "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
 )
 
 var readOnly = true

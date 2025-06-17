@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/secret-management/formatting"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/secret-management/formatting"
 )
 
 type listOptions struct {

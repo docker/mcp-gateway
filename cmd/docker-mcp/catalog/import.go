@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/tui"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/tui"
 )
 
 func newImportCmd() *cobra.Command {

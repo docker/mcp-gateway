@@ -8,7 +8,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/sockets"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/sockets"
 )
 
 func startStdioServer(ctx context.Context, newMCPServer func() *server.MCPServer, stdin io.Reader, stdout io.Writer) error {

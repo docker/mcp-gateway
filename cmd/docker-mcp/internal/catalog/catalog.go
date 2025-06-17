@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/user"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/user"
 )
 
 func Get(ctx context.Context) (Catalog, error) {

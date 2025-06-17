@@ -12,9 +12,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/config"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/docker"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/config"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
 )
 
 type Configurator interface {

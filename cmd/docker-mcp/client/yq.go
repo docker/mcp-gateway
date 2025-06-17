@@ -8,7 +8,7 @@ import (
 
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/yq"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/yq"
 )
 
 type YQ struct {

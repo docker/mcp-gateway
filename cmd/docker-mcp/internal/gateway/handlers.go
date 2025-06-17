@@ -6,7 +6,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
 )
 
 func (g *Gateway) mcpToolHandler(tool catalog.Tool) server.ToolHandlerFunc {

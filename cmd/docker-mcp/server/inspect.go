@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/catalog"
 )
 
 type Info struct {

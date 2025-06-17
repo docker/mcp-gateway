@@ -49,18 +49,18 @@ docker-mcp-cross:
 
 push-test-image: TAG=v100.0.8
 push-test-image: MODULE_IMAGE=docker/docker-mcp-cli-desktop-module-test
-push-test-image: docker-mcp-cross push-module-image ## push a test package for mcp-cli module
+push-test-image: docker-mcp-cross push-module-image ## push a test package
 
 build-test-image: TAG=v100.0.8
 build-test-image: MODULE_IMAGE=docker/docker-mcp-cli-desktop-module-test
-build-test-image: docker-mcp-cross build-module-image ## create a test package for mcp-cli module
+build-test-image: docker-mcp-cross build-module-image ## create a test package
 
-push-module-image: ## Build and push the image for mcp-cli module: make push-module-image TAG=v0.0.1
+push-module-image: ## Build and push the image: make push-module-image TAG=v0.0.1
 	cp -r dist ./module-image
 	docker pull $(MODULE_IMAGE):$(TAG) && echo "Failure: Tag already exists" || docker buildx build --push --platform=linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64 --build-arg TAG=$(TAG) --tag=$(MODULE_IMAGE):$(TAG) ./module-image
 	rm -rf ./module-image/dist
 
-build-module-image: ## Build the image for mcp-cli module: make build-module-image TAG=v0.0.1
+build-module-image: ## Build the image for the module: make build-module-image TAG=v0.0.1
 	cp -r dist ./module-image
 	docker buildx build --platform=linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64 --build-arg TAG=$(TAG) --output=docker --tag=$(MODULE_IMAGE):$(TAG) ./module-image
 	rm -rf ./module-image/dist

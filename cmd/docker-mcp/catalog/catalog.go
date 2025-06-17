@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/user"
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/yq"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/user"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/yq"
 )
 
 const (

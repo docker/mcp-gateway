@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/docker/mcp-cli/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/desktop"
 )
 
 const jcatImage = "docker/jcat@sha256:76719466e8b99a65dd1d37d9ab94108851f009f0f687dce7ff8a6fc90575c4d4"
