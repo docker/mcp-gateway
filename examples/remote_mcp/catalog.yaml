@@ -3,5 +3,5 @@ name: my-catalog
 registry:
   gitmcpmoby:
     description: Connect to the moby repo.
-    title: GitMCP
+    title: GitMCP Moby
     sseEndpoint: "https://gitmcp.io/moby/moby"
