@@ -1,0 +1,7 @@
+version: 2
+name: my-catalog
+registry:
+  gitmcpmoby:
+    description: Connect to the moby repo.
+    title: GitMCP
+    sseEndpoint: "https://gitmcp.io/moby/moby"
