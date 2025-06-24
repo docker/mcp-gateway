@@ -51,6 +51,9 @@ func evaluateTerm(term string, config map[string]any) any {
 			if strings.HasPrefix(f, "or:") {
 				_, rest, _ := strings.Cut(f, ":")
 				value = or(value, rest)
+			} else if strings.HasPrefix(f, "mount_as:") {
+				_, rest, _ := strings.Cut(f, ":")
+				value = mountAs(value, rest)
 			}
 		}
 	}

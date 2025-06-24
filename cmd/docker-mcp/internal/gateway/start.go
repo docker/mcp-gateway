@@ -41,8 +41,12 @@ func (g *Gateway) runToolContainer(ctx context.Context, tool catalog.Tool, reque
 	args := g.baseArgs(tool.Name)
 
 	// Volumes
-	for _, v := range eval.EvaluateList(tool.Container.Volumes, request.GetArguments()) {
-		args = append(args, "-v", v)
+	for _, mount := range eval.EvaluateList(tool.Container.Volumes, request.GetArguments()) {
+		if mount == "" {
+			continue
+		}
+
+		args = append(args, "-v", mount)
 	}
 
 	// Image
@@ -159,6 +163,10 @@ func (g *Gateway) argsAndEnv(serverConfig ServerConfig, readOnly *bool, proxyNet
 
 	// Volumes
 	for _, mount := range eval.EvaluateList(serverConfig.Spec.Volumes, serverConfig.Config) {
+		if mount == "" {
+			continue
+		}
+
 		if readOnly != nil && *readOnly {
 			args = append(args, "-v", mount+":ro")
 		} else {

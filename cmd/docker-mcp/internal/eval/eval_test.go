@@ -90,3 +90,17 @@ func TestEvaluateOr(t *testing.T) {
 	assert.Equal(t, []string{}, Evaluate("{{k|or:[]}}", map[string]any{"k": []string{}}))
 	assert.Equal(t, []string{"default"}, Evaluate("{{k|or:[default]}}", map[string]any{"k": []string{}}))
 }
+
+func TestEvaluateMountAs(t *testing.T) {
+	assert.Empty(t, Evaluate("{{key|mount_as:/path}}", map[string]any{"key": nil}))
+	assert.Equal(t, "/local/path:/path", Evaluate("{{key|mount_as:/path}}", map[string]any{"key": "/local/path"}))
+	assert.Equal(t, "/local/logs:/logs:ro", Evaluate("{{key|mount_as:/logs:ro}}", map[string]any{"key": "/local/logs"}))
+
+	assert.Empty(t, Evaluate("{{key|mount_as:/path}}", map[string]any{"key": []string{}}))
+	assert.Equal(t, "/local/path:/path", Evaluate("{{key|mount_as:/path}}", map[string]any{"key": []string{"/local/path"}}))
+	assert.Equal(t, "/local/logs:/logs:ro", Evaluate("{{key|mount_as:/logs:ro}}", map[string]any{"key": []string{"/local/logs"}}))
+
+	assert.Equal(t, "/local/path:/path", Evaluate("{{key|mount_as: /path }}", map[string]any{"key": "/local/path"}))
+
+	assert.Equal(t, "/local/path:/path", Evaluate("{{key|mount_as:/path}}", map[string]any{"key": []string{"/local/path", "/ignored/path"}}))
+}

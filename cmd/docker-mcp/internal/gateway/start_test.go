@@ -99,6 +99,53 @@ env:
 	assert.Equal(t, []string{"INTERNAL_INTEGRATION_TOKEN=ntn_DUMMY", `OPENAPI_MCP_HEADERS={"Authorization": "Bearer ntn_DUMMY", "Notion-Version": "2022-06-28"}`}, env)
 }
 
+func TestApplyConfigMountAs(t *testing.T) {
+	catalogYAML := `
+volumes:
+  - '{{hub.log_path|mount_as:/logs:ro}}'
+  `
+
+	configYAML := `
+hub:
+  log_path: /local/logs
+`
+	gateway := &Gateway{}
+	args, env := gateway.argsAndEnv(ServerConfig{
+		Name:    "hub",
+		Spec:    parseSpec(t, catalogYAML),
+		Config:  parseConfig(t, configYAML),
+		Secrets: map[string]string{},
+	}, nil, "")
+
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=hub", "--label", "docker-mcp-transport=stdio",
+		"-v", "/local/logs:/logs:ro",
+	}, args)
+	assert.Empty(t, env)
+}
+
+func TestApplyConfigEmptyMountAs(t *testing.T) {
+	catalogYAML := `
+volumes:
+  - '{{hub.log_path|mount_as:/logs:ro}}'
+  `
+
+	gateway := &Gateway{}
+	args, env := gateway.argsAndEnv(ServerConfig{
+		Name:    "hub",
+		Spec:    parseSpec(t, catalogYAML),
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}, nil, "")
+
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=hub", "--label", "docker-mcp-transport=stdio",
+	}, args)
+	assert.Empty(t, env)
+}
+
 func parseSpec(t *testing.T, contentYAML string) catalog.Server {
 	t.Helper()
 	var spec catalog.Server
