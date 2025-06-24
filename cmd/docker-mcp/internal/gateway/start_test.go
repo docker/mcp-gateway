@@ -21,21 +21,15 @@ env:
   - name: GRAFANA_URL
     value: '{{grafana.url}}'
 `
-
 	configYAML := `
 grafana:
   url: TEST
 `
+	secrets := map[string]string{
+		"grafana.api_key": "API_KEY",
+	}
 
-	gateway := &Gateway{}
-	args, env := gateway.argsAndEnv(ServerConfig{
-		Name:   "grafana",
-		Spec:   parseSpec(t, catalogYAML),
-		Config: parseConfig(t, configYAML),
-		Secrets: map[string]string{
-			"grafana.api_key": "API_KEY",
-		},
-	}, nil, "")
+	args, env := argsAndEnv(t, "grafana", catalogYAML, configYAML, secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -51,16 +45,11 @@ secrets:
   - name: mongodb.connection_string
     env: MDB_MCP_CONNECTION_STRING
   `
+	secrets := map[string]string{
+		"mongodb.connection_string": "HOST:PORT",
+	}
 
-	gateway := &Gateway{}
-	args, env := gateway.argsAndEnv(ServerConfig{
-		Name:   "mongodb",
-		Spec:   parseSpec(t, catalogYAML),
-		Config: map[string]any{},
-		Secrets: map[string]string{
-			"mongodb.connection_string": "HOST:PORT",
-		},
-	}, nil, "")
+	args, env := argsAndEnv(t, "mongodb", catalogYAML, "", secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -80,16 +69,11 @@ env:
   - name: OPENAPI_MCP_HEADERS
     value: '{"Authorization": "Bearer $INTERNAL_INTEGRATION_TOKEN", "Notion-Version": "2022-06-28"}'
   `
+	secrets := map[string]string{
+		"notion.internal_integration_token": "ntn_DUMMY",
+	}
 
-	gateway := &Gateway{}
-	args, env := gateway.argsAndEnv(ServerConfig{
-		Name:   "notion",
-		Spec:   parseSpec(t, catalogYAML),
-		Config: map[string]any{},
-		Secrets: map[string]string{
-			"notion.internal_integration_token": "ntn_DUMMY",
-		},
-	}, nil, "")
+	args, env := argsAndEnv(t, "notion", catalogYAML, "", secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -104,18 +88,12 @@ func TestApplyConfigMountAs(t *testing.T) {
 volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
-
 	configYAML := `
 hub:
   log_path: /local/logs
 `
-	gateway := &Gateway{}
-	args, env := gateway.argsAndEnv(ServerConfig{
-		Name:    "hub",
-		Spec:    parseSpec(t, catalogYAML),
-		Config:  parseConfig(t, configYAML),
-		Secrets: map[string]string{},
-	}, nil, "")
+
+	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -131,19 +109,25 @@ volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
 
-	gateway := &Gateway{}
-	args, env := gateway.argsAndEnv(ServerConfig{
-		Name:    "hub",
-		Spec:    parseSpec(t, catalogYAML),
-		Config:  map[string]any{},
-		Secrets: map[string]string{},
-	}, nil, "")
+	args, env := argsAndEnv(t, "hub", catalogYAML, "", nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=hub", "--label", "docker-mcp-transport=stdio",
 	}, args)
 	assert.Empty(t, env)
+}
+
+func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string) {
+	t.Helper()
+
+	gateway := &Gateway{}
+	return gateway.argsAndEnv(ServerConfig{
+		Name:    name,
+		Spec:    parseSpec(t, catalogYAML),
+		Config:  parseConfig(t, configYAML),
+		Secrets: secrets,
+	}, nil, "")
 }
 
 func parseSpec(t *testing.T, contentYAML string) catalog.Server {
