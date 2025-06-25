@@ -189,9 +189,6 @@ Configuration files are typically stored in `~/.docker/mcp/`.
 ### Building from Source
 
 ```bash
-# Install dependencies
-go mod download
-
 # Build the binary
 make docker-mcp
 
@@ -199,7 +196,7 @@ make docker-mcp
 make docker-mcp-cross
 
 # Run tests
-make unit-tests
+make test
 ```
 
 ### Code Quality
@@ -210,16 +207,6 @@ make format
 
 # Run linter
 make lint
-```
-
-### Docker Development
-
-```bash
-# Build development image
-docker buildx build --target=format -o . .
-
-# Run linter in container
-docker buildx build --target=lint --platform=linux,darwin,windows .
 ```
 
 ## Architecture

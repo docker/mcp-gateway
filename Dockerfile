@@ -7,10 +7,6 @@ FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:${GOLANGCI_LINT_VERSION}
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
 WORKDIR /app
-COPY go.* ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
 
 FROM base AS lint
 COPY --from=lint-base /usr/bin/golangci-lint /usr/bin/golangci-lint
@@ -23,6 +19,14 @@ RUN --mount=target=. \
     set -e
     go mod tidy --diff
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} golangci-lint --timeout 30m0s run ./...
+EOD
+
+FROM base AS test
+RUN --mount=target=. \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build <<EOD
+    set -e
+    CGO_ENABLED=0 go test --count=1 -v ./...
 EOD
 
 FROM base AS do-format
