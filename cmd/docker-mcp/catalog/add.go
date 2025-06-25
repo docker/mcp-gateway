@@ -21,10 +21,7 @@ func newAddCommand() *cobra.Command {
 		Short: "Add a server to your catalog",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(_ *cobra.Command, args []string) error {
-			parsedArgs, err := parseAddArgs(args[0], args[1], args[2])
-			if err != nil {
-				return err
-			}
+			parsedArgs := parseAddArgs(args[0], args[1], args[2])
 			if err := validateArgs(*parsedArgs); err != nil {
 				return err
 			}
@@ -43,12 +40,12 @@ type ParsedAddArgs struct {
 	SeverName string
 }
 
-func parseAddArgs(dst, src, catalogFile string) (*ParsedAddArgs, error) {
+func parseAddArgs(dst, src, catalogFile string) *ParsedAddArgs {
 	return &ParsedAddArgs{
 		Src:       catalogFile,
 		Dst:       dst,
 		SeverName: src,
-	}, nil
+	}
 }
 
 func validateArgs(args ParsedAddArgs) error {
