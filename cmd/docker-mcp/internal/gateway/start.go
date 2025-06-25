@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/eval"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
 	mcpclient "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
 )
 
@@ -74,22 +75,20 @@ func (g *Gateway) startMCPClient(ctx context.Context, serverConfig ServerConfig,
 	cleanup := func(context.Context) error { return nil }
 
 	var client mcpclient.Client
+	var targetConfig proxies.TargetConfig
+
 	if serverConfig.Spec.SSEEndpoint != "" {
 		client = mcpclient.NewSSEClient(serverConfig.Name, serverConfig.Spec.SSEEndpoint)
 	} else {
 		image := serverConfig.Spec.Image
-
-		var network string
 		if g.BlockNetwork && len(serverConfig.Spec.AllowHosts) > 0 {
-			removeSidecar, internalNetwork, err := g.runProxySideCar(ctx, serverConfig.Spec.AllowHosts)
-			if err != nil {
+			var err error
+			if targetConfig, cleanup, err = g.runProxies(ctx, serverConfig.Spec.AllowHosts); err != nil {
 				return nil, err
 			}
-			cleanup = removeSidecar
-			network = internalNetwork
 		}
 
-		args, env := g.argsAndEnv(serverConfig, readOnly, network)
+		args, env := g.argsAndEnv(serverConfig, readOnly, targetConfig)
 
 		command := expandEnvList(eval.EvaluateList(serverConfig.Spec.Command, serverConfig.Config), env)
 		if len(command) == 0 {
@@ -127,7 +126,7 @@ func (g *Gateway) startMCPClient(ctx context.Context, serverConfig ServerConfig,
 	return newClientWithCleanup(client, cleanup), nil
 }
 
-func (g *Gateway) argsAndEnv(serverConfig ServerConfig, readOnly *bool, proxyNetwork string) ([]string, []string) {
+func (g *Gateway) argsAndEnv(serverConfig ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
 	args := g.baseArgs(serverConfig.Name)
 	var env []string
 
@@ -135,10 +134,14 @@ func (g *Gateway) argsAndEnv(serverConfig ServerConfig, readOnly *bool, proxyNet
 	if serverConfig.Spec.DisableNetwork {
 		args = append(args, "--network", "none")
 	}
-	if proxyNetwork != "" {
-		args = append(args, "--network", proxyNetwork)
-		args = append(args, "-e", "http_proxy=proxy:8080")
-		args = append(args, "-e", "https_proxy=proxy:8080")
+	if targetConfig.NetworkName != "" {
+		args = append(args, "--network", targetConfig.NetworkName)
+	}
+	for _, link := range targetConfig.Links {
+		args = append(args, "--link", link)
+	}
+	for _, env := range targetConfig.Env {
+		args = append(args, "-e", env)
 	}
 
 	// Secrets

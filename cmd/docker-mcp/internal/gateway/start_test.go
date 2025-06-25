@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
 )
 
 func TestApplyConfigGrafana(t *testing.T) {
@@ -127,7 +128,7 @@ func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[
 		Spec:    parseSpec(t, catalogYAML),
 		Config:  parseConfig(t, configYAML),
 		Secrets: secrets,
-	}, nil, "")
+	}, nil, proxies.TargetConfig{})
 }
 
 func parseSpec(t *testing.T, contentYAML string) catalog.Server {

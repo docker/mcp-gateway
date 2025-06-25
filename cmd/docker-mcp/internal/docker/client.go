@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 )
@@ -13,7 +14,8 @@ import (
 type Client interface {
 	ContainerExists(ctx context.Context, container string) (bool, container.InspectResponse, error)
 	RemoveContainer(ctx context.Context, containerID string, force bool) error
-	StartContainer(ctx context.Context, containerID string, containerConfig container.Config, hostConfig container.HostConfig) error
+	StartContainer(ctx context.Context, containerID string, containerConfig container.Config, hostConfig container.HostConfig, networkingConfig network.NetworkingConfig) error
+	StopContainer(ctx context.Context, containerID string, timeout int) error
 	ImageExists(ctx context.Context, name string) (bool, error)
 	PullImage(ctx context.Context, name string) error
 	PullImages(ctx context.Context, names ...string) error

@@ -1,0 +1,9 @@
+frontend front-${PROXY_HOSTNAME}-${PROXY_PORT}
+    bind *:${PROXY_PORT}
+    mode tcp
+    tcp-request inspect-delay 5s
+    use_backend back-${PROXY_HOSTNAME}-${PROXY_PORT}
+
+backend back-${PROXY_HOSTNAME}-${PROXY_PORT}
+    mode tcp
+    server s1 ${PROXY_HOSTNAME}:${PROXY_PORT}
