@@ -121,7 +121,12 @@ volumes:
 func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string) {
 	t.Helper()
 
-	gateway := &Gateway{}
+	gateway := &Gateway{
+		Options: Options{
+			Cpus:   1,
+			Memory: "2Gb",
+		},
+	}
 	return gateway.argsAndEnv(ServerConfig{
 		Name:    name,
 		Spec:    parseSpec(t, catalogYAML),

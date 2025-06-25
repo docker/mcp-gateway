@@ -127,6 +127,8 @@ func gatewayCommand(docker docker.Client) *cobra.Command {
 			CatalogPath: catalog.DockerCatalogURL,
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
+				Cpus:             1,
+				Memory:           "2Gb",
 				Transport:        "stdio",
 				Port:             8811,
 				LogCalls:         true,
@@ -143,6 +145,8 @@ func gatewayCommand(docker docker.Client) *cobra.Command {
 			ConfigPath:   "config.yaml",
 			SecretsPath:  "docker-desktop",
 			Options: gateway.Options{
+				Cpus:         1,
+				Memory:       "2Gb",
 				Transport:    "stdio",
 				LogCalls:     true,
 				BlockSecrets: true,
@@ -177,6 +181,8 @@ func gatewayCommand(docker docker.Client) *cobra.Command {
 	runCmd.Flags().BoolVar(&options.Verbose, "verbose", options.Verbose, "Verbose output")
 	runCmd.Flags().BoolVar(&options.KeepContainers, "keep", options.KeepContainers, "Keep stopped containers")
 	runCmd.Flags().BoolVar(&options.Watch, "watch", options.Watch, "Watch for changes and reconfigure the gateway")
+	runCmd.Flags().IntVar(&options.Cpus, "cpus", options.Cpus, "CPUs allocated to each MCP Server (default is 1)")
+	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 
 	cmd.AddCommand(runCmd)
 

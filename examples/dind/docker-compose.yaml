@@ -1,0 +1,18 @@
+services:
+  client:
+    build: .
+    environment:
+      - MCP_HOST=http://gateway:8080/mcp
+    depends_on:
+      - gateway
+
+  gateway:
+    build:
+      context: gateway-dind
+    privileged: true
+    command:
+      - --transport=streaming
+      - --servers=duckduckgo
+      - --verbose=false
+      - --memory=512Mb
+      - --port=8080

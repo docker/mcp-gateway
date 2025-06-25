@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"errors"
 	"os"
 	"sort"
 )
@@ -18,7 +17,7 @@ func (g *Gateway) guessNetworks(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	if !found {
-		return nil, errors.New("can't inspect the current container. It probably has a non default hostname")
+		return nil, nil
 	}
 
 	var networks []string

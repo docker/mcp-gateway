@@ -22,4 +22,6 @@ type Options struct {
 	VerifySignatures bool
 	DryRun           bool
 	Watch            bool
+	Cpus             int
+	Memory           string
 }
