@@ -1,0 +1,12 @@
+services:
+  gateway:
+    image: docker/agents_gateway:v2
+    ports:
+      - "8811:8811"
+    command:
+      - --transport=sse
+      - --servers=filesystem
+      - --config=/mcp/config.yaml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./mcp:/mcp
