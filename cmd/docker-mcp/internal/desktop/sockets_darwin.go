@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/user"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/user"
 )
 
 func getDockerDesktopPaths() (DockerDesktopPaths, error) {

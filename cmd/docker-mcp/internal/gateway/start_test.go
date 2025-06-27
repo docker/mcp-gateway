@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
 )
 
 func TestApplyConfigGrafana(t *testing.T) {

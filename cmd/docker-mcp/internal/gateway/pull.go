@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/signatures"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/signatures"
 )
 
 func (g *Gateway) pullAndVerify(ctx context.Context, configuration Configuration) error {

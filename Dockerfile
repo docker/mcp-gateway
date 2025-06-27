@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go install golang.org/x/tools/cmd/goimports@latest \
     && go install mvdan.cc/gofumpt@latest
 COPY . .
-RUN goimports -local github.com/docker/docker-mcp -w .
+RUN goimports -local github.com/docker/mcp-gateway -w .
 RUN gofumpt -w .
 
 FROM scratch AS format

@@ -15,7 +15,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/logs"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/logs"
 )
 
 func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) server.ToolHandlerMiddleware {

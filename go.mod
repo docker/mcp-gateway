@@ -1,4 +1,4 @@
-module github.com/docker/docker-mcp
+module github.com/docker/mcp-gateway
 
 go 1.24.4
 

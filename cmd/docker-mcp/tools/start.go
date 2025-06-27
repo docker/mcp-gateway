@@ -7,7 +7,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	client "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
+	client "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
 )
 
 func start(ctx context.Context, version string, gatewayArgs []string, debug bool) (client.Client, error) {

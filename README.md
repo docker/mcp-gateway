@@ -1,6 +1,6 @@
 # Docker MCP Plugin and Docker MCP Gateway
 
-![build](https://github.com/docker/docker-mcp/actions/workflows/ci.yml/badge.svg)
+![build](https://github.com/docker/mcp-gateway/actions/workflows/ci.yml/badge.svg)
 
 The [MCP Toolkit](https://docs.docker.com/ai/mcp-catalog-and-toolkit/toolkit/), in Docker Desktop, allows
 developers to configure and consume MCP servers from the [Docker MCP Catalog](https://hub.docker.com/mcp).
@@ -50,8 +50,8 @@ The MCP cli will already be installed on recent versions of Docker Desktop but y
 
 ```bash
 # Clone the repository
-git clone https://github.com/docker/docker-mcp.git
-cd docker-mcp
+git clone https://github.com/docker/mcp-gateway.git
+cd docker-gateway
 
 # Build and install the plugin
 make docker-mcp
@@ -212,5 +212,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 📖 [MCP Specification](https://spec.modelcontextprotocol.io/)
 - 🐳 [Docker Desktop Documentation](https://docs.docker.com/desktop/)
-- 🐛 [Report Issues](https://github.com/docker/docker-mcp/issues)
-- 💬 [Discussions](https://github.com/docker/docker-mcp/discussions)
+- 🐛 [Report Issues](https://github.com/docker/mcp-gateway/issues)
+- 💬 [Discussions](https://github.com/docker/mcp-gateway/discussions)

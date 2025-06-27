@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 const dnsImage = "docker/mcp-dns-forwarder:v1@sha256:a47b7362fdc78dd2cf8779c52ff782312a3758537e635b91529fddabaadbd4dd"

@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/sliceutil"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/sliceutil"
 
 	cerrdefs "github.com/containerd/errdefs"
 )
