@@ -9,7 +9,7 @@ import (
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
 )
 
-func (g *Gateway) runProxies(ctx context.Context, allowedHosts []string) (proxies.TargetConfig, func(context.Context) error, error) {
+func (cp *clientPool) runProxies(ctx context.Context, allowedHosts []string) (proxies.TargetConfig, func(context.Context) error, error) {
 	var nwProxies []proxies.Proxy
 	for _, spec := range allowedHosts {
 		proxy, err := proxies.ParseProxySpec(spec)
@@ -19,7 +19,7 @@ func (g *Gateway) runProxies(ctx context.Context, allowedHosts []string) (proxie
 		nwProxies = append(nwProxies, proxy)
 	}
 
-	return proxies.RunNetworkProxies(ctx, g.docker, nwProxies, g.KeepContainers, g.DebugDNS)
+	return proxies.RunNetworkProxies(ctx, cp.docker, nwProxies, cp.KeepContainers, cp.DebugDNS)
 }
 
 func newClientWithCleanup(client mcp.Client, cleanup func(context.Context) error) mcp.Client {

@@ -9,104 +9,122 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/eval"
-	mcpclient "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
 	"github.com/mark3labs/mcp-go/mcp"
-)
 
-// TODO: This is a migrated file from start.go but doesn't have all the updates in it that have been added the last couple weeks.
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/eval"
+	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
+	mcpclient "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
+)
 
 var readOnly = true
 
-type clientPool struct {
-	keepContainers bool
-	verbose        bool
-	keptClients    sync.Map
+type keptClient struct {
+	Name   string
+	Getter *clientGetter
+	Config ServerConfig
 }
 
-func newClientPool(keepContainers bool, verbose bool) *clientPool {
+type clientPool struct {
+	Options
+	keptClients []keptClient
+	clientLock  sync.RWMutex
+	networks    []string
+	docker      docker.Client
+}
+
+func newClientPool(options Options, docker docker.Client) *clientPool {
 	return &clientPool{
-		keepContainers: keepContainers,
-		verbose:        verbose,
+		Options:     options,
+		docker:      docker,
+		keptClients: []keptClient{},
 	}
 }
 
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConfig, readOnly *bool) (mcpclient.Client, error) {
-	var client mcpclient.Client
+	var getter *clientGetter
 
-	if serverConfig.Spec.Stateful {
-		if client, ok := cp.keptClients.Load(serverConfig.Name); ok {
-			return client.(mcpclient.Client), nil
+	// Check if client is kept, can be returned immediately
+	cp.clientLock.Lock()
+	for _, kc := range cp.keptClients {
+		if kc.Name == serverConfig.Name {
+			getter = kc.Getter
+			break
 		}
 	}
 
-	if serverConfig.Spec.SSEEndpoint != "" {
-		client = mcpclient.NewSSEClient(serverConfig.Name, serverConfig.Spec.SSEEndpoint)
-	} else {
-		image := serverConfig.Spec.Image
+	// No client found, create a new one
+	if getter == nil {
+		getter = newClientGetter(ctx, serverConfig, cp, readOnly)
 
-		args, env := cp.argsAndEnv(serverConfig, readOnly)
-
-		command := expandEnvList(eval.EvaluateList(serverConfig.Spec.Command, serverConfig.Config), env)
-		if len(command) == 0 {
-			log("  - Running server", imageBaseName(image), "with", args)
-		} else {
-			log("  - Running server", imageBaseName(image), "with", args, "and command", command)
+		// If the client is stateful, save it for later
+		if serverConfig.Spec.Stateful || cp.KeepContainers {
+			cp.keptClients = append(cp.keptClients, keptClient{
+				Name:   serverConfig.Name,
+				Getter: getter,
+				Config: serverConfig,
+			})
 		}
-
-		var runArgs []string
-		runArgs = append(runArgs, args...)
-		runArgs = append(runArgs, image)
-		runArgs = append(runArgs, command...)
-		client = mcpclient.NewStdioCmdClient(serverConfig.Name, "docker", env, runArgs...)
 	}
+	cp.clientLock.Unlock()
 
-	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = mcp.Implementation{
-		Name:    "docker",
-		Version: "1.0.0",
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	defer cancel()
-
-	if _, err := client.Initialize(ctx, initRequest, cp.verbose); err != nil {
-		initializedObject := serverConfig.Spec.Image
-		if serverConfig.Spec.SSEEndpoint != "" {
-			initializedObject = serverConfig.Spec.SSEEndpoint
-		}
-		return nil, fmt.Errorf("initializing %s: %w", initializedObject, err)
-	}
-
-	if serverConfig.Spec.Stateful {
-		cp.keptClients.Store(serverConfig.Name, client)
-	}
-
-	return client, nil
+	return getter.GetClient()
 }
 
 func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
-	// TODO how can we lookup by value efficiently?
-	// TODO another data structure?
-	client.Close()
+	foundKept := false
+	cp.clientLock.RLock()
+	for _, kc := range cp.keptClients {
+		if kc.Getter.IsClient(client) {
+			foundKept = true
+			break
+		}
+	}
+	cp.clientLock.RUnlock()
+
+	// Client was not kept, close it
+	if !foundKept {
+		client.Close()
+		return
+	}
+
+	// Otherwise, leave the client as is
 }
 
 func (cp *clientPool) Close() {
-	cp.keptClients.Range(func(key, value any) bool {
-		value.(mcpclient.Client).Close()
-		return true
-	})
-	cp.keptClients.Clear()
+	cp.clientLock.Lock()
+	existingMap := cp.keptClients
+	cp.keptClients = []keptClient{}
+	cp.clientLock.Unlock()
+
+	for _, keptClient := range existingMap {
+		client, err := keptClient.Getter.GetClient()
+		if err == nil {
+			client.Close()
+		}
+	}
+}
+
+func (cp *clientPool) SetNetworks(networks []string) {
+	cp.networks = networks
 }
 
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	args := cp.baseArgs(tool.Name)
 
+	// Attach the MCP servers to the same network as the gateway.
+	for _, network := range cp.networks {
+		args = append(args, "--network", network)
+	}
+
 	// Volumes
-	for _, v := range eval.EvaluateList(tool.Container.Volumes, request.GetArguments()) {
-		args = append(args, "-v", v)
+	for _, mount := range eval.EvaluateList(tool.Container.Volumes, request.GetArguments()) {
+		if mount == "" {
+			continue
+		}
+
+		args = append(args, "-v", mount)
 	}
 
 	// Image
@@ -119,7 +137,7 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 	log("  - Running container", tool.Container.Image, "with args", args)
 
 	cmd := exec.CommandContext(ctx, "docker", args...)
-	if cp.verbose {
+	if cp.Verbose {
 		cmd.Stderr = os.Stderr
 	}
 	out, err := cmd.Output()
@@ -134,11 +152,15 @@ func (cp *clientPool) baseArgs(name string) []string {
 	args := []string{"run"}
 
 	// Should we keep the container after it exits? Useful for debugging.
-	if !cp.keepContainers {
+	if !cp.KeepContainers {
 		args = append(args, "--rm")
 	}
 
-	args = append(args, "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never")
+	args = append(args, "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", fmt.Sprintf("%d", cp.Cpus), "--memory", cp.Memory, "--pull", "never")
+
+	if os.Getenv("DOCKER_MCP_IN_DIND") == "1" {
+		args = append(args, "--privileged")
+	}
 
 	// Add a few labels to the container for identification
 	args = append(args,
@@ -147,16 +169,34 @@ func (cp *clientPool) baseArgs(name string) []string {
 		"--label", "docker-mcp-name="+name,
 		"--label", "docker-mcp-transport=stdio",
 	)
+
 	return args
 }
 
-func (cp *clientPool) argsAndEnv(serverConfig ServerConfig, readOnly *bool) ([]string, []string) {
+func (cp *clientPool) argsAndEnv(serverConfig ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
 	args := cp.baseArgs(serverConfig.Name)
 	var env []string
 
 	// Security options
 	if serverConfig.Spec.DisableNetwork {
 		args = append(args, "--network", "none")
+	} else {
+		// Attach the MCP servers to the same network as the gateway.
+		for _, network := range cp.networks {
+			args = append(args, "--network", network)
+		}
+	}
+	if targetConfig.NetworkName != "" {
+		args = append(args, "--network", targetConfig.NetworkName)
+	}
+	for _, link := range targetConfig.Links {
+		args = append(args, "--link", link)
+	}
+	for _, env := range targetConfig.Env {
+		args = append(args, "-e", env)
+	}
+	if targetConfig.DNS != "" {
+		args = append(args, "--dns", targetConfig.DNS)
 	}
 
 	// Secrets
@@ -168,11 +208,23 @@ func (cp *clientPool) argsAndEnv(serverConfig ServerConfig, readOnly *bool) ([]s
 	// Env
 	for _, e := range serverConfig.Spec.Env {
 		args = append(args, "-e", e.Name)
-		env = append(env, fmt.Sprintf("%s=%s", e.Name, expandEnv(e.Value, env)))
+
+		value := e.Value
+		if strings.Contains(e.Value, "{{") && strings.Contains(e.Value, "}}") {
+			value = fmt.Sprintf("%v", eval.Evaluate(value, serverConfig.Config))
+		} else {
+			value = expandEnv(value, env)
+		}
+
+		env = append(env, fmt.Sprintf("%s=%s", e.Name, value))
 	}
 
 	// Volumes
 	for _, mount := range eval.EvaluateList(serverConfig.Spec.Volumes, serverConfig.Config) {
+		if mount == "" {
+			continue
+		}
+
 		if readOnly != nil && *readOnly {
 			args = append(args, "-v", mount+":ro")
 		} else {
@@ -186,8 +238,8 @@ func (cp *clientPool) argsAndEnv(serverConfig ServerConfig, readOnly *bool) ([]s
 func expandEnv(value string, env []string) string {
 	return os.Expand(value, func(name string) string {
 		for _, e := range env {
-			if strings.HasPrefix(e, name+"=") {
-				return strings.TrimPrefix(e, name+"=")
+			if after, ok := strings.CutPrefix(e, name+"="); ok {
+				return after
 			}
 		}
 		return ""
@@ -200,4 +252,93 @@ func expandEnvList(values []string, env []string) []string {
 		expanded = append(expanded, expandEnv(value, env))
 	}
 	return expanded
+}
+
+type clientGetter struct {
+	once   sync.Once
+	client mcpclient.Client
+	err    error
+
+	ctx          context.Context
+	serverConfig ServerConfig
+	cp           *clientPool
+	readOnly     *bool
+}
+
+func newClientGetter(ctx context.Context, serverConfig ServerConfig, cp *clientPool, readOnly *bool) *clientGetter {
+	return &clientGetter{
+		ctx:          ctx,
+		serverConfig: serverConfig,
+		cp:           cp,
+		readOnly:     readOnly,
+	}
+}
+
+func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
+	return cg.client == client
+}
+
+func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
+	cg.once.Do(func() {
+		createClient := func() (mcpclient.Client, error) {
+			cleanup := func(context.Context) error { return nil }
+
+			var client mcpclient.Client
+			var targetConfig proxies.TargetConfig
+
+			if cg.serverConfig.Spec.SSEEndpoint != "" {
+				client = mcpclient.NewSSEClient(cg.serverConfig.Name, cg.serverConfig.Spec.SSEEndpoint)
+			} else {
+				image := cg.serverConfig.Spec.Image
+				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
+					var err error
+					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts); err != nil {
+						return nil, err
+					}
+				}
+
+				args, env := cg.cp.argsAndEnv(cg.serverConfig, cg.readOnly, targetConfig)
+
+				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
+				if len(command) == 0 {
+					log("  - Running server", imageBaseName(image), "with", args)
+				} else {
+					log("  - Running server", imageBaseName(image), "with", args, "and command", command)
+				}
+
+				var runArgs []string
+				runArgs = append(runArgs, args...)
+				runArgs = append(runArgs, image)
+				runArgs = append(runArgs, command...)
+
+				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "docker", env, runArgs...)
+			}
+
+			initRequest := mcp.InitializeRequest{}
+			initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
+			initRequest.Params.ClientInfo = mcp.Implementation{
+				Name:    "docker",
+				Version: "1.0.0",
+			}
+
+			ctx, cancel := context.WithTimeout(cg.ctx, 20*time.Second)
+			defer cancel()
+
+			if _, err := client.Initialize(ctx, initRequest, cg.cp.Verbose); err != nil {
+				initializedObject := cg.serverConfig.Spec.Image
+				if cg.serverConfig.Spec.SSEEndpoint != "" {
+					initializedObject = cg.serverConfig.Spec.SSEEndpoint
+				}
+				return nil, fmt.Errorf("initializing %s: %w", initializedObject, err)
+			}
+
+			return newClientWithCleanup(client, cleanup), nil
+		}
+
+		client, err := createClient()
+		cg.client = client
+		cg.err = err
+	})
+
+	return cg.client, cg.err
 }

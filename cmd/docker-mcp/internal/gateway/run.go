@@ -20,7 +20,6 @@ type Gateway struct {
 	Options
 	docker       docker.Client
 	configurator Configurator
-	networks     []string
 	clientPool   *clientPool
 }
 
@@ -37,7 +36,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			Watch:        config.Watch,
 			docker:       docker,
 		},
-		clientPool: newClientPool(config.Options.KeepContainers, config.Options.Verbose),
+		clientPool: newClientPool(config.Options, docker),
 	}
 }
 
@@ -84,7 +83,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("guessing network: %w", err)
 		}
-		g.networks = networks
+		g.clientPool.SetNetworks(networks)
 	}
 
 	// List all the available tools.
