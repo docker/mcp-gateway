@@ -13,6 +13,8 @@ import (
 
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
 	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/sliceutil"
+
+	cerrdefs "github.com/containerd/errdefs"
 )
 
 // TargetConfig represents the config that should be set on a target container
@@ -39,10 +41,12 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 
 	// Create a network for connecting the MCP tool with proxies.
 	target := TargetConfig{
-		NetworkName: "docker-mcp-proxies-" + randString(),
+		NetworkName: "docker-mcp-proxies-int",
 	}
 	if err := cli.CreateNetwork(ctx, target.NetworkName, true, map[string]string{"docker-mcp": "true"}); err != nil {
-		return TargetConfig{}, nil, fmt.Errorf("creating internal network: %w", err)
+		if !cerrdefs.IsConflict(err) {
+			return TargetConfig{}, nil, fmt.Errorf("creating internal network: %w", err)
+		}
 	}
 	defer func() {
 		if retErr != nil && !keepCtrs {
@@ -53,9 +57,11 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 	}()
 
 	// Create a network for proxies to connect to external services.
-	extNwName := "docker-mcp-proxies-" + randString()
+	extNwName := "docker-mcp-proxies-ext"
 	if err := cli.CreateNetwork(ctx, extNwName, false, map[string]string{"docker-mcp": "true"}); err != nil {
-		return TargetConfig{}, nil, fmt.Errorf("creating internal network: %w", err)
+		if !cerrdefs.IsConflict(err) {
+			return TargetConfig{}, nil, fmt.Errorf("creating external network: %w", err)
+		}
 	}
 	defer func() {
 		if retErr != nil && !keepCtrs {
