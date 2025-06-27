@@ -43,7 +43,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 		return TargetConfig{}, nil, fmt.Errorf("creating internal network: %w", err)
 	}
 	defer func() {
-		if retErr != nil {
+		if retErr != nil && !keepCtrs {
 			if err := cli.RemoveNetwork(ctx, target.NetworkName); err != nil {
 				logf("failed to remove network %s: %v", target.NetworkName, err)
 			}
@@ -56,7 +56,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 		return TargetConfig{}, nil, fmt.Errorf("creating internal network: %w", err)
 	}
 	defer func() {
-		if retErr != nil {
+		if retErr != nil && !keepCtrs {
 			if err := cli.RemoveNetwork(ctx, extNwName); err != nil {
 				logf("failed to remove network %s: %v", extNwName, err)
 			}
