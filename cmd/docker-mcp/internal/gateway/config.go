@@ -16,6 +16,7 @@ type Options struct {
 	Interceptors     []string
 	Verbose          bool
 	KeepContainers   bool
+	DebugDNS         bool
 	LogCalls         bool
 	BlockSecrets     bool
 	BlockNetwork     bool

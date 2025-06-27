@@ -158,6 +158,9 @@ func (g *Gateway) argsAndEnv(serverConfig ServerConfig, readOnly *bool, targetCo
 	for _, env := range targetConfig.Env {
 		args = append(args, "-e", env)
 	}
+	if targetConfig.DNS != "" {
+		args = append(args, "--dns", targetConfig.DNS)
+	}
 
 	// Secrets
 	for _, s := range serverConfig.Spec.Secrets {

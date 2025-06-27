@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -44,11 +45,60 @@ func (c *dockerClient) StopContainer(ctx context.Context, containerID string, ti
 	})
 }
 
-func (c *dockerClient) ContainerLogs(ctx context.Context, containerID string, showStdout, showStderr bool) (io.ReadCloser, error) {
-	return c.apiClient().ContainerLogs(ctx, containerID, container.LogsOptions{
-		ShowStdout: showStdout,
-		ShowStderr: showStderr,
-		Follow:     true,
-		Since:      "0",
-	})
+func (c *dockerClient) InspectContainer(ctx context.Context, containerID string) (container.InspectResponse, error) {
+	return c.apiClient().ContainerInspect(ctx, containerID)
+}
+
+// Logs will fetch both STDOUT and STDERR from the current container. Returns a
+// ReadCloser and leaves it up to the caller to extract what it wants.
+//
+// This function comes from https://github.com/docker/go-sdk and is subject to
+// the Apache 2.0 license. See:
+//
+// - https://github.com/docker/go-sdk/blob/b076369e03613f2d033373f2201021737a29bdd2/container/container.logs.go#L19-L68
+// - https://github.com/docker/go-sdk/blob/b076369e03613f2d033373f2201021737a29bdd2/LICENSE
+func (c *dockerClient) ReadLogs(ctx context.Context, containerID string, options container.LogsOptions) (io.ReadCloser, error) {
+	const streamHeaderSize = 8
+
+	rc, err := c.apiClient().ContainerLogs(ctx, containerID, options)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, pw := io.Pipe()
+	r := bufio.NewReader(rc)
+
+	go func() {
+		lineStarted := true
+		for err == nil {
+			line, isPrefix, err := r.ReadLine()
+
+			if lineStarted && len(line) >= streamHeaderSize {
+				line = line[streamHeaderSize:] // trim stream header
+				lineStarted = false
+			}
+			if !isPrefix {
+				lineStarted = true
+			}
+
+			_, errW := pw.Write(line)
+			if errW != nil {
+				return
+			}
+
+			if !isPrefix {
+				_, errW := pw.Write([]byte("\n"))
+				if errW != nil {
+					return
+				}
+			}
+
+			if err != nil {
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+	}()
+
+	return pr, nil
 }

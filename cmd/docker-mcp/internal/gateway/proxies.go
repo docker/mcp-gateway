@@ -19,7 +19,7 @@ func (g *Gateway) runProxies(ctx context.Context, allowedHosts []string) (proxie
 		nwProxies = append(nwProxies, proxy)
 	}
 
-	return proxies.RunNetworkProxies(ctx, g.docker, nwProxies, g.KeepContainers)
+	return proxies.RunNetworkProxies(ctx, g.docker, nwProxies, g.KeepContainers, g.DebugDNS)
 }
 
 func newClientWithCleanup(client mcp.Client, cleanup func(context.Context) error) mcp.Client {

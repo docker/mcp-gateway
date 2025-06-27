@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -20,12 +21,13 @@ type TargetConfig struct {
 	NetworkName string
 	Links       []string
 	Env         []string
+	DNS         string
 }
 
 // RunNetworkProxies starts a set of Proxy and returns a TargetConfig that
 // should be applied to a target container to get all its traffic proxied, a
 // cleanup function to remove the network and proxies, and an error if any.
-func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, keepCtrs bool) (_ TargetConfig, _ func(context.Context) error, retErr error) {
+func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, keepCtrs, debugDNS bool) (_ TargetConfig, _ func(context.Context) error, retErr error) {
 	if len(proxies) == 0 {
 		return TargetConfig{}, nil, nil
 	}
@@ -110,8 +112,21 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 		return TargetConfig{}, nil, fmt.Errorf("waiting for proxies to start: %w", err)
 	}
 
+	var dnsLogsReader io.ReadCloser
+	if debugDNS {
+		var dnsName string
+		dnsName, dnsLogsReader, err = runDNSForwarder(ctx, cli, &target, extNwName, keepCtrs)
+		if err != nil {
+			return TargetConfig{}, nil, fmt.Errorf("running dns forwarder: %w", err)
+		}
+		proxyNames = append(proxyNames, dnsName)
+	}
+
 	// Cleanup function to remove the network and proxies.
 	cleanup := func(ctx context.Context) error {
+		if dnsLogsReader != nil {
+			_ = dnsLogsReader.Close()
+		}
 		if keepCtrs {
 			return shutdownProxies(ctx, cli, proxyNames)
 		}

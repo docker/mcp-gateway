@@ -1,0 +1,5 @@
+. {
+    hosts /hosts
+    log . "REQ: {type} {name}"
+    errors
+}
