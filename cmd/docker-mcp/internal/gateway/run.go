@@ -21,6 +21,7 @@ type Gateway struct {
 	docker       docker.Client
 	configurator Configurator
 	networks     []string
+	clientPool   *clientPool
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
@@ -36,6 +37,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			Watch:        config.Watch,
 			docker:       docker,
 		},
+		clientPool: newClientPool(config.Options.KeepContainers, config.Options.Verbose),
 	}
 }
 
