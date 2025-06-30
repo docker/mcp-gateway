@@ -1,0 +1,49 @@
+services:
+  gateway:
+    image: docker/mcp-gateway
+    ports:
+      - "8811:8811"
+    command:
+      - --transport=streaming
+      - --servers=duckduckgo,fetch
+      - --port=8811
+      - --static=true
+    depends_on:
+      - mcp-duckduckgo
+      - mcp-fetch
+
+  mcp-duckduckgo:
+    image: mcp/duckduckgo@sha256:68eb20db6109f5c312a695fc5ec3386ad15d93ffb765a0b4eb1baf4328dec14f
+    entrypoint: ["/docker-mcp/misc/docker-mcp-bridge", "python", "-m", "duckduckgo_mcp_server.server"]
+    init: true
+    cpus: 1
+    mem_limit: 2g
+    security_opt:
+      - no-new-privileges
+    labels:
+      - docker-mcp=true
+      - docker-mcp-tool-type=mcp
+      - docker-mcp-name=duckduckgo
+      - docker-mcp-transport=stdio
+    volumes:
+      - type: image
+        source: docker/mcp-gateway
+        target: /docker-mcp
+
+  mcp-fetch:
+    image: mcp/fetch@sha256:ef9535a3f07249142f9ca5a6033d7024950afdb6dc05e98292794a23e9f5dfbe
+    entrypoint: ["/docker-mcp/misc/docker-mcp-bridge", "mcp-server-fetch"]
+    init: true
+    cpus: 1
+    mem_limit: 2g
+    security_opt:
+      - no-new-privileges
+    labels:
+      - docker-mcp=true
+      - docker-mcp-tool-type=mcp
+      - docker-mcp-name=fetch
+      - docker-mcp-transport=stdio
+    volumes:
+      - type: image
+        source: docker/mcp-gateway
+        target: /docker-mcp

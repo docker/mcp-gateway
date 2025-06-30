@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/config"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
@@ -50,7 +50,7 @@ func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
 	for _, secret := range storedSecrets {
 		secretNames = append(secretNames, secret.Name)
 	}
-	secretValues, err := docker.ReadSecrets(ctx, secretNames)
+	secretValues, err := docker.ReadSecrets(ctx, secretNames, false)
 	if err != nil {
 		return nil, err
 	}

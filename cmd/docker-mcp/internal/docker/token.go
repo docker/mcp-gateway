@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 type info struct {
@@ -14,16 +13,16 @@ type info struct {
 	Token string `json:"token"`
 }
 
-func getRegistryAuth(ctx context.Context) (string, error) {
+func getRegistryAuth(ctx context.Context) string {
 	// This call forces the refresh of the token. `/registry/info`` fails to do it sometimes.
 	var token string
 	if err := desktop.ClientBackend.Get(ctx, "/registry/token", &token); err != nil {
-		return "", nil
+		return ""
 	}
 
 	var info info
 	if err := desktop.ClientBackend.Get(ctx, "/registry/info", &info); err != nil {
-		return "", nil
+		return ""
 	}
 
 	authConfig := map[string]string{
@@ -32,8 +31,8 @@ func getRegistryAuth(ctx context.Context) (string, error) {
 	}
 	buf, err := json.Marshal(authConfig)
 	if err != nil {
-		return "", fmt.Errorf("marshalling auth config: %w", err)
+		return ""
 	}
 
-	return base64.StdEncoding.EncodeToString(buf), nil
+	return base64.StdEncoding.EncodeToString(buf)
 }

@@ -1,3 +1,3 @@
-module github.com/docker/docker-mcp-http-interceptor
+module github.com/docker/mcp-gateway-http-interceptor
 
 go 1.24.4

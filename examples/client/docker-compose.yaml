@@ -7,7 +7,7 @@ services:
       - gateway
 
   gateway:
-    image: docker/agents_gateway:v2
+    image: docker/mcp-gateway
     command:
       - --transport=streaming
       - --servers=duckduckgo

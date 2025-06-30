@@ -12,8 +12,8 @@ import (
 
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/interceptors"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/interceptors"
 )
 
 type Gateway struct {
@@ -73,17 +73,19 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Which docker images are used?
 	// Pull them and verify them if possible.
-	if err := g.pullAndVerify(ctx, configuration); err != nil {
-		return err
-	}
-
-	// When running in a container, find on which network we are running.
-	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
-		networks, err := g.guessNetworks(ctx)
-		if err != nil {
-			return fmt.Errorf("guessing network: %w", err)
+	if !g.Static {
+		if err := g.pullAndVerify(ctx, configuration); err != nil {
+			return err
 		}
-		g.clientPool.SetNetworks(networks)
+
+		// When running in a container, find on which network we are running.
+		if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+			networks, err := g.guessNetworks(ctx)
+			if err != nil {
+				return fmt.Errorf("guessing network: %w", err)
+			}
+			g.clientPool.SetNetworks(networks)
+		}
 	}
 
 	// List all the available tools.
@@ -182,11 +184,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 	switch strings.ToLower(g.Transport) {
 	case "stdio":
 		if g.Port == 0 {
-			log("> Starting stdio server")
+			log("> Start stdio server")
 			return startStdioServer(ctx, newMCPServer, os.Stdin, os.Stdout)
 		}
 
-		log("> Starting stdio over TCP server on port", g.Port)
+		log("> Start stdio over TCP server on port", g.Port)
 		return startStdioOverTCPServer(ctx, newMCPServer, ln)
 
 	case "sse":
@@ -194,7 +196,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			return errors.New("missing 'port' for 'sse' server")
 		}
 
-		log("> Starting sse server on port", g.Port)
+		log("> Start sse server on port", g.Port)
 		return startSseServer(ctx, newMCPServer, ln)
 
 	case "streaming":
@@ -202,7 +204,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			return errors.New("missing 'port' for streaming server")
 		}
 
-		log("> Starting streaming server on port", g.Port)
+		log("> Start streaming server on port", g.Port)
 		return startStreamingServer(ctx, newMCPServer, ln)
 
 	default:

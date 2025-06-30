@@ -12,9 +12,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/config"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 type Configurator interface {
@@ -301,7 +301,7 @@ func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, s
 	}
 
 	log("  - Reading secrets", secretNames)
-	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames)
+	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
 	if err != nil {
 		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
 	}

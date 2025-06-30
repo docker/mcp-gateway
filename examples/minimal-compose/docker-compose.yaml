@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: docker/agents_gateway:v2
+    image: docker/mcp-gateway
     command:
       - --servers=duckduckgo
     volumes:

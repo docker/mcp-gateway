@@ -25,4 +25,5 @@ type Options struct {
 	Watch               bool
 	Cpus                int
 	Memory              string
+	Static              bool
 }

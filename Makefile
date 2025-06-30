@@ -55,8 +55,8 @@ docker-mcp:
 	rm "$(DOCKER_MCP_CLI_PLUGIN_DST)" || true
 	cp "dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION)" "$(DOCKER_MCP_CLI_PLUGIN_DST)"
 
-push-gateway-image:
-	docker buildx bake agents_gateway --push
+push-mcp-gateway:
+	docker buildx bake mcp-gateway --push
 
 push-l4proxy-image:
 	docker buildx bake l4proxy --push
@@ -67,4 +67,4 @@ push-l7proxy-image:
 push-dns-forwarder-image:
 	docker buildx bake dns-forwarder --push
 
-.PHONY: format lint clean docker-mcp-cross push-module-image mcp-package test docker-mcp push-gateway-image push-l4proxy-image push-l7proxy-image push-dns-forwarder-image
+.PHONY: format lint clean docker-mcp-cross push-module-image mcp-package test docker-mcp push-mcp-gateway push-l4proxy-image push-l7proxy-image push-dns-forwarder-image

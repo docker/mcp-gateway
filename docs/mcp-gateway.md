@@ -50,7 +50,7 @@ The simplest way to tun the MCP Gateway with Docker Compose is with this kind of
 ```
 services:
   gateway:
-    image: docker/agents_gateway:v2
+    image: docker/mcp-gateway
     command:
       - --servers=duckduckgo
     volumes:

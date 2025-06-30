@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
 )
 
 func (cp *clientPool) runProxies(ctx context.Context, allowedHosts []string, longRunning bool) (proxies.TargetConfig, func(context.Context) error, error) {

@@ -9,7 +9,7 @@ services:
   gateway:
     build:
       dockerfile_inline: |
-        FROM docker/agents_gateway:v2
+        FROM docker/mcp-gateway
         RUN apk add jq
     command:
       - --transport=streaming

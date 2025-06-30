@@ -7,7 +7,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/secretsscan"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/secretsscan"
 )
 
 func BlockSecrets(next server.ToolHandlerFunc) server.ToolHandlerFunc {

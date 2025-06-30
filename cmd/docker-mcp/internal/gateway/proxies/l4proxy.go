@@ -10,8 +10,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/sliceutil"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/sliceutil"
 )
 
 const l4Image = "docker/mcp-l4proxy:v1@sha256:121b87decc25cda901dbd4ffbd20b116fffbd0fbeecc827c228fa45094a9934c"

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
 )
 
 func TestApplyConfigGrafana(t *testing.T) {
@@ -34,7 +34,7 @@ grafana:
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=grafana", "--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=grafana", "-l", "docker-mcp-transport=stdio",
 		"-e", "GRAFANA_API_KEY", "-e", "GRAFANA_URL",
 	}, args)
 	assert.Equal(t, []string{"GRAFANA_API_KEY=API_KEY", "GRAFANA_URL=TEST"}, env)
@@ -54,7 +54,7 @@ secrets:
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=mongodb", "--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=mongodb", "-l", "docker-mcp-transport=stdio",
 		"-e", "MDB_MCP_CONNECTION_STRING",
 	}, args)
 	assert.Equal(t, []string{"MDB_MCP_CONNECTION_STRING=HOST:PORT"}, env)
@@ -78,7 +78,7 @@ env:
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=notion", "--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=notion", "-l", "docker-mcp-transport=stdio",
 		"-e", "INTERNAL_INTEGRATION_TOKEN", "-e", "OPENAPI_MCP_HEADERS",
 	}, args)
 	assert.Equal(t, []string{"INTERNAL_INTEGRATION_TOKEN=ntn_DUMMY", `OPENAPI_MCP_HEADERS={"Authorization": "Bearer ntn_DUMMY", "Notion-Version": "2022-06-28"}`}, env)
@@ -98,7 +98,7 @@ hub:
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=hub", "--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
 		"-v", "/local/logs:/logs:ro",
 	}, args)
 	assert.Empty(t, env)
@@ -114,7 +114,7 @@ volumes:
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"--label", "docker-mcp=true", "--label", "docker-mcp-tool-type=mcp", "--label", "docker-mcp-name=hub", "--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
 	}, args)
 	assert.Empty(t, env)
 }

@@ -1,0 +1,50 @@
+services:
+  client:
+    build: .
+    environment:
+      - MCP_HOST=http://gateway:8811/mcp
+      - MCP_CALL_TOOL=read_graph
+      - MCP_CALL_TOOL_ARGS={}
+    depends_on:
+      - gateway
+
+  gateway:
+    image: docker/mcp-gateway
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --transport=streaming
+      - --servers=neo4j-memory
+      - --tools=read_graph
+      - --secrets=/run/secrets/mcp_secrets
+      - --config=/mcp_configs
+    secrets:
+      - mcp_secrets
+    configs:
+      - mcp_configs
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  neo4j:
+    image: neo4j
+    environment:
+      # In cleartext, for the sake of the demo.
+      NEO4J_AUTH: neo4j/neo4jneo4j
+    healthcheck:
+      test: wget http://localhost:7474
+      interval: 1s
+      timeout: 20s
+      retries: 20
+      start_period: 3s
+
+configs:
+  mcp_configs:
+    content: |
+      neo4j-memory:
+        url: bolt://neo4j:7687
+        username: neo4j
+
+secrets:
+  mcp_secrets:
+    file: ./neo4j

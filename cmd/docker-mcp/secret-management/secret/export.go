@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 func ExportCommand(docker docker.Client) *cobra.Command {
@@ -56,5 +56,5 @@ func exportSecrets(ctx context.Context, docker docker.Client, serverNames []stri
 
 	sort.Strings(secretNames)
 
-	return docker.ReadSecrets(ctx, secretNames)
+	return docker.ReadSecrets(ctx, secretNames, false)
 }

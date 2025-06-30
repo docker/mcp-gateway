@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/config"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 func List(ctx context.Context, docker docker.Client) ([]string, error) {

@@ -1,5 +1,6 @@
 *
 !/cmd/**/*
+!/tools/docker-mcp-bridge/**/*
 !/go.mod
 !/go.sum
 !/.golangci.yml

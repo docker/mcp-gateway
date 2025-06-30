@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"sync"
 
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/distribution/reference"
@@ -22,17 +23,16 @@ func (c *dockerClient) ImageExists(ctx context.Context, name string) (bool, erro
 }
 
 func (c *dockerClient) PullImages(ctx context.Context, names ...string) error {
-	registryAuth, err := getRegistryAuth(ctx)
-	if err != nil {
-		return fmt.Errorf("getting registryAuth: %w", err)
-	}
+	registryAuthFn := sync.OnceValue(func() string {
+		return getRegistryAuth(ctx)
+	})
 
 	errs, ctx := errgroup.WithContext(ctx)
 	errs.SetLimit(runtime.NumCPU())
 
 	for _, name := range names {
 		errs.Go(func() error {
-			return c.pullImage(ctx, name, registryAuth)
+			return c.pullImage(ctx, name, registryAuthFn)
 		})
 	}
 
@@ -40,15 +40,12 @@ func (c *dockerClient) PullImages(ctx context.Context, names ...string) error {
 }
 
 func (c *dockerClient) PullImage(ctx context.Context, name string) error {
-	registryAuth, err := getRegistryAuth(ctx)
-	if err != nil {
-		return fmt.Errorf("getting registryAuth: %w", err)
-	}
-
-	return c.pullImage(ctx, name, registryAuth)
+	return c.pullImage(ctx, name, func() string {
+		return getRegistryAuth(ctx)
+	})
 }
 
-func (c *dockerClient) pullImage(ctx context.Context, imageName, registryAuth string) error {
+func (c *dockerClient) pullImage(ctx context.Context, imageName string, registryAuthFn func() string) error {
 	inspect, err := c.apiClient().ImageInspect(ctx, imageName)
 	if err != nil && !cerrdefs.IsNotFound(err) {
 		return fmt.Errorf("inspecting docker image %s: %w", imageName, err)
@@ -65,13 +62,15 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName, registryAuth st
 		return fmt.Errorf("parsing image reference %s: %w", imageName, err)
 	}
 
-	if _, digested := ref.(reference.Digested); !digested {
-		// Useful for tests. Assume that the untagged image we have locally is the right one.
-		return nil
+	// Useful for tests. Assume that the untagged image we have locally is the right one.
+	if len(inspect.RepoTags) > 0 {
+		if _, digested := ref.(reference.Digested); !digested {
+			return nil
+		}
 	}
 
 	pullOptions := image.PullOptions{
-		RegistryAuth: registryAuth,
+		RegistryAuth: registryAuthFn(),
 	}
 
 	response, err := c.apiClient().ImagePull(ctx, imageName, pullOptions)

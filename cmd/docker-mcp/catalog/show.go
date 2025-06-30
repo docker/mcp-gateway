@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/yq"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/yq"
 )
 
 type Format string

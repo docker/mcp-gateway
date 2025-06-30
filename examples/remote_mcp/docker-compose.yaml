@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: docker/agents_gateway:v2
+    image: docker/mcp-gateway
     volumes:
       - ./catalog.yaml:/mcp/catalog.yaml
     command:

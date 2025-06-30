@@ -5,10 +5,9 @@ services:
       - MCP_HOST=http://gateway:8811/mcp
     depends_on:
       - gateway
-      - pg
 
   gateway:
-    image: docker/agents_gateway:v2
+    image: docker/mcp-gateway
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
@@ -19,6 +18,9 @@ services:
       - --secrets=/run/secrets/database_url
     secrets:
       - database_url
+    depends_on:
+      pg:
+        condition: service_healthy
 
   pg:
     image: postgres
