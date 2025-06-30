@@ -60,7 +60,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConf
 		getter = newClientGetter(ctx, serverConfig, cp, readOnly)
 
 		// If the client is long running, save it for later
-		if serverConfig.Spec.LongRunning || cp.LongLivedContainers {
+		if serverConfig.Spec.Singleton || cp.AllSingletons {
 			cp.clientLock.Lock()
 			cp.keptClients = append(cp.keptClients, keptClient{
 				Name:   serverConfig.Name,
@@ -77,7 +77,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConf
 		defer cp.clientLock.Unlock()
 
 		// Wasn't successful, remove it
-		if serverConfig.Spec.LongRunning || cp.LongLivedContainers {
+		if serverConfig.Spec.Singleton || cp.AllSingletons {
 			for i, kc := range cp.keptClients {
 				if kc.Getter == getter {
 					cp.keptClients = append(cp.keptClients[:i], cp.keptClients[i+1:]...)
@@ -315,7 +315,7 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 				var targetConfig proxies.TargetConfig
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongRunning); err != nil {
+					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.Singleton); err != nil {
 						return nil, err
 					}
 				}
