@@ -13,6 +13,7 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
@@ -179,20 +180,20 @@ func createDockerClient(t *testing.T) docker.Client {
 	return dockerClient
 }
 
-func waitForCondition(t *testing.T, timeout time.Duration, condition func() bool) bool {
+func waitForCondition(t *testing.T, condition func() bool) {
 	t.Helper()
 
-	timeoutCtx, cancel := context.WithTimeout(t.Context(), timeout)
+	timeoutCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	for {
 		if condition() {
-			return true
+			return
 		}
 
 		select {
 		case <-timeoutCtx.Done():
-			return false
+			return
 		case <-time.After(50 * time.Millisecond):
 		}
 	}
@@ -201,12 +202,14 @@ func waitForCondition(t *testing.T, timeout time.Duration, condition func() bool
 var pullTimeImageOnce sync.Once
 
 func pullTimeImage(t *testing.T) {
+	t.Helper()
 	pullTimeImageOnce.Do(func() {
 		dockerClient := createDockerClient(t)
 		err := dockerClient.PullImage(t.Context(), "mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
 		require.NoError(t, err)
 	})
 }
+
 func TestClientClosesShortLivedContainer(t *testing.T) {
 	dockerClient := createDockerClient(t)
 
@@ -231,21 +234,21 @@ func TestClientClosesShortLivedContainer(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, toolResult)
 
-	containerId, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	// Releasing client will remove it
 	clientPool.ReleaseClient(client)
 
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.Empty(t, containerId)
+	require.Empty(t, containerID)
 
 	clientPool.Close()
 }
@@ -275,34 +278,34 @@ func TestClientLeavesSingletonRunning(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, toolResult)
 
-	containerId, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	// Releasing client won't remove it
 	clientPool.ReleaseClient(client)
 
 	// Condition will never be true, that's ok
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	clientPool.Close()
 
 	// Condition should become true now that it's closed
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.Empty(t, containerId)
+	require.Empty(t, containerID)
 }
 
 func TestClientLeavesRunningWithSingletonFlag(t *testing.T) {
@@ -330,34 +333,34 @@ func TestClientLeavesRunningWithSingletonFlag(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, toolResult)
 
-	containerId, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	// Releasing client won't remove it
 	clientPool.ReleaseClient(client)
 
 	// Condition will never be true, that's ok
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	clientPool.Close()
 
 	// Condition should become true now that it's closed
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.Empty(t, containerId)
+	require.Empty(t, containerID)
 }
 
 func TestClientReusesRunningSingleton(t *testing.T) {
@@ -383,22 +386,22 @@ func TestClientReusesRunningSingleton(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	containerId, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	// Releasing client won't remove it
 	clientPool.ReleaseClient(client)
 
 	// Condition will never be true, that's ok
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	// Acquire it again
 	client, err = clientPool.AcquireClient(t.Context(), config, nil)
@@ -406,19 +409,19 @@ func TestClientReusesRunningSingleton(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.NotEmpty(t, containerId)
+	require.NotEmpty(t, containerID)
 
 	clientPool.Close()
 
 	// Condition should become true now that it's closed
-	waitForCondition(t, 5*time.Second, func() bool {
-		containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
-		return err == nil && containerId == ""
+	waitForCondition(t, func() bool {
+		containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+		return err == nil && containerID == ""
 	})
 
-	containerId, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
+	containerID, err = dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=time")
 	require.NoError(t, err)
-	require.Empty(t, containerId)
+	require.Empty(t, containerID)
 }
