@@ -57,7 +57,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConf
 
 	// No client found, create a new one
 	if getter == nil {
-		getter = newClientGetter(ctx, serverConfig, cp, readOnly)
+		getter = newClientGetter(serverConfig, cp, readOnly)
 
 		// If the client is long running, save it for later
 		if serverConfig.Spec.Singleton || cp.AllSingletons {
@@ -71,7 +71,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConf
 		}
 	}
 
-	client, err := getter.GetClient() // first time creates the client, can take some time
+	client, err := getter.GetClient(ctx) // first time creates the client, can take some time
 	if err != nil {
 		cp.clientLock.Lock()
 		defer cp.clientLock.Unlock()
@@ -120,7 +120,7 @@ func (cp *clientPool) Close() {
 
 	// Close all clients
 	for _, keptClient := range existingMap {
-		client, err := keptClient.Getter.GetClient() // should be cached
+		client, err := keptClient.Getter.GetClient(context.TODO()) // should be cached
 		if err == nil {
 			client.Close()
 		}
@@ -281,15 +281,13 @@ type clientGetter struct {
 	client mcpclient.Client
 	err    error
 
-	ctx          context.Context
 	serverConfig ServerConfig
 	cp           *clientPool
 	readOnly     *bool
 }
 
-func newClientGetter(ctx context.Context, serverConfig ServerConfig, cp *clientPool, readOnly *bool) *clientGetter {
+func newClientGetter(serverConfig ServerConfig, cp *clientPool, readOnly *bool) *clientGetter {
 	return &clientGetter{
-		ctx:          ctx,
 		serverConfig: serverConfig,
 		cp:           cp,
 		readOnly:     readOnly,
@@ -300,7 +298,7 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 	return cg.client == client
 }
 
-func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
+func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
 			cleanup := func(context.Context) error { return nil }
@@ -315,7 +313,7 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 				var targetConfig proxies.TargetConfig
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.Singleton); err != nil {
+					if targetConfig, cleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.Singleton); err != nil {
 						return nil, err
 					}
 				}
@@ -345,7 +343,7 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 				Version: "1.0.0",
 			}
 
-			ctx, cancel := context.WithTimeout(cg.ctx, 20*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			defer cancel()
 
 			if _, err := client.Initialize(ctx, initRequest, cg.cp.Verbose); err != nil {
