@@ -11,11 +11,11 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/docker"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/eval"
-	"github.com/docker/docker-mcp/cmd/docker-mcp/internal/gateway/proxies"
-	mcpclient "github.com/docker/docker-mcp/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/eval"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
+	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
 )
 
 var readOnly = true
@@ -180,10 +180,10 @@ func (cp *clientPool) baseArgs(name string) []string {
 
 	// Add a few labels to the container for identification
 	args = append(args,
-		"--label", "docker-mcp=true",
-		"--label", "docker-mcp-tool-type=mcp",
-		"--label", "docker-mcp-name="+name,
-		"--label", "docker-mcp-transport=stdio",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name="+name,
+		"-l", "docker-mcp-transport=stdio",
 	)
 
 	return args
@@ -218,7 +218,13 @@ func (cp *clientPool) argsAndEnv(serverConfig ServerConfig, readOnly *bool, targ
 	// Secrets
 	for _, s := range serverConfig.Spec.Secrets {
 		args = append(args, "-e", s.Env)
-		env = append(env, fmt.Sprintf("%s=%s", s.Env, serverConfig.Secrets[s.Name]))
+
+		secretValue, ok := serverConfig.Secrets[s.Name]
+		if ok {
+			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
+		} else {
+			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
+		}
 	}
 
 	// Env
@@ -300,12 +306,13 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 			cleanup := func(context.Context) error { return nil }
 
 			var client mcpclient.Client
-			var targetConfig proxies.TargetConfig
 
 			if cg.serverConfig.Spec.SSEEndpoint != "" {
 				client = mcpclient.NewSSEClient(cg.serverConfig.Name, cg.serverConfig.Spec.SSEEndpoint)
+			} else if cg.cp.Static {
+				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "socat", nil, "STDIO", fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name))
 			} else {
-				image := cg.serverConfig.Spec.Image
+				var targetConfig proxies.TargetConfig
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
 					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongRunning); err != nil {
@@ -313,13 +320,14 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 					}
 				}
 
+				image := cg.serverConfig.Spec.Image
 				args, env := cg.cp.argsAndEnv(cg.serverConfig, cg.readOnly, targetConfig)
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
-					log("  - Running server", imageBaseName(image), "with", args)
+					log("  - Running", imageBaseName(image), "with", args)
 				} else {
-					log("  - Running server", imageBaseName(image), "with", args, "and command", command)
+					log("  - Running", imageBaseName(image), "with", args, "and command", command)
 				}
 
 				var runArgs []string
@@ -341,11 +349,7 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 			defer cancel()
 
 			if _, err := client.Initialize(ctx, initRequest, cg.cp.Verbose); err != nil {
-				initializedObject := cg.serverConfig.Spec.Image
-				if cg.serverConfig.Spec.SSEEndpoint != "" {
-					initializedObject = cg.serverConfig.Spec.SSEEndpoint
-				}
-				return nil, fmt.Errorf("initializing %s: %w", initializedObject, err)
+				return nil, err
 			}
 
 			return newClientWithCleanup(client, cleanup), nil
