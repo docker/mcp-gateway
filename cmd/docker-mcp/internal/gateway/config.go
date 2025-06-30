@@ -10,19 +10,19 @@ type Config struct {
 }
 
 type Options struct {
-	Port             int
-	Transport        string
-	ToolNames        []string
-	Interceptors     []string
-	Verbose          bool
-	KeepContainers   bool
-	DebugDNS         bool
-	LogCalls         bool
-	BlockSecrets     bool
-	BlockNetwork     bool
-	VerifySignatures bool
-	DryRun           bool
-	Watch            bool
-	Cpus             int
-	Memory           string
+	Port                int
+	Transport           string
+	ToolNames           []string
+	Interceptors        []string
+	Verbose             bool
+	LongLivedContainers bool
+	DebugDNS            bool
+	LogCalls            bool
+	BlockSecrets        bool
+	BlockNetwork        bool
+	VerifySignatures    bool
+	DryRun              bool
+	Watch               bool
+	Cpus                int
+	Memory              string
 }
