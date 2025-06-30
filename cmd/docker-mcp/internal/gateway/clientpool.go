@@ -46,30 +46,50 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig ServerConf
 	var getter *clientGetter
 
 	// Check if client is kept, can be returned immediately
-	cp.clientLock.Lock()
+	cp.clientLock.RLock()
 	for _, kc := range cp.keptClients {
 		if kc.Name == serverConfig.Name {
 			getter = kc.Getter
 			break
 		}
 	}
+	cp.clientLock.RUnlock()
 
 	// No client found, create a new one
 	if getter == nil {
 		getter = newClientGetter(ctx, serverConfig, cp, readOnly)
 
-		// If the client is stateful, save it for later
-		if serverConfig.Spec.Stateful || cp.KeepContainers {
+		// If the client is long running, save it for later
+		if serverConfig.Spec.LongRunning || cp.LongLivedContainers {
+			cp.clientLock.Lock()
 			cp.keptClients = append(cp.keptClients, keptClient{
 				Name:   serverConfig.Name,
 				Getter: getter,
 				Config: serverConfig,
 			})
+			cp.clientLock.Unlock()
 		}
 	}
-	cp.clientLock.Unlock()
 
-	return getter.GetClient()
+	client, err := getter.GetClient() // first time creates the client, can take some time
+	if err != nil {
+		cp.clientLock.Lock()
+		defer cp.clientLock.Unlock()
+
+		// Wasn't successful, remove it
+		if serverConfig.Spec.LongRunning || cp.LongLivedContainers {
+			for i, kc := range cp.keptClients {
+				if kc.Getter == getter {
+					cp.keptClients = append(cp.keptClients[:i], cp.keptClients[i+1:]...)
+					break
+				}
+			}
+		}
+
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
@@ -98,8 +118,9 @@ func (cp *clientPool) Close() {
 	cp.keptClients = []keptClient{}
 	cp.clientLock.Unlock()
 
+	// Close all clients
 	for _, keptClient := range existingMap {
-		client, err := keptClient.Getter.GetClient()
+		client, err := keptClient.Getter.GetClient() // should be cached
 		if err == nil {
 			client.Close()
 		}
@@ -151,12 +172,7 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 func (cp *clientPool) baseArgs(name string) []string {
 	args := []string{"run"}
 
-	// Should we keep the container after it exits? Useful for debugging.
-	if !cp.KeepContainers {
-		args = append(args, "--rm")
-	}
-
-	args = append(args, "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", fmt.Sprintf("%d", cp.Cpus), "--memory", cp.Memory, "--pull", "never")
+	args = append(args, "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", fmt.Sprintf("%d", cp.Cpus), "--memory", cp.Memory, "--pull", "never")
 
 	if os.Getenv("DOCKER_MCP_IN_DIND") == "1" {
 		args = append(args, "--privileged")
@@ -292,7 +308,7 @@ func (cg *clientGetter) GetClient() (mcpclient.Client, error) {
 				image := cg.serverConfig.Spec.Image
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts); err != nil {
+					if targetConfig, cleanup, err = cg.cp.runProxies(cg.ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongRunning); err != nil {
 						return nil, err
 					}
 				}
