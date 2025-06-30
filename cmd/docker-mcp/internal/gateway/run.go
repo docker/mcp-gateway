@@ -41,6 +41,8 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
+	defer g.clientPool.Close()
+
 	start := time.Now()
 
 	// Listen as early as possible to not lose client connections.
