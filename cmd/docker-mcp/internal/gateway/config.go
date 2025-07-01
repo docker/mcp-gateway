@@ -15,7 +15,7 @@ type Options struct {
 	ToolNames        []string
 	Interceptors     []string
 	Verbose          bool
-	AllSingletons    bool
+	LongLived        bool
 	DebugDNS         bool
 	LogCalls         bool
 	BlockSecrets     bool

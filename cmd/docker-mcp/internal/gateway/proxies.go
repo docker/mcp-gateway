@@ -19,7 +19,7 @@ func (cp *clientPool) runProxies(ctx context.Context, allowedHosts []string, lon
 		nwProxies = append(nwProxies, proxy)
 	}
 
-	return proxies.RunNetworkProxies(ctx, cp.docker, nwProxies, cp.AllSingletons || longRunning, cp.DebugDNS)
+	return proxies.RunNetworkProxies(ctx, cp.docker, nwProxies, cp.LongLived || longRunning, cp.DebugDNS)
 }
 
 func newClientWithCleanup(client mcp.Client, cleanup func(context.Context) error) mcp.Client {
