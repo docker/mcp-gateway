@@ -172,7 +172,14 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 func (cp *clientPool) baseArgs(name string) []string {
 	args := []string{"run"}
 
-	args = append(args, "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", fmt.Sprintf("%d", cp.Cpus), "--memory", cp.Memory, "--pull", "never")
+	args = append(args, "--rm", "-i", "--init", "--security-opt", "no-new-privileges")
+	if cp.Cpus > 0 {
+		args = append(args, "--cpus", fmt.Sprintf("%d", cp.Cpus))
+	}
+	if cp.Memory != "" {
+		args = append(args, "--memory", cp.Memory)
+	}
+	args = append(args, "--pull", "never")
 
 	if os.Getenv("DOCKER_MCP_IN_DIND") == "1" {
 		args = append(args, "--privileged")
