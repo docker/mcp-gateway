@@ -87,14 +87,10 @@ func (i *Interceptor) Run(next server.ToolHandlerFunc) server.ToolHandlerFunc {
 				return nil, fmt.Errorf("executing interceptor: %w", err)
 			}
 
+			// If the interceptor returns a response, we use it instead of calling the next handler.
 			if len(out) > 0 {
-				var response mcp.CallToolResult
-				if err := json.Unmarshal(out, &response); err != nil {
-					return nil, fmt.Errorf("unmarshalling response: %w", err)
-				}
-
-				// If the interceptor returns a response, we use it instead of calling the next handler.
-				return &response, nil
+				rawMessage := json.RawMessage(out)
+				return mcp.ParseCallToolResult(&rawMessage)
 			}
 		}
 
@@ -106,9 +102,15 @@ func (i *Interceptor) Run(next server.ToolHandlerFunc) server.ToolHandlerFunc {
 				return nil, fmt.Errorf("marshalling response: %w", err)
 			}
 
-			_, err = i.run(ctx, message)
+			out, err := i.run(ctx, message)
 			if err != nil {
 				return nil, fmt.Errorf("executing interceptor: %w", err)
+			}
+
+			// If the interceptor returns a response, we use it instead.
+			if len(out) > 0 {
+				rawMessage := json.RawMessage(out)
+				return mcp.ParseCallToolResult(&rawMessage)
 			}
 		}
 

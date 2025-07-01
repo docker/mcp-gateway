@@ -16,8 +16,15 @@ func startStdioServer(ctx context.Context, newMCPServer func() *server.MCPServer
 }
 
 func startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
+	mux := http.NewServeMux()
+	sseServer := server.NewSSEServer(newMCPServer())
+	mux.Handle("/sse", sseServer.SSEHandler())
+	mux.Handle("/message", sseServer.MessageHandler())
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/sse", http.StatusTemporaryRedirect)
+	})
 	httpServer := &http.Server{
-		Handler: server.NewSSEServer(newMCPServer()),
+		Handler: mux,
 	}
 	go func() {
 		<-ctx.Done()
@@ -29,6 +36,9 @@ func startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, 
 func startStreamingServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", server.NewStreamableHTTPServer(newMCPServer()))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/mcp", http.StatusTemporaryRedirect)
+	})
 	httpServer := &http.Server{
 		Handler: mux,
 	}

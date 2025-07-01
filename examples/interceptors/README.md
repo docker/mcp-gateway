@@ -32,7 +32,7 @@ The `script` is a shell script that will run with `/bin/sh -c`. e.g:
 ```
 
 The tool call request (`before`) or tool call response (`after`) are passed as json objects into stdin.
-To return a custom response, the `before` interceptor needs to write it to `stdout` as a json object.
+To return a custom response, the interceptor needs to write it to `stdout` as a json object.
 Every output sent to `stderr` will be shown in the gateway's logs.
 
 ## `docker`
@@ -46,7 +46,7 @@ e.g:
 ```
 
 The tool call request (`before`) or tool call response (`after`) are passed as json objects into stdin.
-To return a custom response, the `before` interceptor needs to write it to `stdout` as a json object.
+To return a custom response, the interceptor needs to write it to `stdout` as a json object.
 Every output sent to `stderr` will be shown in the gateway's logs.
 
 ## `http`
@@ -61,4 +61,28 @@ e.g:
 ```
 
 The tool call request (`before`) or tool call response (`after`) are passed as json objects into a `POST` request.
-To return a custom response, the `before` interceptor needs to write a non empty json object.
+To return a custom response, the interceptor needs to write a non empty json object.
+
+# Examples
+
+Log the tool request's arguments:
+
+```yaml
+- --interceptor
+- before:exec:echo Arguments=$(jq -r ".params.arguments") >&2
+```
+
+Log the tool call's response:
+
+```yaml
+- --interceptor
+- after:exec:echo Response=$(jq -r ".") >&2
+```
+
+Trim down the tool's response text:
+
+```yaml
+- --interceptor
+- after:exec:jq -c '.content[].text |= (.[:100])'
+```
+

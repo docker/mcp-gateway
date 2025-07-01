@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"os"
 	"os/exec"
+	"runtime"
 	"strings"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 const jcatImage = "docker/jcat@sha256:76719466e8b99a65dd1d37d9ab94108851f009f0f687dce7ff8a6fc90575c4d4"
@@ -47,7 +51,26 @@ func (c *dockerClient) readSecrets(ctx context.Context, names []string) (map[str
 		command = append(command, file)
 	}
 
-	args := []string{"run", "--rm"}
+	var args []string
+
+	// When running in cloud mode but not in a container, we might be able to use Docker Desktop's special socket
+	// to rad the secrets.
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
+		var path string
+		switch runtime.GOOS {
+		case "windows":
+			path = "npipe://" + strings.ReplaceAll(desktop.Paths().RawDockerSocket, `\`, `/`)
+		default:
+			// On Darwin/Linux, we do it only if the socket actually exists.
+			if _, err := os.Stat(desktop.Paths().RawDockerSocket); err == nil {
+				path = "unix://" + desktop.Paths().RawDockerSocket
+			}
+		}
+		if path != "" {
+			args = append(args, "-H", path)
+		}
+	}
+	args = append(args, "run", "--rm")
 	args = append(args, flags...)
 	args = append(args, jcatImage)
 	args = append(args, command...)
