@@ -14,12 +14,15 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 )
 
-func runDockerMCP(t *testing.T, args ...string) string {
+func thisIsAnIntegrationTest(t *testing.T) {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping integration test.")
 	}
+}
 
+func runDockerMCP(t *testing.T, args ...string) string {
+	t.Helper()
 	args = append([]string{"mcp"}, args...)
 	fmt.Println(args)
 	cmd := exec.CommandContext(t.Context(), "docker", args...)
@@ -37,32 +40,38 @@ func writeFile(t *testing.T, parent, name string, content string) {
 }
 
 func TestIntegrationVersion(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "version")
 	assert.NotEmpty(t, out)
 }
 
 func TestIntegrationCatalogLs(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "catalog", "ls")
 	assert.Contains(t, out, "docker-mcp: Docker MCP Catalog")
 }
 
 func TestIntegrationCatalogShow(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "catalog", "show")
 	assert.Contains(t, out, "playwright:")
 }
 
 func TestIntegrationDryRunEmpty(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "gateway", "run", "--dry-run", "--servers=")
 	assert.Contains(t, out, "Initialized in")
 }
 
 func TestIntegrationDryRunFetch(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "gateway", "run", "--dry-run", "--servers=fetch", "--catalog="+catalog.DockerCatalogURL)
 	assert.Contains(t, out, "fetch: (1 tools)")
 	assert.Contains(t, out, "Initialized in")
 }
 
 func TestIntegrationCallToolClickhouse(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	tmp := t.TempDir()
 	writeFile(t, tmp, ".env", "clickhouse.password=")
 	writeFile(t, tmp, "config.yaml", "clickhouse:\n  host: sql-clickhouse.clickhouse.com\n  user: demo\n")
@@ -81,6 +90,7 @@ func TestIntegrationCallToolClickhouse(t *testing.T) {
 }
 
 func TestIntegrationCallToolDuckDuckDb(t *testing.T) {
+	thisIsAnIntegrationTest(t)
 	gatewayArgs := []string{
 		"--servers=duckduckgo",
 		"--catalog=" + catalog.DockerCatalogURL,
