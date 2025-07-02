@@ -17,6 +17,8 @@ type Client interface {
 	RemoveContainer(ctx context.Context, containerID string, force bool) error
 	StartContainer(ctx context.Context, containerID string, containerConfig container.Config, hostConfig container.HostConfig, networkingConfig network.NetworkingConfig) error
 	StopContainer(ctx context.Context, containerID string, timeout int) error
+	FindContainerByLabel(ctx context.Context, label string) (string, error)
+	FindAllContainersByLabel(ctx context.Context, label string) ([]string, error)
 	InspectContainer(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ReadLogs(ctx context.Context, containerID string, options container.LogsOptions) (io.ReadCloser, error)
 	ImageExists(ctx context.Context, name string) (bool, error)

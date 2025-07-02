@@ -8,6 +8,7 @@ import (
 
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 )
 
@@ -47,6 +48,37 @@ func (c *dockerClient) StopContainer(ctx context.Context, containerID string, ti
 
 func (c *dockerClient) InspectContainer(ctx context.Context, containerID string) (container.InspectResponse, error) {
 	return c.apiClient().ContainerInspect(ctx, containerID)
+}
+
+func (c *dockerClient) FindContainerByLabel(ctx context.Context, label string) (string, error) {
+	containers, err := c.apiClient().ContainerList(ctx, container.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("label", label)),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(containers) == 0 {
+		return "", nil
+	}
+
+	return containers[0].ID, nil
+}
+
+func (c *dockerClient) FindAllContainersByLabel(ctx context.Context, label string) ([]string, error) {
+	containers, err := c.apiClient().ContainerList(ctx, container.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("label", label)),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(containers))
+	for i, container := range containers {
+		ids[i] = container.ID
+	}
+
+	return ids, nil
 }
 
 // Logs will fetch both STDOUT and STDERR from the current container. Returns a
