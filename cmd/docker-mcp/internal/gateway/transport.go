@@ -11,11 +11,11 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/sockets"
 )
 
-func startStdioServer(ctx context.Context, newMCPServer func() *server.MCPServer, stdin io.Reader, stdout io.Writer) error {
+func (g *Gateway) startStdioServer(ctx context.Context, newMCPServer func() *server.MCPServer, stdin io.Reader, stdout io.Writer) error {
 	return server.NewStdioServer(newMCPServer()).Listen(ctx, stdin, stdout)
 }
 
-func startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
+func (g *Gateway) startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
 	mux := http.NewServeMux()
 	sseServer := server.NewSSEServer(newMCPServer())
 	mux.Handle("/sse", sseServer.SSEHandler())
@@ -23,6 +23,13 @@ func startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/sse", http.StatusTemporaryRedirect)
 	})
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		if g.health.IsHealthy() {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
 	httpServer := &http.Server{
 		Handler: mux,
 	}
@@ -33,11 +40,18 @@ func startSseServer(ctx context.Context, newMCPServer func() *server.MCPServer, 
 	return httpServer.Serve(ln)
 }
 
-func startStreamingServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
+func (g *Gateway) startStreamingServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", server.NewStreamableHTTPServer(newMCPServer()))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/mcp", http.StatusTemporaryRedirect)
+	})
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		if g.health.IsHealthy() {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
 	})
 	httpServer := &http.Server{
 		Handler: mux,
@@ -50,7 +64,7 @@ func startStreamingServer(ctx context.Context, newMCPServer func() *server.MCPSe
 	return httpServer.Serve(ln)
 }
 
-func startStdioOverTCPServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
+func (g *Gateway) startStdioOverTCPServer(ctx context.Context, newMCPServer func() *server.MCPServer, ln net.Listener) error {
 	for {
 		select {
 		case <-ctx.Done():

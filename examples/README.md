@@ -10,4 +10,5 @@
 + `postgresql` - Query a PostgreSQL DB through a PostgreSQL MCP Server, through the Gateway, from a python client.
 + `docker-in-docker` - Run the MCP Gateway and the MCP server into the same Docker in Docker container.
 + `interceptors` - Configure interceptors on Tool Calls.
++ `health` - Health checks with Compose.
 + `compose-static` - Run the MCP Gateway, with Compose, in `static` mode. (Experimental)

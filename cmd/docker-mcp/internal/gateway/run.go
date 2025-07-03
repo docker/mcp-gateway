@@ -13,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/health"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/interceptors"
 )
 
@@ -21,6 +22,7 @@ type Gateway struct {
 	docker       docker.Client
 	configurator Configurator
 	clientPool   *clientPool
+	health       health.State
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
@@ -166,11 +168,13 @@ func (g *Gateway) Run(ctx context.Context) error {
 						continue
 					}
 
+					g.health.SetUnhealthy()
 					lock.Lock()
 					for _, listener := range changeListeners {
 						listener(capabilities)
 					}
 					lock.Unlock()
+					g.health.SetHealthy()
 				}
 			}
 		}()
@@ -183,15 +187,16 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 
 	// Start the server
+	g.health.SetHealthy()
 	switch strings.ToLower(g.Transport) {
 	case "stdio":
 		if g.Port == 0 {
 			log("> Start stdio server")
-			return startStdioServer(ctx, newMCPServer, os.Stdin, os.Stdout)
+			return g.startStdioServer(ctx, newMCPServer, os.Stdin, os.Stdout)
 		}
 
 		log("> Start stdio over TCP server on port", g.Port)
-		return startStdioOverTCPServer(ctx, newMCPServer, ln)
+		return g.startStdioOverTCPServer(ctx, newMCPServer, ln)
 
 	case "sse":
 		if g.Port == 0 {
@@ -199,7 +204,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 
 		log("> Start sse server on port", g.Port)
-		return startSseServer(ctx, newMCPServer, ln)
+		return g.startSseServer(ctx, newMCPServer, ln)
 
 	case "streaming":
 		if g.Port == 0 {
@@ -207,7 +212,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 
 		log("> Start streaming server on port", g.Port)
-		return startStreamingServer(ctx, newMCPServer, ln)
+		return g.startStreamingServer(ctx, newMCPServer, ln)
 
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)

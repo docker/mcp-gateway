@@ -1,0 +1,23 @@
+services:
+  client:
+    build: .
+    environment:
+      - MCP_HOST=http://gateway:9011/mcp
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  gateway:
+    image: docker/mcp-gateway
+    command:
+      - --transport=streaming
+      - --servers=fetch
+      - --port=9011
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: wget http://localhost:9011/health
+      interval: 1s
+      timeout: 10s
+      retries: 60
+      start_period: 2s
