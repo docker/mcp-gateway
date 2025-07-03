@@ -47,3 +47,7 @@ jobs:
 
       - name: Build
         run: make docker-mcp-cross
+
+      - name: Push Gateway image
+        if: github.ref == 'refs/heads/main'
+        run: make push-mcp-gateway
