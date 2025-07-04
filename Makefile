@@ -54,7 +54,7 @@ integration:
 	go test -count=1 ./... -run 'TestIntegration'
 
 docker-mcp:
-	CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags "-s -w ${GO_LDFLAGS}" -o ./dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION) ./cmd/docker-mcp
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w ${GO_LDFLAGS}" -o ./dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION) ./cmd/docker-mcp
 	rm "$(DOCKER_MCP_CLI_PLUGIN_DST)" || true
 	cp "dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION)" "$(DOCKER_MCP_CLI_PLUGIN_DST)"
 
