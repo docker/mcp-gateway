@@ -1,5 +1,6 @@
 name: Release docker-mcp as DD Module
 run-name: Release DD Module ${{ inputs.tag }}
+
 on:
   workflow_dispatch:
     inputs:
