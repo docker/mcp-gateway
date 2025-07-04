@@ -1,9 +1,8 @@
 #syntax=docker/dockerfile:1
 
-ARG GO_VERSION=latest
-ARG GOLANGCI_LINT_VERSION=latest
+ARG GO_VERSION=1.24.4
 
-FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:${GOLANGCI_LINT_VERSION}-alpine AS lint-base
+FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.1.6-alpine AS lint-base
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
 RUN apk add --no-cache git
