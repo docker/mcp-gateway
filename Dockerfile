@@ -22,6 +22,8 @@ RUN --mount=target=. \
 EOD
 
 FROM base AS test
+ARG TARGETOS
+ARG TARGETARCH
 RUN --mount=target=. \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build <<EOD

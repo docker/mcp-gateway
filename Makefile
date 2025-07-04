@@ -27,12 +27,18 @@ format:
 lint:
 	docker buildx build $(DOCKER_BUILD_ARGS) --target=lint --platform=linux,darwin,windows .
 
+lint-%:
+	docker buildx build $(DOCKER_BUILD_ARGS) --target=lint --platform=$* .
+
 clean:
 	@sh -c "rm -rf bin dist"
 	@sh -c "rm $(DOCKER_MCP_CLI_PLUGIN_DST)"
 
 docker-mcp-cross:
 	docker buildx build $(DOCKER_BUILD_ARGS) --target=package-docker-mcp --platform=linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64 -o ./dist .
+
+docker-mcp-%:
+	docker buildx build $(DOCKER_BUILD_ARGS) --target=package-docker-mcp --platform=$*/amd64,$*/arm64 -o ./dist .
 
 push-module-image:
 	cp -r dist ./module-image
