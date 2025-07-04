@@ -6,6 +6,7 @@ ARG GOLANGCI_LINT_VERSION=latest
 FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:${GOLANGCI_LINT_VERSION}-alpine AS lint-base
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
+RUN apk add --no-cache git
 WORKDIR /app
 
 FROM base AS lint
@@ -35,6 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go install golang.org/x/tools/cmd/goimports@latest \
     && go install mvdan.cc/gofumpt@latest
 COPY . .
+RUN rm -rf vendor
 RUN goimports -local github.com/docker/mcp-gateway -w .
 RUN gofumpt -w .
 
