@@ -34,6 +34,13 @@ docker-mcp-cross:
 docker-mcp-%:
 	docker buildx build $(DOCKER_BUILD_ARGS) --target=package-docker-mcp --platform=$*/amd64,$*/arm64 -o ./dist .
 
+docs:
+	$(eval $@_TMP_OUT := $(shell mktemp -d -t model-cli-output.XXXXXXXXXX))
+	docker buildx bake --set "*.output=type=local,dest=$($@_TMP_OUT)" update-docs
+	rm -rf ./docs/generator/reference/*
+	cp -R "$($@_TMP_OUT)"/* ./docs/generator/reference/
+	rm -rf "$($@_TMP_OUT)"/*
+
 push-module-image:
 	cp -r dist ./module-image
 	docker buildx build --push --platform=linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64,windows/arm64 --build-arg TAG=$(TAG) --tag=docker/docker-mcp-cli-desktop-module:$(TAG) ./module-image
@@ -70,4 +77,4 @@ push-l7proxy-image:
 push-dns-forwarder-image:
 	docker buildx bake dns-forwarder --push
 
-.PHONY: format lint clean docker-mcp-cross push-module-image mcp-package test docker-mcp push-mcp-gateway push-l4proxy-image push-l7proxy-image push-dns-forwarder-image
+.PHONY: format lint clean docker-mcp-cross push-module-image mcp-package test docker-mcp push-mcp-gateway push-l4proxy-image push-l7proxy-image push-dns-forwarder-image docs

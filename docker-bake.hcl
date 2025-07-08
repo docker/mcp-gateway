@@ -1,3 +1,17 @@
+variable "GO_VERSION" {
+  default = null
+}
+
+target "_common" {
+  args = {
+    GO_VERSION = GO_VERSION
+    BUILDKIT_CONTEXT_KEEP_GIT_DIR = 1
+  }
+}
+
+variable "DOCS_FORMATS" {
+  default = "md,yaml"
+}
 
 group default {
   targets = [
@@ -13,6 +27,7 @@ group all {
     "l4proxy",
     "l7proxy",
     "dns-forwarder",
+    "validate-docs",
   ]
 }
 
@@ -76,4 +91,22 @@ target mcp-gateway-dind {
   output = [
     "type=image,name=docker/mcp-gateway:dind",
   ]
+}
+
+target "validate-docs" {
+  inherits = ["_common"]
+  args = {
+    DOCS_FORMATS = DOCS_FORMATS
+  }
+  target = "docs-validate"
+  output = ["type=cacheonly"]
+}
+
+target "update-docs" {
+  inherits = ["_common"]
+  args = {
+    DOCS_FORMATS = DOCS_FORMATS
+  }
+  target = "docs-update"
+  output = ["./docs/reference"]
 }
