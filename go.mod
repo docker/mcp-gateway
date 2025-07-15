@@ -10,6 +10,7 @@ require (
 	github.com/containerd/errdefs v1.0.0
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v28.2.2+incompatible
+	github.com/docker/cli-docs-tool v0.10.0
 	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/fsnotify/fsnotify v1.9.0
@@ -17,6 +18,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/mark3labs/mcp-go v0.27.1
 	github.com/mikefarah/yq/v4 v4.45.4
+	github.com/pkg/errors v0.9.1
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/sigstore/cosign/v2 v2.5.0
 	github.com/sigstore/sigstore v1.9.5
@@ -51,7 +53,6 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352 // indirect
 	github.com/digitorus/timestamp v0.0.0-20250524132541-c45532741eea // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/docker/cli-docs-tool v0.10.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -113,7 +114,6 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
