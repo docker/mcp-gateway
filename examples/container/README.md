@@ -17,6 +17,7 @@ docker run -d \
     --catalog=/mcp/catalogs/docker-mcp.yaml \
     --config=/mcp/config.yaml \
     --registry=/mcp/registry.yaml \
+    --tools-config=/mcp/tools.yaml \
     --secrets=docker-desktop \
     --watch=true \
     --transport=sse \

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -56,7 +57,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					logf("  > Can't list tools %s: %s", serverConfig.Name, err)
 				} else {
 					for _, tool := range tools.Tools {
-						if !isToolEnabled(serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
+						if !isToolEnabled(configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
 							continue
 						}
 						capabilities.Tools = append(capabilities.Tools, server.ServerTool{
@@ -125,7 +126,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 			var capabilities Capabilities
 
 			for _, tool := range *toolGroup {
-				if !isToolEnabled(serverName, "", tool.Name, g.ToolNames) {
+				if !isToolEnabled(configuration, serverName, "", tool.Name, g.ToolNames) {
 					continue
 				}
 
@@ -193,9 +194,14 @@ func (c *Capabilities) PromptNames() []string {
 	return names
 }
 
-func isToolEnabled(serverName, serverImage, toolName string, enabledTools []string) bool {
+func isToolEnabled(configuration Configuration, serverName, serverImage, toolName string, enabledTools []string) bool {
 	if len(enabledTools) == 0 {
-		return true
+		tools, exists := configuration.tools.ServerTools[serverName]
+		if !exists {
+			return true
+		}
+
+		return slices.Contains(tools, toolName)
 	}
 
 	for _, enabled := range enabledTools {
