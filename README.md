@@ -51,7 +51,8 @@ The MCP cli will already be installed on recent versions of Docker Desktop but y
 ```bash
 # Clone the repository
 git clone https://github.com/docker/mcp-gateway.git
-cd docker-gateway
+cd mcp-gateway
+mkdir -p "$HOME/.docker/cli-plugins/"
 
 # Build and install the plugin
 make docker-mcp
