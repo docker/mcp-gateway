@@ -6,6 +6,7 @@ type Config struct {
 	CatalogPath  string
 	ConfigPath   string
 	RegistryPath string
+	ToolsPath    string
 	SecretsPath  string
 }
 

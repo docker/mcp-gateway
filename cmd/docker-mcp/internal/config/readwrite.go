@@ -11,6 +11,10 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/user"
 )
 
+func ReadTools(ctx context.Context, docker docker.Client) ([]byte, error) {
+	return ReadConfigFile(ctx, docker, "tools.yaml")
+}
+
 func ReadConfig(ctx context.Context, docker docker.Client) ([]byte, error) {
 	return ReadConfigFile(ctx, docker, "config.yaml")
 }
@@ -35,6 +39,10 @@ func ReadCatalogFile(name string) ([]byte, error) {
 	}
 
 	return readFileOrEmpty(path)
+}
+
+func WriteTools(content []byte) error {
+	return writeConfigFile("tools.yaml", content)
 }
 
 func WriteConfig(content []byte) error {

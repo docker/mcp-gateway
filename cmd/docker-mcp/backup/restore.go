@@ -21,6 +21,9 @@ func Restore(ctx context.Context, backupData []byte) error {
 	if err := config.WriteRegistry([]byte(backup.Registry)); err != nil {
 		return err
 	}
+	if err := config.WriteTools([]byte(backup.Tools)); err != nil {
+		return err
+	}
 
 	catalogBefore, err := catalog.ReadConfig()
 	if err != nil {

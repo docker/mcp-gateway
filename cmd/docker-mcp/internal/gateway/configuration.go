@@ -25,6 +25,7 @@ type Configuration struct {
 	serverNames []string
 	servers     map[string]catalog.Server
 	config      map[string]map[string]any
+	tools       config.ToolsConfig
 	secrets     map[string]string
 }
 
@@ -90,6 +91,7 @@ type FileBasedConfiguration struct {
 	ServerNames  []string // Takes precedence over the RegistryPath
 	RegistryPath string
 	ConfigPath   string
+	ToolsPath    string
 	SecretsPath  string // Optional, if not set, use Docker Desktop's secrets API
 	Watch        bool
 
@@ -114,6 +116,11 @@ func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan 
 	}
 
 	configPath, err := config.FilePath(c.ConfigPath)
+	if err != nil {
+		return Configuration{}, nil, nil, err
+	}
+
+	toolsPath, err := config.FilePath(c.ToolsPath)
 	if err != nil {
 		return Configuration{}, nil, nil, err
 	}
@@ -168,6 +175,13 @@ func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan 
 			return Configuration{}, nil, nil, err
 		}
 	}
+	if toolsPath != "" {
+		log("- Watching tools at", toolsPath)
+		if err := watcher.Add(toolsPath); err != nil {
+			_ = watcher.Close()
+			return Configuration{}, nil, nil, err
+		}
+	}
 
 	return configuration, updates, watcher.Close, nil
 }
@@ -200,6 +214,11 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading config: %w", err)
 	}
 
+	serverToolsConfig, err := c.readToolsConfig(ctx)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("reading tools: %w", err)
+	}
+
 	var secrets map[string]string
 	if c.SecretsPath == "docker-desktop" {
 		secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
@@ -229,6 +248,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		serverNames: serverNames,
 		servers:     servers,
 		config:      serversConfig,
+		tools:       serverToolsConfig,
 		secrets:     secrets,
 	}, nil
 }
@@ -271,6 +291,25 @@ func (c *FileBasedConfiguration) readConfig(ctx context.Context) (map[string]map
 	cfg, err := config.ParseConfig(yaml)
 	if err != nil {
 		return nil, fmt.Errorf("parsing config.yaml: %w", err)
+	}
+
+	return cfg, nil
+}
+
+func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.ToolsConfig, error) {
+	if c.ToolsPath == "" {
+		return config.ToolsConfig{}, nil
+	}
+
+	log("  - Reading tools from", c.ToolsPath)
+	yaml, err := config.ReadConfigFile(ctx, c.docker, c.ToolsPath)
+	if err != nil {
+		return config.ToolsConfig{}, fmt.Errorf("reading tools.yaml: %w", err)
+	}
+
+	cfg, err := config.ParseToolsConfig(yaml)
+	if err != nil {
+		return config.ToolsConfig{}, fmt.Errorf("parsing tools.yaml: %w", err)
 	}
 
 	return cfg, nil

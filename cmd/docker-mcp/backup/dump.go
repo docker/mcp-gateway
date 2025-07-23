@@ -26,6 +26,11 @@ func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
 		return nil, err
 	}
 
+	toolsConfig, err := config.ReadTools(ctx, docker)
+	if err != nil {
+		return nil, err
+	}
+
 	catalogConfig, err := catalog.ReadConfig()
 	if err != nil {
 		return nil, err
@@ -74,6 +79,7 @@ func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
 		Registry:     string(registryContent),
 		Catalog:      string(catalogContent),
 		CatalogFiles: catalogFiles,
+		Tools:        string(toolsConfig),
 		Secrets:      secrets,
 		Policy:       policy,
 	}

@@ -7,6 +7,7 @@ type Backup struct {
 	Registry     string            `json:"registry"`
 	Catalog      string            `json:"catalog"`
 	CatalogFiles map[string]string `json:"catalogFiles"`
+	Tools        string            `json:"tools"`
 	Secrets      []desktop.Secret  `json:"secrets"`
 	Policy       string            `json:"policy"`
 }

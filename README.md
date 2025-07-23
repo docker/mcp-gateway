@@ -184,7 +184,8 @@ The MCP CLI uses several configuration files:
 
 - **`docker-mcp.yaml`**: Server catalog defining available MCP servers
 - **`registry.yaml`**: Registry of enabled servers
-- **`config.yaml`**: Gateway configuration and options
+- **`config.yaml`**: Configuration per server
+- **`tools.yaml`**: Enabled tools per server
 
 Configuration files are typically stored in `~/.docker/mcp/`. This is in this directory that Docker Desktop's
 MCP Toolkit with store its configuration.
