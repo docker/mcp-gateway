@@ -84,9 +84,9 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 
 func manualClientCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "manual-instructions",
+		Use:   "manual-instructions",
 		Short: "Display the manual instructions to connect the MCP client",
-		Args: cobra.NoArgs,
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			printAsJSON, err := cmd.Flags().GetBool("json")
 			if err != nil {
