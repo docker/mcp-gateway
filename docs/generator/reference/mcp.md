@@ -1,6 +1,8 @@
 # docker mcp
 
 <!---MARKER_GEN_START-->
+Manage MCP servers and clients
+
 ### Subcommands
 
 | Name                        | Description                   |
