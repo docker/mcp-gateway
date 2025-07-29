@@ -37,6 +37,7 @@ func lsOauthCommand() *cobra.Command {
 func authorizeOauthCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:  "authorize <app>",
+		Short: "Authorize the specified OAuth app.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return oauth.Authorize(cmd.Context(), args[0])
@@ -48,6 +49,7 @@ func revokeOauthCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:  "revoke <app>",
 		Args: cobra.ExactArgs(1),
+		Short: "Revoke the specified OAuth app.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return oauth.Revoke(cmd.Context(), args[0])
 		},

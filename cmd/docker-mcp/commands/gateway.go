@@ -86,14 +86,14 @@ func gatewayCommand(docker docker.Client) *cobra.Command {
 		},
 	}
 
-	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "names of the servers to enable (if non empty, ignore --registry flag)")
-	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
-	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "additional catalog paths to append to the default catalogs")
-	runCmd.Flags().StringSliceVar(&options.RegistryPath, "registry", options.RegistryPath, "paths to the registry files (absolute or relative to ~/.docker/mcp/)")
-	runCmd.Flags().StringSliceVar(&additionalRegistries, "additional-registry", nil, "additional registry paths to merge with the default registry.yaml")
-	runCmd.Flags().StringSliceVar(&options.ConfigPath, "config", options.ConfigPath, "paths to the config files (absolute or relative to ~/.docker/mcp/)")
-	runCmd.Flags().StringSliceVar(&additionalConfigs, "additional-config", nil, "additional config paths to merge with the default config.yaml")
-	runCmd.Flags().StringVar(&options.SecretsPath, "secrets", options.SecretsPath, "colon separated paths to search for secrets. Can be `docker-desktop` or a path to a .env file (default to using Docker Deskop's secrets API)")
+	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
+	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
+	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
+	runCmd.Flags().StringSliceVar(&options.RegistryPath, "registry", options.RegistryPath, "Paths to the registry files (absolute or relative to ~/.docker/mcp/)")
+	runCmd.Flags().StringSliceVar(&additionalRegistries, "additional-registry", nil, "Additional registry paths to merge with the default registry.yaml")
+	runCmd.Flags().StringSliceVar(&options.ConfigPath, "config", options.ConfigPath, "Paths to the config files (absolute or relative to ~/.docker/mcp/)")
+	runCmd.Flags().StringSliceVar(&additionalConfigs, "additional-config", nil, "Additional config paths to merge with the default config.yaml")
+	runCmd.Flags().StringVar(&options.SecretsPath, "secrets", options.SecretsPath, "Colon separated paths to search for secrets. Can be `docker-desktop` or a path to a .env file (default to using Docker Desktop's secrets API)")
 	runCmd.Flags().StringSliceVar(&options.ToolNames, "tools", options.ToolNames, "List of tools to enable")
 	runCmd.Flags().StringArrayVar(&options.Interceptors, "interceptor", options.Interceptors, "List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')")
 	runCmd.Flags().IntVar(&options.Port, "port", options.Port, "TCP port to listen on (default is to listen on stdio)")

@@ -12,13 +12,19 @@ import (
 )
 
 const setSecretExample = `
-# Using secrets for postgres password with default policy:
+### Use secrets for postgres password with default policy
+
+```console
 docker mcp secret set POSTGRES_PASSWORD=my-secret-password
 docker run -d -l x-secret:POSTGRES_PASSWORD=/pwd.txt -e POSTGRES_PASSWORD_FILE=/pwd.txt -p 5432 postgres
+```
 
-# Or pass the secret via STDIN:
+### Pass the secret via STDIN
+
+```console
 echo my-secret-password > pwd.txt
 cat pwd.txt | docker mcp secret set POSTGRES_PASSWORD
+```
 `
 
 func secretCommand(docker docker.Client) *cobra.Command {

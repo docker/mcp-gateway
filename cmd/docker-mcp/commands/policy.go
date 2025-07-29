@@ -11,13 +11,13 @@ import (
 )
 
 const setPolicyExample = `
-# Backup the current policy to a file
+### Backup the current policy to a file
 docker mcp policy dump > policy.conf
 
-# Set a new policy
+### Set a new policy
 docker mcp policy set "my-secret allows postgres"
 
-# Restore the previous policy
+### Restore the previous policy
 cat policy.conf | docker mcp policy set
 `
 

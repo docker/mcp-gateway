@@ -33,6 +33,7 @@ Examples:
 func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "mcp [OPTIONS]",
+		Short:            "Manage MCP servers and clients",
 		TraverseChildren: true,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: false,

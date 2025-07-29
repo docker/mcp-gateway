@@ -51,7 +51,7 @@ func connectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("connect [OPTIONS] <mcp-client>\n\nSupported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
-		Short: "Connect the Docker MCP Toolkit to a client",
+		Short: fmt.Sprintf("Connect the Docker MCP Toolkit to a client. Supported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return client.Connect(cmd.Context(), cwd, cfg, args[0], opts.Global, opts.Quiet)
@@ -70,7 +70,7 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	}
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("disconnect [OPTIONS] <mcp-client>\n\nSupported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
-		Short: "Disconnect the Docker MCP Toolkit from a client",
+		Short: fmt.Sprintf("Disconnect the Docker MCP Toolkit from a client. Supported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return client.Disconnect(cmd.Context(), cwd, cfg, args[0], opts.Global, opts.Quiet)
@@ -85,6 +85,7 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 func manualClientCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "manual-instructions",
+		Short: "Display the manual instructions to connect the MCP client",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			printAsJSON, err := cmd.Flags().GetBool("json")

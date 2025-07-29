@@ -22,7 +22,7 @@ func serverCommand(docker docker.Client) *cobra.Command {
 	lsCommand := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "list enabled servers",
+		Short:   "List enabled servers",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			list, err := server.List(cmd.Context(), docker)
