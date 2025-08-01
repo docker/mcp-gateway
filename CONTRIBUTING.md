@@ -8,9 +8,26 @@ make docker-mcp
 
 # Cross-compile for all platforms
 make docker-mcp-cross
+```
 
-# Run tests
+## Testing
+
+### Running Tests
+
+```bash
+# Run all unit tests
 make test
+
+# Run integration tests (requires Docker plugin to be installed)
+make integration
+```
+
+### Test Coverage
+
+```bash
+# Generate HTML coverage report for ALL packages in one view
+go test -cover -coverprofile=coverage.out ./... -short
+go tool cover -html=coverage.out -o coverage.html && open coverage.html
 ```
 
 ## Code Quality
