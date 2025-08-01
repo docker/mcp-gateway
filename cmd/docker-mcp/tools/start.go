@@ -2,15 +2,12 @@ package tools
 
 import (
 	"context"
-	"fmt"
-	"time"
+	"os/exec"
 
-	"github.com/mark3labs/mcp-go/mcp"
-
-	client "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func start(ctx context.Context, version string, gatewayArgs []string, debug bool) (client.Client, error) {
+func start(ctx context.Context, version string, gatewayArgs []string, _ bool) (*mcp.ClientSession, error) {
 	var args []string
 	if version == "2" {
 		args = []string{"mcp", "gateway", "run"}
@@ -19,20 +16,12 @@ func start(ctx context.Context, version string, gatewayArgs []string, debug bool
 	}
 	args = append(args, gatewayArgs...)
 
-	c := client.NewStdioCmdClient("gateway", "docker", nil, args...)
-	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = mcp.Implementation{
-		Name:    "docker",
-		Version: "1.0.0",
+	c := mcp.NewClient(&mcp.Implementation{Name: "mcp-gateway-client", Version: "1.0.0"}, nil)
+	transport := mcp.NewCommandTransport(exec.Command("docker", args...))
+	session, err := c.Connect(ctx, transport)
+	if err != nil {
+		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	defer cancel()
-
-	if _, err := c.Initialize(ctx, initRequest, debug); err != nil {
-		return nil, fmt.Errorf("initializing: %w", err)
-	}
-
-	return c, nil
+	return session, nil
 }

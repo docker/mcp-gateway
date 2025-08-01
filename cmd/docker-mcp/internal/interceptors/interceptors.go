@@ -12,28 +12,30 @@ import (
 	"strings"
 
 	"github.com/google/shlex"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/logs"
 )
 
-func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) server.ToolHandlerMiddleware {
-	return func(next server.ToolHandlerFunc) server.ToolHandlerFunc {
-		for i := len(interceptors) - 1; i >= 0; i-- {
-			next = interceptors[i].Run(next)
-		}
+func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) []mcp.Middleware[*mcp.ServerSession] {
+	var middleware []mcp.Middleware[*mcp.ServerSession]
 
-		if logCalls {
-			next = LogCalls(next)
-		}
-
-		if blockSecrets {
-			next = BlockSecrets(next)
-		}
-
-		return next
+	// Add custom interceptors
+	for _, interceptor := range interceptors {
+		middleware = append(middleware, interceptor.ToMiddleware())
 	}
+
+	// Add log calls middleware
+	if logCalls {
+		middleware = append(middleware, LogCallsMiddleware())
+	}
+
+	// Add block secrets middleware
+	if blockSecrets {
+		middleware = append(middleware, BlockSecretsMiddleware())
+	}
+
+	return middleware
 }
 
 type Interceptor struct {
@@ -74,47 +76,60 @@ func Parse(specs []string) ([]Interceptor, error) {
 	return interceptors, nil
 }
 
-func (i *Interceptor) Run(next server.ToolHandlerFunc) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		if i.When == "before" {
-			message, err := json.Marshal(request)
-			if err != nil {
-				return nil, fmt.Errorf("marshalling request: %w", err)
+func (i *Interceptor) ToMiddleware() mcp.Middleware[*mcp.ServerSession] {
+	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
+		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+			// Only intercept tools/call method
+			if method != "tools/call" {
+				return next(ctx, session, method, params)
 			}
 
-			out, err := i.run(ctx, message)
-			if err != nil {
-				return nil, fmt.Errorf("executing interceptor: %w", err)
+			if i.When == "before" {
+				message, err := json.Marshal(params)
+				if err != nil {
+					return nil, fmt.Errorf("marshalling request: %w", err)
+				}
+
+				out, err := i.run(ctx, message)
+				if err != nil {
+					return nil, fmt.Errorf("executing interceptor: %w", err)
+				}
+
+				// If the interceptor returns a response, we use it instead of calling the next handler.
+				if len(out) > 0 {
+					var result mcp.CallToolResult
+					if err := json.Unmarshal(out, &result); err != nil {
+						return nil, fmt.Errorf("unmarshalling interceptor response: %w", err)
+					}
+					return &result, nil
+				}
 			}
 
-			// If the interceptor returns a response, we use it instead of calling the next handler.
-			if len(out) > 0 {
-				rawMessage := json.RawMessage(out)
-				return mcp.ParseCallToolResult(&rawMessage)
+			response, err := next(ctx, session, method, params)
+
+			if i.When == "after" {
+				message, err := json.Marshal(response)
+				if err != nil {
+					return nil, fmt.Errorf("marshalling response: %w", err)
+				}
+
+				out, err := i.run(ctx, message)
+				if err != nil {
+					return nil, fmt.Errorf("executing interceptor: %w", err)
+				}
+
+				// If the interceptor returns a response, we use it instead.
+				if len(out) > 0 {
+					var result mcp.CallToolResult
+					if err := json.Unmarshal(out, &result); err != nil {
+						return nil, fmt.Errorf("unmarshalling interceptor response: %w", err)
+					}
+					return &result, nil
+				}
 			}
+
+			return response, err
 		}
-
-		response, err := next(ctx, request)
-
-		if i.When == "after" {
-			message, err := json.Marshal(response)
-			if err != nil {
-				return nil, fmt.Errorf("marshalling response: %w", err)
-			}
-
-			out, err := i.run(ctx, message)
-			if err != nil {
-				return nil, fmt.Errorf("executing interceptor: %w", err)
-			}
-
-			// If the interceptor returns a response, we use it instead.
-			if len(out) > 0 {
-				rawMessage := json.RawMessage(out)
-				return mcp.ParseCallToolResult(&rawMessage)
-			}
-		}
-
-		return response, err
 	}
 }
 

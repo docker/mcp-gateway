@@ -2,25 +2,49 @@ package interceptors
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func LogCalls(next server.ToolHandlerFunc) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		start := time.Now()
+func LogCallsMiddleware() mcp.Middleware[*mcp.ServerSession] {
+	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
+		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+			// Only log tools/call method
+			if method != "tools/call" {
+				return next(ctx, session, method, params)
+			}
 
-		logf("  - Calling tool %s with arguments: %s\n", request.Params.Name, argumentsToString(request.Params.Arguments))
+			start := time.Now()
 
-		result, err := next(ctx, request)
-		if err != nil {
-			return result, err
+			// Extract tool name from params by marshaling/unmarshaling
+			var toolName string
+			var arguments any
+
+			// Try to extract from JSON
+			if jsonData, err := json.Marshal(params); err == nil {
+				var callParams mcp.CallToolParams
+				if err := json.Unmarshal(jsonData, &callParams); err == nil {
+					toolName = callParams.Name
+					arguments = callParams.Arguments
+				}
+			}
+
+			if toolName != "" {
+				logf("  - Calling tool %s with arguments: %s\n", toolName, argumentsToString(arguments))
+			} else {
+				logf("  - Calling tool (unknown) with method: %s\n", method)
+			}
+
+			result, err := next(ctx, session, method, params)
+			if err != nil {
+				return result, err
+			}
+
+			logf("  > Calling tool %s took: %s\n", toolName, time.Since(start))
+
+			return result, nil
 		}
-
-		logf("  > Calling tool %s took: %s\n", request.Params.Name, time.Since(start))
-
-		return result, nil
 	}
 }

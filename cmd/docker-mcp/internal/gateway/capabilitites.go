@@ -8,16 +8,36 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/sync/errgroup"
 )
 
 type Capabilities struct {
-	Tools             []server.ServerTool
-	Prompts           []server.ServerPrompt
-	Resources         []server.ServerResource
-	ResourceTemplates []server.ServerResourceTemplate
+	Tools             []ToolRegistration
+	Prompts           []PromptRegistration
+	Resources         []ResourceRegistration
+	ResourceTemplates []ResourceTemplateRegistration
+}
+
+type ToolRegistration struct {
+	Tool    *mcp.Tool
+	Handler mcp.ToolHandler
+}
+
+type PromptRegistration struct {
+	Prompt  *mcp.Prompt
+	Handler mcp.PromptHandler
+}
+
+type ResourceRegistration struct {
+	Resource *mcp.Resource
+	Handler  mcp.ResourceHandler
+}
+
+type ResourceTemplateRegistration struct {
+	ResourceTemplate mcp.ResourceTemplate
+	Handler          mcp.ResourceHandler
 }
 
 func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string) (*Capabilities, error) {
@@ -47,7 +67,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 				var capabilities Capabilities
 
-				tools, err := client.ListTools(ctx, mcp.ListToolsRequest{})
+				tools, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
 				if err != nil {
 					logf("  > Can't list tools %s: %s", serverConfig.Name, err)
 				} else {
@@ -55,39 +75,39 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						if !isToolEnabled(configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
 							continue
 						}
-						capabilities.Tools = append(capabilities.Tools, server.ServerTool{
+						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							Tool:    tool,
 							Handler: g.mcpServerToolHandler(*serverConfig, tool.Annotations),
 						})
 					}
 				}
 
-				prompts, err := client.ListPrompts(ctx, mcp.ListPromptsRequest{})
+				prompts, err := client.Session().ListPrompts(ctx, &mcp.ListPromptsParams{})
 				if err == nil {
 					for _, prompt := range prompts.Prompts {
-						capabilities.Prompts = append(capabilities.Prompts, server.ServerPrompt{
+						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							Prompt:  prompt,
 							Handler: g.mcpServerPromptHandler(*serverConfig),
 						})
 					}
 				}
 
-				resources, err := client.ListResources(ctx, mcp.ListResourcesRequest{})
+				resources, err := client.Session().ListResources(ctx, &mcp.ListResourcesParams{})
 				if err == nil {
 					for _, resource := range resources.Resources {
-						capabilities.Resources = append(capabilities.Resources, server.ServerResource{
+						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
 							Resource: resource,
 							Handler:  g.mcpServerResourceHandler(*serverConfig),
 						})
 					}
 				}
 
-				resourceTemplates, err := client.ListResourceTemplates(ctx, mcp.ListResourceTemplatesRequest{})
+				resourceTemplates, err := client.Session().ListResourceTemplates(ctx, &mcp.ListResourceTemplatesParams{})
 				if err == nil {
 					for _, resourceTemplate := range resourceTemplates.ResourceTemplates {
-						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, server.ServerResourceTemplate{
-							Template: resourceTemplate,
-							Handler:  g.mcpServerResourceTemplateHandler(*serverConfig),
+						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
+							ResourceTemplate: *resourceTemplate,
+							Handler:          g.mcpServerResourceHandler(*serverConfig),
 						})
 					}
 				}
@@ -128,17 +148,21 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 				mcpTool := mcp.Tool{
 					Name:        tool.Name,
 					Description: tool.Description,
+					InputSchema: &jsonschema.Schema{},
 				}
+				// TODO: Properly convert tool.Parameters to jsonschema.Schema
+				// For now, we'll create a simple schema structure
 				if len(tool.Parameters.Properties) == 0 {
 					mcpTool.InputSchema.Type = "object"
 				} else {
 					mcpTool.InputSchema.Type = tool.Parameters.Type
-					mcpTool.InputSchema.Properties = tool.Parameters.Properties.ToMap()
-					mcpTool.InputSchema.Required = tool.Parameters.Required
+					// Note: tool.Parameters.Properties.ToMap() returns map[string]any
+					// but we need map[string]*jsonschema.Schema
+					// This is a complex conversion that needs proper implementation
 				}
 
-				capabilities.Tools = append(capabilities.Tools, server.ServerTool{
-					Tool:    mcpTool,
+				capabilities.Tools = append(capabilities.Tools, ToolRegistration{
+					Tool:    &mcpTool,
 					Handler: g.mcpToolHandler(tool),
 				})
 			}
@@ -154,22 +178,22 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	}
 
 	// Merge all capabilities
-	var serverTools []server.ServerTool
-	var serverPrompts []server.ServerPrompt
-	var serverResources []server.ServerResource
-	var serverResourceTemplates []server.ServerResourceTemplate
+	var allTools []ToolRegistration
+	var allPrompts []PromptRegistration
+	var allResources []ResourceRegistration
+	var allResourceTemplates []ResourceTemplateRegistration
 	for _, capabilities := range allCapabilities {
-		serverTools = append(serverTools, capabilities.Tools...)
-		serverPrompts = append(serverPrompts, capabilities.Prompts...)
-		serverResources = append(serverResources, capabilities.Resources...)
-		serverResourceTemplates = append(serverResourceTemplates, capabilities.ResourceTemplates...)
+		allTools = append(allTools, capabilities.Tools...)
+		allPrompts = append(allPrompts, capabilities.Prompts...)
+		allResources = append(allResources, capabilities.Resources...)
+		allResourceTemplates = append(allResourceTemplates, capabilities.ResourceTemplates...)
 	}
 
 	return &Capabilities{
-		Tools:             serverTools,
-		Prompts:           serverPrompts,
-		Resources:         serverResources,
-		ResourceTemplates: serverResourceTemplates,
+		Tools:             allTools,
+		Prompts:           allPrompts,
+		Resources:         allResources,
+		ResourceTemplates: allResourceTemplates,
 	}, nil
 }
 

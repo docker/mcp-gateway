@@ -1,13 +1,18 @@
 package gateway
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	"github.com/docker/cli/cli/command"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
 )
 
@@ -178,4 +183,54 @@ func readOnly() *bool {
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+func TestStdioClientInitialization(t *testing.T) {
+	// Skip if running in CI or if Docker is not available
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	serverConfig := catalog.ServerConfig{
+		Name: "test-server",
+		Spec: catalog.Server{
+			Image:   "mcp/brave-search@sha256:e13f4693a3421e2b316c8b6196c5c543c77281f9d8938850681e3613bba95115", // User should provide their image
+			Command: []string{},
+			Env:     []catalog.Env{{Name: "BRAVE_API_KEY", Value: "test_key"}},
+		},
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}
+
+	// Create a real Docker CLI client
+	dockerCli, err := command.NewDockerCli()
+	require.NoError(t, err)
+
+	dockerClient := docker.NewClient(dockerCli)
+	clientPool := newClientPool(Options{
+		Cpus:   1,
+		Memory: "512m",
+	}, dockerClient)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Test client acquisition and initialization
+	client, err := clientPool.AcquireClient(ctx, serverConfig, &clientConfig{readOnly: boolPtr(false)})
+	if err != nil {
+		t.Fatalf("Failed to acquire client: %v", err)
+	}
+	defer clientPool.ReleaseClient(client)
+
+	// Test ListTools to verify the client is working
+	tools, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
+	if err != nil {
+		t.Fatalf("Failed to list tools: %v", err)
+	}
+
+	// Basic assertions - user can customize based on expected behavior
+	assert.NotNil(t, tools)
+	assert.NotNil(t, tools.Tools)
+
+	t.Logf("Successfully initialized stdio client and retrieved %d tools", len(tools.Tools))
 }

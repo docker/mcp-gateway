@@ -2,18 +2,47 @@ package mcp
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// Client interface wraps the official MCP SDK client with our legacy interface
 type Client interface {
-	Initialize(ctx context.Context, request mcp.InitializeRequest, debug bool) (*mcp.InitializeResult, error)
-	ListTools(ctx context.Context, request mcp.ListToolsRequest) (*mcp.ListToolsResult, error)
-	ListPrompts(ctx context.Context, request mcp.ListPromptsRequest) (*mcp.ListPromptsResult, error)
-	ListResources(ctx context.Context, request mcp.ListResourcesRequest) (*mcp.ListResourcesResult, error)
-	ListResourceTemplates(ctx context.Context, request mcp.ListResourceTemplatesRequest) (*mcp.ListResourceTemplatesResult, error)
-	CallTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error)
-	GetPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error)
-	ReadResource(ctx context.Context, request mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
-	Close() error
+	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, serverSession *mcp.ServerSession) error
+	Session() *mcp.ClientSession
+}
+
+func stdioNotifications(serverSession *mcp.ServerSession) *mcp.ClientOptions {
+	return &mcp.ClientOptions{
+		CreateMessageHandler: func(_ context.Context, _ *mcp.ClientSession, _ *mcp.CreateMessageParams) (*mcp.CreateMessageResult, error) {
+			// Handle create messages if needed
+			return nil, fmt.Errorf("create messages not supported")
+		},
+		ToolListChangedHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.ToolListChangedParams) {
+			if serverSession != nil {
+				_ = mcp.HandleNotify(ctx, serverSession, "notifications/tools/list_changed", params)
+			}
+		},
+		ResourceListChangedHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.ResourceListChangedParams) {
+			if serverSession != nil {
+				_ = mcp.HandleNotify(ctx, serverSession, "notifications/resources/list_changed", params)
+			}
+		},
+		PromptListChangedHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.PromptListChangedParams) {
+			if serverSession != nil {
+				_ = mcp.HandleNotify(ctx, serverSession, "notifications/prompts/list_changed", params)
+			}
+		},
+		ProgressNotificationHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.ProgressNotificationParams) {
+			if serverSession != nil {
+				_ = serverSession.NotifyProgress(ctx, params)
+			}
+		},
+		LoggingMessageHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.LoggingMessageParams) {
+			if serverSession != nil {
+				_ = serverSession.Log(ctx, params)
+			}
+		},
+	}
 }

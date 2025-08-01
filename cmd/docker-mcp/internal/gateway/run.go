@@ -8,8 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/health"
@@ -21,6 +20,7 @@ type Gateway struct {
 	docker       docker.Client
 	configurator Configurator
 	clientPool   *clientPool
+	mcpServer    *mcp.Server
 	health       health.State
 }
 
@@ -61,35 +61,47 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 	}
 
-	// Build a list of interceptors.
-	customInterceptors, err := interceptors.Parse(g.Interceptors)
-	if err != nil {
-		return fmt.Errorf("parsing interceptors: %w", err)
-	}
-	toolCallbacks := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, customInterceptors)
-
-	// Create the MCP server.
-	newMCPServer := func() *server.MCPServer {
-		return server.NewMCPServer(
-			"Docker AI MCP Gateway",
-			"2.0.1",
-			server.WithToolHandlerMiddleware(toolCallbacks),
-			server.WithHooks(&server.Hooks{
-				OnBeforeInitialize: []server.OnBeforeInitializeFunc{
-					func(_ context.Context, id any, _ *mcp.InitializeRequest) {
-						log("> Initializing MCP server with ID:", id)
-					},
-				},
-			}),
-		)
-	}
-
 	// Read the configuration.
 	configuration, configurationUpdates, stopConfigWatcher, err := g.configurator.Read(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = stopConfigWatcher() }()
+
+	// Parse interceptors
+	var parsedInterceptors []interceptors.Interceptor
+	if len(g.Interceptors) > 0 {
+		var err error
+		parsedInterceptors, err = interceptors.Parse(g.Interceptors)
+		if err != nil {
+			return fmt.Errorf("parsing interceptors: %w", err)
+		}
+		log("- Interceptors enabled:", strings.Join(g.Interceptors, ", "))
+	}
+
+	g.mcpServer = mcp.NewServer(&mcp.Implementation{
+		Name:    "Docker AI MCP Gateway",
+		Version: "2.0.1",
+	}, &mcp.ServerOptions{
+		SubscribeHandler:        nil,
+		UnsubscribeHandler:      nil,
+		RootsListChangedHandler: nil,
+		CompletionHandler:       nil,
+		InitializedHandler:      nil,
+		HasPrompts:              true,
+		HasResources:            true,
+		HasTools:                true,
+	})
+
+	// Add interceptor middleware to the server
+	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, parsedInterceptors)
+	if len(middlewares) > 0 {
+		g.mcpServer.AddReceivingMiddleware(middlewares...)
+	}
+
+	if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
+		return fmt.Errorf("loading configuration: %w", err)
+	}
 
 	// Central mode.
 	if g.Central {
@@ -100,9 +112,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 
 		log("> Start streaming server on port", g.Port)
-		return g.startCentralStreamingServer(ctx, newMCPServer, ln, configuration)
+		return g.startCentralStreamingServer(ctx, ln, configuration)
 	}
-	mcpServer := newMCPServer()
 
 	// Which docker images are used?
 	// Pull them and verify them if possible.
@@ -119,10 +130,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 			g.clientPool.SetNetworks(networks)
 		}
-	}
-
-	if err := g.reloadConfiguration(ctx, mcpServer, configuration, nil); err != nil {
-		return fmt.Errorf("loading configuration: %w", err)
 	}
 
 	// Optionally watch for configuration updates.
@@ -142,7 +149,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 						continue
 					}
 
-					if err := g.reloadConfiguration(ctx, mcpServer, configuration, nil); err != nil {
+					if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
 						continue
 					}
@@ -161,22 +168,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 	switch strings.ToLower(g.Transport) {
 	case "stdio":
 		log("> Start stdio server")
-		return g.startStdioServer(ctx, mcpServer, os.Stdin, os.Stdout)
+		return g.startStdioServer(ctx, os.Stdin, os.Stdout)
 
 	case "sse":
 		log("> Start sse server on port", g.Port)
-		return g.startSseServer(ctx, mcpServer, ln)
+		return g.startSseServer(ctx, ln)
 
 	case "http", "streamable", "streaming", "streamable-http":
 		log("> Start streaming server on port", g.Port)
-		return g.startStreamingServer(ctx, mcpServer, ln)
+		return g.startStreamingServer(ctx, ln)
 
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
 	}
 }
 
-func (g *Gateway) reloadConfiguration(ctx context.Context, mcpServer *server.MCPServer, configuration Configuration, serverNames []string) error {
+func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string) error {
 	// Which servers are enabled in the registry.yaml?
 	if len(serverNames) == 0 {
 		serverNames = configuration.ServerNames()
@@ -196,12 +203,34 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, mcpServer *server.MCP
 	}
 	log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
-	// Update the server's capabilities.
-	mcpServer.SetTools(capabilities.Tools...)
-	mcpServer.SetPrompts(capabilities.Prompts...)
-	mcpServer.SetResources(capabilities.Resources...)
-	mcpServer.RemoveAllResourceTemplates()
-	mcpServer.AddResourceTemplates(capabilities.ResourceTemplates...)
+	// Update capabilities
+	// Clear existing capabilities and register new ones
+	// Note: The new SDK doesn't have bulk set methods, so we register individually
+
+	for _, tool := range capabilities.Tools {
+		g.mcpServer.AddTool(tool.Tool, tool.Handler)
+	}
+
+	for _, prompt := range capabilities.Prompts {
+		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
+	}
+
+	for _, resource := range capabilities.Resources {
+		g.mcpServer.AddResource(resource.Resource, resource.Handler)
+	}
+
+	// Resource templates are handled as regular resources in the new SDK
+	for _, template := range capabilities.ResourceTemplates {
+		// Convert ResourceTemplate to Resource
+		resource := &mcp.ResourceTemplate{
+			URITemplate: template.ResourceTemplate.URITemplate,
+			Name:        template.ResourceTemplate.Name,
+			Description: template.ResourceTemplate.Description,
+			MIMEType:    template.ResourceTemplate.MIMEType,
+		}
+		g.mcpServer.AddResourceTemplate(resource, template.Handler)
+	}
+
 	g.health.SetHealthy()
 
 	return nil

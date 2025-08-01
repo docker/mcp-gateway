@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func List(ctx context.Context, version string, gatewayArgs []string, debug bool, show, tool, format string) error {
@@ -16,7 +16,7 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 	}
 	defer c.Close()
 
-	response, err := c.ListTools(ctx, mcp.ListToolsRequest{})
+	response, err := c.ListTools(ctx, &mcp.ListToolsParams{})
 	if err != nil {
 		return fmt.Errorf("listing tools: %w", err)
 	}
@@ -46,7 +46,7 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 		var found *mcp.Tool
 		for _, t := range response.Tools {
 			if t.Name == tool {
-				found = &t
+				found = t
 				break
 			}
 		}
@@ -64,19 +64,10 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 		} else {
 			fmt.Println("Name:", found.Name)
 			fmt.Println("Description:", found.Description)
-			for name, v := range found.InputSchema.Properties {
-				propertyType := v.(map[string]any)["type"]
-				if propertyType == "" || propertyType == nil {
-					propertyType = "string"
-				}
 
-				desc := v.(map[string]any)["description"]
-				if desc == nil {
-					// Why duckduckgo is using that?
-					desc = v.(map[string]any)["title"]
-				}
-
-				fmt.Printf(" - %s (%v): %v\n", name, propertyType, desc)
+			// TODO: Need to properly handle the new jsonschema.Schema format
+			if found.InputSchema != nil {
+				fmt.Println("Input schema: Complex schema (detailed inspection not yet implemented)")
 			}
 		}
 	}
@@ -84,8 +75,8 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 	return nil
 }
 
-func toolDescription(tool mcp.Tool) string {
-	if tool.Annotations.Title != "" {
+func toolDescription(tool *mcp.Tool) string {
+	if tool.Annotations != nil && tool.Annotations.Title != "" {
 		return tool.Annotations.Title
 	}
 	return descriptionSummary(tool.Description)

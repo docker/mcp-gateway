@@ -369,13 +369,6 @@ github.com/magiconair/properties
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/mark3labs/mcp-go v0.35.0 => github.com/dgageot/mcp-go v0.0.0-20250727085305-11db72a0c5e5
-## explicit; go 1.23
-github.com/mark3labs/mcp-go/client
-github.com/mark3labs/mcp-go/client/transport
-github.com/mark3labs/mcp-go/mcp
-github.com/mark3labs/mcp-go/server
-github.com/mark3labs/mcp-go/util
 # github.com/mattn/go-colorable v0.1.14
 ## explicit; go 1.18
 github.com/mattn/go-colorable
@@ -407,6 +400,14 @@ github.com/moby/sys/sequential
 ## explicit; go 1.18
 github.com/moby/term
 github.com/moby/term/windows
+# github.com/modelcontextprotocol/go-sdk v0.2.0 => github.com/slimslenderslacks/go-sdk v0.0.0-20250801003645-bd8989837cf8
+## explicit; go 1.23.0
+github.com/modelcontextprotocol/go-sdk/internal/jsonrpc2
+github.com/modelcontextprotocol/go-sdk/internal/util
+github.com/modelcontextprotocol/go-sdk/internal/xcontext
+github.com/modelcontextprotocol/go-sdk/jsonrpc
+github.com/modelcontextprotocol/go-sdk/jsonschema
+github.com/modelcontextprotocol/go-sdk/mcp
 # github.com/morikuni/aec v1.0.0
 ## explicit
 github.com/morikuni/aec
@@ -958,4 +959,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.17
 # k8s.io/client-go v0.33.1
 ## explicit; go 1.24.0
-# github.com/mark3labs/mcp-go => github.com/dgageot/mcp-go v0.0.0-20250727085305-11db72a0c5e5
+# github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250801003645-bd8989837cf8

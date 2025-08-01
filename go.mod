@@ -1,8 +1,6 @@
 module github.com/docker/mcp-gateway
 
-go 1.24.5
-
-replace github.com/mark3labs/mcp-go => github.com/dgageot/mcp-go v0.0.0-20250727085305-11db72a0c5e5
+go 1.24.4
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -16,8 +14,8 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/mark3labs/mcp-go v0.35.0
 	github.com/mikefarah/yq/v4 v4.45.4
+	github.com/modelcontextprotocol/go-sdk v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/sigstore/cosign/v2 v2.5.0
 	github.com/sigstore/sigstore v1.9.5
@@ -171,3 +169,5 @@ require (
 	gotest.tools/v3 v3.5.2 // indirect
 	k8s.io/client-go v0.33.1 // indirect
 )
+
+replace github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250801003645-bd8989837cf8

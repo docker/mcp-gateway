@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func Call(ctx context.Context, version string, gatewayArgs []string, debug bool, args []string) error {
@@ -22,12 +22,13 @@ func Call(ctx context.Context, version string, gatewayArgs []string, debug bool,
 	}
 	defer c.Close()
 
-	request := mcp.CallToolRequest{}
-	request.Params.Name = toolName
-	request.Params.Arguments = parseArgs(args[1:])
+	params := &mcp.CallToolParams{
+		Name:      toolName,
+		Arguments: parseArgs(args[1:]),
+	}
 
 	start := time.Now()
-	response, err := c.CallTool(ctx, request)
+	response, err := c.CallTool(ctx, params)
 	if err != nil {
 		return fmt.Errorf("listing tools: %w", err)
 	}
@@ -46,7 +47,7 @@ func toText(response *mcp.CallToolResult) string {
 	var contents []string
 
 	for _, content := range response.Content {
-		if textContent, ok := content.(mcp.TextContent); ok {
+		if textContent, ok := content.(*mcp.TextContent); ok {
 			contents = append(contents, textContent.Text)
 		} else {
 			contents = append(contents, fmt.Sprintf("%v", content))

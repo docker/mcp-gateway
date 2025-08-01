@@ -7,9 +7,8 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
@@ -32,6 +31,11 @@ type clientPool struct {
 	docker      docker.Client
 }
 
+type clientConfig struct {
+	readOnly      *bool
+	serverSession *mcp.ServerSession
+}
+
 func newClientPool(options Options, docker docker.Client) *clientPool {
 	return &clientPool{
 		Options:     options,
@@ -40,7 +44,7 @@ func newClientPool(options Options, docker docker.Client) *clientPool {
 	}
 }
 
-func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.ServerConfig, readOnly *bool) (mcpclient.Client, error) {
+func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
 	var getter *clientGetter
 
 	// Check if client is kept, can be returned immediately
@@ -55,7 +59,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.Se
 
 	// No client found, create a new one
 	if getter == nil {
-		getter = newClientGetter(serverConfig, cp, readOnly)
+		getter = newClientGetter(serverConfig, cp, config)
 
 		// If the client is long running, save it for later
 		if serverConfig.Spec.LongLived || cp.LongLived {
@@ -103,7 +107,7 @@ func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
 
 	// Client was not kept, close it
 	if !foundKept {
-		client.Close()
+		client.Session().Close()
 		return
 	}
 
@@ -120,7 +124,7 @@ func (cp *clientPool) Close() {
 	for _, keptClient := range existingMap {
 		client, err := keptClient.Getter.GetClient(context.TODO()) // should be cached
 		if err == nil {
-			client.Close()
+			client.Session().Close()
 		}
 	}
 }
@@ -129,7 +133,7 @@ func (cp *clientPool) SetNetworks(networks []string) {
 	cp.networks = networks
 }
 
-func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 	args := cp.baseArgs(tool.Name)
 
 	// Attach the MCP servers to the same network as the gateway.
@@ -137,8 +141,14 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 		args = append(args, "--network", network)
 	}
 
+	// Convert params.Arguments to map[string]any
+	arguments, ok := params.Arguments.(map[string]any)
+	if !ok {
+		arguments = make(map[string]any)
+	}
+
 	// Volumes
-	for _, mount := range eval.EvaluateList(tool.Container.Volumes, request.GetArguments()) {
+	for _, mount := range eval.EvaluateList(tool.Container.Volumes, arguments) {
 		if mount == "" {
 			continue
 		}
@@ -150,7 +160,7 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 	args = append(args, tool.Container.Image)
 
 	// Command
-	command := eval.EvaluateList(tool.Container.Command, request.GetArguments())
+	command := eval.EvaluateList(tool.Container.Command, arguments)
 	args = append(args, command...)
 
 	log("  - Running container", tool.Container.Image, "with args", args)
@@ -161,10 +171,20 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, r
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		return mcp.NewToolResultError(string(out)), nil
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: string(out),
+			}},
+			IsError: true,
+		}, nil
 	}
 
-	return mcp.NewToolResultText(string(out)), nil
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{&mcp.TextContent{
+			Text: string(out),
+		}},
+		IsError: false,
+	}, nil
 }
 
 func (cp *clientPool) baseArgs(name string) []string {
@@ -289,14 +309,15 @@ type clientGetter struct {
 
 	serverConfig catalog.ServerConfig
 	cp           *clientPool
-	readOnly     *bool
+
+	clientConfig *clientConfig
 }
 
-func newClientGetter(serverConfig catalog.ServerConfig, cp *clientPool, readOnly *bool) *clientGetter {
+func newClientGetter(serverConfig catalog.ServerConfig, cp *clientPool, config *clientConfig) *clientGetter {
 	return &clientGetter{
 		serverConfig: serverConfig,
 		cp:           cp,
-		readOnly:     readOnly,
+		clientConfig: config,
 	}
 }
 
@@ -328,7 +349,13 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				}
 
 				image := cg.serverConfig.Spec.Image
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, cg.readOnly, targetConfig)
+				var readOnly *bool
+				if cg.clientConfig != nil {
+					readOnly = cg.clientConfig.readOnly
+				} else {
+					readOnly = nil
+				}
+				args, env := cg.cp.argsAndEnv(cg.serverConfig, readOnly, targetConfig)
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
@@ -345,17 +372,23 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "docker", env, runArgs...)
 			}
 
-			initRequest := mcp.InitializeRequest{}
-			initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-			initRequest.Params.ClientInfo = mcp.Implementation{
-				Name:    "docker",
-				Version: "1.0.0",
+			initParams := &mcp.InitializeParams{
+				ProtocolVersion: "2024-11-05",
+				ClientInfo: &mcp.Implementation{
+					Name:    "docker",
+					Version: "1.0.0",
+				},
 			}
 
-			ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-			defer cancel()
-
-			if _, err := client.Initialize(ctx, initRequest, cg.cp.Verbose); err != nil {
+			// Use the original context instead of creating a timeout context
+			// to avoid cancellation issues
+			var ss *mcp.ServerSession
+			if cg.clientConfig != nil {
+				ss = cg.clientConfig.serverSession
+			} else {
+				ss = nil
+			}
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss); err != nil {
 				return nil, err
 			}
 
