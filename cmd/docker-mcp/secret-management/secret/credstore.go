@@ -1,6 +1,7 @@
 package secret
 
 import (
+	"context"
 	"io"
 	"os/exec"
 	"strings"
@@ -53,7 +54,7 @@ func GetHelper() credentials.Helper {
 // newShellProgramFunc creates programs that are executed in a Shell.
 func newShellProgramFunc(name string) client.ProgramFunc {
 	return func(args ...string) client.Program {
-		return &shell{cmd: exec.Command(name, args...)}
+		return &shell{cmd: exec.CommandContext(context.Background(), name, args...)}
 	}
 }
 

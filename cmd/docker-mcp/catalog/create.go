@@ -5,6 +5,11 @@ import (
 )
 
 func Create(name string) error {
+	// Prevent users from creating the Docker catalog
+	if name == DockerCatalogName {
+		return fmt.Errorf("cannot create catalog '%s' as it is reserved for Docker's official catalog", name)
+	}
+
 	cfg, err := ReadConfig()
 	if err != nil {
 		return err

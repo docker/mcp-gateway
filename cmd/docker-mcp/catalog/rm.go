@@ -7,6 +7,11 @@ import (
 )
 
 func Rm(name string) error {
+	// Prevent users from removing the Docker catalog
+	if name == DockerCatalogName {
+		return fmt.Errorf("cannot remove catalog '%s' as it is managed by Docker", name)
+	}
+
 	cfg, err := ReadConfig()
 	if err != nil {
 		return err

@@ -1,3 +1,4 @@
+//go:build go1.11 || go1.12 || go1.13 || go1.14 || go1.15
 // +build go1.11 go1.12 go1.13 go1.14 go1.15
 
 package pkcs7

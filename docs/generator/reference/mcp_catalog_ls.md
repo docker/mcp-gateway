@@ -1,7 +1,7 @@
 # docker mcp catalog ls
 
 <!---MARKER_GEN_START-->
-List configured catalogs
+List all configured catalogs including Docker's official catalog and any locally managed catalogs.
 
 ### Options
 

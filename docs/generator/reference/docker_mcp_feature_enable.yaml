@@ -1,0 +1,17 @@
+command: docker mcp feature enable
+short: Enable an experimental feature
+long: |-
+    Enable an experimental feature.
+
+    Available features:
+      configured-catalogs    Allow gateway to use user-managed catalogs alongside Docker catalog
+usage: docker mcp feature enable <feature-name>
+pname: docker mcp feature
+plink: docker_mcp_feature.yaml
+deprecated: false
+hidden: false
+experimental: false
+experimentalcli: false
+kubernetes: false
+swarm: false
+

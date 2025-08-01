@@ -23,6 +23,11 @@ func ParseAddArgs(dst, src, catalogFile string) *ParsedAddArgs {
 }
 
 func ValidateArgs(args ParsedAddArgs) error {
+	// Prevent users from modifying the Docker catalog
+	if args.Dst == DockerCatalogName {
+		return fmt.Errorf("cannot add servers to catalog '%s' as it is managed by Docker", args.Dst)
+	}
+
 	cfg, err := ReadConfig()
 	if err != nil {
 		return err

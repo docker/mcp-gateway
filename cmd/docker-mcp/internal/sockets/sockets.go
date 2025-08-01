@@ -33,5 +33,6 @@ func AcceptWithContext(ctx context.Context, l net.Listener) (net.Conn, error) {
 }
 
 func unblock(l net.Listener) (net.Conn, error) {
-	return net.Dial("tcp", l.Addr().String())
+	dialer := &net.Dialer{}
+	return dialer.DialContext(context.Background(), "tcp", l.Addr().String())
 }

@@ -1,9 +1,12 @@
 command: docker mcp catalog update
-short: Update a specific catalog or all catalogs if no name is provided
-long: Update a specific catalog or all catalogs if no name is provided
+short: Update catalog(s) from remote sources
+long: |-
+    Update one or more catalogs by re-downloading from their original sources.
+    If no name is provided, updates all catalogs that have remote sources.
 usage: docker mcp catalog update [name]
 pname: docker mcp catalog
 plink: docker_mcp_catalog.yaml
+examples: "  # Update all catalogs\n  docker mcp catalog update\n  \n  # Update specific catalog\n  docker mcp catalog update team-servers"
 deprecated: false
 hidden: false
 experimental: false

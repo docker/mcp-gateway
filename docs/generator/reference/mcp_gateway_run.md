@@ -30,6 +30,7 @@ Run the gateway
 | `--tools`                   | `stringSlice` |                     | List of tools to enable                                                                                                                       |
 | `--tools-config`            | `stringSlice` | `[tools.yaml]`      | Paths to the tools files (absolute or relative to ~/.docker/mcp/)                                                                             |
 | `--transport`               | `string`      | `stdio`             | stdio, sse or streaming (default is stdio)                                                                                                    |
+| `--use-configured-catalogs` | `bool`        |                     | Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)                                                          |
 | `--verbose`                 | `bool`        |                     | Verbose output                                                                                                                                |
 | `--verify-signatures`       | `bool`        |                     | Verify signatures of the server images                                                                                                        |
 | `--watch`                   | `bool`        | `true`              | Watch for changes and reconfigure the gateway                                                                                                 |
