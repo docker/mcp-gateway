@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types/volume"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -317,4 +318,58 @@ func withSampleCatalog() option {
 `
 		writeFile(t, filepath.Join(home, ".docker/mcp/catalogs/docker-mcp.yaml"), []byte(catalogContent))
 	}
+}
+
+// Unit tests for call
+
+func TestCallNoToolName(t *testing.T) {
+	err := Call(context.Background(), "2", []string{}, false, []string{})
+	require.Error(t, err)
+	assert.Equal(t, "no tool name provided", err.Error())
+}
+
+func TestToText(t *testing.T) {
+	// Test basic functionality - joining multiple text contents
+	response := &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "First"},
+			&mcp.TextContent{Text: "Second"},
+		},
+	}
+	result := toText(response)
+	assert.Equal(t, "First\nSecond", result)
+}
+
+func TestParseArgs(t *testing.T) {
+	// Test key=value parsing
+	result := parseArgs([]string{"key1=value1", "key2=value2"})
+	expected := map[string]any{"key1": "value1", "key2": "value2"}
+	assert.Equal(t, expected, result)
+
+	// Test duplicate keys become arrays
+	result = parseArgs([]string{"tag=red", "tag=blue"})
+	expected = map[string]any{"tag": []any{"red", "blue"}}
+	assert.Equal(t, expected, result)
+}
+
+// Unit tests for list
+
+func TestToolDescription(t *testing.T) {
+	// Test that title annotation takes precedence over description
+	tool := &mcp.Tool{
+		Description: "Longer description",
+		Annotations: &mcp.ToolAnnotations{Title: "Short Title"},
+	}
+	result := toolDescription(tool)
+	assert.Equal(t, "Short Title", result)
+}
+
+func TestDescriptionSummary(t *testing.T) {
+	// Test key behavior: stops at first sentence
+	result := descriptionSummary("First sentence. Second sentence.")
+	assert.Equal(t, "First sentence.", result)
+
+	// Test key behavior: stops at "Error Responses:"
+	result = descriptionSummary("Tool description.\nError Responses:\n- 404 if not found")
+	assert.Equal(t, "Tool description.", result)
 }

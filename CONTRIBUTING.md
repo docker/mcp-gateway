@@ -23,6 +23,26 @@ make format
 make lint
 ```
 
+## Testing
+
+### Running Tests
+
+```bash
+# Run all unit tests
+make test
+
+# Run integration tests
+make integration
+```
+
+### Unit Test Coverage
+
+```bash
+# Generate HTML coverage report for ALL packages in one view
+go test -cover -coverprofile=coverage.out ./... -short
+go tool cover -html=coverage.out -o coverage.html && open coverage.html
+```
+
 ## Open a Pull Request
 
 1. Fork the repository
