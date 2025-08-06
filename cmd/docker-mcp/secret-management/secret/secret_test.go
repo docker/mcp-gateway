@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetSecretKey(t *testing.T) {
@@ -15,15 +16,15 @@ func TestGetSecretKey(t *testing.T) {
 func TestParseArg(t *testing.T) {
 	// Test key=value parsing
 	secret, err := ParseArg("key=value", SetOpts{Provider: Credstore})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "key", secret.key)
 	assert.Equal(t, "value", secret.val)
 
 	// Test key-only for non-direct providers
 	secret, err = ParseArg("keyname", SetOpts{Provider: "oauth/github"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "keyname", secret.key)
-	assert.Equal(t, "", secret.val)
+	assert.Empty(t, secret.val)
 
 	// Test error on key=value with non-direct provider
 	_, err = ParseArg("key=value", SetOpts{Provider: "oauth/github"})
