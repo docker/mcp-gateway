@@ -353,4 +353,5 @@ func (g *Gateway) ListRoots(ctx context.Context, ss *mcp.ServerSession) {
 		}
 		cache.Roots = rootsResult.Roots
 	}
+	g.clientPool.UpdateRoots(ss, cache.Roots)
 }

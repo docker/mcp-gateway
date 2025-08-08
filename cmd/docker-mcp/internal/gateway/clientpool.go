@@ -45,6 +45,18 @@ func newClientPool(options Options, docker docker.Client) *clientPool {
 	}
 }
 
+func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
+	cp.clientLock.RLock()
+	defer cp.clientLock.RUnlock()
+
+	for _, kc := range cp.keptClients {
+		client, err := kc.Getter.GetClient(context.TODO()) // should be cached
+		if err == nil {
+			client.GetClient().AddRoots(roots...)
+		}
+	}
+}
+
 func (cp *clientPool) longLived(serverConfig catalog.ServerConfig, config *clientConfig) bool {
 	keep := config != nil && config.serverSession != nil && (serverConfig.Spec.LongLived || cp.LongLived)
 	return keep
@@ -393,7 +405,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			// defer cancel()
 
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server); err != nil {
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, []*mcp.Root{}, ss, server); err != nil {
 				return nil, err
 			}
 
