@@ -49,5 +49,11 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.Cl
 				_ = serverSession.Log(ctx, params)
 			}
 		},
+		ElicitationHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.ElicitParams) (*mcp.ElicitResult, error) {
+			if serverSession != nil {
+				return serverSession.Elicit(ctx, params)
+			}
+			return nil, fmt.Errorf("elicitation handled without server session")
+		},
 	}
 }

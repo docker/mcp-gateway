@@ -57,18 +57,18 @@ var extKeyUsageNames = map[x509.ExtKeyUsage]string{
 }
 
 var knownExtensions = []asn1.ObjectIdentifier{
-	{2, 5, 29, 14},               // oidExtensionSubjectKeyId
-	{2, 5, 29, 15},               // oidExtensionKeyUsage
-	{2, 5, 29, 37},               // oidExtensionExtendedKeyUsage
-	{2, 5, 29, 35},               // oidExtensionAuthorityKeyId
-	{2, 5, 29, 19},               // oidExtensionBasicConstraints
-	{2, 5, 29, 17},               // oidExtensionSubjectAltName
-	{2, 5, 29, 32},               // oidExtensionCertificatePolicies
-	{2, 5, 29, 30},               // oidExtensionNameConstraints
-	{2, 5, 29, 31},               // oidExtensionCRLDistributionPoints
-	{1, 3, 6, 1, 5, 5, 7, 1, 1},  // oidExtensionAuthorityInfoAccess
-	{1, 3, 6, 1, 5, 5, 7, 48, 1}, // oidAuthorityInfoAccessOcsp
-	{1, 3, 6, 1, 5, 5, 7, 48, 2}, // oidAuthorityInfoAccessIssuers
+	asn1.ObjectIdentifier{2, 5, 29, 14},               // oidExtensionSubjectKeyId
+	asn1.ObjectIdentifier{2, 5, 29, 15},               // oidExtensionKeyUsage
+	asn1.ObjectIdentifier{2, 5, 29, 37},               // oidExtensionExtendedKeyUsage
+	asn1.ObjectIdentifier{2, 5, 29, 35},               // oidExtensionAuthorityKeyId
+	asn1.ObjectIdentifier{2, 5, 29, 19},               // oidExtensionBasicConstraints
+	asn1.ObjectIdentifier{2, 5, 29, 17},               // oidExtensionSubjectAltName
+	asn1.ObjectIdentifier{2, 5, 29, 32},               // oidExtensionCertificatePolicies
+	asn1.ObjectIdentifier{2, 5, 29, 30},               // oidExtensionNameConstraints
+	asn1.ObjectIdentifier{2, 5, 29, 31},               // oidExtensionCRLDistributionPoints
+	asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 1},  // oidExtensionAuthorityInfoAccess
+	asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 1}, // oidAuthorityInfoAccessOcsp
+	asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 48, 2}, // oidAuthorityInfoAccessIssuers
 }
 
 // FprintCertificate formats a certificate for display

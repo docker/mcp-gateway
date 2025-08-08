@@ -98,12 +98,12 @@ func lengthLength(i int) (numBytes int) {
 // added to 0x80. The length is encoded in big endian encoding follow after
 //
 // Examples:
+//  length | byte 1 | bytes n
+//  0      | 0x00   | -
+//  120    | 0x78   | -
+//  200    | 0x81   | 0xC8
+//  500    | 0x82   | 0x01 0xF4
 //
-//	length | byte 1 | bytes n
-//	0      | 0x00   | -
-//	120    | 0x78   | -
-//	200    | 0x81   | 0xC8
-//	500    | 0x82   | 0x01 0xF4
 func encodeLength(out *bytes.Buffer, length int) (err error) {
 	if length >= 128 {
 		l := lengthLength(length)
@@ -179,12 +179,12 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 		if numberOfBytes == 4 && (int)(ber[offset]) > 0x7F {
 			return nil, 0, errors.New("ber2der: BER tag length is negative")
 		}
-		if offset+numberOfBytes > berLen {
+		if offset + numberOfBytes > berLen {
 			// == condition is not checked here, this allows for a more descreptive error when the parsed length is
 			// compared with the remaining available bytes (`contentEnd > berLen`)
 			return nil, 0, errors.New("ber2der: cannot move offset forward, end of ber data reached")
 		}
-		if (int)(ber[offset]) == 0x0 && (numberOfBytes == 1 || ber[offset+1] <= 0x7F) {
+		if (int)(ber[offset]) == 0x0 && (numberOfBytes == 1 || ber[offset+1] <= 0x7F)  {
 			// `numberOfBytes == 1` is an important conditional to avoid a potential out of bounds panic with `ber[offset+1]`
 			return nil, 0, errors.New("ber2der: BER tag length has leading zero")
 		}
@@ -257,7 +257,7 @@ func readObject(ber []byte, offset int) (asn1Object, int, error) {
 }
 
 func isIndefiniteTermination(ber []byte, offset int) (bool, error) {
-	if len(ber)-offset < 2 {
+	if len(ber) - offset < 2 {
 		return false, errors.New("ber2der: Invalid BER format")
 	}
 

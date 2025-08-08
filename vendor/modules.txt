@@ -400,7 +400,7 @@ github.com/moby/sys/sequential
 ## explicit; go 1.18
 github.com/moby/term
 github.com/moby/term/windows
-# github.com/modelcontextprotocol/go-sdk v0.2.0 => github.com/slimslenderslacks/go-sdk v0.0.0-20250805080330-e0e24a2d6dab
+# github.com/modelcontextprotocol/go-sdk v0.2.0 => github.com/slimslenderslacks/go-sdk v0.0.0-20250805181347-0789b2f03a4f
 ## explicit; go 1.23.0
 github.com/modelcontextprotocol/go-sdk/internal/jsonrpc2
 github.com/modelcontextprotocol/go-sdk/internal/util
@@ -959,4 +959,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.17
 # k8s.io/client-go v0.33.1
 ## explicit; go 1.24.0
-# github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250805080330-e0e24a2d6dab
+# github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250805181347-0789b2f03a4f
