@@ -31,12 +31,8 @@ make lint
 # Run all unit tests
 make test
 
-# Run integration tests (requires Docker plugin to be installed)
+# Run integration tests
 make integration
-
-# Run integration tests with console output
-docker buildx build --build-arg GO_LDFLAGS --build-arg DOCKER_MCP_PLUGIN_BINARY --target=test --progress=plain --no-cache .
-
 ```
 
 ### Unit Test Coverage

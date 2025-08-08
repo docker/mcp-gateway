@@ -320,7 +320,7 @@ func withSampleCatalog() option {
 	}
 }
 
-// Unit tests for utility functions
+// Unit tests for call
 
 func TestCallNoToolName(t *testing.T) {
 	err := Call(context.Background(), "2", []string{}, false, []string{})
@@ -351,6 +351,8 @@ func TestParseArgs(t *testing.T) {
 	expected = map[string]any{"tag": []any{"red", "blue"}}
 	assert.Equal(t, expected, result)
 }
+
+// Unit tests for list
 
 func TestToolDescription(t *testing.T) {
 	// Test that title annotation takes precedence over description
