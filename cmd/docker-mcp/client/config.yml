@@ -7,9 +7,12 @@ system:
     - /Applications/Claude.app
     - $AppData\Claude\
     paths:
-      linux: $HOME/.config/claude/claude_desktop_config.json
-      darwin: $HOME/Library/Application Support/Claude/claude_desktop_config.json
-      windows: $APPDATA\Claude\claude_desktop_config.json
+      linux: 
+        - $HOME/.config/claude/claude_desktop_config.json
+      darwin: 
+        - $HOME/Library/Application Support/Claude/claude_desktop_config.json
+      windows: 
+        - $APPDATA\Claude\claude_desktop_config.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
@@ -22,9 +25,12 @@ system:
     - $HOME/.continue
     - $USERPROFILE\.continue
     paths:
-      linux: $HOME/.continue/config.yaml
-      darwin: $HOME/.continue/config.yaml
-      windows: $USERPROFILE\.continue\config.yaml
+      linux: 
+        - $HOME/.continue/config.yaml
+      darwin: 
+        - $HOME/.continue/config.yaml
+      windows: 
+        - $USERPROFILE\.continue\config.yaml
     yq:
       list: .mcpServers
       set: .mcpServers = (.mcpServers // []) | .mcpServers += [{"name":$NAME}+$JSON]
@@ -37,9 +43,12 @@ system:
     - /Applications/Cursor.app
     - $AppData/Cursor/
     paths:
-      linux: $HOME/.cursor/mcp.json
-      darwin: $HOME/.cursor/mcp.json
-      windows: $USERPROFILE\.cursor\mcp.json
+      linux: 
+        - $HOME/.cursor/mcp.json
+      darwin: 
+        - $HOME/.cursor/mcp.json
+      windows: 
+        - $USERPROFILE\.cursor\mcp.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
@@ -52,9 +61,12 @@ system:
     - $HOME/.gemini
     - $USERPROFILE\.gemini
     paths:
-      linux: $HOME/.gemini/settings.json
-      darwin: $HOME/.gemini/settings.json
-      windows: $USERPROFILE\.gemini\settings.json
+      linux: 
+        - $HOME/.gemini/settings.json
+      darwin: 
+        - $HOME/.gemini/settings.json
+      windows: 
+        - $USERPROFILE\.gemini\settings.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
@@ -67,9 +79,12 @@ system:
     - $HOME/.config/goose
     - $USERPROFILE\.config\goose
     paths:
-      linux: $HOME/.config/goose/config.yaml
-      darwin: $HOME/.config/goose/config.yaml
-      windows: $USERPROFILE\.config\goose\config.yaml
+      linux: 
+        - $HOME/.config/goose/config.yaml
+      darwin: 
+        - $HOME/.config/goose/config.yaml
+      windows: 
+        - $USERPROFILE\.config\goose\config.yaml
     yq:
       list: '.extensions | to_entries | map(select(.value.bundled != true)) | map(.value + {"name": .key})'
       set: '.extensions[$SIMPLE_NAME] = {
@@ -91,11 +106,19 @@ system:
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/lmstudio.png
     installCheckPaths:
     - $HOME/.lmstudio
+    - $HOME/.cache/lm-studio
     - $USERPROFILE\.lmstudio
+    - $USERPROFILE\.cache\lm-studio
     paths:
-      linux: $HOME/.lmstudio/mcp.json
-      darwin: $HOME/.lmstudio/mcp.json
-      windows: $USERPROFILE\.lmstudio\mcp.json
+      linux: 
+        - $HOME/.cache/lm-studio/mcp.json
+        - $HOME/.lmstudio/mcp.json
+      darwin: 
+        - $HOME/.cache/lm-studio/mcp.json
+        - $HOME/.lmstudio/mcp.json
+      windows: 
+        - $USERPROFILE\.cache\lm-studio\mcp.json
+        - $USERPROFILE\.lmstudio\mcp.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
@@ -108,9 +131,12 @@ system:
     - $HOME/.sema4ai
     - $USERPROFILE\AppData\Local\sema4ai
     paths:
-      linux: $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
-      darwin: $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
-      windows: $USERPROFILE\AppData\Local\sema4ai\sema4ai-studio\mcp_servers.json
+      linux: 
+        - $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
+      darwin: 
+        - $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
+      windows: 
+        - $USERPROFILE\AppData\Local\sema4ai\sema4ai-studio\mcp_servers.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"transport":"stdio"}

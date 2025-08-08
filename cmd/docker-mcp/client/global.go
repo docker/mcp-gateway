@@ -21,12 +21,12 @@ type globalCfg struct {
 }
 
 type Paths struct {
-	Linux   string `yaml:"linux"`
-	Darwin  string `yaml:"darwin"`
-	Windows string `yaml:"windows"`
+	Linux   []string `yaml:"linux"`
+	Darwin  []string `yaml:"darwin"`
+	Windows []string `yaml:"windows"`
 }
 
-func (c *globalCfg) GetPathsForCurrentOS() string {
+func (c *globalCfg) GetPathsForCurrentOS() []string {
 	switch runtime.GOOS {
 	case "darwin":
 		return c.Darwin
@@ -35,7 +35,7 @@ func (c *globalCfg) GetPathsForCurrentOS() string {
 	case "windows":
 		return c.Windows
 	}
-	return ""
+	return []string{}
 }
 
 func (c *globalCfg) isInstalled() (bool, error) {
@@ -58,7 +58,13 @@ type GlobalCfgProcessor struct {
 }
 
 func NewGlobalCfgProcessor(g globalCfg) (*GlobalCfgProcessor, error) {
-	p, err := newYQProcessor(g.YQ, g.GetPathsForCurrentOS())
+	paths := g.GetPathsForCurrentOS()
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no paths configured for OS %s", runtime.GOOS)
+	}
+	// All paths for a client must use same file format (json/yaml) since YQ processor
+	// determines encoding from first path but may operate on any path
+	p, err := newYQProcessor(g.YQ, paths[0])
 	if err != nil {
 		return nil, err
 	}
@@ -71,52 +77,68 @@ func NewGlobalCfgProcessor(g globalCfg) (*GlobalCfgProcessor, error) {
 func (c *GlobalCfgProcessor) ParseConfig() MCPClientCfg {
 	result := MCPClientCfg{MCPClientCfgBase: MCPClientCfgBase{DisplayName: c.DisplayName, Source: c.Source, Icon: c.Icon}}
 
-	path := c.GetPathsForCurrentOS()
-	if path == "" {
+	paths := c.GetPathsForCurrentOS()
+	if len(paths) == 0 {
 		return result
 	}
-	fullPath := os.ExpandEnv(path)
 	result.IsOsSupported = true
 
-	data, err := os.ReadFile(fullPath)
-	if os.IsNotExist(err) {
-		// it's not an error for us, it just means nothing is configured/connected
-		installed, installCheckErr := c.isInstalled()
-		result.IsInstalled = installed
-		result.Err = classifyError(installCheckErr)
-		return result
-	}
-
-	// The file was found but can't be read. Because of an old bug, it could be a directory.
-	// In which case, we want to delete it.
-	stat, err := os.Stat(fullPath)
-	if err == nil && stat.IsDir() {
-		if err := os.RemoveAll(fullPath); err != nil {
-			result.Err = classifyError(err)
+	for _, path := range paths {
+		fullPath := os.ExpandEnv(path)
+		data, err := os.ReadFile(fullPath)
+		if err == nil {
+			result.IsInstalled = true
+			result.setParseResult(c.p.Parse(data))
 			return result
 		}
-		installed, installCheckErr := c.isInstalled()
-		result.IsInstalled = installed
-		result.Err = classifyError(installCheckErr)
-		return result
-	}
 
-	// config exists for us means it's installed (we then don't care if it's actually installed or not)
-	result.IsInstalled = true
-	if err != nil {
+		if os.IsNotExist(err) {
+			continue
+		}
+
+		// File exists but can't be read. Because of an old bug, it could be a directory.
+		// In which case, we want to delete it.
+		stat, statErr := os.Stat(fullPath)
+		if statErr == nil && stat.IsDir() {
+			if rmErr := os.RemoveAll(fullPath); rmErr != nil {
+				result.Err = classifyError(rmErr)
+				return result
+			}
+			continue
+		}
+
+		result.IsInstalled = true
 		result.Err = classifyError(err)
 		return result
 	}
-	result.setParseResult(c.p.Parse(data))
+
+	// No files found - check if the application is installed
+	installed, installCheckErr := c.isInstalled()
+	result.IsInstalled = installed
+	result.Err = classifyError(installCheckErr)
 	return result
 }
 
 func (c *GlobalCfgProcessor) Update(key string, server *MCPServerSTDIO) error {
-	file := c.GetPathsForCurrentOS()
-	if file == "" {
+	paths := c.GetPathsForCurrentOS()
+	if len(paths) == 0 {
 		return fmt.Errorf("unknown config path for OS %s", runtime.GOOS)
 	}
-	return updateConfig(os.ExpandEnv(file), c.p.Add, c.p.Del, key, server)
+
+	// Use first existing path, or first path if none exist
+	var targetPath string
+	for _, path := range paths {
+		fullPath := os.ExpandEnv(path)
+		if _, err := os.Stat(fullPath); err == nil {
+			targetPath = fullPath
+			break
+		}
+	}
+	if targetPath == "" {
+		targetPath = os.ExpandEnv(paths[0])
+	}
+
+	return updateConfig(targetPath, c.p.Add, c.p.Del, key, server)
 }
 
 func containsMCPDocker(in []MCPServerSTDIO) bool {
