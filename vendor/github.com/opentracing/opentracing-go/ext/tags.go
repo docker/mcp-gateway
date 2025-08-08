@@ -7,11 +7,12 @@ import "github.com/opentracing/opentracing-go"
 //
 // The tag names are defined as typed strings, so that in addition to the usual use
 //
-//	span.setTag(TagName, value)
+//     span.setTag(TagName, value)
 //
 // they also support value type validation via this additional syntax:
 //
-//	TagName.Set(span, value)
+//    TagName.Set(span, value)
+//
 var (
 	//////////////////////////////////////////////////////////////////////
 	// SpanKind (client/server or producer/consumer)

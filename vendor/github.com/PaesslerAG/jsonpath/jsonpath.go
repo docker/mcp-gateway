@@ -22,7 +22,7 @@ func New(path string) (gval.Evaluable, error) {
 	return lang.NewEvaluable(path)
 }
 
-// Get executes given JSONPath on given value
+//Get executes given JSONPath on given value
 func Get(path string, value interface{}) (interface{}, error) {
 	eval, err := lang.NewEvaluable(path)
 	if err != nil {
@@ -37,7 +37,7 @@ var lang = gval.NewLanguage(
 	gval.PrefixExtension('@', parseCurrentPath),
 )
 
-// Language is the JSONPath Language
+//Language is the JSONPath Language
 func Language() gval.Language {
 	return lang
 }
@@ -48,7 +48,7 @@ var placeholderExtension = gval.NewLanguage(
 	gval.PrefixExtension('#', parsePlaceholder),
 )
 
-// PlaceholderExtension is the JSONPath Language with placeholder
+//PlaceholderExtension is the JSONPath Language with placeholder
 func PlaceholderExtension() gval.Language {
 	return placeholderExtension
 }

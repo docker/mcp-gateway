@@ -45,8 +45,26 @@ func newClientPool(options Options, docker docker.Client) *clientPool {
 	}
 }
 
+func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
+	cp.clientLock.RLock()
+	defer cp.clientLock.RUnlock()
+
+	for _, kc := range cp.keptClients {
+		client, err := kc.Getter.GetClient(context.TODO()) // should be cached
+		if err == nil {
+			client.GetClient().AddRoots(roots...)
+		}
+	}
+}
+
+func (cp *clientPool) longLived(serverConfig catalog.ServerConfig, config *clientConfig) bool {
+	keep := config != nil && config.serverSession != nil && (serverConfig.Spec.LongLived || cp.LongLived)
+	return keep
+}
+
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
 	var getter *clientGetter
+	c := ctx
 
 	// Check if client is kept, can be returned immediately
 	cp.clientLock.RLock()
@@ -63,7 +81,8 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.Se
 		getter = newClientGetter(serverConfig, cp, config)
 
 		// If the client is long running, save it for later
-		if serverConfig.Spec.LongLived || cp.LongLived {
+		if cp.longLived(serverConfig, config) {
+			c = context.Background()
 			cp.clientLock.Lock()
 			cp.keptClients = append(cp.keptClients, keptClient{
 				Name:   serverConfig.Name,
@@ -74,13 +93,13 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.Se
 		}
 	}
 
-	client, err := getter.GetClient(ctx) // first time creates the client, can take some time
+	client, err := getter.GetClient(c) // first time creates the client, can take some time
 	if err != nil {
 		cp.clientLock.Lock()
 		defer cp.clientLock.Unlock()
 
 		// Wasn't successful, remove it
-		if serverConfig.Spec.LongLived || cp.LongLived {
+		if cp.longLived(serverConfig, config) {
 			for i, kc := range cp.keptClients {
 				if kc.Getter == getter {
 					cp.keptClients = append(cp.keptClients[:i], cp.keptClients[i+1:]...)
@@ -111,8 +130,6 @@ func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
 		client.Session().Close()
 		return
 	}
-
-	// Otherwise, leave the client as is
 }
 
 func (cp *clientPool) Close() {
@@ -388,7 +405,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			// defer cancel()
 
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server); err != nil {
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, []*mcp.Root{}, ss, server); err != nil {
 				return nil, err
 			}
 

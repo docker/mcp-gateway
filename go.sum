@@ -644,8 +644,8 @@ github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 h1:JIAuq3EEf9cgbU6AtGPK4CTG3Zf6CKMNqf0MHTggAUA=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=
-github.com/slimslenderslacks/go-sdk v0.0.0-20250805080330-e0e24a2d6dab h1:5D1rib1yLAwaGmkyhuef4Yo15QF5RdhajLOU9BA+0zo=
-github.com/slimslenderslacks/go-sdk v0.0.0-20250805080330-e0e24a2d6dab/go.mod h1:0sL9zUKKs2FTTkeCCVnKqbLJTw5TScefPAzojjU459E=
+github.com/slimslenderslacks/go-sdk v0.0.0-20250805181347-0789b2f03a4f h1:wL7oGEsPlYmRL52jzHjllTqT2hAyhDhYnpzFHrqAGYQ=
+github.com/slimslenderslacks/go-sdk v0.0.0-20250805181347-0789b2f03a4f/go.mod h1:0sL9zUKKs2FTTkeCCVnKqbLJTw5TScefPAzojjU459E=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spf13/afero v1.14.0 h1:9tH6MapGnn/j0eb0yIXiLjERO8RB6xIVZRDCX7PtqWA=

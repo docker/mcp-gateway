@@ -9,8 +9,9 @@ import (
 
 // Client interface wraps the official MCP SDK client with our legacy interface
 type Client interface {
-	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, serverSession *mcp.ServerSession, server *mcp.Server) error
+	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, roots []*mcp.Root, serverSession *mcp.ServerSession, server *mcp.Server) error
 	Session() *mcp.ClientSession
+	GetClient() *mcp.Client
 }
 
 func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.ClientOptions {
@@ -48,6 +49,12 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.Cl
 			if serverSession != nil {
 				_ = serverSession.Log(ctx, params)
 			}
+		},
+		ElicitationHandler: func(ctx context.Context, _ *mcp.ClientSession, params *mcp.ElicitParams) (*mcp.ElicitResult, error) {
+			if serverSession != nil {
+				return serverSession.Elicit(ctx, params)
+			}
+			return nil, fmt.Errorf("elicitation handled without server session")
 		},
 	}
 }

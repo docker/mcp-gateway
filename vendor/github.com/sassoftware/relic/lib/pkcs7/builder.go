@@ -135,7 +135,7 @@ func (sb *SignatureBuilder) Sign() (*ContentInfoSignedData, error) {
 			ContentInfo:                sb.contentInfo,
 			Certificates:               marshalCertificates(sb.certs),
 			CRLs:                       nil,
-			SignerInfos: []SignerInfo{{
+			SignerInfos: []SignerInfo{SignerInfo{
 				Version: 1,
 				IssuerAndSerialNumber: IssuerAndSerial{
 					IssuerName:   asn1.RawValue{FullBytes: sb.certs[0].RawIssuer},
