@@ -52,7 +52,7 @@ func (cp *clientPool) longLived(serverConfig catalog.ServerConfig, config *clien
 
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
 	var getter *clientGetter
-	var c = ctx
+	c := ctx
 
 	// Check if client is kept, can be returned immediately
 	cp.clientLock.RLock()
