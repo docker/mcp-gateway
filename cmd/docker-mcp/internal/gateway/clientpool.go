@@ -18,8 +18,8 @@ import (
 )
 
 type clientKey struct {
-	serverName   string
-	session *mcp.ServerSession
+	serverName string
+	session    *mcp.ServerSession
 }
 
 type keptClient struct {
