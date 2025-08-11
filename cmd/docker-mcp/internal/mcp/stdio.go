@@ -19,6 +19,7 @@ type stdioMCPClient struct {
 	args        []string
 	client      *mcp.Client
 	session     *mcp.ClientSession
+	roots       []*mcp.Root
 	initialized atomic.Bool
 }
 
@@ -31,7 +32,7 @@ func NewStdioCmdClient(name string, command string, env []string, args ...string
 	}
 }
 
-func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, debug bool, roots []*mcp.Root, ss *mcp.ServerSession, server *mcp.Server) error {
+func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, debug bool, ss *mcp.ServerSession, server *mcp.Server) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
@@ -49,7 +50,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 		Version: "1.0.0",
 	}, notifications(ss, server))
 
-	c.client.AddRoots(roots...)
+	c.client.AddRoots(c.roots...)
 
 	session, err := c.client.Connect(ctx, transport)
 	if err != nil {
@@ -60,6 +61,13 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	c.initialized.Store(true)
 
 	return nil
+}
+
+func (c *stdioMCPClient) AddRoots(roots []*mcp.Root) {
+	if c.initialized.Load() {
+		c.client.AddRoots(roots...)
+	}
+	c.roots = roots
 }
 
 func (c *stdioMCPClient) Session() *mcp.ClientSession {

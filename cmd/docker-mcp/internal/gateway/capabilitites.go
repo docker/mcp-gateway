@@ -58,7 +58,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
-				client, err := g.clientPool.AcquireClient(ctx, *serverConfig, nil)
+				client, err := g.clientPool.AcquireClient(ctx, serverConfig, nil)
 				if err != nil {
 					logf("  > Can't start %s: %s", serverConfig.Name, err)
 					return nil
@@ -77,7 +77,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						}
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							Tool:    tool,
-							Handler: g.mcpServerToolHandler(*serverConfig, g.mcpServer, tool.Annotations),
+							Handler: g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
 						})
 					}
 				}
@@ -87,7 +87,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, prompt := range prompts.Prompts {
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							Prompt:  prompt,
-							Handler: g.mcpServerPromptHandler(*serverConfig, g.mcpServer),
+							Handler: g.mcpServerPromptHandler(serverConfig, g.mcpServer),
 						})
 					}
 				}
@@ -97,7 +97,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, resource := range resources.Resources {
 						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
 							Resource: resource,
-							Handler:  g.mcpServerResourceHandler(*serverConfig, g.mcpServer),
+							Handler:  g.mcpServerResourceHandler(serverConfig, g.mcpServer),
 						})
 					}
 				}
@@ -107,7 +107,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					for _, resourceTemplate := range resourceTemplates.ResourceTemplates {
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
 							ResourceTemplate: *resourceTemplate,
-							Handler:          g.mcpServerResourceHandler(*serverConfig, g.mcpServer),
+							Handler:          g.mcpServerResourceHandler(serverConfig, g.mcpServer),
 						})
 					}
 				}

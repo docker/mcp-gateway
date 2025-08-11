@@ -17,15 +17,21 @@ import (
 	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
 )
 
+type clientKey struct {
+	serverName   string
+	session *mcp.ServerSession
+}
+
 type keptClient struct {
-	Name   string
-	Getter *clientGetter
-	Config catalog.ServerConfig
+	Name         string
+	Getter       *clientGetter
+	Config       *catalog.ServerConfig
+	ClientConfig *clientConfig
 }
 
 type clientPool struct {
 	Options
-	keptClients []keptClient
+	keptClients map[clientKey]keptClient
 	clientLock  sync.RWMutex
 	networks    []string
 	docker      docker.Client
@@ -41,7 +47,7 @@ func newClientPool(options Options, docker docker.Client) *clientPool {
 	return &clientPool{
 		Options:     options,
 		docker:      docker,
-		keptClients: []keptClient{},
+		keptClients: make(map[clientKey]keptClient),
 	}
 }
 
@@ -50,29 +56,33 @@ func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
 	defer cp.clientLock.RUnlock()
 
 	for _, kc := range cp.keptClients {
-		client, err := kc.Getter.GetClient(context.TODO()) // should be cached
-		if err == nil {
-			client.GetClient().AddRoots(roots...)
+		if kc.ClientConfig != nil && (kc.ClientConfig.serverSession == ss) {
+			client, err := kc.Getter.GetClient(context.TODO()) // should be cached
+			if err == nil {
+				client.AddRoots(roots)
+			}
 		}
 	}
 }
 
-func (cp *clientPool) longLived(serverConfig catalog.ServerConfig, config *clientConfig) bool {
+func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clientConfig) bool {
 	keep := config != nil && config.serverSession != nil && (serverConfig.Spec.LongLived || cp.LongLived)
 	return keep
 }
 
-func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
+func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
 	var getter *clientGetter
 	c := ctx
 
 	// Check if client is kept, can be returned immediately
+	var session *mcp.ServerSession
+	if config != nil {
+		session = config.serverSession
+	}
+	key := clientKey{serverName: serverConfig.Name, session: session}
 	cp.clientLock.RLock()
-	for _, kc := range cp.keptClients {
-		if kc.Name == serverConfig.Name {
-			getter = kc.Getter
-			break
-		}
+	if kc, exists := cp.keptClients[key]; exists {
+		getter = kc.Getter
 	}
 	cp.clientLock.RUnlock()
 
@@ -84,11 +94,12 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.Se
 		if cp.longLived(serverConfig, config) {
 			c = context.Background()
 			cp.clientLock.Lock()
-			cp.keptClients = append(cp.keptClients, keptClient{
-				Name:   serverConfig.Name,
-				Getter: getter,
-				Config: serverConfig,
-			})
+			cp.keptClients[key] = keptClient{
+				Name:         serverConfig.Name,
+				Getter:       getter,
+				Config:       serverConfig,
+				ClientConfig: config,
+			}
 			cp.clientLock.Unlock()
 		}
 	}
@@ -100,12 +111,7 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig catalog.Se
 
 		// Wasn't successful, remove it
 		if cp.longLived(serverConfig, config) {
-			for i, kc := range cp.keptClients {
-				if kc.Getter == getter {
-					cp.keptClients = append(cp.keptClients[:i], cp.keptClients[i+1:]...)
-					break
-				}
-			}
+			delete(cp.keptClients, key)
 		}
 
 		return nil, err
@@ -135,7 +141,7 @@ func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
 func (cp *clientPool) Close() {
 	cp.clientLock.Lock()
 	existingMap := cp.keptClients
-	cp.keptClients = []keptClient{}
+	cp.keptClients = make(map[clientKey]keptClient)
 	cp.clientLock.Unlock()
 
 	// Close all clients
@@ -232,7 +238,7 @@ func (cp *clientPool) baseArgs(name string) []string {
 	return args
 }
 
-func (cp *clientPool) argsAndEnv(serverConfig catalog.ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
+func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
 	args := cp.baseArgs(serverConfig.Name)
 	var env []string
 
@@ -325,13 +331,13 @@ type clientGetter struct {
 	client mcpclient.Client
 	err    error
 
-	serverConfig catalog.ServerConfig
+	serverConfig *catalog.ServerConfig
 	cp           *clientPool
 
 	clientConfig *clientConfig
 }
 
-func newClientGetter(serverConfig catalog.ServerConfig, cp *clientPool, config *clientConfig) *clientGetter {
+func newClientGetter(serverConfig *catalog.ServerConfig, cp *clientPool, config *clientConfig) *clientGetter {
 	return &clientGetter{
 		serverConfig: serverConfig,
 		cp:           cp,
@@ -405,7 +411,8 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			// defer cancel()
 
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, []*mcp.Root{}, ss, server); err != nil {
+			// TODO add initial roots
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server); err != nil {
 				return nil, err
 			}
 

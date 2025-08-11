@@ -153,7 +153,7 @@ func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[
 			Memory: "2Gb",
 		},
 	}
-	return clientPool.argsAndEnv(catalog.ServerConfig{
+	return clientPool.argsAndEnv(&catalog.ServerConfig{
 		Name:    name,
 		Spec:    parseSpec(t, catalogYAML),
 		Config:  parseConfig(t, configYAML),
@@ -216,7 +216,7 @@ func TestStdioClientInitialization(t *testing.T) {
 	defer cancel()
 
 	// Test client acquisition and initialization
-	client, err := clientPool.AcquireClient(ctx, serverConfig, &clientConfig{readOnly: boolPtr(false)})
+	client, err := clientPool.AcquireClient(ctx, &serverConfig, &clientConfig{readOnly: boolPtr(false)})
 	if err != nil {
 		t.Fatalf("Failed to acquire client: %v", err)
 	}

@@ -13,19 +13,20 @@ import (
 )
 
 type remoteMCPClient struct {
-	config      catalog.ServerConfig
+	config      *catalog.ServerConfig
 	client      *mcp.Client
 	session     *mcp.ClientSession
+	roots       []*mcp.Root
 	initialized atomic.Bool
 }
 
-func NewRemoteMCPClient(config catalog.ServerConfig) Client {
+func NewRemoteMCPClient(config *catalog.ServerConfig) Client {
 	return &remoteMCPClient{
 		config: config,
 	}
 }
 
-func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, roots []*mcp.Root, _ *mcp.ServerSession, _ *mcp.Server) error {
+func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
@@ -73,7 +74,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		Version: "1.0.0",
 	}, nil)
 
-	c.client.AddRoots(roots...)
+	c.client.AddRoots(c.roots...)
 
 	session, err := c.client.Connect(ctx, mcpTransport)
 	if err != nil {
@@ -87,7 +88,14 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 }
 
 func (c *remoteMCPClient) Session() *mcp.ClientSession { return c.session }
-func (c *remoteMCPClient) GetClient() *mcp.Client { return c.client }
+func (c *remoteMCPClient) GetClient() *mcp.Client      { return c.client }
+
+func (c *remoteMCPClient) AddRoots(roots []*mcp.Root) {
+	if c.initialized.Load() {
+		c.client.AddRoots(roots...)
+	}
+	c.roots = roots
+}
 
 func expandEnv(value string, secrets map[string]string) string {
 	return os.Expand(value, func(name string) string {

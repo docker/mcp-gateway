@@ -67,7 +67,7 @@ func newTestGatewayClient(t *testing.T, args []string) mcpclient.Client {
 		},
 	}
 
-	err := c.Initialize(t.Context(), initParams, false, []*mcp.Root{}, nil, nil)
+	err := c.Initialize(t.Context(), initParams, false, nil, nil)
 	require.NoError(t, err)
 
 	return c

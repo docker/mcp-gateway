@@ -24,7 +24,7 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 	}
 }
 
-func (g *Gateway) mcpServerToolHandler(serverConfig catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
+func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[map[string]any]) (*mcp.CallToolResultFor[any], error) {
 		var readOnlyHint *bool
 		if annotations != nil && annotations.ReadOnlyHint {
@@ -48,7 +48,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig catalog.ServerConfig, server
 	}
 }
 
-func (g *Gateway) mcpServerPromptHandler(serverConfig catalog.ServerConfig, server *mcp.Server) mcp.PromptHandler {
+func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.PromptHandler {
 	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.GetPromptParams) (*mcp.GetPromptResult, error) {
 		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, ss, server))
 		if err != nil {
@@ -60,7 +60,7 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig catalog.ServerConfig, serv
 	}
 }
 
-func (g *Gateway) mcpServerResourceHandler(serverConfig catalog.ServerConfig, server *mcp.Server) mcp.ResourceHandler {
+func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.ResourceHandler {
 	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.ReadResourceParams) (*mcp.ReadResourceResult, error) {
 		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, ss, server))
 		if err != nil {

@@ -9,9 +9,10 @@ import (
 
 // Client interface wraps the official MCP SDK client with our legacy interface
 type Client interface {
-	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, roots []*mcp.Root, serverSession *mcp.ServerSession, server *mcp.Server) error
+	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, serverSession *mcp.ServerSession, server *mcp.Server) error
 	Session() *mcp.ClientSession
 	GetClient() *mcp.Client
+	AddRoots(roots []*mcp.Root)
 }
 
 func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.ClientOptions {

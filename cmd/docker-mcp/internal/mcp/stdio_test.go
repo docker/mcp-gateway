@@ -40,7 +40,7 @@ func TestStdioClientInitializeAndListTools(t *testing.T) {
 		},
 	}
 
-	err := client.Initialize(ctx, initParams, true, []*mcp.Root{}, nil, nil) // verbose = true for debugging
+	err := client.Initialize(ctx, initParams, true, nil, nil) // verbose = true for debugging
 	require.NoError(t, err, "Failed to initialize stdio client")
 
 	// Test ListTools
