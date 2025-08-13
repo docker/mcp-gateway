@@ -24,7 +24,7 @@ func createAuthRequiredResponse() *mcp.CallToolResult {
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: fmt.Sprintf(
-					"GitHub authentication required. Please click this link to authorize: %s",
+					"GitHub authentication required. Tell the user to open this link to authorize: %s. Stop trying to process this user's request as they haven't yet logged in.",
 					authURL,
 				),
 			},
@@ -44,7 +44,7 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 
 			// Call the actual handler
 			response, err := next(ctx, session, method, params)
-			
+
 			// Pass through any actual errors
 			if err != nil {
 				return response, err
@@ -55,7 +55,7 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 			if !ok || !toolResult.IsError || len(toolResult.Content) == 0 {
 				return response, err
 			}
-			
+
 			// Check each content item for the authentication error message
 			for _, content := range toolResult.Content {
 				textContent, ok := content.(*mcp.TextContent)
@@ -85,5 +85,10 @@ func generateGitHubOAuthURL() string {
 		return "GitHub OAuth authorization page"
 	}
 
+	// Print the entire authResponse object
+	fmt.Printf("Auth Response: %+v\n", authResponse)
+
+	// Print the URL to the console for debugging
+	fmt.Println("GitHub OAuth URL:", authResponse.BrowserURL)
 	return authResponse.BrowserURL
 }
