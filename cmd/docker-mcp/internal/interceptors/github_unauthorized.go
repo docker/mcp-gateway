@@ -24,7 +24,7 @@ func createAuthRequiredResponse() *mcp.CallToolResult {
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: fmt.Sprintf(
-					"GitHub authentication required. Use this link to authorize: %s",
+					"GitHub authentication required. Please click this link to authorize: %s",
 					authURL,
 				),
 			},
@@ -42,30 +42,28 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 				return next(ctx, session, method, params)
 			}
 
-			// Don't check tool name - intercept all tool calls
-			// The GitHub MCP server tools don't have "github_" prefix
-
 			// Call the actual handler
 			response, err := next(ctx, session, method, params)
-
-			// Check if we got an unauthorized error
-			if err != nil && isAuthenticationError(err.Error()) {
-				return createAuthRequiredResponse(), nil
+			
+			// Pass through any actual errors
+			if err != nil {
+				return response, err
 			}
 
-			// If the tool call didn't return an explicit error, check the response for authentication failure message
+			// Check if the response contains a GitHub authentication error
 			toolResult, ok := response.(*mcp.CallToolResult)
-			if ok && toolResult != nil {
-				if toolResult.IsError && len(toolResult.Content) > 0 {
-					for _, content := range toolResult.Content {
-						textContent, ok := content.(*mcp.TextContent)
-						if !ok {
-							continue
-						}
-						if isAuthenticationError(textContent.Text) {
-							return createAuthRequiredResponse(), nil
-						}
-					}
+			if !ok || !toolResult.IsError || len(toolResult.Content) == 0 {
+				return response, err
+			}
+			
+			// Check each content item for the authentication error message
+			for _, content := range toolResult.Content {
+				textContent, ok := content.(*mcp.TextContent)
+				if !ok {
+					continue
+				}
+				if isAuthenticationError(textContent.Text) {
+					return createAuthRequiredResponse(), nil
 				}
 			}
 
