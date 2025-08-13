@@ -20,6 +20,10 @@ import (
 func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) []mcp.Middleware[*mcp.ServerSession] {
 	var middleware []mcp.Middleware[*mcp.ServerSession]
 
+	// Always add GitHub unauthorized interceptor first
+	// This ensures GitHub 401 responses are always handled with OAuth links
+	middleware = append(middleware, GitHubUnauthorizedMiddleware())
+
 	// Add custom interceptors
 	for _, interceptor := range interceptors {
 		middleware = append(middleware, interceptor.ToMiddleware())
