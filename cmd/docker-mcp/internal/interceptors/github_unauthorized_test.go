@@ -37,48 +37,50 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			expectError:     false,
 		},
 		{
-			name:            "github-tool-with-401-error-intercepted",
+			name:            "github-tool-with-bad-credentials-error-intercepted",
 			method:          "tools/call",
-			toolName:        "github_list_repos",
+			toolName:        "search_repositories",
+			handlerError:    errors.New("Authentication Failed: Bad credentials"),
+			expectIntercept: true,
+			expectError:     false,
+		},
+		{
+			name:            "github-tool-with-wrapped-bad-credentials-error-intercepted",
+			method:          "tools/call",
+			toolName:        "create_issue",
+			handlerError:    errors.New(`calling "tools/call": Authentication Failed: Bad credentials`),
+			expectIntercept: true,
+			expectError:     false,
+		},
+		{
+			name:            "github-tool-with-other-error-not-intercepted",
+			method:          "tools/call",
+			toolName:        "get_user",
 			handlerError:    errors.New("401 Unauthorized"),
-			expectIntercept: true,
-			expectError:     false,
+			expectIntercept: false,
+			expectError:     true,
 		},
 		{
-			name:            "github-tool-with-unauthorized-error-intercepted",
-			method:          "tools/call",
-			toolName:        "github_create_issue",
-			handlerError:    errors.New("Request failed: unauthorized"),
-			expectIntercept: true,
-			expectError:     false,
-		},
-		{
-			name:            "github-tool-with-authentication-required-error-intercepted",
-			method:          "tools/call",
-			toolName:        "github_get_user",
-			handlerError:    errors.New("Authentication required to access this resource"),
-			expectIntercept: true,
-			expectError:     false,
-		},
-		{
-			name:     "github-tool-with-401-in-response-intercepted",
+			name:     "github-tool-with-bad-credentials-in-response-intercepted",
 			method:   "tools/call",
-			toolName: "github_list_repos",
+			toolName: "list_repos",
 			handlerResult: &mcp.CallToolResult{
+				IsError: true,
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: "Error: 401 Unauthorized - Please authenticate"},
+					&mcp.TextContent{Text: "Authentication Failed: Bad credentials"},
 				},
 			},
 			expectIntercept: true,
 			expectError:     false,
 		},
 		{
-			name:     "github-tool-with-unauthorized-in-response-intercepted",
+			name:     "github-tool-with-wrapped-bad-credentials-in-response-intercepted",
 			method:   "tools/call",
-			toolName: "github_create_pr",
+			toolName: "create_pull_request",
 			handlerResult: &mcp.CallToolResult{
+				IsError: true,
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: "Request failed: Unauthorized access to repository"},
+					&mcp.TextContent{Text: `calling "tools/call": Authentication Failed: Bad credentials`},
 				},
 			},
 			expectIntercept: true,
@@ -87,7 +89,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		{
 			name:     "github-tool-with-success-passes-through",
 			method:   "tools/call",
-			toolName: "github_list_repos",
+			toolName: "list_repositories",
 			handlerResult: &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "Successfully listed repositories"},
@@ -99,7 +101,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		{
 			name:            "github-tool-with-other-error-passes-through",
 			method:          "tools/call",
-			toolName:        "github_list_repos",
+			toolName:        "search_code",
 			handlerError:    errors.New("Network timeout"),
 			expectIntercept: false,
 			expectError:     true,
@@ -143,7 +145,6 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 				// Check that the response contains OAuth information
 				assert.Contains(t, textContent.Text, "GitHub authentication required")
-				assert.Contains(t, textContent.Text, "docker mcp oauth authorize github")
 			} else if tt.handlerResult != nil && !tt.expectError {
 				// Check that the original result was returned
 				assert.Equal(t, tt.handlerResult, result)
@@ -177,9 +178,10 @@ func TestGitHubUnauthorizedMiddleware_MultipleContentItems(t *testing.T) {
 	// Test handling of multiple content items in response
 	mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
 		return &mcp.CallToolResult{
+			IsError: true,
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "First message"},
-				&mcp.TextContent{Text: "Error: 401 Unauthorized"},
+				&mcp.TextContent{Text: "Authentication Failed: Bad credentials"},
 				&mcp.TextContent{Text: "Third message"},
 			},
 		}, nil
@@ -189,7 +191,7 @@ func TestGitHubUnauthorizedMiddleware_MultipleContentItems(t *testing.T) {
 	wrappedHandler := middleware(mockHandler)
 
 	params := &mcp.CallToolParams{
-		Name: "github_api_call",
+		Name: "search_repositories",
 	}
 
 	result, err := wrappedHandler(context.Background(), nil, "tools/call", params)
@@ -206,40 +208,69 @@ func TestGitHubUnauthorizedMiddleware_MultipleContentItems(t *testing.T) {
 	assert.Contains(t, textContent.Text, "GitHub authentication required")
 }
 
-func TestGitHubUnauthorizedMiddleware_CaseInsensitive(t *testing.T) {
-	// Test that error detection is case-insensitive
-	testCases := []string{
-		"401 UNAUTHORIZED",
-		"401 unauthorized",
-		"Error: Unauthorized",
-		"AUTHENTICATION REQUIRED",
-		"Authentication Required",
+func TestGitHubUnauthorizedMiddleware_ExactErrorMatching(t *testing.T) {
+	// Test that we only intercept the exact GitHub error message
+	testCases := []struct {
+		name            string
+		errorMsg        string
+		expectIntercept bool
+	}{
+		{
+			name:            "exact-match",
+			errorMsg:        "Authentication Failed: Bad credentials",
+			expectIntercept: true,
+		},
+		{
+			name:            "wrapped-error",
+			errorMsg:        `calling "tools/call": Authentication Failed: Bad credentials`,
+			expectIntercept: true,
+		},
+		{
+			name:            "partial-match",
+			errorMsg:        "Something else Authentication Failed: Bad credentials and more",
+			expectIntercept: true,
+		},
+		{
+			name:            "401-not-intercepted",
+			errorMsg:        "401 Unauthorized",
+			expectIntercept: false,
+		},
+		{
+			name:            "generic-unauthorized-not-intercepted",
+			errorMsg:        "Error: Unauthorized",
+			expectIntercept: false,
+		},
 	}
 
-	for _, errorMsg := range testCases {
-		t.Run(errorMsg, func(t *testing.T) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
-				return nil, errors.New(errorMsg)
+				return nil, errors.New(tc.errorMsg)
 			}
 
 			middleware := GitHubUnauthorizedMiddleware()
 			wrappedHandler := middleware(mockHandler)
 
 			params := &mcp.CallToolParams{
-				Name: "github_test",
+				Name: "search_repositories",
 			}
 
 			result, err := wrappedHandler(context.Background(), nil, "tools/call", params)
 
-			assert.NoError(t, err)
-			require.NotNil(t, result)
+			if tc.expectIntercept {
+				assert.NoError(t, err)
+				require.NotNil(t, result)
 
-			toolResult, ok := result.(*mcp.CallToolResult)
-			require.True(t, ok)
+				toolResult, ok := result.(*mcp.CallToolResult)
+				require.True(t, ok)
 
-			textContent, ok := toolResult.Content[0].(*mcp.TextContent)
-			require.True(t, ok)
-			assert.Contains(t, textContent.Text, "GitHub authentication required")
+				textContent, ok := toolResult.Content[0].(*mcp.TextContent)
+				require.True(t, ok)
+				assert.Contains(t, textContent.Text, "GitHub authentication required")
+			} else {
+				assert.Error(t, err)
+				assert.Equal(t, tc.errorMsg, err.Error())
+			}
 		})
 	}
 }

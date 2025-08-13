@@ -24,7 +24,7 @@ func createAuthRequiredResponse() *mcp.CallToolResult {
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: fmt.Sprintf(
-					"GitHub authentication required. Please click this link to authorize: %s",
+					"GitHub authentication required. Use this link to authorize: %s",
 					authURL,
 				),
 			},
