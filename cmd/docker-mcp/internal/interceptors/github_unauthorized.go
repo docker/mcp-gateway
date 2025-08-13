@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -10,6 +9,28 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
+
+// isAuthenticationError checks if a text contains authentication-related error messages
+func isAuthenticationError(text string) bool {
+	// Check for the exact error message from GitHub
+	// The error comes wrapped as: calling "tools/call": Authentication Failed: Bad credentials
+	return strings.Contains(text, "Authentication Failed: Bad credentials")
+}
+
+// createAuthRequiredResponse creates the standardized authentication required response
+func createAuthRequiredResponse() *mcp.CallToolResult {
+	authURL := generateGitHubOAuthURL()
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: fmt.Sprintf(
+					"GitHub authentication required. Please click this link to authorize: %s",
+					authURL,
+				),
+			},
+		},
+	}
+}
 
 // GitHubUnauthorizedMiddleware creates middleware that intercepts 401 unauthorized responses
 // from the GitHub MCP server and returns the OAuth authorization link
@@ -21,72 +42,28 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 				return next(ctx, session, method, params)
 			}
 
-			// Check if this is a GitHub tool call
-			var toolParams mcp.CallToolParams
-			if paramsBytes, err := json.Marshal(params); err == nil {
-				if err := json.Unmarshal(paramsBytes, &toolParams); err == nil {
-					// Check if this is a GitHub tool (tools from GitHub server typically start with "github_")
-					if !strings.HasPrefix(toolParams.Name, "github_") {
-						return next(ctx, session, method, params)
-					}
-				}
-			}
+			// Don't check tool name - intercept all tool calls
+			// The GitHub MCP server tools don't have "github_" prefix
 
 			// Call the actual handler
 			response, err := next(ctx, session, method, params)
 
-			// Check if we got a 401 unauthorized error
-			if err != nil {
-				errStr := err.Error()
-				// Check for 401 or unauthorized in the error message
-				if strings.Contains(strings.ToLower(errStr), "401") ||
-					strings.Contains(strings.ToLower(errStr), "unauthorized") ||
-					strings.Contains(strings.ToLower(errStr), "authentication required") {
-					// Generate the OAuth URL
-					authURL := generateGitHubOAuthURL()
-
-					// Return a helpful message with the OAuth URL
-					return &mcp.CallToolResult{
-						Content: []mcp.Content{
-							&mcp.TextContent{
-								Text: fmt.Sprintf(
-									"GitHub authentication required. Please authorize access by running:\n\n"+
-										"docker mcp oauth authorize github --scopes=repo\n\n"+
-										"Or visit: %s",
-									authURL,
-								),
-							},
-						},
-					}, nil
-				}
+			// Check if we got an unauthorized error
+			if err != nil && isAuthenticationError(err.Error()) {
+				return createAuthRequiredResponse(), nil
 			}
 
-			// Check if the response itself indicates unauthorized
-			if response != nil {
-				if toolResult, ok := response.(*mcp.CallToolResult); ok && len(toolResult.Content) > 0 {
+			// If the tool call didn't return an explicit error, check the response for authentication failure message
+			toolResult, ok := response.(*mcp.CallToolResult)
+			if ok && toolResult != nil {
+				if toolResult.IsError && len(toolResult.Content) > 0 {
 					for _, content := range toolResult.Content {
-						if textContent, ok := content.(*mcp.TextContent); ok {
-							text := strings.ToLower(textContent.Text)
-							if strings.Contains(text, "401") ||
-								strings.Contains(text, "unauthorized") ||
-								strings.Contains(text, "authentication required") {
-								// Generate the OAuth URL
-								authURL := generateGitHubOAuthURL()
-
-								// Return a helpful message with the OAuth URL
-								return &mcp.CallToolResult{
-									Content: []mcp.Content{
-										&mcp.TextContent{
-											Text: fmt.Sprintf(
-												"GitHub authentication required. Please authorize access by running:\n\n"+
-													"docker mcp oauth authorize github --scopes=repo\n\n"+
-													"Or visit: %s",
-												authURL,
-											),
-										},
-									},
-								}, nil
-							}
+						textContent, ok := content.(*mcp.TextContent)
+						if !ok {
+							continue
+						}
+						if isAuthenticationError(textContent.Text) {
+							return createAuthRequiredResponse(), nil
 						}
 					}
 				}
@@ -112,4 +89,3 @@ func generateGitHubOAuthURL() string {
 
 	return authResponse.BrowserURL
 }
-
