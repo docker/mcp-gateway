@@ -19,14 +19,11 @@ func isAuthenticationError(text string) bool {
 
 // createAuthRequiredResponse creates the standardized authentication required response
 func createAuthRequiredResponse() *mcp.CallToolResult {
-	authURL := generateGitHubOAuthURL()
+	openGitHubOAuthURL()
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
-				Text: fmt.Sprintf(
-					"GitHub authentication required. Tell the user to open this link to authorize: %s. Stop trying to process this user's request as they haven't yet logged in.",
-					authURL,
-				),
+				Text: "GitHub authentication required. Tell the user to complete GitHub authorization and stop trying to process this user's request as they haven't yet logged in.",
 			},
 		},
 	}
@@ -72,23 +69,17 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 	}
 }
 
-// generateGitHubOAuthURL generates the OAuth URL for GitHub authorization
-func generateGitHubOAuthURL() string {
+// openGitHubOAuthURL triggers the browser to open the GitHub OAuth authorization page
+func openGitHubOAuthURL() {
 	// This simulates what happens when running "docker mcp oauth authorize github --scopes=repo"
 	// In a real implementation, we'd call the desktop API to get the actual URL
 	ctx := context.Background()
 	client := desktop.NewAuthClient()
 
-	authResponse, err := client.PostOAuthApp(ctx, "github", "repo")
+	_, err := client.PostOAuthApp(ctx, "github", "repo")
 	if err != nil {
-		// Fallback to a generic message if we can't get the URL
-		return "GitHub OAuth authorization page"
+		// Log error but continue - browser should still open
+		fmt.Printf("Error opening OAuth URL: %v\n", err)
+		return
 	}
-
-	// Print the entire authResponse object
-	fmt.Printf("Auth Response: %+v\n", authResponse)
-
-	// Print the URL to the console for debugging
-	fmt.Println("GitHub OAuth URL:", authResponse.BrowserURL)
-	return authResponse.BrowserURL
 }
