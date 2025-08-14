@@ -66,9 +66,18 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 }
 
 // handleOAuthFlow manages the complete OAuth flow
-func handleOAuthFlow(ctx context.Context) (*mcp.CallToolResult, error) {
+func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 	// Start OAuth callback server on port 3278
-	oauth.StartCallbackServer(3278)
+	if err := oauth.StartCallbackServer(3278); err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("OAuth flow already in progress: %v\n\nPlease wait for the current OAuth flow to complete before starting a new one.", err),
+				},
+			},
+			IsError: true,
+		}, nil
+	}
 	
 	// Get OAuth URL without opening browser
 	authURL, err := getGitHubOAuthURLWithoutBrowser()
@@ -104,7 +113,7 @@ func getGitHubOAuthURLWithoutBrowser() (string, error) {
 	// Check if we should use mock mode (for testing without replacing Docker Desktop)
 	if os.Getenv("USE_MOCK_AUTH") == "true" {
 		mockClient := desktop.NewMockAuthClient()
-		authResponse, err := mockClient.PostOAuthAppMCPGateway(ctx, "github", "")
+		authResponse, err := mockClient.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
 		if err != nil {
 			return "", fmt.Errorf("failed to get OAuth URL from mock: %w", err)
 		}
@@ -113,7 +122,7 @@ func getGitHubOAuthURLWithoutBrowser() (string, error) {
 	
 	// Try to use the new endpoint (only works if running modified Docker Desktop)
 	client := desktop.NewAuthClient()
-	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "")
+	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
 	if err != nil {
 		// Fallback to regular endpoint (will open browser but at least works)
 		fmt.Println("Note: Using fallback mode - browser will open")
@@ -123,12 +132,20 @@ func getGitHubOAuthURLWithoutBrowser() (string, error) {
 		}
 	}
 	
-	// Extract the state parameter from the OAuth URL to store for later exchange
+	// Extract and decode the state parameter from the OAuth URL to store for later exchange
 	oauthURL := authResponse.BrowserURL
 	if parsedURL, err := url.Parse(oauthURL); err == nil {
-		if state := parsedURL.Query().Get("state"); state != "" {
-			// Store the original state for Docker Desktop exchange
-			oauth.SetOriginalState(state)
+		if encodedState := parsedURL.Query().Get("state"); encodedState != "" {
+			// URL decode the state since Docker Desktop stored it unencoded
+			if decodedState, err := url.QueryUnescape(encodedState); err == nil {
+				// Store the original unencoded state for Docker Desktop exchange
+				oauth.SetOriginalState(decodedState)
+				fmt.Printf("Stored OAuth state for exchange: %s\n", decodedState)
+			} else {
+				fmt.Printf("Warning: Failed to decode OAuth state: %v\n", err)
+				// Fallback to encoded state
+				oauth.SetOriginalState(encodedState)
+			}
 		}
 	}
 	

@@ -1,11 +1,10 @@
 package oauth
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 	
@@ -21,17 +20,32 @@ var (
 	// Store the original state for Docker Desktop exchange
 	originalState string
 	stateMutex    sync.Mutex
+	
+	// Track active OAuth flow to prevent conflicts
+	activeFlowMutex sync.Mutex
+	isFlowActive    bool
 )
 
 // StartCallbackServer starts an HTTP server to receive OAuth callbacks on the specified port
-func StartCallbackServer(port int) {
+func StartCallbackServer(port int) error {
+	activeFlowMutex.Lock()
+	defer activeFlowMutex.Unlock()
+	
+	// Check if there's already an active OAuth flow
+	if isFlowActive {
+		return fmt.Errorf("OAuth flow already in progress, please wait for it to complete")
+	}
+	
 	serverMutex.Lock()
 	defer serverMutex.Unlock()
 	
 	// If server is already running, return
 	if server != nil {
-		return
+		return nil
 	}
+	
+	// Mark flow as active
+	isFlowActive = true
 	
 	authCodeChan = make(chan string, 1)
 	
@@ -56,6 +70,7 @@ func StartCallbackServer(port int) {
 	
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
+	return nil
 }
 
 func handleCallback(w http.ResponseWriter, r *http.Request) {
@@ -101,8 +116,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	case authCodeChan <- code:
 		// Success HTML response
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, `
-<!DOCTYPE html>
+		fmt.Fprint(w, `<!DOCTYPE html>
 <html>
 <head>
     <title>Authorization Successful</title>
@@ -138,8 +152,7 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
         <p>You can close this window and return to your application.</p>
     </div>
 </body>
-</html>
-`)
+</html>`)
 	default:
 		http.Error(w, "OAuth flow already completed", http.StatusConflict)
 	}
@@ -181,6 +194,11 @@ func StopCallbackServer() {
 		// Wait for server goroutine to finish
 		serverWG.Wait()
 	}
+	
+	// Mark OAuth flow as complete
+	activeFlowMutex.Lock()
+	isFlowActive = false
+	activeFlowMutex.Unlock()
 }
 
 // SetOriginalState stores the original OAuth state for later use with Docker Desktop
@@ -200,16 +218,10 @@ func callDockerDesktopExchange(code string) error {
 		return fmt.Errorf("no original state available for exchange")
 	}
 	
-	// Create the request body
-	requestBody := map[string]string{
-		"code":  code,
-		"state": state,
-	}
-	
-	jsonBody, err := json.Marshal(requestBody)
-	if err != nil {
-		return fmt.Errorf("marshaling request: %w", err)
-	}
+	// Build the exchange URL with query parameters (Docker Desktop expects query params, not body)
+	exchangeURL := fmt.Sprintf("/external-oauth2/exchange?code=%s&state=%s", 
+		url.QueryEscape(code), 
+		url.QueryEscape(state))
 	
 	// Create a backend client to call Docker Desktop
 	client := desktop.ClientBackend
@@ -218,7 +230,7 @@ func callDockerDesktopExchange(code string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	
-	err = client.Post(ctx, "/external-oauth2/exchange", bytes.NewReader(jsonBody), nil)
+	err := client.Post(ctx, exchangeURL, nil, nil)
 	if err != nil {
 		return fmt.Errorf("calling Docker Desktop exchange endpoint: %w", err)
 	}
