@@ -69,7 +69,7 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 	}
 
 	// Is it an MCP Server?
-	if server.Image != "" || server.SSEEndpoint != "" || server.Remote.URL != "" {
+	if server.Image != "" || server.SSEEndpoint != "" || server.Remote.URL != "" || server.Serverless != nil {
 		return &catalog.ServerConfig{
 			Name: serverName,
 			Spec: server,

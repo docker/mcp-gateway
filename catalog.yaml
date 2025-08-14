@@ -1,0 +1,34 @@
+registry:
+  # Example remote MCP server using HTTP transport
+  serverless:
+    remote:
+      url: http://host.docker.internal:9999/sse
+      transport_type: sse
+      headers:
+        Host: simple-agent-with-mcp-mcp-server.default.serverless.example
+
+  # Example remote MCP server using SSE transport
+  # gitmcp-moby:
+  #   remote:
+  #     url: "https://gitmcp.io/moby/moby"
+  #     transport_type: sse
+
+  # Example remote MCP server with authentication
+  # authenticated-server:
+  #   remote:
+  #     url: "https://secure-api.example.com/mcp"
+  #     transport_type: http
+  #     headers:
+  #       Authorization: "Bearer ${API_TOKEN}"
+  #       X-API-Key: "${API_KEY}"
+  #   secrets:
+  #     - name: API_TOKEN
+  #       env: API_TOKEN
+  #     - name: API_KEY
+  #       env: API_KEY
+
+  # Example for a local development server
+  # local-dev-server:
+  #   remote:
+  #     url: "http://localhost:3000/mcp"
+  #     transport_type: http

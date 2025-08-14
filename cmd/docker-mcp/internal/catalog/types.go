@@ -13,17 +13,18 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
-	Image          string   `yaml:"image" json:"image"`
-	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
-	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
-	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
-	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
-	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
-	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
-	Volumes        []string `yaml:"volumes,omitempty" json:"volumes,omitempty"`
-	DisableNetwork bool     `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
-	AllowHosts     []string `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
-	Tools          []Tool   `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Image          string            `yaml:"image" json:"image"`
+	LongLived      bool              `yaml:"longLived,omitempty" json:"longLived,omitempty"`
+	Remote         Remote            `yaml:"remote,omitempty" json:"remote,omitempty"`
+	SSEEndpoint    string            `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
+	Serverless     *ServerlessConfig `yaml:"serverless,omitempty" json:"serverless,omitempty"`
+	Secrets        []Secret          `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+	Env            []Env             `yaml:"env,omitempty" json:"env,omitempty"`
+	Command        []string          `yaml:"command,omitempty" json:"command,omitempty"`
+	Volumes        []string          `yaml:"volumes,omitempty" json:"volumes,omitempty"`
+	DisableNetwork bool              `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
+	AllowHosts     []string          `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
+	Tools          []Tool            `yaml:"tools,omitempty" json:"tools,omitempty"`
 }
 
 type Secret struct {
@@ -40,6 +41,11 @@ type Remote struct {
 	URL       string            `yaml:"url" json:"url"`
 	Transport string            `yaml:"transport_type,omitempty" json:"transport_type,omitempty"`
 	Headers   map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+}
+
+type ServerlessConfig struct {
+	ConfigPath string `yaml:"configPath" json:"configPath"`
+	Namespace  string `yaml:"namespace,omitempty" json:"namespace,omitempty"`
 }
 
 // POCI tools

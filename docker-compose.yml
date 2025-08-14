@@ -1,0 +1,18 @@
+services:
+  mcp-gateway:
+    image: my-mcp-gateway
+    ports:
+      - "8811:8811"
+    volumes:
+      - ./catalog.yaml:/mcp/catalog.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --catalog=/mcp/catalog.yaml
+      - --servers=serverless
+      - --transport=sse
+      - --verbose
+    environment:
+      # Add any environment variables for secrets here
+      # API_TOKEN: your-api-token
+      TEST: UNUSED
+    restart: unless-stopped

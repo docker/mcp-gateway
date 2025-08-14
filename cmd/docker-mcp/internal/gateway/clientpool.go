@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/eval"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
 	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/serverless"
 )
 
 type clientKey struct {
@@ -35,6 +37,7 @@ type clientPool struct {
 	clientLock  sync.RWMutex
 	networks    []string
 	docker      docker.Client
+	serverless  *serverless.Client
 }
 
 type clientConfig struct {
@@ -47,6 +50,7 @@ func newClientPool(options Options, docker docker.Client) *clientPool {
 	return &clientPool{
 		Options:     options,
 		docker:      docker,
+		serverless:  serverless.NewClient(),
 		keptClients: make(map[clientKey]keptClient),
 	}
 }
@@ -66,6 +70,10 @@ func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
 }
 
 func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clientConfig) bool {
+	// Serverless servers are inherently long-lived infrastructure
+	if serverConfig.Spec.Serverless != nil {
+		return true
+	}
 	keep := config != nil && config.serverSession != nil && (serverConfig.Spec.LongLived || cp.LongLived)
 	return keep
 }
@@ -149,6 +157,15 @@ func (cp *clientPool) Close() {
 		client, err := keptClient.Getter.GetClient(context.TODO()) // should be cached
 		if err == nil {
 			client.Session().Close()
+		}
+	}
+
+	// Cleanup Serverless resources
+	if cp.serverless != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		if err := cp.serverless.CleanupAll(ctx); err != nil {
+			log("Warning: failed to cleanup Serverless resources:", err)
 		}
 	}
 }
@@ -356,8 +373,32 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 
 			var client mcpclient.Client
 
-			// Deprecated: Use Remote instead
-			if cg.serverConfig.Spec.SSEEndpoint != "" {
+			// Handle Serverless deployment before remote client creation
+			if cg.serverConfig.Spec.Serverless != nil {
+				log("  - Deploying Serverless MCP server:", cg.serverConfig.Name)
+				if err := cg.cp.serverless.DeployMCPServer(ctx, cg.serverConfig.Name,
+					cg.serverConfig.Spec.Serverless.ConfigPath,
+					cg.serverConfig.Spec.Serverless.Namespace); err != nil {
+					return nil, fmt.Errorf("failed to deploy Serverless MCP server %s: %w", cg.serverConfig.Name, err)
+				}
+
+				// Wait for the composition to be in Running phase
+				log("  - Waiting for composition to be running...")
+				// TODO: Extract composition name from YAML file instead of hardcoding
+				compositionName := "simple-agent-with-mcp" // For now, hardcoded to match the YAML
+				if err := cg.cp.serverless.WaitForComposition(ctx, compositionName,
+					cg.serverConfig.Spec.Serverless.Namespace, 60*time.Second); err != nil {
+					return nil, fmt.Errorf("failed to wait for composition to be ready: %w", err)
+				}
+
+				// Must have Remote.URL configured for the endpoint
+				if cg.serverConfig.Spec.Remote.URL == "" {
+					return nil, fmt.Errorf("serverless MCP server %s requires remote.url to be configured", cg.serverConfig.Name)
+				}
+
+				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
+			} else if cg.serverConfig.Spec.SSEEndpoint != "" {
+				// Deprecated: Use Remote instead
 				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
 			} else if cg.serverConfig.Spec.Remote.URL != "" {
 				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)

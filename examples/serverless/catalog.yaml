@@ -1,0 +1,12 @@
+registry:
+  remote-serverless:
+    remote:
+      url: http://host.docker.internal:9999/sse
+      transport_type: sse
+      headers:
+        Host: simple-agent-with-mcp-mcp-server.default.serverless.example
+    serverless:
+      configPath: examples/serverless/mcp-server-composition.yaml
+      namespace: default  
+    longLived: true 
+
