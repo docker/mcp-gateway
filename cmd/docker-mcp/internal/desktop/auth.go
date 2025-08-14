@@ -63,6 +63,20 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string) (AuthRespo
 	return result, err
 }
 
+// PostOAuthAppMCPGateway calls the new MCP Gateway endpoint that doesn't open browser
+func (c *Tools) PostOAuthAppMCPGateway(ctx context.Context, app, scopes string) (AuthResponse, error) {
+	AvoidResourceSaverMode(ctx)
+
+	q := ""
+	q = addQueryParam(q, "scopes", scopes, false)
+	if q != "" {
+		q = "?" + q
+	}
+	var result AuthResponse
+	err := c.rawClient.Post(ctx, fmt.Sprintf("/apps/%v/mcp-gateway", app)+q, nil, &result)
+	return result, err
+}
+
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {
 		return ""

@@ -1,8 +1,10 @@
 package desktop
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/user"
 )
@@ -13,7 +15,27 @@ func getDockerDesktopPaths() (DockerDesktopPaths, error) {
 		return DockerDesktopPaths{}, err
 	}
 
-	data := filepath.Join(home, "Library", "Containers", "com.docker.docker", "Data")
+	// Check for devhome override via environment variable
+	// e.g., DOCKER_DEVHOME=yellow uses ~/devhome/yellow/...
+	devhome := os.Getenv("DOCKER_DEVHOME")
+	var data string
+	if devhome != "" {
+		// Use devhome path
+		data = filepath.Join(home, "devhome", devhome, "Library", "Containers", "com.docker.docker", "Data")
+	} else {
+		// Use default path
+		data = filepath.Join(home, "Library", "Containers", "com.docker.docker", "Data")
+	}
+	
+	// Also support direct socket path override
+	if toolsSocket := os.Getenv("DOCKER_TOOLS_SOCKET"); toolsSocket != "" {
+		// Expand ~ to home directory
+		if strings.HasPrefix(toolsSocket, "~/") {
+			toolsSocket = filepath.Join(home, toolsSocket[2:])
+		}
+		data = filepath.Dir(toolsSocket)
+	}
+
 	applicationSupport := "/Library/Application Support/com.docker.docker"
 
 	return DockerDesktopPaths{

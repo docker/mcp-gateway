@@ -3,11 +3,14 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 // isAuthenticationError checks if a text contains authentication-related error messages
@@ -19,11 +22,27 @@ func isAuthenticationError(text string) bool {
 
 // createAuthRequiredResponse creates the standardized authentication required response
 func createAuthRequiredResponse() *mcp.CallToolResult {
-	openGitHubOAuthURL()
+	// Start OAuth callback server on port 3278
+	oauth.StartCallbackServer(3278)
+	
+	// Get OAuth URL without opening browser
+	authURL, err := getGitHubOAuthURLWithoutBrowser()
+	if err != nil {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Failed to get GitHub OAuth URL: %v", err),
+				},
+			},
+			IsError: true,
+		}
+	}
+	
+	// Return the OAuth URL for the user to open
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
-				Text: "GitHub authentication required. Tell the user to complete GitHub authorization and stop trying to process this user's request as they haven't yet logged in.",
+				Text: fmt.Sprintf("GitHub authentication required. Please authorize at: %s\n\nWaiting for authorization...", authURL),
 			},
 		},
 	}
@@ -60,7 +79,8 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 					continue
 				}
 				if isAuthenticationError(textContent.Text) {
-					return createAuthRequiredResponse(), nil
+					// Start OAuth flow and wait for completion
+					return handleOAuthFlow(ctx)
 				}
 			}
 
@@ -69,17 +89,77 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 	}
 }
 
-// openGitHubOAuthURL triggers the browser to open the GitHub OAuth authorization page
-func openGitHubOAuthURL() {
-	// This simulates what happens when running "docker mcp oauth authorize github --scopes=repo"
-	// In a real implementation, we'd call the desktop API to get the actual URL
-	ctx := context.Background()
-	client := desktop.NewAuthClient()
-
-	_, err := client.PostOAuthApp(ctx, "github", "repo")
+// handleOAuthFlow manages the complete OAuth flow
+func handleOAuthFlow(ctx context.Context) (*mcp.CallToolResult, error) {
+	// Start OAuth callback server on port 3278
+	oauth.StartCallbackServer(3278)
+	defer oauth.StopCallbackServer()
+	
+	// Get OAuth URL without opening browser
+	authURL, err := getGitHubOAuthURLWithoutBrowser()
 	if err != nil {
-		// Log error but continue - browser should still open
-		fmt.Printf("Error opening OAuth URL: %v\n", err)
-		return
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Failed to get GitHub OAuth URL: %v", err),
+				},
+			},
+			IsError: true,
+		}, nil
 	}
+	
+	fmt.Printf("OAuth URL generated: %s\n", authURL)
+	
+	// Start a goroutine to complete the OAuth flow
+	tokenChan := make(chan *oauth.GitHubToken, 1)
+	errChan := make(chan error, 1)
+	
+	go func() {
+		token, err := oauth.CompleteOAuthFlow(ctx)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		tokenChan <- token
+	}()
+	
+	// Return immediately with the auth URL for the user
+	// The actual token exchange will happen in the background
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{
+				Text: fmt.Sprintf("GitHub authentication required. Please authorize at:\n%s\n\nNote: After authorizing, retry your request.", authURL),
+			},
+		},
+	}, nil
+}
+
+// getGitHubOAuthURLWithoutBrowser gets the OAuth URL without opening the browser
+func getGitHubOAuthURLWithoutBrowser() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	// Check if we should use mock mode (for testing without replacing Docker Desktop)
+	if os.Getenv("USE_MOCK_AUTH") == "true" {
+		mockClient := desktop.NewMockAuthClient()
+		authResponse, err := mockClient.PostOAuthAppMCPGateway(ctx, "github", "")
+		if err != nil {
+			return "", fmt.Errorf("failed to get OAuth URL from mock: %w", err)
+		}
+		return authResponse.BrowserURL, nil
+	}
+	
+	// Try to use the new endpoint (only works if running modified Docker Desktop)
+	client := desktop.NewAuthClient()
+	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "")
+	if err != nil {
+		// Fallback to regular endpoint (will open browser but at least works)
+		fmt.Println("Note: Using fallback mode - browser will open")
+		authResponse, err = client.PostOAuthApp(ctx, "github", "")
+		if err != nil {
+			return "", fmt.Errorf("failed to get OAuth URL: %w", err)
+		}
+	}
+	
+	return authResponse.BrowserURL, nil
 }
