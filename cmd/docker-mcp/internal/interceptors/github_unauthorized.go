@@ -3,6 +3,7 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -15,38 +16,13 @@ import (
 
 // isAuthenticationError checks if a text contains authentication-related error messages
 func isAuthenticationError(text string) bool {
-	// Check for the exact error message from GitHub
-	// The error comes wrapped as: calling "tools/call": Authentication Failed: Bad credentials
-	return strings.Contains(text, "Authentication Failed: Bad credentials")
+	// Check for any 401 error from GitHub API
+	return strings.Contains(text, "401") && 
+		   (strings.Contains(text, "github.com") || 
+		    strings.Contains(text, "Bad credentials") ||
+		    strings.Contains(text, "Unauthorized"))
 }
 
-// createAuthRequiredResponse creates the standardized authentication required response
-func createAuthRequiredResponse() *mcp.CallToolResult {
-	// Start OAuth callback server on port 3278
-	oauth.StartCallbackServer(3278)
-	
-	// Get OAuth URL without opening browser
-	authURL, err := getGitHubOAuthURLWithoutBrowser()
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("Failed to get GitHub OAuth URL: %v", err),
-				},
-			},
-			IsError: true,
-		}
-	}
-	
-	// Return the OAuth URL for the user to open
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{
-				Text: fmt.Sprintf("GitHub authentication required. Please authorize at: %s\n\nWaiting for authorization...", authURL),
-			},
-		},
-	}
-}
 
 // GitHubUnauthorizedMiddleware creates middleware that intercepts 401 unauthorized responses
 // from the GitHub MCP server and returns the OAuth authorization link
@@ -93,7 +69,6 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 func handleOAuthFlow(ctx context.Context) (*mcp.CallToolResult, error) {
 	// Start OAuth callback server on port 3278
 	oauth.StartCallbackServer(3278)
-	defer oauth.StopCallbackServer()
 	
 	// Get OAuth URL without opening browser
 	authURL, err := getGitHubOAuthURLWithoutBrowser()
@@ -110,21 +85,8 @@ func handleOAuthFlow(ctx context.Context) (*mcp.CallToolResult, error) {
 	
 	fmt.Printf("OAuth URL generated: %s\n", authURL)
 	
-	// Start a goroutine to complete the OAuth flow
-	tokenChan := make(chan *oauth.GitHubToken, 1)
-	errChan := make(chan error, 1)
-	
-	go func() {
-		token, err := oauth.CompleteOAuthFlow(ctx)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		tokenChan <- token
-	}()
-	
-	// Return immediately with the auth URL for the user
-	// The actual token exchange will happen in the background
+	// Return the auth URL for the user
+	// The token exchange will happen when the OAuth callback is received
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
@@ -161,5 +123,14 @@ func getGitHubOAuthURLWithoutBrowser() (string, error) {
 		}
 	}
 	
-	return authResponse.BrowserURL, nil
+	// Extract the state parameter from the OAuth URL to store for later exchange
+	oauthURL := authResponse.BrowserURL
+	if parsedURL, err := url.Parse(oauthURL); err == nil {
+		if state := parsedURL.Query().Get("state"); state != "" {
+			// Store the original state for Docker Desktop exchange
+			oauth.SetOriginalState(state)
+		}
+	}
+	
+	return oauthURL, nil
 }

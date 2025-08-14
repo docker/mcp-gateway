@@ -1,11 +1,15 @@
 package oauth
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
+	
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 var (
@@ -13,6 +17,10 @@ var (
 	authCodeChan chan string
 	serverMutex  sync.Mutex
 	serverWG     sync.WaitGroup
+	
+	// Store the original state for Docker Desktop exchange
+	originalState string
+	stateMutex    sync.Mutex
 )
 
 // StartCallbackServer starts an HTTP server to receive OAuth callbacks on the specified port
@@ -77,6 +85,16 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	fmt.Printf("Received auth code: %s (state: %s)\n", code, state)
+	
+	// Call Docker Desktop's exchange endpoint to complete OAuth flow
+	err := callDockerDesktopExchange(code)
+	if err != nil {
+		fmt.Printf("Failed to exchange code via Docker Desktop: %v\n", err)
+		http.Error(w, "Failed to complete OAuth flow", http.StatusInternalServerError)
+		return
+	}
+	
+	fmt.Println("Successfully completed OAuth flow via Docker Desktop")
 	
 	// Send code to waiting channel
 	select {
@@ -163,4 +181,47 @@ func StopCallbackServer() {
 		// Wait for server goroutine to finish
 		serverWG.Wait()
 	}
+}
+
+// SetOriginalState stores the original OAuth state for later use with Docker Desktop
+func SetOriginalState(state string) {
+	stateMutex.Lock()
+	defer stateMutex.Unlock()
+	originalState = state
+}
+
+// callDockerDesktopExchange calls Docker Desktop's /external-oauth2/exchange endpoint
+func callDockerDesktopExchange(code string) error {
+	stateMutex.Lock()
+	state := originalState
+	stateMutex.Unlock()
+	
+	if state == "" {
+		return fmt.Errorf("no original state available for exchange")
+	}
+	
+	// Create the request body
+	requestBody := map[string]string{
+		"code":  code,
+		"state": state,
+	}
+	
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return fmt.Errorf("marshaling request: %w", err)
+	}
+	
+	// Create a backend client to call Docker Desktop
+	client := desktop.ClientBackend
+	
+	// Call the exchange endpoint
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	err = client.Post(ctx, "/external-oauth2/exchange", bytes.NewReader(jsonBody), nil)
+	if err != nil {
+		return fmt.Errorf("calling Docker Desktop exchange endpoint: %w", err)
+	}
+	
+	return nil
 }
