@@ -3,15 +3,12 @@ package interceptors
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 // isAuthenticationError checks if a text contains authentication-related error messages
@@ -65,22 +62,10 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 	}
 }
 
-// handleOAuthFlow manages the complete OAuth flow
+// handleOAuthFlow manages the simplified OAuth flow
 func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
-	// Start OAuth callback server on port 3278
-	if err := oauth.StartCallbackServer(3278); err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{
-					Text: fmt.Sprintf("OAuth flow already in progress: %v\n\nPlease wait for the current OAuth flow to complete before starting a new one.", err),
-				},
-			},
-			IsError: true,
-		}, nil
-	}
-	
 	// Get OAuth URL without opening browser
-	authURL, err := getGitHubOAuthURLWithoutBrowser()
+	authURL, err := getGitHubOAuthURL()
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -94,8 +79,7 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 	
 	fmt.Printf("OAuth URL generated: %s\n", authURL)
 	
-	// Return the auth URL for the user
-	// The token exchange will happen when the OAuth callback is received
+	// Return the auth URL for the user - Docker Desktop will handle the callback
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
@@ -105,49 +89,17 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 	}, nil
 }
 
-// getGitHubOAuthURLWithoutBrowser gets the OAuth URL without opening the browser
-func getGitHubOAuthURLWithoutBrowser() (string, error) {
+// getGitHubOAuthURL gets the OAuth URL using the MCP Gateway endpoint (no browser opening)
+func getGitHubOAuthURL() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	
-	// Check if we should use mock mode (for testing without replacing Docker Desktop)
-	if os.Getenv("USE_MOCK_AUTH") == "true" {
-		mockClient := desktop.NewMockAuthClient()
-		authResponse, err := mockClient.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
-		if err != nil {
-			return "", fmt.Errorf("failed to get OAuth URL from mock: %w", err)
-		}
-		return authResponse.BrowserURL, nil
-	}
-	
-	// Try to use the new endpoint (only works if running modified Docker Desktop)
+	// Use the MCP Gateway specific endpoint that doesn't open browser
 	client := desktop.NewAuthClient()
 	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
 	if err != nil {
-		// Fallback to regular endpoint (will open browser but at least works)
-		fmt.Println("Note: Using fallback mode - browser will open")
-		authResponse, err = client.PostOAuthApp(ctx, "github", "")
-		if err != nil {
-			return "", fmt.Errorf("failed to get OAuth URL: %w", err)
-		}
+		return "", fmt.Errorf("failed to get OAuth URL from Docker Desktop: %w", err)
 	}
 	
-	// Extract and decode the state parameter from the OAuth URL to store for later exchange
-	oauthURL := authResponse.BrowserURL
-	if parsedURL, err := url.Parse(oauthURL); err == nil {
-		if encodedState := parsedURL.Query().Get("state"); encodedState != "" {
-			// URL decode the state since Docker Desktop stored it unencoded
-			if decodedState, err := url.QueryUnescape(encodedState); err == nil {
-				// Store the original unencoded state for Docker Desktop exchange
-				oauth.SetOriginalState(decodedState)
-				fmt.Printf("Stored OAuth state for exchange: %s\n", decodedState)
-			} else {
-				fmt.Printf("Warning: Failed to decode OAuth state: %v\n", err)
-				// Fallback to encoded state
-				oauth.SetOriginalState(encodedState)
-			}
-		}
-	}
-	
-	return oauthURL, nil
+	return authResponse.BrowserURL, nil
 }
