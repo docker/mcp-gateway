@@ -20,6 +20,9 @@ import (
 func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) []mcp.Middleware[*mcp.ServerSession] {
 	var middleware []mcp.Middleware[*mcp.ServerSession]
 
+	// Add telemetry middleware (always enabled)
+	middleware = append(middleware, TelemetryMiddleware())
+
 	// Add custom interceptors
 	for _, interceptor := range interceptors {
 		middleware = append(middleware, interceptor.ToMiddleware())

@@ -7,9 +7,18 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 func List(ctx context.Context, version string, gatewayArgs []string, debug bool, show, tool, format string) error {
+	// Initialize telemetry for CLI operations
+	meter := otel.GetMeterProvider().Meter("github.com/docker/mcp-gateway")
+	toolsDiscoveredGauge, _ := meter.Int64Gauge("mcp.cli.tools.discovered",
+		metric.WithDescription("Number of tools discovered by CLI"),
+		metric.WithUnit("1"))
+
 	c, err := start(ctx, version, gatewayArgs, debug)
 	if err != nil {
 		return fmt.Errorf("starting client: %w", err)
@@ -20,6 +29,12 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 	if err != nil {
 		return fmt.Errorf("listing tools: %w", err)
 	}
+
+	// Record how many tools were discovered
+	toolsDiscoveredGauge.Record(ctx, int64(len(response.Tools)),
+		metric.WithAttributes(
+			attribute.String("mcp.cli.command", "tools."+show),
+		))
 
 	switch show {
 	case "list":

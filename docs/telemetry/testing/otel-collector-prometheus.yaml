@@ -1,0 +1,45 @@
+# OpenTelemetry Collector configuration with Prometheus export
+# Based on docker-cli/contrib/otel but without Aspire dependency
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  # Prometheus exporter for scraping metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    
+  # Debug exporter for development
+  debug:
+    verbosity: detailed
+    sampling_initial: 10
+    sampling_thereafter: 50
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+
+  telemetry:
+    logs:
+      level: info
