@@ -43,7 +43,6 @@ func LogCallsMiddleware() mcp.Middleware[*mcp.ServerSession] {
 			}
 
 			logf("  > Calling tool %s took: %s\n", toolName, time.Since(start))
-			logf("  > Calling tool test message %s took: %s\n", toolName, time.Since(start))
 
 			return result, nil
 		}
