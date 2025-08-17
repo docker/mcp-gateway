@@ -68,7 +68,7 @@ func TestIsAuthenticationError(t *testing.T) {
 
 func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	t.Run("ignores non-tools-call methods", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.ListResourcesResult{}, nil
 		}
 
@@ -77,13 +77,13 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "resources/list", nil)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 	})
 
 	t.Run("passes through errors unchanged", func(t *testing.T) {
 		expectedErr := errors.New("some network error")
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return nil, expectedErr
 		}
 
@@ -92,7 +92,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, expectedErr, err)
 		assert.Nil(t, result)
 	})
@@ -103,7 +103,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				&mcp.TextContent{Text: "Success!"},
 			},
 		}
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return expectedResult, nil
 		}
 
@@ -112,7 +112,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
 	})
 
@@ -123,7 +123,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				&mcp.TextContent{Text: "Some other error"},
 			},
 		}
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return expectedResult, nil
 		}
 
@@ -132,12 +132,12 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
 	})
 
 	t.Run("intercepts exact GitHub auth error", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -146,7 +146,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			}, nil
 		}
 
-		mockOAuth := func(ctx context.Context) (*mcp.CallToolResult, error) {
+		mockOAuth := func(_ context.Context) (*mcp.CallToolResult, error) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "GitHub authentication required. Please authorize at:\nhttps://mock-oauth-url.com\n\nNote: After authorizing, retry your request."},
@@ -159,7 +159,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		toolResult, ok := result.(*mcp.CallToolResult)
@@ -172,7 +172,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("intercepts wrapped GitHub auth error", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -181,7 +181,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			}, nil
 		}
 
-		mockOAuth := func(ctx context.Context) (*mcp.CallToolResult, error) {
+		mockOAuth := func(_ context.Context) (*mcp.CallToolResult, error) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "GitHub authentication required. Please authorize at:\nhttps://mock-oauth-url.com\n\nNote: After authorizing, retry your request."},
@@ -194,7 +194,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		toolResult, ok := result.(*mcp.CallToolResult)
@@ -207,7 +207,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("intercepts auth error among multiple content items", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -218,7 +218,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			}, nil
 		}
 
-		mockOAuth := func(ctx context.Context) (*mcp.CallToolResult, error) {
+		mockOAuth := func(_ context.Context) (*mcp.CallToolResult, error) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "GitHub authentication required. Please authorize at:\nhttps://mock-oauth-url.com\n\nNote: After authorizing, retry your request."},
@@ -231,7 +231,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		toolResult, ok := result.(*mcp.CallToolResult)
@@ -244,7 +244,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("handles non-text content gracefully", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -254,7 +254,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			}, nil
 		}
 
-		mockOAuth := func(ctx context.Context) (*mcp.CallToolResult, error) {
+		mockOAuth := func(_ context.Context) (*mcp.CallToolResult, error) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "GitHub authentication required. Please authorize at:\nhttps://mock-oauth-url.com\n\nNote: After authorizing, retry your request."},
@@ -267,7 +267,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		toolResult, ok := result.(*mcp.CallToolResult)
@@ -280,7 +280,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("handles OAuth flow errors gracefully", func(t *testing.T) {
-		mockHandler := func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -289,7 +289,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			}, nil
 		}
 
-		mockOAuth := func(ctx context.Context) (*mcp.CallToolResult, error) {
+		mockOAuth := func(_ context.Context) (*mcp.CallToolResult, error) {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "Failed to get GitHub OAuth URL: connection refused"},
@@ -303,7 +303,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		toolResult, ok := result.(*mcp.CallToolResult)

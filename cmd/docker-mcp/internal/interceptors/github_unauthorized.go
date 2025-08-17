@@ -40,7 +40,6 @@ func GitHubUnauthorizedMiddlewareWithOAuth(oauthHandler OAuthHandler) mcp.Middle
 
 			// Call the actual handler
 			response, err := next(ctx, session, method, params)
-
 			// Pass through any actual errors
 			if err != nil {
 				return response, err
