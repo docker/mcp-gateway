@@ -14,7 +14,6 @@ func getDockerDesktopPaths() (DockerDesktopPaths, error) {
 	}
 
 	data := filepath.Join(home, "Library", "Containers", "com.docker.docker", "Data")
-
 	applicationSupport := "/Library/Application Support/com.docker.docker"
 
 	return DockerDesktopPaths{

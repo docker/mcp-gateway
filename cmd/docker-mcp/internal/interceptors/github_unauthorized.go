@@ -14,16 +14,23 @@ import (
 // isAuthenticationError checks if a text contains authentication-related error messages
 func isAuthenticationError(text string) bool {
 	// Check for any 401 error from GitHub API
-	return strings.Contains(text, "401") && 
-		   (strings.Contains(text, "github.com") || 
-		    strings.Contains(text, "Bad credentials") ||
-		    strings.Contains(text, "Unauthorized"))
+	return strings.Contains(text, "401") &&
+		(strings.Contains(text, "github.com") ||
+			strings.Contains(text, "Bad credentials") ||
+			strings.Contains(text, "Unauthorized"))
 }
 
+// OAuthHandler defines the interface for handling OAuth flows
+type OAuthHandler func(ctx context.Context) (*mcp.CallToolResult, error)
 
 // GitHubUnauthorizedMiddleware creates middleware that intercepts 401 unauthorized responses
 // from the GitHub MCP server and returns the OAuth authorization link
 func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
+	return GitHubUnauthorizedMiddlewareWithOAuth(handleOAuthFlow)
+}
+
+// GitHubUnauthorizedMiddlewareWithOAuth creates middleware with a configurable OAuth handler for testing
+func GitHubUnauthorizedMiddlewareWithOAuth(oauthHandler OAuthHandler) mcp.Middleware[*mcp.ServerSession] {
 	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
 		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
 			// Only intercept tools/call method
@@ -53,7 +60,7 @@ func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
 				}
 				if isAuthenticationError(textContent.Text) {
 					// Start OAuth flow and wait for completion
-					return handleOAuthFlow(ctx)
+					return oauthHandler(ctx)
 				}
 			}
 
@@ -76,9 +83,9 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 			IsError: true,
 		}, nil
 	}
-	
+
 	fmt.Printf("OAuth URL generated: %s\n", authURL)
-	
+
 	// Return the auth URL for the user - Docker Desktop will handle the callback
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
@@ -93,13 +100,13 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 func getGitHubOAuthURL() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	// Use the MCP Gateway specific endpoint that doesn't open browser
 	client := desktop.NewAuthClient()
 	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
 	if err != nil {
 		return "", fmt.Errorf("failed to get OAuth URL from Docker Desktop: %w", err)
 	}
-	
+
 	return authResponse.BrowserURL, nil
 }
