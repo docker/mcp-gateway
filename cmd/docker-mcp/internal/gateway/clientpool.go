@@ -37,7 +37,7 @@ type clientPool struct {
 	clientLock  sync.RWMutex
 	networks    []string
 	docker      docker.Client
-	serverless  *serverless.Client
+	serverless  serverless.Client
 }
 
 type clientConfig struct {
@@ -47,10 +47,13 @@ type clientConfig struct {
 }
 
 func newClientPool(options Options, docker docker.Client) *clientPool {
+	// TODO Ignore initialization error for now
+	serverlessClient, _ := serverless.NewK8sClient()
+
 	return &clientPool{
 		Options:     options,
 		docker:      docker,
-		serverless:  serverless.NewClient(),
+		serverless:  serverlessClient,
 		keptClients: make(map[clientKey]keptClient),
 	}
 }
@@ -376,16 +379,15 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// Handle Serverless deployment before remote client creation
 			if cg.serverConfig.Spec.Serverless != nil {
 				log("  - Deploying Serverless MCP server:", cg.serverConfig.Name)
-				if err := cg.cp.serverless.DeployMCPServer(ctx, cg.serverConfig.Name,
+				compositionName, err := cg.cp.serverless.DeployMCPServer(ctx, cg.serverConfig.Name,
 					cg.serverConfig.Spec.Serverless.ConfigPath,
-					cg.serverConfig.Spec.Serverless.Namespace); err != nil {
+					cg.serverConfig.Spec.Serverless.Namespace)
+				if err != nil {
 					return nil, fmt.Errorf("failed to deploy Serverless MCP server %s: %w", cg.serverConfig.Name, err)
 				}
 
 				// Wait for the composition to be in Running phase
 				log("  - Waiting for composition to be running...")
-				// TODO: Extract composition name from YAML file instead of hardcoding
-				compositionName := "simple-agent-with-mcp" // For now, hardcoded to match the YAML
 				if err := cg.cp.serverless.WaitForComposition(ctx, compositionName,
 					cg.serverConfig.Spec.Serverless.Namespace, 60*time.Second); err != nil {
 					return nil, fmt.Errorf("failed to wait for composition to be ready: %w", err)

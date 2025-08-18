@@ -315,7 +315,7 @@ var clientMethodInfos = map[string]methodInfo{
 	notificationResourceUpdated:     newMethodInfo(clientMethod((*Client).callResourceUpdatedHandler), notification|missingParamsOK),
 	notificationLoggingMessage:      newMethodInfo(clientMethod((*Client).callLoggingHandler), notification),
 	notificationProgress:            newMethodInfo(sessionMethod((*ClientSession).callProgressNotificationHandler), notification),
-	methodElicit:                    newMethodInfo(clientMethod((*Client).elicit), 0),
+	methodElicit:                    newMethodInfo(clientMethod((*Client).elicit), true),
 }
 
 func (cs *ClientSession) sendingMethodInfos() map[string]methodInfo {
