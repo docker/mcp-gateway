@@ -16,45 +16,55 @@ func TestIsAuthenticationError(t *testing.T) {
 		text     string
 		expected bool
 	}{
+		// Valid GitHub authentication errors
 		{
-			name:     "401 with github.com",
+			name:     "real-world GitHub API error",
+			text:     "failed to get user: GET https://api.github.com/user: 401 Bad credentials []",
+			expected: true,
+		},
+		{
+			name:     "401 with api.github.com",
 			text:     "Error: 401 Unauthorized from api.github.com",
 			expected: true,
 		},
 		{
-			name:     "401 with Bad credentials",
+			name:     "401 with github.com",
+			text:     "GET https://github.com/user/repo: 401 Unauthorized",
+			expected: true,
+		},
+		{
+			name:     "401 with Bad credentials and GitHub context",
+			text:     "GitHub API: HTTP 401: Bad credentials",
+			expected: true,
+		},
+
+		// Invalid cases - missing GitHub context
+		{
+			name:     "401 with Bad credentials but no GitHub context",
 			text:     "HTTP 401: Bad credentials",
-			expected: true,
-		},
-		{
-			name:     "401 with Unauthorized",
-			text:     "Request failed with 401 Unauthorized",
-			expected: true,
-		},
-		{
-			name:     "Bad credentials without 401",
-			text:     "Authentication error: Bad credentials",
 			expected: false,
 		},
 		{
-			name:     "401 without GitHub indicators",
+			name:     "401 with Unauthorized but no GitHub context",
+			text:     "Request failed with 401 Unauthorized",
+			expected: false,
+		},
+		{
+			name:     "401 from non-GitHub service",
 			text:     "HTTP 401 from some-other-service.com",
+			expected: false,
+		},
+
+		// Invalid cases - missing 401
+		{
+			name:     "Bad credentials without 401",
+			text:     "Authentication error: Bad credentials from github.com",
 			expected: false,
 		},
 		{
 			name:     "403 Forbidden with github.com",
 			text:     "Error: 403 Forbidden from api.github.com",
 			expected: false,
-		},
-		{
-			name:     "wrapped error with 401 and Bad credentials",
-			text:     `calling "tools/call": HTTP 401: Bad credentials`,
-			expected: true,
-		},
-		{
-			name:     "complex GitHub API error",
-			text:     "Error calling GitHub API: 401 Unauthorized - Bad credentials",
-			expected: true,
 		},
 	}
 
@@ -141,7 +151,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: "HTTP 401: Bad credentials"},
+					&mcp.TextContent{Text: "failed to get user: GET https://api.github.com/user: 401 Bad credentials []"},
 				},
 			}, nil
 		}
@@ -176,7 +186,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: `calling "tools/call": HTTP 401: Bad credentials`},
+					&mcp.TextContent{Text: `calling "tools/call": GitHub API error: 401 Bad credentials`},
 				},
 			}, nil
 		}
@@ -212,7 +222,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				IsError: true,
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: "First message"},
-					&mcp.TextContent{Text: "HTTP 401: Bad credentials"},
+					&mcp.TextContent{Text: "GitHub API: HTTP 401: Bad credentials"},
 					&mcp.TextContent{Text: "Third message"},
 				},
 			}, nil
@@ -249,7 +259,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				IsError: true,
 				Content: []mcp.Content{
 					&mcp.ImageContent{Data: []byte("base64data"), MIMEType: "image/png"},
-					&mcp.TextContent{Text: "HTTP 401: Bad credentials"},
+					&mcp.TextContent{Text: "failed to list repos: GET https://api.github.com/user/repos: 401 Bad credentials"},
 				},
 			}, nil
 		}
@@ -284,7 +294,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: "HTTP 401: Bad credentials"},
+					&mcp.TextContent{Text: "GET https://api.github.com/user: 401 Bad credentials"},
 				},
 			}, nil
 		}

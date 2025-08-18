@@ -11,13 +11,18 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
-// isAuthenticationError checks if a text contains authentication-related error messages
+// isAuthenticationError checks if a text contains GitHub authentication-related error messages
 func isAuthenticationError(text string) bool {
-	// Check for any 401 error from GitHub API
-	return strings.Contains(text, "401") &&
-		(strings.Contains(text, "github.com") ||
-			strings.Contains(text, "Bad credentials") ||
-			strings.Contains(text, "Unauthorized"))
+	// Must contain 401 status code
+	if !strings.Contains(text, "401") {
+		return false
+	}
+
+	// Must contain GitHub-specific indicators
+	return strings.Contains(text, "github.com") ||
+		strings.Contains(text, "api.github.com") ||
+		(strings.Contains(text, "Bad credentials") &&
+			(strings.Contains(text, "github") || strings.Contains(text, "GitHub")))
 }
 
 // OAuthHandler defines the interface for handling OAuth flows
@@ -95,14 +100,14 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 	}, nil
 }
 
-// getGitHubOAuthURL gets the OAuth URL using the MCP Gateway endpoint (no browser opening)
+// getGitHubOAuthURL gets the OAuth URL with auto-open disabled
 func getGitHubOAuthURL() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Use the MCP Gateway specific endpoint that doesn't open browser
+	// Use PostOAuthApp with disableAutoOpen: true to prevent automatic browser opening
 	client := desktop.NewAuthClient()
-	authResponse, err := client.PostOAuthAppMCPGateway(ctx, "github", "repo read:packages read:user")
+	authResponse, err := client.PostOAuthApp(ctx, "github", "repo read:packages read:user", true)
 	if err != nil {
 		return "", fmt.Errorf("failed to get OAuth URL from Docker Desktop: %w", err)
 	}
