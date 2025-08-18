@@ -393,7 +393,7 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 
 func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
 	// Use a map to deduplicate secret names
-	uniqueSecretNames := make(map[string]bool)
+	uniqueSecretNames := make(map[string]struct{})
 
 	for _, serverName := range serverNames {
 		serverName := strings.TrimSpace(serverName)
@@ -404,7 +404,7 @@ func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, s
 		}
 
 		for _, s := range serverSpec.Secrets {
-			uniqueSecretNames[s.Name] = true
+			uniqueSecretNames[s.Name] = struct{}{}
 		}
 	}
 
