@@ -10,6 +10,13 @@ import (
 )
 
 func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
+	// Mock the OAuth URL function for testing
+	oldGetOAuthURL := getGitHubOAuthURL
+	getGitHubOAuthURL = func() (string, error) {
+		return "https://github.com/login/oauth/authorize?mock=true", nil
+	}
+	defer func() { getGitHubOAuthURL = oldGetOAuthURL }()
+
 	// When oauth-interceptor is enabled
 	middlewares := Callbacks(false, false, true, nil)
 
@@ -64,6 +71,13 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 	}
 
 	t.Run("with feature enabled - should intercept", func(t *testing.T) {
+		// Mock the OAuth URL function for testing
+		oldGetOAuthURL := getGitHubOAuthURL
+		getGitHubOAuthURL = func() (string, error) {
+			return "https://github.com/login/oauth/authorize?mock=true", nil
+		}
+		defer func() { getGitHubOAuthURL = oldGetOAuthURL }()
+
 		mockHandler := createMockHandler()
 
 		middlewares := Callbacks(false, false, true, nil) // OAuth enabled
@@ -103,6 +117,13 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 	// and actually intercepts 401 errors
 
 	t.Run("enabled - intercepts GitHub 401", func(t *testing.T) {
+		// Mock the OAuth URL function for testing
+		oldGetOAuthURL := getGitHubOAuthURL
+		getGitHubOAuthURL = func() (string, error) {
+			return "https://github.com/login/oauth/authorize?mock=true", nil
+		}
+		defer func() { getGitHubOAuthURL = oldGetOAuthURL }()
+
 		// Create a handler that returns GitHub 401
 		baseHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
 			return &mcp.CallToolResult{

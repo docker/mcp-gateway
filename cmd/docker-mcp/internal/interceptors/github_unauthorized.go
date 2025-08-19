@@ -11,6 +11,9 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
+// getGitHubOAuthURL is a variable function so it can be mocked in tests
+var getGitHubOAuthURL = getGitHubOAuthURLImpl
+
 // isAuthenticationError checks if a text contains GitHub authentication-related error messages
 func isAuthenticationError(text string) bool {
 	// Must contain 401 status code
@@ -100,8 +103,8 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 	}, nil
 }
 
-// getGitHubOAuthURL gets the OAuth URL with auto-open disabled
-func getGitHubOAuthURL() (string, error) {
+// getGitHubOAuthURLImpl gets the OAuth URL with auto-open disabled from Docker Desktop
+func getGitHubOAuthURLImpl() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
