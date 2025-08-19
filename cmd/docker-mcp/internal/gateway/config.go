@@ -11,21 +11,22 @@ type Config struct {
 }
 
 type Options struct {
-	Port             int
-	Transport        string
-	ToolNames        []string
-	Interceptors     []string
-	Verbose          bool
-	LongLived        bool
-	DebugDNS         bool
-	LogCalls         bool
-	BlockSecrets     bool
-	BlockNetwork     bool
-	VerifySignatures bool
-	DryRun           bool
-	Watch            bool
-	Cpus             int
-	Memory           string
-	Static           bool
-	Central          bool
+	Port                    int
+	Transport               string
+	ToolNames               []string
+	Interceptors            []string
+	Verbose                 bool
+	LongLived               bool
+	DebugDNS                bool
+	LogCalls                bool
+	BlockSecrets            bool
+	BlockNetwork            bool
+	VerifySignatures        bool
+	DryRun                  bool
+	Watch                   bool
+	Cpus                    int
+	Memory                  string
+	Static                  bool
+	Central                 bool
+	OAuthInterceptorEnabled bool
 }

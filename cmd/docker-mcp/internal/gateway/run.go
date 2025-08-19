@@ -137,7 +137,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			g.ListRoots(ctx, ss)
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(ctx context.Context, ss *mcp.ServerSession, _ *mcp.InitializedParams) {
+		InitializedHandler: func(_ context.Context, ss *mcp.ServerSession, _ *mcp.InitializedParams) {
 			log("- Client initialized: ", ss.ID())
 		},
 		HasPrompts:   true,
@@ -146,7 +146,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 
 	// Add interceptor middleware to the server
-	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, parsedInterceptors)
+	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}

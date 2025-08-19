@@ -69,6 +69,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			return validateConfiguredCatalogsFeatureForCli(dockerCli, useConfiguredCatalogs)
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Check if OAuth interceptor feature is enabled
+			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
+
 			if options.Static {
 				options.Watch = false
 			}
@@ -207,4 +210,19 @@ func getConfiguredCatalogPaths() []string {
 	}
 
 	return catalogPaths
+}
+
+// isOAuthInterceptorFeatureEnabled checks if the oauth-interceptor feature is enabled
+func isOAuthInterceptorFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["oauth-interceptor"]
+	if !exists {
+		return false
+	}
+
+	return value == "enabled"
 }
