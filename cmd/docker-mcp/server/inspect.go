@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
-
-	"slices"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
