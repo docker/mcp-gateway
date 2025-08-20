@@ -3,22 +3,18 @@ package interceptors
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/contextkeys"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 // getGitHubOAuthURL is a variable function so it can be mocked in tests
 var getGitHubOAuthURL = getGitHubOAuthURLImpl
-
-// contextKey is a typed key for context values to avoid conflicts
-type contextKey string
-
-// OAuthInterceptorEnabledKey is the context key for passing OAuth interceptor feature flag state
-const OAuthInterceptorEnabledKey contextKey = "oauthInterceptorEnabled"
 
 // isAuthenticationError checks if a text contains GitHub authentication-related error messages
 func isAuthenticationError(text string) bool {
@@ -97,7 +93,7 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 		}, nil
 	}
 
-	fmt.Printf("OAuth URL generated: %s\n", authURL)
+	fmt.Fprintf(os.Stderr, "OAuth URL generated: %s\n", authURL)
 
 	// Return the auth URL for the user - Docker Desktop will handle the callback
 	return &mcp.CallToolResult{
@@ -115,7 +111,7 @@ func getGitHubOAuthURLImpl() (string, error) {
 	defer cancel()
 
 	// Add feature flag to context - true because this is only called when oauth-interceptor feature is enabled
-	ctx = context.WithValue(ctx, OAuthInterceptorEnabledKey, true)
+	ctx = context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
 
 	// Use PostOAuthApp with disableAutoOpen: true to prevent automatic browser opening
 	client := desktop.NewAuthClient()

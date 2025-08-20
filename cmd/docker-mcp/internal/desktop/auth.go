@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/contextkeys"
 )
 
 type OAuthApp struct {
@@ -58,7 +60,7 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAut
 
 	// Only add disableAutoOpen parameter if oauth-interceptor feature is enabled
 	// This is indicated by the presence of the feature flag in the context
-	if oauthEnabled, ok := ctx.Value("oauthInterceptorEnabled").(bool); ok && oauthEnabled {
+	if oauthEnabled, ok := ctx.Value(contextkeys.OAuthInterceptorEnabledKey).(bool); ok && oauthEnabled {
 		q = addQueryParam(q, "disableAutoOpen", disableAutoOpen, false)
 	}
 
@@ -78,5 +80,5 @@ func addQueryParam[T any](q, name string, value T, required bool) string {
 	if q == "" {
 		return p
 	}
-	return "&" + p
+	return q + "&" + p
 }
