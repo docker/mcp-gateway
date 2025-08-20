@@ -20,8 +20,8 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 	// When oauth-interceptor is enabled
 	middlewares := Callbacks(false, false, true, nil)
 
-	// Should have the GitHub interceptor
-	assert.Len(t, middlewares, 1, "should have GitHub interceptor when enabled")
+	// Should have telemetry middleware + GitHub interceptor
+	assert.Len(t, middlewares, 2, "should have telemetry and GitHub interceptor when enabled")
 
 	// Actually test the middleware behavior with a 401 error
 	mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
@@ -33,8 +33,8 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 		}, nil
 	}
 
-	// Apply the middleware
-	wrappedHandler := middlewares[0](mockHandler)
+	// Apply the GitHub interceptor middleware (second middleware after telemetry)
+	wrappedHandler := middlewares[1](mockHandler)
 	result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
 	// Should intercept and return OAuth URL
@@ -51,8 +51,8 @@ func TestCallbacksWithOAuthInterceptorDisabled(t *testing.T) {
 	// When oauth-interceptor is disabled
 	middlewares := Callbacks(false, false, false, nil)
 
-	// Should have no middlewares
-	assert.Empty(t, middlewares, "should have no GitHub interceptor when disabled")
+	// Should only have telemetry middleware, no GitHub interceptor
+	assert.Len(t, middlewares, 1, "should only have telemetry middleware when oauth disabled")
 }
 
 func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 		middlewares := Callbacks(false, false, true, nil) // OAuth enabled
 		require.NotEmpty(t, middlewares)
 
-		wrappedHandler := middlewares[0](mockHandler)
+		wrappedHandler := middlewares[1](mockHandler)
 		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
 
 		require.NoError(t, err)
@@ -197,9 +197,9 @@ func TestCallbacksOAuthInterceptorWithOtherMiddleware(t *testing.T) {
 
 	// With OAuth enabled and logCalls enabled
 	middlewares := Callbacks(true, false, true, nil)
-	assert.Len(t, middlewares, 2, "should have both GitHub interceptor and log calls middleware")
+	assert.Len(t, middlewares, 3, "should have telemetry, GitHub interceptor, and log calls middleware")
 
 	// With OAuth disabled but logCalls enabled
 	middlewares = Callbacks(true, false, false, nil)
-	assert.Len(t, middlewares, 1, "should only have log calls middleware")
+	assert.Len(t, middlewares, 2, "should have telemetry and log calls middleware")
 }

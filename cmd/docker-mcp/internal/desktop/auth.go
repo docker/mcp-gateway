@@ -55,7 +55,13 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAut
 
 	q := ""
 	q = addQueryParam(q, "scopes", scopes, false)
-	q = addQueryParam(q, "disableAutoOpen", disableAutoOpen, false)
+
+	// Only add disableAutoOpen parameter if oauth-interceptor feature is enabled
+	// This is indicated by the presence of the feature flag in the context
+	if oauthEnabled, ok := ctx.Value("oauthInterceptorEnabled").(bool); ok && oauthEnabled {
+		q = addQueryParam(q, "disableAutoOpen", disableAutoOpen, false)
+	}
+
 	if q != "" {
 		q = "?" + q
 	}

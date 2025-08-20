@@ -14,6 +14,12 @@ import (
 // getGitHubOAuthURL is a variable function so it can be mocked in tests
 var getGitHubOAuthURL = getGitHubOAuthURLImpl
 
+// contextKey is a typed key for context values to avoid conflicts
+type contextKey string
+
+// OAuthInterceptorEnabledKey is the context key for passing OAuth interceptor feature flag state
+const OAuthInterceptorEnabledKey contextKey = "oauthInterceptorEnabled"
+
 // isAuthenticationError checks if a text contains GitHub authentication-related error messages
 func isAuthenticationError(text string) bool {
 	// Must contain 401 status code
@@ -107,6 +113,9 @@ func handleOAuthFlow(_ context.Context) (*mcp.CallToolResult, error) {
 func getGitHubOAuthURLImpl() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Add feature flag to context - true because this is only called when oauth-interceptor feature is enabled
+	ctx = context.WithValue(ctx, OAuthInterceptorEnabledKey, true)
 
 	// Use PostOAuthApp with disableAutoOpen: true to prevent automatic browser opening
 	client := desktop.NewAuthClient()
