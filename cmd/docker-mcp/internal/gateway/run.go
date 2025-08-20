@@ -10,10 +10,12 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.opentelemetry.io/otel"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/health"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/interceptors"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
 )
 
 type ServerSessionCache struct {
@@ -73,6 +75,25 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
+	// Initialize telemetry
+	telemetry.Init()
+
+	// Record gateway start
+	transportMode := "stdio"
+	if g.Port != 0 {
+		transportMode = "sse"
+	}
+	telemetry.RecordGatewayStart(ctx, transportMode)
+
+	// Start periodic metric export for long-running gateway
+	// This is critical because Docker CLI's ManualReader only exports on shutdown
+	// which is inappropriate for gateways that can run for hours, days, or weeks
+	// ALL gateway run commands are long-lived regardless of transport (stdio, sse, streaming)
+	// Even stdio mode runs as long as the client (e.g., Claude Code) is connected
+	if !g.DryRun {
+		go g.periodicMetricExport(ctx)
+	}
+
 	defer g.clientPool.Close()
 	defer func() {
 		// Clean up all session cache entries
@@ -145,7 +166,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		HasTools:     true,
 	})
 
-	// Add interceptor middleware to the server
+	// Add interceptor middleware to the server (includes telemetry)
 	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
@@ -353,4 +374,54 @@ func (g *Gateway) ListRoots(ctx context.Context, ss *mcp.ServerSession) {
 		cache.Roots = rootsResult.Roots
 	}
 	g.clientPool.UpdateRoots(ss, cache.Roots)
+}
+
+// periodicMetricExport periodically exports metrics for long-running gateways
+// This addresses the critical issue where Docker CLI's ManualReader only exports on shutdown
+func (g *Gateway) periodicMetricExport(ctx context.Context) {
+	// Get interval from environment or use default
+	intervalStr := os.Getenv("DOCKER_MCP_METRICS_INTERVAL")
+	interval := 30 * time.Second
+	if intervalStr != "" {
+		if parsed, err := time.ParseDuration(intervalStr); err == nil {
+			interval = parsed
+		}
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Get the meter provider to force flush metrics
+	meterProvider := otel.GetMeterProvider()
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Starting periodic metric export every %v\n", interval)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Stopping periodic metric export\n")
+			}
+			return
+		case <-ticker.C:
+			// Force metric export
+			if mp, ok := meterProvider.(interface{ ForceFlush(context.Context) error }); ok {
+				flushCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				if err := mp.ForceFlush(flushCtx); err != nil {
+					if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+						fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Periodic flush error: %v\n", err)
+					}
+				} else {
+					if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+						fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Periodic metric flush successful\n")
+					}
+				}
+				cancel()
+			} else if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: MeterProvider does not support ForceFlush\n")
+			}
+		}
+	}
 }

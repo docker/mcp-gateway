@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -186,9 +187,14 @@ func boolPtr(b bool) *bool {
 }
 
 func TestStdioClientInitialization(t *testing.T) {
-	// Skip if running in CI or if Docker is not available
+	// This is an integration test that requires Docker
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
+	}
+
+	// Also skip if INTEGRATION_TEST env var is not set
+	if os.Getenv("INTEGRATION_TEST") == "" {
+		t.Skip("Skipping integration test - set INTEGRATION_TEST=1 to run")
 	}
 
 	serverConfig := catalog.ServerConfig{

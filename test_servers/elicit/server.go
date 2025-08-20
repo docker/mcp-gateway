@@ -13,6 +13,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// server is the test server implementation
+//
+//nolint:unused
 func server() {
 	ctx, done := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)

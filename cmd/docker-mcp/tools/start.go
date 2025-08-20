@@ -17,7 +17,7 @@ func start(ctx context.Context, version string, gatewayArgs []string, _ bool) (*
 	args = append(args, gatewayArgs...)
 
 	c := mcp.NewClient(&mcp.Implementation{Name: "mcp-gateway-client", Version: "1.0.0"}, nil)
-	transport := mcp.NewCommandTransport(exec.Command("docker", args...))
+	transport := mcp.NewCommandTransport(exec.CommandContext(ctx, "docker", args...))
 	session, err := c.Connect(ctx, transport)
 	if err != nil {
 		return nil, err

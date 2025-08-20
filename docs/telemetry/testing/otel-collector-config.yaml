@@ -1,0 +1,43 @@
+# OpenTelemetry Collector configuration for testing MCP Gateway telemetry
+# This configuration outputs all telemetry to console for debugging
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    # Detailed output shows all attributes and values
+    verbosity: detailed
+    # Show first 10 data points in full, then sample
+    sampling_initial: 10
+    sampling_thereafter: 50
+
+processors:
+  # Batch processor improves performance
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+
+  telemetry:
+    logs:
+      level: info

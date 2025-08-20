@@ -20,6 +20,9 @@ import (
 func Callbacks(logCalls, blockSecrets, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware[*mcp.ServerSession] {
 	var middleware []mcp.Middleware[*mcp.ServerSession]
 
+	// Add telemetry middleware (always enabled)
+	middleware = append(middleware, TelemetryMiddleware())
+
 	// Add GitHub unauthorized interceptor only if the feature is enabled
 	// This ensures GitHub 401 responses are handled with OAuth links when requested
 	if oauthInterceptorEnabled {

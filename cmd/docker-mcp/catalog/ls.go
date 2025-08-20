@@ -4,13 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
 )
 
 func Ls(ctx context.Context, outputJSON bool) error {
+	// Initialize telemetry
+	telemetry.Init()
+
+	start := time.Now()
 	cfg, err := ReadConfigWithDefaultCatalog(ctx)
+	duration := time.Since(start)
+
 	if err != nil {
+		telemetry.RecordCatalogOperation(ctx, "ls", "", float64(duration.Milliseconds()), false)
 		return err
 	}
+
+	// Record successful operation
+	telemetry.RecordCatalogOperation(ctx, "ls", "all", float64(duration.Milliseconds()), true)
 
 	if outputJSON {
 		data, err := json.Marshal(cfg)

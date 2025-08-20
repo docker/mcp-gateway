@@ -1,10 +1,13 @@
 package catalog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/yq"
 )
 
@@ -53,6 +56,17 @@ func ValidateArgs(args ParsedAddArgs) error {
 }
 
 func Add(args ParsedAddArgs, force bool) error {
+	// Initialize telemetry
+	telemetry.Init()
+	ctx := context.Background()
+
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		success := recover() == nil
+		telemetry.RecordCatalogOperation(ctx, "add", args.Dst, float64(duration.Milliseconds()), success)
+	}()
+
 	srcContent, err := os.ReadFile(args.Src)
 	if err != nil {
 		return err

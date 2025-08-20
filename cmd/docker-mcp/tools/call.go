@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 func Call(ctx context.Context, version string, gatewayArgs []string, debug bool, args []string) error {
@@ -15,6 +18,15 @@ func Call(ctx context.Context, version string, gatewayArgs []string, debug bool,
 		return errors.New("no tool name provided")
 	}
 	toolName := args[0]
+
+	// Initialize telemetry for CLI tool calls
+	meter := otel.GetMeterProvider().Meter("github.com/docker/mcp-gateway")
+	toolCallCounter, _ := meter.Int64Counter("mcp.cli.tool.calls",
+		metric.WithDescription("Tool calls from CLI"),
+		metric.WithUnit("1"))
+	toolCallDuration, _ := meter.Float64Histogram("mcp.cli.tool.duration",
+		metric.WithDescription("Tool call duration from CLI"),
+		metric.WithUnit("ms"))
 
 	c, err := start(ctx, version, gatewayArgs, debug)
 	if err != nil {
@@ -29,10 +41,25 @@ func Call(ctx context.Context, version string, gatewayArgs []string, debug bool,
 
 	start := time.Now()
 	response, err := c.CallTool(ctx, params)
-	if err != nil {
-		return fmt.Errorf("listing tools: %w", err)
+	duration := time.Since(start)
+
+	// Record metrics
+	attrs := []attribute.KeyValue{
+		attribute.String("mcp.tool.name", toolName),
+		attribute.String("mcp.cli.command", "tools.call"),
 	}
-	fmt.Println("Tool call took:", time.Since(start))
+
+	if err != nil {
+		attrs = append(attrs, attribute.Bool("mcp.tool.error", true))
+		toolCallCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+		return fmt.Errorf("calling tool: %w", err)
+	}
+
+	attrs = append(attrs, attribute.Bool("mcp.tool.error", response.IsError))
+	toolCallCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+	toolCallDuration.Record(ctx, float64(duration.Milliseconds()), metric.WithAttributes(attrs...))
+
+	fmt.Println("Tool call took:", duration)
 
 	if response.IsError {
 		return fmt.Errorf("error calling tool %s: %s", toolName, toText(response))
