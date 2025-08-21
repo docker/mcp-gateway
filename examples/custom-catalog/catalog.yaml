@@ -1,0 +1,8 @@
+registry:
+  duckduckgo:
+    description: A Model Context Protocol (MCP) server that provides web search capabilities through DuckDuckGo, with additional features for content fetching and parsing.
+    title: DuckDuckGo
+    type: server
+    image: mcp/duckduckgo@sha256:68eb20db6109f5c312a695fc5ec3386ad15d93ffb765a0b4eb1baf4328dec14f
+    allowHosts:
+      - html.duckduckgo.com:443

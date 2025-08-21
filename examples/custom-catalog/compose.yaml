@@ -1,0 +1,13 @@
+services:
+  gateway:
+    image: docker/mcp-gateway
+    ports:
+      - "8811:8811"
+    command:
+      - --servers=duckduckgo
+      - --catalog=/mcp/catalog.yaml
+      - --transport=sse
+      - --port=8811
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./catalog.yaml:/mcp/catalog.yaml
