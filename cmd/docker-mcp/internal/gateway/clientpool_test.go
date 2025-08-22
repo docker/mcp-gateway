@@ -145,6 +145,21 @@ hub:
 	assert.Empty(t, env)
 }
 
+func TestApplyConfigUser(t *testing.T) {
+	catalogYAML := `
+user: "1001:2002"
+  `
+
+	args, env := argsAndEnv(t, "svc", catalogYAML, "", nil, nil)
+
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=svc", "-l", "docker-mcp-transport=stdio",
+		"-u", "1001:2002",
+	}, args)
+	assert.Empty(t, env)
+}
+
 func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool) ([]string, []string) {
 	t.Helper()
 

@@ -180,6 +180,14 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		args = append(args, "-v", mount)
 	}
 
+	// User
+	if tool.Container.User != "" {
+		userVal := fmt.Sprintf("%v", eval.Evaluate(tool.Container.User, arguments))
+		if userVal != "" {
+			args = append(args, "-u", userVal)
+		}
+	}
+
 	// Image
 	args = append(args, tool.Container.Image)
 
@@ -301,6 +309,17 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 			args = append(args, "-v", mount+":ro")
 		} else {
 			args = append(args, "-v", mount)
+		}
+	}
+
+	// User
+	if serverConfig.Spec.User != "" {
+		val := serverConfig.Spec.User
+		if strings.Contains(val, "{{") && strings.Contains(val, "}}") {
+			val = fmt.Sprintf("%v", eval.Evaluate(val, serverConfig.Config))
+		}
+		if val != "" {
+			args = append(args, "-u", val)
 		}
 	}
 
