@@ -17,8 +17,8 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/logs"
 )
 
-func Callbacks(logCalls, blockSecrets, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware[*mcp.ServerSession] {
-	var middleware []mcp.Middleware[*mcp.ServerSession]
+func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) []mcp.Middleware {
+	var middleware []mcp.Middleware
 
 	// Add telemetry middleware (always enabled)
 	middleware = append(middleware, TelemetryMiddleware())
@@ -85,16 +85,16 @@ func Parse(specs []string) ([]Interceptor, error) {
 	return interceptors, nil
 }
 
-func (i *Interceptor) ToMiddleware() mcp.Middleware[*mcp.ServerSession] {
-	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
-		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+func (i *Interceptor) ToMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			// Only intercept tools/call method
 			if method != "tools/call" {
-				return next(ctx, session, method, params)
+				return next(ctx, method, req)
 			}
 
 			if i.When == "before" {
-				message, err := json.Marshal(params)
+				message, err := json.Marshal(req)
 				if err != nil {
 					return nil, fmt.Errorf("marshalling request: %w", err)
 				}
@@ -114,7 +114,7 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware[*mcp.ServerSession] {
 				}
 			}
 
-			response, err := next(ctx, session, method, params)
+			response, err := next(ctx, method, req)
 
 			if i.When == "after" {
 				message, err := json.Marshal(response)

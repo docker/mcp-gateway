@@ -139,27 +139,28 @@ func (g *Gateway) Run(ctx context.Context) error {
 		Name:    "Docker AI MCP Gateway",
 		Version: "2.0.1",
 	}, &mcp.ServerOptions{
-		SubscribeHandler: func(_ context.Context, _ *mcp.ServerSession, params *mcp.SubscribeParams) error {
-			log("- Client subscribed to URI:", params.URI)
+		SubscribeHandler: func(_ context.Context, req *mcp.SubscribeRequest) error {
+			log("- Client subscribed to URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in SubscribeHandler because it already
 			// keeps track of the mapping between ServerSession and subscribed resources in the Server
-			// g.subsChannel <- SubsMessage{uri: params.URI, action: subscribe , ss: ss}
+			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: subscribe , ss: ss}
 			return nil
 		},
-		UnsubscribeHandler: func(_ context.Context, _ *mcp.ServerSession, params *mcp.UnsubscribeParams) error {
-			log("- Client unsubscribed from URI:", params.URI)
+		UnsubscribeHandler: func(_ context.Context, req *mcp.UnsubscribeRequest) error {
+			log("- Client unsubscribed from URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in UnsubscribeHandler because it already
 			// keeps track of the mapping ServerSession and subscribed resources in the Server
-			// g.subsChannel <- SubsMessage{uri: params.URI, action: unsubscribe , ss: ss}
+			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: unsubscribe , ss: ss}
 			return nil
 		},
-		RootsListChangedHandler: func(ctx context.Context, ss *mcp.ServerSession, _ *mcp.RootsListChangedParams) {
-			log("- Client roots list changed: ", ss.ID())
-			g.ListRoots(ctx, ss)
+		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
+			log("- Client roots list changed")
+			// We can't get the ServerSession from the request anymore, so we'll need to handle this differently
+			req.Session.ListRoots(ctx, &mcp.ListRootsParams{}) 
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(_ context.Context, ss *mcp.ServerSession, _ *mcp.InitializedParams) {
-			log("- Client initialized: ", ss.ID())
+		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
+			log("- Client initialized")
 		},
 		HasPrompts:   true,
 		HasResources: true,

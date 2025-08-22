@@ -10,24 +10,21 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/secretsscan"
 )
 
-func BlockSecretsMiddleware() mcp.Middleware[*mcp.ServerSession] {
-	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
-		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+func BlockSecretsMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			// Only check secrets for tools/call method
 			if method != "tools/call" {
-				return next(ctx, session, method, params)
+				return next(ctx, method, req)
 			}
 
 			var toolName string
 			var arguments any
 
-			// Try to extract from JSON
-			if jsonData, err := json.Marshal(params); err == nil {
-				var callParams mcp.CallToolParams
-				if err := json.Unmarshal(jsonData, &callParams); err == nil {
-					toolName = callParams.Name
-					arguments = callParams.Arguments
-				}
+			// Try to extract from request
+			if callReq, ok := req.(*mcp.CallToolRequest); ok {
+				toolName = callReq.Params.Name
+				arguments = callReq.Params.Arguments
 			}
 
 			if toolName != "" {
@@ -41,7 +38,7 @@ func BlockSecretsMiddleware() mcp.Middleware[*mcp.ServerSession] {
 				logf("  > No secret found in arguments.\n")
 			}
 
-			result, err := next(ctx, session, method, params)
+			result, err := next(ctx, method, req)
 			if err != nil {
 				return result, err
 			}

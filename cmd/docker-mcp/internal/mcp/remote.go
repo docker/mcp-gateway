@@ -76,7 +76,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	c.client.AddRoots(c.roots...)
 
-	session, err := c.client.Connect(ctx, mcpTransport)
+	session, err := c.client.Connect(ctx, mcpTransport, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}

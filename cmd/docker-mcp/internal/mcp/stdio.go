@@ -52,7 +52,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 
 	c.client.AddRoots(c.roots...)
 
-	session, err := c.client.Connect(ctx, transport)
+	session, err := c.client.Connect(ctx, transport, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}

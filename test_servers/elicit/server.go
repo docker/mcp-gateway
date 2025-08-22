@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -35,8 +35,8 @@ func server() {
 				Properties: map[string]*jsonschema.Schema{},
 			},
 		},
-		func(ctx context.Context, ss *mcp.ServerSession, _ *mcp.CallToolParamsFor[map[string]any]) (*mcp.CallToolResult, error) {
-			result, err := ss.Elicit(ctx, &mcp.ElicitParams{Message: "elicitation"})
+		func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			result, err := req.Session.Elicit(ctx, &mcp.ElicitParams{Message: "elicitation"})
 			if err != nil {
 				return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("error %s", err)}}}, nil
 			}
@@ -75,4 +75,8 @@ func server() {
 	// Wait for goroutine to exit
 	log.Print("[INFO] waiting for server to stop")
 	<-doneCh
+}
+
+func main() {
+	server()
 }
