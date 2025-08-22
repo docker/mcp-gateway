@@ -62,9 +62,9 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	switch strings.ToLower(transport) {
 	case "sse":
-		mcpTransport = mcp.NewSSEClientTransport(url, &mcp.SSEClientTransportOptions{})
+		mcpTransport = &mcp.SSEClientTransport{Endpoint: url}
 	case "http", "streamable", "streaming", "streamable-http":
-		mcpTransport = mcp.NewStreamableClientTransport(url, &mcp.StreamableClientTransportOptions{})
+		mcpTransport = &mcp.StreamableClientTransport{Endpoint: url}
 	default:
 		return fmt.Errorf("unsupported remote transport: %s", transport)
 	}

@@ -65,7 +65,7 @@ func TestIntegrationWithElicitation(t *testing.T) {
 		},
 	})
 
-	transport := mcp.NewCommandTransport(exec.CommandContext(context.TODO(), "docker", args...))
+	transport := &mcp.CommandTransport{Command: exec.CommandContext(context.TODO(), "docker", args...)}
 	c, err := client.Connect(context.TODO(), transport, nil)
 	require.NoError(t, err)
 

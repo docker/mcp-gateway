@@ -44,7 +44,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 		cmd.Stderr = logs.NewPrefixer(os.Stderr, "- "+c.name+": ")
 	}
 
-	transport := mcp.NewCommandTransport(cmd)
+	transport := &mcp.CommandTransport{Command: cmd}
 	c.client = mcp.NewClient(&mcp.Implementation{
 		Name:    "docker-mcp-gateway",
 		Version: "1.0.0",

@@ -22,7 +22,7 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.Cl
 				_ = server.ResourceUpdated(ctx, req.Params)
 			}
 		},
-		CreateMessageHandler: func(_ context.Context, req *mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
+		CreateMessageHandler: func(_ context.Context, _ *mcp.CreateMessageRequest) (*mcp.CreateMessageResult, error) {
 			// Handle create messages if needed
 			return nil, fmt.Errorf("create messages not supported")
 		},

@@ -156,10 +156,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
 			log("- Client roots list changed")
 			// We can't get the ServerSession from the request anymore, so we'll need to handle this differently
-			req.Session.ListRoots(ctx, &mcp.ListRootsParams{}) 
+			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
+		InitializedHandler: func(_ context.Context, _ *mcp.InitializedRequest) {
 			log("- Client initialized")
 		},
 		HasPrompts:   true,
