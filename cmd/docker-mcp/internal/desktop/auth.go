@@ -8,11 +8,12 @@ import (
 )
 
 type OAuthApp struct {
-	App        string        `json:"app"`
-	Authorized bool          `json:"authorized"`
-	Provider   string        `json:"provider"`
-	Scopes     []OAuthScopes `json:"scopes,omitempty"`
-	Tools      []string      `json:"tools"`
+	App         string        `json:"app"`
+	Authorized  bool          `json:"authorized"`
+	Provider    string        `json:"provider"`
+	Scopes      []OAuthScopes `json:"scopes,omitempty"`
+	Tools       []string      `json:"tools"`
+	AccessToken string        `json:"accessToken,omitempty"`
 }
 
 type OAuthScopes struct {
@@ -60,6 +61,14 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string) (AuthRespo
 	}
 	var result AuthResponse
 	err := c.rawClient.Post(ctx, fmt.Sprintf("/apps/%v", app)+q, nil, &result)
+	return result, err
+}
+
+func (c *Tools) GetOAuthApp(ctx context.Context, app string) (OAuthApp, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result OAuthApp
+	err := c.rawClient.Get(ctx, fmt.Sprintf("/apps/%v", app), &result)
 	return result, err
 }
 

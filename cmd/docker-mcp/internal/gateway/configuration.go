@@ -278,6 +278,11 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 }
 
 func (c *FileBasedConfiguration) readCatalog(ctx context.Context) (catalog.Catalog, error) {
+	// If using default catalog path, include user-configured catalogs
+	if len(c.CatalogPath) == 1 && c.CatalogPath[0] == catalog.DockerCatalogFilename {
+		log("  - Reading catalogs including user-configured")
+		return catalog.GetWithOptions(ctx, true, nil)
+	}
 	log("  - Reading catalog from", c.CatalogPath)
 	return catalog.ReadFrom(ctx, c.CatalogPath)
 }

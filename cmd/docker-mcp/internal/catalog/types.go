@@ -17,6 +17,7 @@ type Server struct {
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
 	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
+	OAuth          *OAuth   `yaml:"oauth,omitempty" json:"oauth,omitempty"`
 	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
 	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
@@ -40,6 +41,12 @@ type Remote struct {
 	URL       string            `yaml:"url" json:"url"`
 	Transport string            `yaml:"transport_type,omitempty" json:"transport_type,omitempty"`
 	Headers   map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+}
+
+type OAuth struct {
+	Enabled  bool     `yaml:"enabled" json:"enabled"`
+	Provider string   `yaml:"provider" json:"provider"`
+	Scopes   []string `yaml:"scopes,omitempty" json:"scopes,omitempty"`
 }
 
 // POCI tools

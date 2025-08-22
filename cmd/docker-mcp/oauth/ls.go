@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 )
@@ -12,9 +13,32 @@ import (
 func Ls(ctx context.Context, outputJSON bool) error {
 	client := desktop.NewAuthClient()
 
+	// Get OAuth apps from pinata
 	apps, err := client.ListOAuthApps(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Add remote MCP servers with OAuth to the list
+	catalog, err := catalog.GetWithOptions(ctx, true, nil)
+	if err == nil {
+		for serverName, server := range catalog.Servers {
+			if server.OAuth != nil && server.OAuth.Enabled {
+				// Check if the provider is authorized
+				providerAuthorized := false
+				for _, app := range apps {
+					if app.App == server.OAuth.Provider && app.Authorized {
+						providerAuthorized = true
+						break
+					}
+				}
+				apps = append(apps, desktop.OAuthApp{
+					App:        serverName,
+					Authorized: providerAuthorized,
+					Provider:   server.OAuth.Provider,
+				})
+			}
+		}
 	}
 
 	if outputJSON {

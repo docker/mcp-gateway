@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -10,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 type remoteMCPClient struct {
@@ -57,14 +59,40 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		headers[k] = expandEnv(v, env)
 	}
 
+	// Add OAuth token if configured
+	if c.config.Spec.OAuth != nil && c.config.Spec.OAuth.Enabled {
+		token, err := c.getOAuthToken(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get OAuth token: %w", err)
+		}
+		if token != "" {
+			headers["Authorization"] = "Bearer " + token
+		}
+	}
+
+	// Create HTTP client with headers if needed
+	var httpClient *http.Client
+	if len(headers) > 0 {
+		httpClient = &http.Client{
+			Transport: &headerTransport{
+				headers: headers,
+				base:    http.DefaultTransport,
+			},
+		}
+	}
+
 	var mcpTransport mcp.Transport
 	var err error
 
 	switch strings.ToLower(transport) {
 	case "sse":
-		mcpTransport = mcp.NewSSEClientTransport(url, &mcp.SSEClientTransportOptions{})
+		mcpTransport = mcp.NewSSEClientTransport(url, &mcp.SSEClientTransportOptions{
+			HTTPClient: httpClient,
+		})
 	case "http", "streamable", "streaming", "streamable-http":
-		mcpTransport = mcp.NewStreamableClientTransport(url, &mcp.StreamableClientTransportOptions{})
+		mcpTransport = mcp.NewStreamableClientTransport(url, &mcp.StreamableClientTransportOptions{
+			HTTPClient: httpClient,
+		})
 	default:
 		return fmt.Errorf("unsupported remote transport: %s", transport)
 	}
@@ -101,4 +129,35 @@ func expandEnv(value string, secrets map[string]string) string {
 	return os.Expand(value, func(name string) string {
 		return secrets[name]
 	})
+}
+
+func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
+	if c.config.Spec.OAuth == nil || c.config.Spec.OAuth.Provider == "" {
+		return "", nil
+	}
+
+	// Get the OAuth token from pinata
+	client := desktop.NewAuthClient()
+	app, err := client.GetOAuthApp(ctx, c.config.Spec.OAuth.Provider)
+	if err != nil || !app.Authorized {
+		// Token might not exist if user hasn't authorized yet
+		return "", nil
+	}
+
+	return app.AccessToken, nil
+}
+
+// headerTransport is a http.RoundTripper that adds headers to all requests
+type headerTransport struct {
+	headers map[string]string
+	base    http.RoundTripper
+}
+
+func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone the request to avoid modifying the original
+	req = req.Clone(req.Context())
+	for k, v := range t.headers {
+		req.Header.Set(k, v)
+	}
+	return t.base.RoundTrip(req)
 }

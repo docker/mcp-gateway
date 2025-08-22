@@ -94,7 +94,7 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 		return err
 	}
 
-	if err := json.Unmarshal(buf, &v); err != nil {
+	if err := json.Unmarshal(buf, result); err != nil {
 		return err
 	}
 	return nil
