@@ -78,14 +78,14 @@ func TestIsAuthenticationError(t *testing.T) {
 
 func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	t.Run("ignores non-tools-call methods", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.ListResourcesResult{}, nil
 		}
 
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "resources/list", nil)
+		result, err := wrappedHandler(context.Background(), "resources/list", &mcp.ListResourcesRequest{})
 
 		require.NoError(t, err)
 		assert.NotNil(t, result)
@@ -93,14 +93,14 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 
 	t.Run("passes through errors unchanged", func(t *testing.T) {
 		expectedErr := errors.New("some network error")
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return nil, expectedErr
 		}
 
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr, err)
@@ -113,14 +113,14 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				&mcp.TextContent{Text: "Success!"},
 			},
 		}
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return expectedResult, nil
 		}
 
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
@@ -133,21 +133,21 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 				&mcp.TextContent{Text: "Some other error"},
 			},
 		}
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return expectedResult, nil
 		}
 
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
 	})
 
 	t.Run("intercepts exact GitHub auth error", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -167,7 +167,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -182,7 +182,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("intercepts wrapped GitHub auth error", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -202,7 +202,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -217,7 +217,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("intercepts auth error among multiple content items", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -239,7 +239,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -254,7 +254,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("handles non-text content gracefully", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -275,7 +275,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -290,7 +290,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 	})
 
 	t.Run("handles OAuth flow errors gracefully", func(t *testing.T) {
-		mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -311,7 +311,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)

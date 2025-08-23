@@ -24,7 +24,7 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 	assert.Len(t, middlewares, 2, "should have telemetry and GitHub interceptor when enabled")
 
 	// Actually test the middleware behavior with a 401 error
-	mockHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+	mockHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 		return &mcp.CallToolResult{
 			IsError: true,
 			Content: []mcp.Content{
@@ -35,7 +35,7 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 
 	// Apply the GitHub interceptor middleware (second middleware after telemetry)
 	wrappedHandler := middlewares[1](mockHandler)
-	result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+	result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 	// Should intercept and return OAuth URL
 	require.NoError(t, err)
@@ -64,8 +64,8 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 	}
 
 	// Create mock handler that returns GitHub 401 error (success call with error result)
-	createMockHandler := func() func(context.Context, *mcp.ServerSession, string, mcp.Params) (mcp.Result, error) {
-		return func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+	createMockHandler := func() func(context.Context, string, mcp.Request) (mcp.Result, error) {
+		return func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return github401Error, nil
 		}
 	}
@@ -84,7 +84,7 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 		require.NotEmpty(t, middlewares)
 
 		wrappedHandler := middlewares[1](mockHandler)
-		result, err := wrappedHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		toolResult, ok := result.(*mcp.CallToolResult)
@@ -105,7 +105,7 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 		// No middleware means the handler runs unchanged
 		if len(middlewares) == 0 {
 			// Simulate what would happen - error passes through
-			result, err := mockHandler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+			result, err := mockHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 			require.NoError(t, err)
 			assert.Equal(t, github401Error, result, "401 error should pass through unchanged")
 		}
@@ -125,7 +125,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 		defer func() { getGitHubOAuthURL = oldGetOAuthURL }()
 
 		// Create a handler that returns GitHub 401
-		baseHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		baseHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return &mcp.CallToolResult{
 				IsError: true,
 				Content: []mcp.Content{
@@ -144,7 +144,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 		}
 
 		// Call the wrapped handler
-		result, err := handler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := handler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		// Should have intercepted
 		require.NoError(t, err)
@@ -163,7 +163,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 			},
 		}
 
-		baseHandler := func(_ context.Context, _ *mcp.ServerSession, _ string, _ mcp.Params) (mcp.Result, error) {
+		baseHandler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
 			return originalError, nil
 		}
 
@@ -177,7 +177,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 		}
 
 		// Call the wrapped handler
-		result, err := handler(context.Background(), nil, "tools/call", &mcp.CallToolParams{})
+		result, err := handler(context.Background(), "tools/call", &mcp.CallToolRequest{})
 
 		// Error should pass through unchanged (except for logging)
 		require.NoError(t, err)

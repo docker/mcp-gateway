@@ -22,7 +22,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 			var arguments any
 
 			// Try to extract from request
-			if callReq, ok := req.(*mcp.CallToolRequest); ok {
+			if callReq, ok := req.(*mcp.CallToolRequest); ok && callReq.Params != nil {
 				toolName = callReq.Params.Name
 				arguments = callReq.Params.Arguments
 			}
