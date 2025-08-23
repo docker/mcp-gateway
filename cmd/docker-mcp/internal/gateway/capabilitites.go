@@ -12,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
 )
 
@@ -162,17 +163,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 				mcpTool := mcp.Tool{
 					Name:        tool.Name,
 					Description: tool.Description,
-					InputSchema: &jsonschema.Schema{},
-				}
-				// TODO: Properly convert tool.Parameters to jsonschema.Schema
-				// For now, we'll create a simple schema structure
-				if len(tool.Parameters.Properties) == 0 {
-					mcpTool.InputSchema.Type = "object"
-				} else {
-					mcpTool.InputSchema.Type = tool.Parameters.Type
-					// Note: tool.Parameters.Properties.ToMap() returns map[string]any
-					// but we need map[string]*jsonschema.Schema
-					// This is a complex conversion that needs proper implementation
+					InputSchema: convertParametersToSchema(tool.Parameters),
 				}
 
 				capabilities.Tools = append(capabilities.Tools, ToolRegistration{
@@ -257,4 +248,45 @@ func isToolEnabled(configuration Configuration, serverName, serverImage, toolNam
 	}
 
 	return false
+}
+
+// convertParametersToSchema converts catalog.Parameters to jsonschema.Schema
+func convertParametersToSchema(params catalog.Parameters) *jsonschema.Schema {
+	schema := &jsonschema.Schema{
+		Type: params.Type,
+	}
+
+	// If no properties defined, return basic object schema
+	if len(params.Properties) == 0 {
+		if params.Type == "" {
+			schema.Type = "object"
+		}
+		return schema
+	}
+
+	// Convert properties
+	schema.Properties = make(map[string]*jsonschema.Schema)
+	for name, prop := range params.Properties {
+		propSchema := &jsonschema.Schema{
+			Type:        prop.Type,
+			Description: prop.Description,
+		}
+
+		// Handle array items
+		if prop.Type == "array" && prop.Items != nil {
+			propSchema.Items = &jsonschema.Schema{
+				Type: prop.Items.Type,
+			}
+		}
+
+		schema.Properties[name] = propSchema
+	}
+
+	// Add required fields
+	if len(params.Required) > 0 {
+		schema.Required = make([]string, len(params.Required))
+		copy(schema.Required, params.Required)
+	}
+
+	return schema
 }

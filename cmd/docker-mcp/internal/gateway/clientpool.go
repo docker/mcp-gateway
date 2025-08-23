@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 
@@ -13,7 +12,9 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/eval"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/runtime"
 	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
 )
 
@@ -31,11 +32,14 @@ type keptClient struct {
 
 type clientPool struct {
 	Options
-	keptClients map[clientKey]keptClient
-	clientLock  sync.RWMutex
-	networks    []string
-	docker      docker.Client
-	gateway     *Gateway
+	keptClients        map[clientKey]keptClient
+	clientLock         sync.RWMutex
+	networks           []string
+	docker             docker.Client
+	gateway            *Gateway
+	defaultProvisioner provisioners.ProvisionerType
+	provisionerMap     map[provisioners.ProvisionerType]provisioners.Provisioner
+	containerRuntime   runtime.ContainerRuntime
 }
 
 type clientConfig struct {
@@ -44,13 +48,75 @@ type clientConfig struct {
 	server        *mcp.Server
 }
 
-func newClientPool(options Options, docker docker.Client, gateway *Gateway) *clientPool {
-	return &clientPool{
-		Options:     options,
-		docker:      docker,
-		gateway:     gateway,
-		keptClients: make(map[clientKey]keptClient),
+// ClientPoolConfig holds the configuration for creating a client pool
+type ClientPoolConfig struct {
+	Options            Options
+	Docker             docker.Client
+	Gateway            *Gateway
+	ContainerRuntime   runtime.ContainerRuntime
+	Provisioners       map[provisioners.ProvisionerType]provisioners.Provisioner
+	DefaultProvisioner provisioners.ProvisionerType
+}
+
+func newClientPool(config ClientPoolConfig) *clientPool {
+	cp := &clientPool{
+		Options:            config.Options,
+		docker:             config.Docker,
+		gateway:            config.Gateway,
+		keptClients:        make(map[clientKey]keptClient),
+		containerRuntime:   config.ContainerRuntime,
+		defaultProvisioner: config.DefaultProvisioner,
+		provisionerMap:     make(map[provisioners.ProvisionerType]provisioners.Provisioner),
 	}
+
+	// Register all provided provisioners
+	for provisionerType, provisioner := range config.Provisioners {
+		cp.provisionerMap[provisionerType] = provisioner
+	}
+
+	return cp
+}
+
+// SetConfigResolver injects a config resolver into the Docker provisioner.
+// This should be called after configurations are loaded.
+func (cp *clientPool) SetConfigResolver(resolver provisioners.ConfigResolver) error {
+	// Only Docker provisioner needs a config resolver
+	provisioner, exists := cp.provisionerMap[provisioners.DockerProvisioner]
+	if !exists {
+		return fmt.Errorf("docker provisioner not found")
+	}
+
+	// Type assert to get the Docker provisioner implementation
+	dockerProvisioner, ok := provisioner.(*provisioners.DockerProvisionerImpl)
+	if !ok {
+		return fmt.Errorf("provisioner is not a DockerProvisionerImpl")
+	}
+
+	// Inject the resolver (we need to add a SetConfigResolver method to DockerProvisioner)
+	dockerProvisioner.SetConfigResolver(resolver)
+	return nil
+}
+
+// getProvisioner returns the default provisioner for the client pool.
+// The provisioner type is determined at deployment time, not per-server.
+func (cp *clientPool) getProvisioner() (provisioners.Provisioner, error) {
+	// Look up the provisioner in the map
+	provisioner, exists := cp.provisionerMap[cp.defaultProvisioner]
+	if !exists {
+		return nil, fmt.Errorf("provisioner type %s not available", cp.defaultProvisioner.String())
+	}
+
+	return provisioner, nil
+}
+
+// SetProvisioner sets a provisioner implementation for a specific type
+func (cp *clientPool) SetProvisioner(provisionerType provisioners.ProvisionerType, provisioner provisioners.Provisioner) {
+	cp.provisionerMap[provisionerType] = provisioner
+}
+
+// SetDefaultProvisioner sets the default provisioner type
+func (cp *clientPool) SetDefaultProvisioner(provisionerType provisioners.ProvisionerType) {
+	cp.defaultProvisioner = provisionerType
 }
 
 func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
@@ -135,6 +201,15 @@ func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
 
 	// Client was not kept, close it
 	if !foundKept {
+		// Check if this is a client with cleanup (ephemeral containers)
+		if cleanupClient, ok := client.(*clientWithCleanup); ok {
+			// Call cleanup function first (stops container)
+			if cleanup := cleanupClient.GetCleanup(); cleanup != nil {
+				if err := cleanup(context.Background()); err != nil {
+					log("Warning: Error during ephemeral container cleanup:", err)
+				}
+			}
+		}
 		client.Session().Close()
 		return
 	}
@@ -157,70 +232,141 @@ func (cp *clientPool) Close() {
 
 func (cp *clientPool) SetNetworks(networks []string) {
 	cp.networks = networks
+
+	// Update the DockerProvisioner's networks configuration if it exists
+	if dockerProvisioner, exists := cp.provisionerMap[provisioners.DockerProvisioner]; exists {
+		if dp, ok := dockerProvisioner.(*provisioners.DockerProvisionerImpl); ok {
+			dp.SetNetworks(networks)
+		}
+	}
 }
 
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
-	args := cp.baseArgs(tool.Name)
-
-	// Attach the MCP servers to the same network as the gateway.
-	for _, network := range cp.networks {
-		args = append(args, "--network", network)
-	}
+	log("=== runToolContainer ENTRY for tool:", tool.Name, "===")
+	log("Tool image:", tool.Container.Image)
+	log("Tool command template:", tool.Container.Command)
 
 	// Convert params.Arguments to map[string]any
 	arguments, ok := params.Arguments.(map[string]any)
 	if !ok {
 		arguments = make(map[string]any)
 	}
+	log("Tool arguments:", arguments)
 
-	// Volumes
-	for _, mount := range eval.EvaluateList(tool.Container.Volumes, arguments) {
-		if mount == "" {
-			continue
-		}
+	// Get provisioner for secret/config provider support (same as MCP servers)
+	log("Getting provisioner for tool execution...")
+	provisioner, err := cp.getProvisioner()
+	if err != nil {
+		log("ERROR: Failed to get provisioner:", err)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: fmt.Sprintf("Failed to get provisioner for tool execution: %v", err),
+			}},
+			IsError: true,
+		}, nil
+	}
+	log("SUCCESS: Got provisioner:", fmt.Sprintf("%T", provisioner))
 
-		args = append(args, "-v", mount)
+	// Build basic environment variables from tool definition
+	env := make(map[string]string)
+	// TODO: Add support for tool.Container.Env when Container struct is extended
+
+	// Build container specification from tool definition
+	spec := runtime.ContainerSpec{
+		Name:     tool.Name,
+		Image:    tool.Container.Image,
+		Command:  eval.EvaluateList(tool.Container.Command, arguments),
+		Networks: cp.networks, // Use networks from clientPool
+		Volumes:  []string{},  // Will be populated below
+		Env:      env,
+
+		// Container behavior (matching existing baseArgs logic)
+		RemoveAfterRun: true,  // --rm
+		Interactive:    true,  // -i
+		Init:           true,  // --init
+		Privileged:     false, // No privileged mode for tools
+
+		// Resource limits (from clientPool options)
+		CPUs:   cp.Cpus,
+		Memory: cp.Memory,
+
+		// Network isolation
+		DisableNetwork: false, // Tools should have network access by default
 	}
 
-	// User
+	// Apply secret/config provider support using generic provisioner interface
+	// This uses the same docker-engine vs cluster provider logic as MCP servers
+	provisioner.ApplyToolProviders(&spec, tool.Name)
+
+	// Process volumes with template evaluation
+	for _, mount := range eval.EvaluateList(tool.Container.Volumes, arguments) {
+		if mount != "" {
+			spec.Volumes = append(spec.Volumes, mount)
+		}
+	}
+
+	// Handle User setting with template evaluation
 	if tool.Container.User != "" {
 		userVal := fmt.Sprintf("%v", eval.Evaluate(tool.Container.User, arguments))
 		if userVal != "" {
-			args = append(args, "-u", userVal)
+			spec.User = userVal
 		}
 	}
 
-	// Image
-	args = append(args, tool.Container.Image)
-
-	// Command
-	command := eval.EvaluateList(tool.Container.Command, arguments)
-	args = append(args, command...)
-
-	log("  - Running container", tool.Container.Image, "with args", args)
-
-	cmd := exec.CommandContext(ctx, "docker", args...)
-	if cp.Verbose {
-		cmd.Stderr = os.Stderr
+	// Log container execution (similar to existing log)
+	if len(spec.Command) == 0 {
+		log("  - Running container", spec.Image, "via ContainerRuntime")
+	} else {
+		log("  - Running container", spec.Image, "with command", spec.Command, "via ContainerRuntime")
 	}
-	out, err := cmd.Output()
+	log("Container spec details:")
+	log("  - Name:", spec.Name)
+	log("  - Image:", spec.Image)
+	log("  - Command:", spec.Command)
+	log("  - Env vars:", len(spec.Env))
+	log("  - Volumes:", len(spec.Volumes))
+	log("  - CPUs:", spec.CPUs)
+	log("  - Memory:", spec.Memory)
+
+	// Execute container using Container Runtime
+	log("Calling containerRuntime.RunContainer...")
+	result, err := cp.containerRuntime.RunContainer(ctx, spec)
 	if err != nil {
+		log("ERROR: containerRuntime.RunContainer failed:", err)
+		// Container runtime error (not container execution failure)
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
-				Text: string(out),
+				Text: fmt.Sprintf("Container runtime error: %v", err),
 			}},
 			IsError: true,
 		}, nil
 	}
 
+	log("SUCCESS: containerRuntime.RunContainer completed")
+	log("Result details:")
+	log("  - Exit code:", result.ExitCode)
+	log("  - Success:", result.Success)
+	log("  - Stdout length:", len(result.Stdout))
+	log("  - Container ID:", result.ContainerID)
+	log("  - Runtime:", result.Runtime)
+
+	if len(result.Stdout) > 100 {
+		log("  - Stdout preview:", result.Stdout[:100])
+	} else {
+		log("  - Full stdout:", result.Stdout)
+	}
+
+	// Return result based on container execution
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{&mcp.TextContent{
-			Text: string(out),
+			Text: result.Stdout,
 		}},
-		IsError: false,
+		IsError: !result.Success, // Use container's success status
 	}, nil
 }
 
+// Deprecated: baseArgs is only used by legacy tests.
+// All client creation now goes through provisioner interface.
 func (cp *clientPool) baseArgs(name string) []string {
 	args := []string{"run"}
 
@@ -248,6 +394,8 @@ func (cp *clientPool) baseArgs(name string) []string {
 	return args
 }
 
+// Deprecated: argsAndEnv is only used by legacy tests.
+// All client creation now goes through provisioner interface.
 func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
 	args := cp.baseArgs(serverConfig.Name)
 	var env []string
@@ -329,6 +477,8 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 	return args, env
 }
 
+// Deprecated: expandEnv is only used by legacy tests and argsAndEnv.
+// All client creation now goes through provisioner interface.
 func expandEnv(value string, env []string) string {
 	return os.Expand(value, func(name string) string {
 		for _, e := range env {
@@ -338,14 +488,6 @@ func expandEnv(value string, env []string) string {
 		}
 		return ""
 	})
-}
-
-func expandEnvList(values []string, env []string) []string {
-	var expanded []string
-	for _, value := range values {
-		expanded = append(expanded, expandEnv(value, env))
-	}
-	return expanded
 }
 
 type clientGetter struct {
@@ -374,54 +516,16 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
-			cleanup := func(context.Context) error { return nil }
-
-			var client mcpclient.Client
-
-			// Deprecated: Use Remote instead
-			if cg.serverConfig.Spec.SSEEndpoint != "" {
-				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
-			} else if cg.serverConfig.Spec.Remote.URL != "" {
-				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
-			} else if cg.cp.Static {
-				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "socat", nil, "STDIO", fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name))
-			} else {
-				var targetConfig proxies.TargetConfig
-				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
-					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongLived); err != nil {
-						return nil, err
-					}
-				}
-
-				image := cg.serverConfig.Spec.Image
-				var readOnly *bool
-				if cg.clientConfig != nil {
-					readOnly = cg.clientConfig.readOnly
-				}
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, readOnly, targetConfig)
-
-				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
-				if len(command) == 0 {
-					log("  - Running", imageBaseName(image), "with", args)
-				} else {
-					log("  - Running", imageBaseName(image), "with", args, "and command", command)
-				}
-
-				var runArgs []string
-				runArgs = append(runArgs, args...)
-				runArgs = append(runArgs, image)
-				runArgs = append(runArgs, command...)
-
-				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "docker", env, runArgs...)
+			// Get provisioner - all client creation now goes through provisioner interface
+			provisioner, err := cg.cp.getProvisioner()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get provisioner: %w", err)
 			}
 
-			initParams := &mcp.InitializeParams{
-				ProtocolVersion: "2024-11-05",
-				ClientInfo: &mcp.Implementation{
-					Name:    "docker",
-					Version: "1.0.0",
-				},
+			// Use provisioner interface
+			spec, err := provisioners.AdaptServerConfigToSpec(cg.serverConfig, cg.cp.defaultProvisioner)
+			if err != nil {
+				return nil, fmt.Errorf("failed to adapt server config to provisioner spec: %w", err)
 			}
 
 			var ss *mcp.ServerSession
@@ -434,11 +538,24 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// defer cancel()
 
 			// TODO add initial roots
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
-				return nil, err
+			//if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
+				//return nil, err
+			//}
+			// Pre-validate deployment
+			if err := provisioner.PreValidateDeployment(ctx, spec); err != nil {
+				return nil, fmt.Errorf("pre-validation failed: %w", err)
 			}
 
-			return newClientWithCleanup(client, cleanup), nil
+			// Provision the server
+			client, cleanup, err := provisioner.ProvisionServer(ctx, spec, ss, server)
+			if err != nil {
+				return nil, fmt.Errorf("provisioning failed: %w", err)
+			}
+
+			return newClientWithCleanup(client, func(_ context.Context) error {
+				cleanup()
+				return nil
+			}), nil
 		}
 
 		client, err := createClient()

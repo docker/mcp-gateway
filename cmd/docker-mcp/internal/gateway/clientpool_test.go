@@ -14,7 +14,9 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/proxies"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/runtime"
 )
 
 func TestApplyConfigGrafana(t *testing.T) {
@@ -228,10 +230,39 @@ func TestStdioClientInitialization(t *testing.T) {
 	require.NoError(t, err)
 
 	dockerClient := docker.NewClient(dockerCli)
-	clientPool := newClientPool(Options{
-		Cpus:   1,
-		Memory: "512m",
-	}, dockerClient, nil)
+
+	// Create Container Runtime and Provisioners like Gateway does
+	containerRuntime := runtime.NewDockerContainerRuntime(runtime.DockerContainerRuntimeConfig{
+		ContainerRuntimeConfig: runtime.ContainerRuntimeConfig{
+			Verbose: false,
+		},
+		PullPolicy: "never",
+	})
+
+	provisionerMap := make(map[provisioners.ProvisionerType]provisioners.Provisioner)
+	dockerProvisioner := provisioners.NewDockerProvisioner(provisioners.DockerProvisionerConfig{
+		Docker:           dockerClient,
+		ContainerRuntime: containerRuntime,
+		Networks:         []string{},
+		Verbose:          false,
+		Static:           false,
+		BlockNetwork:     false,
+		Cpus:             1,
+		Memory:           "512m",
+		LongLived:        false,
+	})
+	provisionerMap[provisioners.DockerProvisioner] = dockerProvisioner
+
+	clientPool := newClientPool(ClientPoolConfig{
+		Options: Options{
+			Cpus:   1,
+			Memory: "512m",
+		},
+		Docker:             dockerClient,
+		ContainerRuntime:   containerRuntime,
+		Provisioners:       provisionerMap,
+		DefaultProvisioner: provisioners.DockerProvisioner,
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

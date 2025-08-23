@@ -166,7 +166,9 @@ func removeProxies(ctx context.Context, cli docker.Client, nwNames []string, pro
 	}
 	for _, nwName := range nwNames {
 		if err := cli.RemoveNetwork(ctx, nwName); err != nil {
-			errs = append(errs, fmt.Errorf("failed to remove network %s: %w", nwName, err))
+			// Ignore network removal errors - networks are shared between servers
+			// and may already be removed by another server or still in use
+			logf("Info: Could not remove shared network %s (likely in use): %v", nwName, err)
 		}
 	}
 

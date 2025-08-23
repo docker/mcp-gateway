@@ -37,15 +37,17 @@ func featureEnableCommand(dockerCli command.Cli) *cobra.Command {
 		Long: `Enable an experimental feature.
 
 Available features:
-  configured-catalogs    Allow gateway to use user-managed catalogs alongside Docker catalog
-  oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication`,
+  configured-catalogs      Allow gateway to use user-managed catalogs alongside Docker catalog
+  oauth-interceptor        Enable GitHub OAuth flow interception for automatic authentication
+  hooks                    Enable authentication hooks for handling unauthenticated responses
+  kubernetes-provisioning  Enable Kubernetes provisioner (required to use --provisioner kubernetes)`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			featureName := args[0]
 
 			// Validate feature name
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs    Allow gateway to use user-managed catalogs\n  oauth-interceptor      Enable GitHub OAuth flow interception", featureName)
+				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs      Allow gateway to use user-managed catalogs\n  oauth-interceptor        Enable GitHub OAuth flow interception\n  hooks                    Enable authentication hooks for handling unauthenticated responses\n  kubernetes-provisioning  Enable Kubernetes provisioner", featureName)
 			}
 
 			// Enable the feature
@@ -74,6 +76,15 @@ Available features:
 				fmt.Println("\nThis feature enables automatic GitHub OAuth interception when 401 errors occur.")
 				fmt.Println("When enabled, the gateway will automatically provide OAuth URLs for authentication.")
 				fmt.Println("\nNo additional flags are needed - this applies to all gateway runs.")
+			case "hooks":
+				fmt.Println("\nThis feature enables authentication hooks for handling unauthenticated responses.")
+				fmt.Println("When enabled, the gateway can automatically redirect to authentication providers")
+				fmt.Println("(like GitHub OAuth) when encountering 401/403 responses from MCP servers.")
+			case "kubernetes-provisioning":
+				fmt.Println("\nThis feature enables the Kubernetes provisioner.")
+				fmt.Println("Once enabled, you can use:")
+				fmt.Println("  docker mcp gateway run --provisioner kubernetes")
+				fmt.Println("\nRequires kubeconfig and appropriate cluster access.")
 			}
 
 			return nil
@@ -127,7 +138,7 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"configured-catalogs", "oauth-interceptor"}
+			knownFeatures := []string{"configured-catalogs", "oauth-interceptor", "hooks", "kubernetes-provisioning"}
 			for _, feature := range knownFeatures {
 				status := "disabled"
 				if isFeatureEnabledFromCli(dockerCli, feature) {
@@ -142,6 +153,10 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 					fmt.Printf("  %-20s %s\n", "", "Allow gateway to use user-managed catalogs alongside Docker catalog")
 				case "oauth-interceptor":
 					fmt.Printf("  %-20s %s\n", "", "Enable GitHub OAuth flow interception for automatic authentication")
+				case "hooks":
+					fmt.Printf("  %-20s %s\n", "", "Enable authentication hooks for handling unauthenticated responses")
+				case "kubernetes-provisioning":
+					fmt.Printf("  %-20s %s\n", "", "Enable Kubernetes provisioner (required to use --provisioner kubernetes)")
 				}
 				fmt.Println()
 			}
@@ -204,6 +219,8 @@ func isKnownFeature(feature string) bool {
 	knownFeatures := []string{
 		"configured-catalogs",
 		"oauth-interceptor",
+		"hooks",
+		"kubernetes-provisioning",
 	}
 
 	for _, known := range knownFeatures {

@@ -11,6 +11,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
 )
 
 func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
@@ -26,19 +27,28 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var additionalConfigs []string
 	var additionalToolsConfig []string
 	var useConfiguredCatalogs bool
+	var secretProviderStr string // For CLI flag parsing
+	var configProviderStr string // For CLI flag parsing
+
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
 		options = gateway.Config{
 			CatalogPath: []string{catalog.DockerCatalogURL},
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
-				Cpus:             1,
-				Memory:           "2Gb",
-				Transport:        "stdio",
-				LogCalls:         true,
-				BlockSecrets:     true,
-				VerifySignatures: true,
-				Verbose:          true,
+				Cpus:                    1,
+				Memory:                  "2Gb",
+				MaxServerStartupTimeout: 10,
+				Transport:               "stdio",
+				LogCalls:                true,
+				BlockSecrets:            true,
+				VerifySignatures:        true,
+				Verbose:                 false, // Default to quiet unless --verbose flag is used
+				Provisioner:             "docker",
+				SecretProvider:          provisioners.DockerEngineSecretProvider,
+				SecretName:              "mcp-gateway-secrets",
+				ConfigProvider:          provisioners.DockerEngineConfigProvider,
+				ConfigName:              "mcp-gateway-config",
 			},
 		}
 	} else {
@@ -50,21 +60,55 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			ToolsPath:    []string{"tools.yaml"},
 			SecretsPath:  "docker-desktop",
 			Options: gateway.Options{
-				Cpus:         1,
-				Memory:       "2Gb",
-				Transport:    "stdio",
-				LogCalls:     true,
-				BlockSecrets: true,
-				Watch:        true,
+				Cpus:                    1,
+				Memory:                  "2Gb",
+				MaxServerStartupTimeout: 10,
+				Transport:               "stdio",
+				LogCalls:                true,
+				BlockSecrets:            true,
+				Watch:                   true,
+				Provisioner:             "docker",
+				SecretProvider:          provisioners.DockerEngineSecretProvider,
+				SecretName:              "mcp-gateway-secrets",
+				ConfigProvider:          provisioners.DockerEngineConfigProvider,
+				ConfigName:              "mcp-gateway-config",
 			},
 		}
 	}
+
+	// Initialize string representation for flag parsing
+	secretProviderStr = options.SecretProvider.String()
+	configProviderStr = options.ConfigProvider.String()
 
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the gateway",
 		Args:  cobra.NoArgs,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
+			// Validate provisioner selection
+			if err := validateProvisioner(options.Provisioner); err != nil {
+				return err
+			}
+
+			// Validate kubernetes-provisioning feature flag
+			if err := validateKubernetesProvisioningFeatureForCli(dockerCli, options.Provisioner); err != nil {
+				return err
+			}
+
+			// Parse and validate secret provider selection
+			secretProviderType, err := provisioners.ParseSecretProviderType(secretProviderStr)
+			if err != nil {
+				return err
+			}
+			options.SecretProvider = secretProviderType
+
+			// Parse and validate config provider selection
+			configProviderType, err := provisioners.ParseConfigProviderType(configProviderStr)
+			if err != nil {
+				return err
+			}
+			options.ConfigProvider = configProviderType
+
 			// Validate configured catalogs feature flag
 			return validateConfiguredCatalogsFeatureForCli(dockerCli, useConfiguredCatalogs)
 		},
@@ -141,7 +185,26 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().BoolVar(&options.Watch, "watch", options.Watch, "Watch for changes and reconfigure the gateway")
 	runCmd.Flags().IntVar(&options.Cpus, "cpus", options.Cpus, "CPUs allocated to each MCP Server (default is 1)")
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
+	runCmd.Flags().IntVar(&options.MaxServerStartupTimeout, "max-server-startup-timeout", options.MaxServerStartupTimeout, "Maximum time in seconds to wait for each server to start (default is 10)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")
+
+	// Provisioner configuration
+	runCmd.Flags().StringVar(&options.Provisioner, "provisioner", options.Provisioner, "Provisioner to use: docker, kubernetes (or k8s)")
+
+	// Docker-specific flags (hidden - experimental)
+	runCmd.Flags().StringVar(&options.DockerContext, "docker-context", options.DockerContext, "Docker context to use (for docker provisioner)")
+	_ = runCmd.Flags().MarkHidden("docker-context")
+
+	// Kubernetes-specific flags
+	runCmd.Flags().StringVar(&options.Kubeconfig, "kubeconfig", options.Kubeconfig, "Path to kubeconfig file (for kubernetes provisioner)")
+	runCmd.Flags().StringVar(&options.Namespace, "namespace", "default", "Kubernetes namespace (for kubernetes provisioner)")
+	runCmd.Flags().StringVar(&options.KubeContext, "kube-context", options.KubeContext, "Kubernetes context (for kubernetes provisioner)")
+
+	// Kubernetes cluster configuration
+	runCmd.Flags().StringVar(&secretProviderStr, "cluster-secret-provider", secretProviderStr, "Kubernetes secret provider: docker-engine, cluster")
+	runCmd.Flags().StringVar(&options.SecretName, "cluster-secret-name", options.SecretName, "Kubernetes Secret resource name for cluster mode (default: mcp-gateway-secrets)")
+	runCmd.Flags().StringVar(&configProviderStr, "cluster-config-provider", configProviderStr, "Kubernetes config provider: docker-engine, cluster")
+	runCmd.Flags().StringVar(&options.ConfigName, "cluster-config-name", options.ConfigName, "Kubernetes ConfigMap resource name for cluster mode (default: mcp-gateway-config)")
 
 	// Configured catalogs feature
 	runCmd.Flags().BoolVar(&useConfiguredCatalogs, "use-configured-catalogs", false, "Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)")
@@ -161,29 +224,7 @@ func validateConfiguredCatalogsFeatureForCli(dockerCli command.Cli, useConfigure
 		return nil // No validation needed when feature not requested
 	}
 
-	// Check if config is accessible (container mode check)
-	configFile := dockerCli.ConfigFile()
-	if configFile == nil {
-		return fmt.Errorf(`docker configuration not accessible.
-
-If running in container, mount Docker config:
-  -v ~/.docker:/root/.docker
-
-Or mount just the config file:  
-  -v ~/.docker/config.json:/root/.docker/config.json`)
-	}
-
-	// Check if feature is enabled
-	if configFile.Features != nil {
-		if value, exists := configFile.Features["configured-catalogs"]; exists {
-			if value == "enabled" {
-				return nil // Feature is enabled
-			}
-		}
-	}
-
-	// Feature not enabled
-	return fmt.Errorf(`configured catalogs feature is not enabled
+	return validateFeatureEnabled(dockerCli, "configured-catalogs", `configured catalogs feature is not enabled
 
 To enable this experimental feature, run:
   docker mcp feature enable configured-catalogs
@@ -212,17 +253,82 @@ func getConfiguredCatalogPaths() []string {
 	return catalogPaths
 }
 
-// isOAuthInterceptorFeatureEnabled checks if the oauth-interceptor feature is enabled
-func isOAuthInterceptorFeatureEnabled(dockerCli command.Cli) bool {
+// validateProvisioner validates the provisioner selection and provides appropriate errors
+func validateProvisioner(provisioner string) error {
+	switch provisioner {
+	case "docker":
+		return nil // Docker is fully supported
+	case "k8s", "kubernetes":
+		return nil // Kubernetes is now supported in Phase 4.1
+	default:
+		return fmt.Errorf(`invalid provisioner: %s
+
+Supported provisioners:
+  docker     - Docker container deployment (default)
+  kubernetes - Kubernetes pod deployment (also: k8s)`, provisioner)
+	}
+}
+
+// validateFeatureEnabled validates that a feature is enabled, with custom error message if not
+func validateFeatureEnabled(dockerCli command.Cli, featureName string, errorMessage string) error {
+	// Check if config is accessible (container mode check)
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil {
+		return fmt.Errorf(`docker configuration not accessible.
+
+If running in container, mount Docker config:
+  -v ~/.docker:/root/.docker
+
+Or mount just the config file:  
+  -v ~/.docker/config.json:/root/.docker/config.json`)
+	}
+
+	// Check if feature is enabled
+	if configFile.Features != nil {
+		if value, exists := configFile.Features[featureName]; exists {
+			if value == "enabled" {
+				return nil // Feature is enabled
+			}
+		}
+	}
+
+	// Feature not enabled - return custom error message
+	return fmt.Errorf("%s", errorMessage)
+}
+
+// isFeatureEnabled checks if a feature is enabled (boolean check)
+func isFeatureEnabled(dockerCli command.Cli, featureName string) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
 		return false
 	}
 
-	value, exists := configFile.Features["oauth-interceptor"]
+	value, exists := configFile.Features[featureName]
 	if !exists {
 		return false
 	}
 
 	return value == "enabled"
+}
+
+// isOAuthInterceptorFeatureEnabled checks if the oauth-interceptor feature is enabled
+func isOAuthInterceptorFeatureEnabled(dockerCli command.Cli) bool {
+	return isFeatureEnabled(dockerCli, "oauth-interceptor")
+}
+
+// validateKubernetesProvisioningFeatureForCli validates that the kubernetes-provisioning feature is enabled when using k8s provisioner
+func validateKubernetesProvisioningFeatureForCli(dockerCli command.Cli, provisioner string) error {
+	// Only validate when kubernetes provisioner is requested
+	if provisioner != "kubernetes" && provisioner != "k8s" {
+		return nil // No validation needed for non-kubernetes provisioners
+	}
+
+	return validateFeatureEnabled(dockerCli, "kubernetes-provisioning", `kubernetes provisioner feature is not enabled
+
+The Kubernetes provisioner requires enabling an experimental feature.
+To enable this experimental feature, run:
+  docker mcp feature enable kubernetes-provisioning
+
+This feature allows the gateway to deploy MCP servers to Kubernetes clusters
+instead of local Docker containers.`)
 }

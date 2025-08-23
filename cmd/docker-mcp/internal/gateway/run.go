@@ -12,7 +12,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/runtime"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/health"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/interceptors"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
@@ -52,10 +55,14 @@ type Gateway struct {
 	registeredPromptNames          []string
 	registeredResourceURIs         []string
 	registeredResourceTemplateURIs []string
+
+	// Gateway-owned resources for proper lifecycle management
+	containerRuntime runtime.ContainerRuntime
+	provisionerMap   map[provisioners.ProvisionerType]provisioners.Provisioner
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
-	g := &Gateway{
+	gateway := &Gateway{
 		Options: config.Options,
 		docker:  docker,
 		configurator: &FileBasedConfiguration{
@@ -71,8 +78,134 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		},
 		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
 	}
-	g.clientPool = newClientPool(config.Options, docker, g)
-	return g
+	// Generate session ID for resource tracking and cleanup
+	if config.SessionID == "" {
+		sessionID, err := GenerateSessionID()
+		if err != nil {
+			log("Warning: Failed to generate session ID, using default:", err)
+			sessionID = "mcp-gateway-unknown"
+		}
+		config.SessionID = sessionID
+	}
+	log("Gateway session ID:", config.SessionID)
+
+	// Parse provisioner type from config
+	provisionerType, err := provisioners.ParseProvisionerType(config.Provisioner)
+	if err != nil {
+		// This should be caught by command line validation, but handle gracefully
+		log("Warning: Invalid provisioner type, defaulting to docker:", err)
+		provisionerType = provisioners.DockerProvisioner
+	}
+
+	// Gateway creates and manages Container Runtime at its level based on provisioner choice
+	// This allows the gateway to coordinate with its own runtime environment
+	// IMPORTANT: Container runtime for POCI tools should match the provisioner selection
+	var containerRuntime runtime.ContainerRuntime
+
+	if provisionerType == provisioners.KubernetesProvisioner {
+		// Use Kubernetes container runtime for POCI tools when Kubernetes provisioner is selected
+		kubernetesRuntime, err := runtime.NewKubernetesContainerRuntime(runtime.KubernetesContainerRuntimeConfig{
+			ContainerRuntimeConfig: runtime.ContainerRuntimeConfig{
+				Verbose: config.Verbose,
+			},
+			Namespace:   config.Namespace,   // From --namespace flag
+			Kubeconfig:  config.Kubeconfig,  // From --kubeconfig flag
+			KubeContext: config.KubeContext, // From --kube-context flag
+		})
+		if err != nil {
+			log("ERROR: Failed to create Kubernetes container runtime (--provisioner kubernetes was specified):", err)
+			log("FATAL: Cannot proceed without Kubernetes container runtime")
+			os.Exit(1)
+		}
+		containerRuntime = kubernetesRuntime
+		log("Using Kubernetes container runtime for POCI tools")
+	} else {
+		// Use Docker container runtime for POCI tools when Docker provisioner is selected
+		containerRuntime = runtime.NewDockerContainerRuntime(runtime.DockerContainerRuntimeConfig{
+			ContainerRuntimeConfig: runtime.ContainerRuntimeConfig{
+				Verbose: config.Verbose,
+			},
+			PullPolicy:    "never",              // Match existing behavior
+			DockerContext: config.DockerContext, // Pass through Docker context from CLI
+		})
+		log("Using Docker container runtime for POCI tools")
+	}
+
+	// We need to create a temporary default provisioner value first
+	tempDefaultProvisioner := provisionerType
+
+	// Create clientPool first so we can pass it to provisioners
+	clientPool := newClientPool(ClientPoolConfig{
+		Options:            config.Options,
+		Docker:             docker,
+		ContainerRuntime:   containerRuntime,
+		Provisioners:       nil, // Will be set after provisioners are created
+		DefaultProvisioner: tempDefaultProvisioner,
+		Gateway:            gateway,
+	})
+
+	// Gateway creates and manages Provisioners at its level
+	// Networks will be set when gateway detects its runtime environment
+	provisionerMap := make(map[provisioners.ProvisionerType]provisioners.Provisioner)
+
+	// Always create Docker provisioner (fully implemented)
+	dockerProvisioner := provisioners.NewDockerProvisioner(provisioners.DockerProvisionerConfig{
+		Docker:           docker,
+		ContainerRuntime: containerRuntime,
+		ProxyRunner:      clientPool, // Pass clientPool as ProxyRunner
+		Networks:         []string{}, // Will be updated when Gateway detects networks
+		Verbose:          config.Verbose,
+		Static:           config.Static,
+		BlockNetwork:     config.BlockNetwork,
+		Cpus:             config.Cpus,
+		Memory:           config.Memory,
+		LongLived:        false, // This will be overridden per-server
+		CapRefresher:     gateway,
+	})
+	provisionerMap[provisioners.DockerProvisioner] = dockerProvisioner
+
+	// Create Kubernetes provisioner if needed (reuse the same runtime instance for consistency)
+	if provisionerType == provisioners.KubernetesProvisioner {
+		// Reuse the same Kubernetes runtime instance that's being used for POCI tools
+		if kubernetesRuntime, ok := containerRuntime.(*runtime.KubernetesContainerRuntime); ok {
+			kubernetesProvisioner := provisioners.NewKubernetesProvisioner(provisioners.KubernetesProvisionerConfig{
+				ContainerRuntime: kubernetesRuntime,
+				Namespace:        config.Namespace,
+				SecretName:       config.SecretName,     // From --secret-name flag
+				SecretProvider:   config.SecretProvider, // From --secret-provider flag
+				ConfigProvider:   config.ConfigProvider, // From --config-provider flag
+				ConfigName:       config.ConfigName,     // From --config-name flag
+				Verbose:          config.Verbose,
+				SessionID:        config.SessionID,
+				// ConfigResolver and SecretManager will be injected later in reloadConfiguration
+				CapRefresher:     gateway,
+			})
+			provisionerMap[provisioners.KubernetesProvisioner] = kubernetesProvisioner
+			log("Created Kubernetes provisioner using shared container runtime")
+		} else {
+			log("ERROR: Expected Kubernetes container runtime but got:", containerRuntime.GetName())
+			// This should never happen given the logic above, but fail hard if it does
+			log("FATAL: Container runtime and provisioner type mismatch")
+			os.Exit(1)
+		}
+	}
+
+	// Set default provisioner based on configuration
+	if _, exists := provisionerMap[provisionerType]; !exists {
+		log("ERROR: Requested provisioner", provisionerType.String(), "is not available")
+		log("FATAL: Provisioner creation failed - no fallback allowed for explicit provisioner selection")
+		os.Exit(1)
+	}
+
+	// Update clientPool with the created provisioners
+	clientPool.provisionerMap = provisionerMap
+
+	// Store gateway-owned resources for lifecycle management
+	gateway.containerRuntime = containerRuntime
+	gateway.provisionerMap = provisionerMap
+	gateway.clientPool = clientPool
+
+	return gateway
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
@@ -95,6 +228,28 @@ func (g *Gateway) Run(ctx context.Context) error {
 		go g.periodicMetricExport(ctx)
 	}
 
+	// Perform shutdown cleanup of all gateway-owned provisioners and runtimes
+	defer func() {
+		// Use background context with timeout for cleanup to avoid cancellation issues during shutdown
+		cleanupCtx, cancelCleanup := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancelCleanup()
+
+		// Shutdown all provisioners
+		for provisionerType, provisioner := range g.provisionerMap {
+			log("Shutting down provisioner:", provisionerType.String())
+			if err := provisioner.Shutdown(cleanupCtx); err != nil {
+				log("Warning: Error shutting down provisioner", provisionerType.String(), ":", err)
+			}
+		}
+
+		// Shutdown container runtime
+		if g.containerRuntime != nil {
+			log("Shutting down container runtime:", g.containerRuntime.GetName())
+			if err := g.containerRuntime.Shutdown(cleanupCtx); err != nil {
+				log("Warning: Error shutting down container runtime:", err)
+			}
+		}
+	}()
 	defer g.clientPool.Close()
 	defer func() {
 		// Clean up all session cache entries
@@ -259,6 +414,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 }
 
 func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
+	// Create and inject ConfigResolver for Docker virtual remote provisioner
+	// This gives the provisioner just-in-time access to secrets and config
+	serverConfigs := make(map[string]*catalog.ServerConfig)
+
 	// Which servers are enabled in the registry.yaml?
 	if len(serverNames) == 0 {
 		serverNames = configuration.ServerNames()
@@ -267,6 +426,38 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log("- No server is enabled")
 	} else {
 		log("- Those servers are enabled:", strings.Join(serverNames, ", "))
+	}
+
+	// Build server config map for ConfigResolver
+	for _, serverName := range serverNames {
+		if serverConfig, _, found := configuration.Find(serverName); found && serverConfig != nil {
+			serverConfigs[serverName] = serverConfig
+		}
+	}
+
+	// Initialize only the selected provisioner with configuration and dependencies
+	configResolver := provisioners.NewGatewayConfigResolver(serverConfigs)
+
+	// Get the selected provisioner type from gateway config
+	selectedProvisionerType, err := provisioners.ParseProvisionerType(g.Provisioner)
+	if err != nil {
+		selectedProvisionerType = provisioners.DockerProvisioner // Default fallback
+	}
+
+	// Initialize only the selected provisioner
+	selectedProvisioner := g.provisionerMap[selectedProvisionerType]
+	if g.Verbose {
+		log("[" + selectedProvisionerType.String() + "Provisioner] Initializing provisioner")
+	}
+	if err := selectedProvisioner.Initialize(ctx, configResolver, serverConfigs); err != nil {
+		log("Warning: Failed to initialize", selectedProvisionerType.String(), "provisioner:", err)
+		// Continue - this is not fatal
+	}
+
+	// Deprecated: Also inject into client pool for backward compatibility
+	if err := g.clientPool.SetConfigResolver(configResolver); err != nil {
+		log("Warning: Failed to inject ConfigResolver into client pool:", err)
+		// Continue - this is not fatal, just means no just-in-time config resolution
 	}
 
 	// List all the available tools.
