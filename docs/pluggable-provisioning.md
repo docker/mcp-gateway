@@ -138,7 +138,7 @@ docker-mcp gateway run --provisioner=docker --docker-context CONTEXT
 
 ### 4.1 Overview & Status
 
-**Status**: ✅ Complete - Production-ready with Docker Desktop Kubernetes
+**Status**: ⚠️ Highly experimental with Docker Desktop Kubernetes
 
 **Provisioner**: `--provisioner=kubernetes`
 
@@ -557,7 +557,7 @@ docker-mcp gateway run \
 - **Transport Agnostic**: Works with stdio streams, HTTP endpoints, and container handles
 - **Lifecycle Management**: Proper cleanup and resource management across runtimes
 
-### Production-Ready Kubernetes Support
+### Experimental Kubernetes Support
 - **Native Resource Management**: Uses Kubernetes-native ConfigMaps, Secrets, and RBAC
 - **Session Tracking**: Comprehensive cleanup with gateway session IDs
 - **Real MCP Communication**: Working stdio streams via Pod attach API
@@ -598,6 +598,6 @@ docker-mcp gateway run \
 
 ## Summary
 
-The pluggable provisioning feature successfully introduces a unified, extensible architecture for MCP server deployment while maintaining 100% backward compatibility. The implementation provides production-ready Docker and Kubernetes provisioners with comprehensive tooling, security best practices, and operational excellence.
+The pluggable provisioning feature successfully introduces a unified, extensible architecture for MCP server deployment while maintaining 100% backward compatibility. The implementation provides a production-ready Docker provisioner and a highly experimental Kubernetes provisioner with comprehensive tooling, security best practices, and operational excellence.
 
 While currently constrained to Docker Desktop environments for Kubernetes provisioning, the architecture provides a solid foundation for future enhancements including cloud provider support and enhanced multi-cluster capabilities.
