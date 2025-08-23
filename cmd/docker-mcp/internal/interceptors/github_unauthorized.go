@@ -35,21 +35,21 @@ type OAuthHandler func(ctx context.Context) (*mcp.CallToolResult, error)
 
 // GitHubUnauthorizedMiddleware creates middleware that intercepts 401 unauthorized responses
 // from the GitHub MCP server and returns the OAuth authorization link
-func GitHubUnauthorizedMiddleware() mcp.Middleware[*mcp.ServerSession] {
+func GitHubUnauthorizedMiddleware() mcp.Middleware {
 	return GitHubUnauthorizedMiddlewareWithOAuth(handleOAuthFlow)
 }
 
 // GitHubUnauthorizedMiddlewareWithOAuth creates middleware with a configurable OAuth handler for testing
-func GitHubUnauthorizedMiddlewareWithOAuth(oauthHandler OAuthHandler) mcp.Middleware[*mcp.ServerSession] {
-	return func(next mcp.MethodHandler[*mcp.ServerSession]) mcp.MethodHandler[*mcp.ServerSession] {
-		return func(ctx context.Context, session *mcp.ServerSession, method string, params mcp.Params) (mcp.Result, error) {
+func GitHubUnauthorizedMiddlewareWithOAuth(oauthHandler OAuthHandler) mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			// Only intercept tools/call method
 			if method != "tools/call" {
-				return next(ctx, session, method, params)
+				return next(ctx, method, req)
 			}
 
 			// Call the actual handler
-			response, err := next(ctx, session, method, params)
+			response, err := next(ctx, method, req)
 			// Pass through any actual errors
 			if err != nil {
 				return response, err

@@ -17,7 +17,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/logs"
 )
 
-func Callbacks(logCalls, blockSecrets bool, interceptors []Interceptor) []mcp.Middleware {
+func Callbacks(logCalls, blockSecrets bool, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware {
 	var middleware []mcp.Middleware
 
 	// Add telemetry middleware (always enabled)
