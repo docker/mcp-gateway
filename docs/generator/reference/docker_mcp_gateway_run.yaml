@@ -86,6 +86,48 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: cluster-config-name
+      value_type: string
+      default_value: mcp-gateway-config
+      description: |
+        Kubernetes ConfigMap resource name for cluster mode (default: mcp-gateway-config)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: cluster-config-provider
+      value_type: string
+      default_value: docker-engine
+      description: 'Kubernetes config provider: docker-engine, cluster'
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: cluster-secret-name
+      value_type: string
+      default_value: mcp-gateway-secrets
+      description: |
+        Kubernetes Secret resource name for cluster mode (default: mcp-gateway-secrets)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: cluster-secret-provider
+      value_type: string
+      default_value: docker-engine
+      description: 'Kubernetes secret provider: docker-engine, cluster'
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: config
       value_type: stringSlice
       default_value: '[config.yaml]'
@@ -116,6 +158,15 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: docker-context
+      value_type: string
+      description: Docker context to use (for docker provisioner)
+      deprecated: false
+      hidden: true
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: dry-run
       value_type: bool
       default_value: "false"
@@ -132,6 +183,24 @@ options:
       default_value: '[]'
       description: |
         List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: kube-context
+      value_type: string
+      description: Kubernetes context (for kubernetes provisioner)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: kubeconfig
+      value_type: string
+      description: Path to kubeconfig file (for kubernetes provisioner)
       deprecated: false
       hidden: false
       experimental: false
@@ -159,6 +228,17 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: max-server-startup-timeout
+      value_type: int
+      default_value: "10"
+      description: |
+        Maximum time in seconds to wait for each server to start (default is 10)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: memory
       value_type: string
       default_value: 2Gb
@@ -169,10 +249,30 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: namespace
+      value_type: string
+      default_value: default
+      description: Kubernetes namespace (for kubernetes provisioner)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: port
       value_type: int
       default_value: "0"
       description: TCP port to listen on (default is to listen on stdio)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: provisioner
+      value_type: string
+      default_value: docker
+      description: 'Provisioner to use: docker, kubernetes (or k8s)'
       deprecated: false
       hidden: false
       experimental: false
