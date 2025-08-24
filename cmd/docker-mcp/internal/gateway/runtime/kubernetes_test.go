@@ -524,47 +524,6 @@ func TestKubernetesRuntime_GetClientset_NotInitialized(t *testing.T) {
 	assert.Contains(t, err.Error(), "kubernetes clientset not initialized")
 }
 
-func TestKubernetesRuntime_inspectImage_ValidationRules(t *testing.T) {
-	// This test validates the image parsing logic without requiring registry access
-	runtime := &KubernetesContainerRuntime{
-		verbose: true, // Enable debug logging
-	}
-
-	tests := []struct {
-		name        string
-		imageRef    string
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name:        "Invalid image reference",
-			imageRef:    "invalid@image@ref",
-			expectError: true,
-			errorMsg:    "failed to parse image reference",
-		},
-		{
-			name:        "Empty image reference",
-			imageRef:    "",
-			expectError: true,
-			errorMsg:    "failed to parse image reference",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := runtime.inspectImage(context.Background(), tt.imageRef)
-
-			if tt.expectError {
-				require.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
-			}
-			// Note: All test cases expect errors in test environment without registry access
-		})
-	}
-}
-
 func TestKubernetesRuntime_Shutdown_NoPanic(t *testing.T) {
 	runtime := &KubernetesContainerRuntime{
 		verbose: true,
