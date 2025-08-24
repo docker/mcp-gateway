@@ -548,12 +548,6 @@ func TestKubernetesRuntime_inspectImage_ValidationRules(t *testing.T) {
 			expectError: true,
 			errorMsg:    "failed to parse image reference",
 		},
-		{
-			name:     "Valid image reference format",
-			imageRef: "nginx:latest",
-			// Note: This will fail due to registry access, but validates parsing
-			expectError: true, // Expected in test environment without registry access
-		},
 	}
 
 	for _, tt := range tests {
