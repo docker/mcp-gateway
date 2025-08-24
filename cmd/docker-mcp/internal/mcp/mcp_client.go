@@ -15,6 +15,10 @@ type Client interface {
 	AddRoots(roots []*mcp.Root)
 }
 
+func newServerRequest[P mcp.Params](ss *mcp.ServerSession, params P) *mcp.ServerRequest[P] {
+	return &mcp.ServerRequest[P]{Session: ss, Params: params}
+}
+
 func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.ClientOptions {
 	return &mcp.ClientOptions{
 		ResourceUpdatedHandler: func(ctx context.Context, req *mcp.ResourceUpdatedNotificationRequest) {
@@ -28,17 +32,17 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.Cl
 		},
 		ToolListChangedHandler: func(ctx context.Context, req *mcp.ToolListChangedRequest) {
 			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/tools/list_changed", req)
+				_ = mcp.HandleNotify(ctx, "notifications/tools/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		ResourceListChangedHandler: func(ctx context.Context, req *mcp.ResourceListChangedRequest) {
 			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/resources/list_changed", req)
+				_ = mcp.HandleNotify(ctx, "notifications/resources/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		PromptListChangedHandler: func(ctx context.Context, req *mcp.PromptListChangedRequest) {
 			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/prompts/list_changed", req)
+				_ = mcp.HandleNotify(ctx, "notifications/prompts/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		ProgressNotificationHandler: func(ctx context.Context, req *mcp.ProgressNotificationClientRequest) {
