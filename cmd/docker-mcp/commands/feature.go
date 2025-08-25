@@ -17,7 +17,8 @@ func featureCommand(dockerCli command.Cli) *cobra.Command {
 		Long: `Manage experimental features for Docker MCP Gateway.
 
 Features are stored in your Docker configuration file (~/.docker/config.json)
-and control optional functionality that may change in future versions.`,
+and control optional MCP Gateway functionality that may change in future versions.
+These features are shared with other Docker CLI components and plugins.`,
 	}
 
 	cmd.AddCommand(
@@ -44,9 +45,9 @@ Available features:
 		RunE: func(_ *cobra.Command, args []string) error {
 			featureName := args[0]
 
-			// Validate feature name
+			// Validate feature name - only allow MCP Gateway managed features
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs      Allow gateway to use user-managed catalogs\n  oauth-interceptor        Enable GitHub OAuth flow interception\n  kubernetes-provisioning  Enable Kubernetes provisioner", featureName)
+				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nMCP Gateway managed features:\n  configured-catalogs      Allow gateway to use user-managed catalogs\n  oauth-interceptor        Enable GitHub OAuth flow interception\n  kubernetes-provisioning  Enable Kubernetes provisioner\n\nTo manage other Docker CLI features, use the Docker CLI directly.", featureName)
 			}
 
 			// Enable the feature
@@ -97,9 +98,9 @@ func featureDisableCommand(dockerCli command.Cli) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			featureName := args[0]
 
-			// Validate feature name
+			// Validate feature name - only allow MCP Gateway managed features
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s", featureName)
+				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nUse 'docker mcp feature list' to see MCP Gateway managed features.\nTo manage other Docker CLI features, use the Docker CLI directly.", featureName)
 			}
 
 			// Disable the feature
@@ -124,12 +125,12 @@ func featureDisableCommand(dockerCli command.Cli) *cobra.Command {
 func featureListCommand(dockerCli command.Cli) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List all available features and their status",
-		Long:  "List all available experimental features and show whether they are enabled or disabled.",
+		Short: "List MCP Gateway features and their status",
+		Long:  "List MCP Gateway experimental features and show whether they are enabled or disabled.",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			configFile := dockerCli.ConfigFile()
 
-			fmt.Println("Available experimental features:")
+			fmt.Println("MCP Gateway experimental features:")
 			fmt.Println()
 
 			// Show all known features
@@ -164,10 +165,10 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 				}
 
 				if len(unknownFeatures) > 0 {
-					fmt.Println("Unknown features in configuration:")
+					fmt.Println("Other Docker CLI features (not managed by MCP Gateway):")
 					for _, feature := range unknownFeatures {
 						status := configFile.Features[feature]
-						fmt.Printf("  %-20s %s (unknown)\n", feature, status)
+						fmt.Printf("  %-20s %s\n", feature, status)
 					}
 				}
 			}
