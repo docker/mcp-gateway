@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -60,11 +61,25 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	var mcpTransport mcp.Transport
 	var err error
 
+	// Create HTTP client with custom headers
+	httpClient := &http.Client{
+		Transport: &headerRoundTripper{
+			base:    http.DefaultTransport,
+			headers: headers,
+		},
+	}
+
 	switch strings.ToLower(transport) {
 	case "sse":
-		mcpTransport = &mcp.SSEClientTransport{Endpoint: url}
+		mcpTransport = &mcp.SSEClientTransport{
+			Endpoint:   url,
+			HTTPClient: httpClient,
+		}
 	case "http", "streamable", "streaming", "streamable-http":
-		mcpTransport = &mcp.StreamableClientTransport{Endpoint: url}
+		mcpTransport = &mcp.StreamableClientTransport{
+			Endpoint:   url,
+			HTTPClient: httpClient,
+		}
 	default:
 		return fmt.Errorf("unsupported remote transport: %s", transport)
 	}
@@ -101,4 +116,22 @@ func expandEnv(value string, secrets map[string]string) string {
 	return os.Expand(value, func(name string) string {
 		return secrets[name]
 	})
+}
+
+// headerRoundTripper is an http.RoundTripper that adds custom headers to all requests
+type headerRoundTripper struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone the request to avoid modifying the original
+	newReq := req.Clone(req.Context())
+	
+	// Add custom headers
+	for key, value := range h.headers {
+		newReq.Header.Set(key, value)
+	}
+	
+	return h.base.RoundTrip(newReq)
 }
