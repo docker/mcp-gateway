@@ -36,27 +36,18 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server, refresh
 			return nil, fmt.Errorf("create messages not supported")
 		},
 		ToolListChangedHandler: func(ctx context.Context, req *mcp.ToolListChangedRequest) {
-			if refresher != nil && server != nil {
+			if refresher != nil && server != nil && serverSession != nil {
 				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
-			}
-			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/tools/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		ResourceListChangedHandler: func(ctx context.Context, req *mcp.ResourceListChangedRequest) {
-			if refresher != nil && server != nil {
+			if refresher != nil && server != nil && serverSession != nil{
 				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
-			}
-			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/resources/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		PromptListChangedHandler: func(ctx context.Context, req *mcp.PromptListChangedRequest) {
-			if refresher != nil && server != nil {
+			if refresher != nil && server != nil && serverSession != nil {
 				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
-			}
-			if serverSession != nil {
-				_ = mcp.HandleNotify(ctx, "notifications/prompts/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		ProgressNotificationHandler: func(ctx context.Context, req *mcp.ProgressNotificationClientRequest) {
