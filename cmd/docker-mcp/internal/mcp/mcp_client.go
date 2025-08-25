@@ -9,7 +9,7 @@ import (
 
 // Client interface wraps the official MCP SDK client with our legacy interface
 type Client interface {
-	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, serverSession *mcp.ServerSession, server *mcp.Server) error
+	Initialize(ctx context.Context, params *mcp.InitializeParams, debug bool, serverSession *mcp.ServerSession, server *mcp.Server, refresher CapabilityRefresher) error
 	Session() *mcp.ClientSession
 	GetClient() *mcp.Client
 	AddRoots(roots []*mcp.Root)
@@ -19,7 +19,12 @@ func newServerRequest[P mcp.Params](ss *mcp.ServerSession, params P) *mcp.Server
 	return &mcp.ServerRequest[P]{Session: ss, Params: params}
 }
 
-func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.ClientOptions {
+// CapabilityRefresher interface allows the notification handlers to refresh server capabilities
+type CapabilityRefresher interface {
+	RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error
+}
+
+func notifications(serverSession *mcp.ServerSession, server *mcp.Server, refresher CapabilityRefresher) *mcp.ClientOptions {
 	return &mcp.ClientOptions{
 		ResourceUpdatedHandler: func(ctx context.Context, req *mcp.ResourceUpdatedNotificationRequest) {
 			if server != nil {
@@ -31,16 +36,25 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server) *mcp.Cl
 			return nil, fmt.Errorf("create messages not supported")
 		},
 		ToolListChangedHandler: func(ctx context.Context, req *mcp.ToolListChangedRequest) {
+			if refresher != nil && server != nil {
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+			}
 			if serverSession != nil {
 				_ = mcp.HandleNotify(ctx, "notifications/tools/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		ResourceListChangedHandler: func(ctx context.Context, req *mcp.ResourceListChangedRequest) {
+			if refresher != nil && server != nil {
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+			}
 			if serverSession != nil {
 				_ = mcp.HandleNotify(ctx, "notifications/resources/list_changed", newServerRequest(serverSession, req.Params))
 			}
 		},
 		PromptListChangedHandler: func(ctx context.Context, req *mcp.PromptListChangedRequest) {
+			if refresher != nil && server != nil {
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+			}
 			if serverSession != nil {
 				_ = mcp.HandleNotify(ctx, "notifications/prompts/list_changed", newServerRequest(serverSession, req.Params))
 			}

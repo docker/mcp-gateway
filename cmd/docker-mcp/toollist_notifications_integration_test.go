@@ -37,8 +37,9 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 
 	dockerClient := createDockerClientForToolNotifications(t)
 	tmp := t.TempDir()
-	
-	// Use a test server that can add/remove tools dynamically
+
+	// Test that the gateway properly handles tool list change notifications and refreshes capabilities
+	// This verifies that dynamic tools added by MCP servers become visible and callable
 	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
 
 	args := []string{
@@ -49,6 +50,7 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 		"--servers=elicit",
 		"--long-lived",
 		"--verbose",
+		"--log-calls",
 	}
 
 	var notificationReceived bool
@@ -60,7 +62,7 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 		Name:    "docker-test-client",
 		Version: "1.0.0",
 	}, &mcp.ClientOptions{
-		ToolListChangedHandler: func(ctx context.Context, req *mcp.ToolListChangedRequest) {
+		ToolListChangedHandler: func(_ context.Context, req *mcp.ToolListChangedRequest) {
 			t.Logf("Tool list change notification received: %+v", req.Params)
 			mu.Lock()
 			notificationReceived = true
@@ -82,67 +84,85 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 	initialTools, err := c.ListTools(t.Context(), &mcp.ListToolsParams{})
 	require.NoError(t, err)
 	require.NotNil(t, initialTools)
-	
+
 	t.Logf("Initial tools count: %d", len(initialTools.Tools))
 	for _, tool := range initialTools.Tools {
 		t.Logf("Initial tool: %s", tool.Name)
 	}
 
-	// Trigger tool addition/removal that should cause a tool list change notification
-	// The elicit container has a tool that can trigger these changes
+	// Trigger tool addition that should cause a tool list change notification
 	response, err := c.CallTool(t.Context(), &mcp.CallToolParams{
-		Name:      "trigger_tool_change", // Assuming elicit container supports this
+		Name:      "trigger_tool_change",
 		Arguments: map[string]any{"action": "add", "toolName": "dynamic_tool"},
 	})
-	
-	// If the tool doesn't exist, try the elicit tool instead to at least verify the connection works
-	if err != nil || response.IsError {
-		t.Logf("trigger_tool_change not available, trying trigger_elicit: %v", err)
-		response, err = c.CallTool(t.Context(), &mcp.CallToolParams{
-			Name:      "trigger_elicit",
-			Arguments: map[string]any{},
-		})
-		require.NoError(t, err)
-		require.False(t, response.IsError)
-	}
+	require.NoError(t, err, "Failed to call trigger_tool_change")
+	require.False(t, response.IsError, "trigger_tool_change returned an error")
 
 	t.Logf("Tool call response: %+v", response)
 
-	// Wait for tool list change notification
+	// Log the actual content text
+	if len(response.Content) > 0 {
+		for i, content := range response.Content {
+			if textContent, ok := content.(*mcp.TextContent); ok {
+				t.Logf("Response content[%d]: %s", i, textContent.Text)
+			} else {
+				t.Logf("Response content[%d] type: %T, value: %+v", i, content, content)
+			}
+		}
+	}
+
+	// Wait for tool list change notification - this MUST happen for the test to pass
 	select {
 	case <-notificationChan:
 		t.Logf("Tool list change notification received successfully")
 		mu.Lock()
 		require.True(t, notificationReceived)
-		require.Greater(t, receivedNotificationCount, 0)
+		require.Positive(t, receivedNotificationCount)
 		mu.Unlock()
-		
-		// Verify that the tool list has actually changed
+
+		// Give RefreshCapabilities time to complete after the notification
+		t.Logf("Waiting for RefreshCapabilities to complete...")
+		time.Sleep(2 * time.Second)
+
+		// Verify that the dynamic tool now appears in the tool list after refresh
 		newTools, err := c.ListTools(t.Context(), &mcp.ListToolsParams{})
 		require.NoError(t, err)
 		require.NotNil(t, newTools)
-		
-		t.Logf("New tools count: %d", len(newTools.Tools))
+
+		t.Logf("After refresh - Tools count: %d", len(newTools.Tools))
+		dynamicToolFound := false
 		for _, tool := range newTools.Tools {
-			t.Logf("New tool: %s", tool.Name)
+			t.Logf("After refresh - Tool: %s", tool.Name)
+			if tool.Name == "dynamic_tool" {
+				dynamicToolFound = true
+			}
 		}
-		
+
+		// Ensure the dynamic tool is visible after the notification
+		require.True(t, dynamicToolFound, "Dynamic tool 'dynamic_tool' should be visible in tool list after notification")
+
+		// Verify the dynamic tool can be called
+		dynamicResponse, err := c.CallTool(t.Context(), &mcp.CallToolParams{
+			Name:      "dynamic_tool",
+			Arguments: map[string]any{},
+		})
+		require.NoError(t, err, "Failed to call dynamic tool")
+		require.False(t, dynamicResponse.IsError, "Dynamic tool call returned an error")
+
+		// Verify the response contains expected content
+		require.NotEmpty(t, dynamicResponse.Content, "Dynamic tool response should not be empty")
+		if len(dynamicResponse.Content) > 0 {
+			if textContent, ok := dynamicResponse.Content[0].(*mcp.TextContent); ok {
+				require.Contains(t, textContent.Text, "Dynamic tool 'dynamic_tool' executed", "Dynamic tool should return expected response")
+				t.Logf("Dynamic tool response: %s", textContent.Text)
+			}
+		}
+
+		t.Logf("✅ SUCCESS: Tool list change notifications are received and RefreshCapabilities updates the tool list correctly")
+		t.Logf("✅ SUCCESS: Dynamic tool support is fully functional - tools appear in ListTools and are callable")
+
 	case <-time.After(10 * time.Second):
-		t.Log("Timeout waiting for tool list change notification")
-		
-		// Check if we can at least verify the gateway is forwarding notifications properly
-		// by checking that the connection is working and the container is running
-		mu.Lock()
-		receivedCount := receivedNotificationCount
-		mu.Unlock()
-		
-		t.Logf("Received notification count: %d", receivedCount)
-		
-		// For now, if no notification is received, we can still verify the gateway setup is correct
-		// TODO: Enhance test server to reliably trigger tool list changes
-		if receivedCount == 0 {
-			t.Log("No tool list change notifications received - this may indicate the MCP server doesn't support dynamic tool changes or notifications aren't being forwarded properly")
-		}
+		t.Fatal("FAIL: Tool list change notification was not received within 10 seconds. This indicates the gateway is not properly forwarding tool list change notifications from MCP servers to clients.")
 	}
 
 	// Verify container is still running (should be long-lived)
@@ -150,7 +170,7 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=elicit")
 	require.NoError(t, err)
 	require.NotEmpty(t, containerID)
-	
+
 	t.Logf("Container %s is still running", containerID)
 }
 
@@ -159,13 +179,13 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 
 	dockerClient := createDockerClientForToolNotifications(t)
 	tmp := t.TempDir()
-	
+
 	// Set up a test scenario with multiple clients to verify notification routing
 	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
 
 	args := []string{
 		"mcp",
-		"gateway", 
+		"gateway",
 		"run",
 		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
 		"--servers=elicit",
@@ -182,7 +202,7 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 		Name:    "docker-test-client-1",
 		Version: "1.0.0",
 	}, &mcp.ClientOptions{
-		ToolListChangedHandler: func(ctx context.Context, req *mcp.ToolListChangedRequest) {
+		ToolListChangedHandler: func(_ context.Context, _ *mcp.ToolListChangedRequest) {
 			t.Logf("Client 1 - Tool list change notification received")
 			mu1.Lock()
 			client1NotificationReceived = true
@@ -223,12 +243,12 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 		mu1.Unlock()
 	case <-time.After(3 * time.Second):
 		t.Log("No notifications received by client 1 - this is expected if the MCP server doesn't trigger tool list changes")
-		
+
 		// Verify the notification handler is at least configured correctly
 		mu1.Lock()
 		notificationState := client1NotificationReceived
 		mu1.Unlock()
-		
+
 		t.Logf("Client 1 notification handler configured: %v", notificationState == false) // false means handler exists but wasn't called
 	}
 
@@ -236,6 +256,6 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 	containerID, err := dockerClient.FindContainerByLabel(t.Context(), "docker-mcp-name=elicit")
 	require.NoError(t, err)
 	require.NotEmpty(t, containerID)
-	
+
 	t.Logf("Gateway successfully routed requests to container %s", containerID)
 }

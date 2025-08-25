@@ -35,6 +35,7 @@ type clientPool struct {
 	clientLock  sync.RWMutex
 	networks    []string
 	docker      docker.Client
+	gateway     *Gateway
 }
 
 type clientConfig struct {
@@ -43,10 +44,11 @@ type clientConfig struct {
 	server        *mcp.Server
 }
 
-func newClientPool(options Options, docker docker.Client) *clientPool {
+func newClientPool(options Options, docker docker.Client, gateway *Gateway) *clientPool {
 	return &clientPool{
 		Options:     options,
 		docker:      docker,
+		gateway:     gateway,
 		keptClients: make(map[clientKey]keptClient),
 	}
 }
@@ -432,7 +434,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// defer cancel()
 
 			// TODO add initial roots
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server); err != nil {
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
 				return nil, err
 			}
 

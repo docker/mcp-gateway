@@ -231,7 +231,7 @@ func TestStdioClientInitialization(t *testing.T) {
 	clientPool := newClientPool(Options{
 		Cpus:   1,
 		Memory: "512m",
-	}, dockerClient)
+	}, dockerClient, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

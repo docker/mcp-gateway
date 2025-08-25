@@ -26,7 +26,7 @@ func NewRemoteMCPClient(config *catalog.ServerConfig) Client {
 	}
 }
 
-func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server) error {
+func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server, _ CapabilityRefresher) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}

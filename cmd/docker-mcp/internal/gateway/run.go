@@ -55,7 +55,7 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
-	return &Gateway{
+	g := &Gateway{
 		Options: config.Options,
 		docker:  docker,
 		configurator: &FileBasedConfiguration{
@@ -69,9 +69,10 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			Central:      config.Central,
 			docker:       docker,
 		},
-		clientPool:   newClientPool(config.Options, docker),
 		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
 	}
+	g.clientPool = newClientPool(config.Options, docker, g)
+	return g
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
@@ -173,7 +174,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
 
-	if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
+	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
@@ -223,7 +224,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 						continue
 					}
 
-					if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
+					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
 						continue
 					}
@@ -257,7 +258,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 }
 
-func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string) error {
+func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
 	// Which servers are enabled in the registry.yaml?
 	if len(serverNames) == 0 {
 		serverNames = configuration.ServerNames()
@@ -271,7 +272,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	// List all the available tools.
 	startList := time.Now()
 	log("- Listing MCP tools...")
-	capabilities, err := g.listCapabilities(ctx, configuration, serverNames)
+	capabilities, err := g.listCapabilities(ctx, configuration, serverNames, clientConfig)
 	if err != nil {
 		return fmt.Errorf("listing resources: %w", err)
 	}
@@ -333,6 +334,34 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	g.health.SetHealthy()
 
 	return nil
+}
+
+// RefreshCapabilities implements the CapabilityRefresher interface
+// This method updates the server's capabilities by reloading the configuration
+func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error {
+	// Get current configuration
+	configuration, _, _, err := g.configurator.Read(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to read configuration: %w", err)
+	}
+
+	// Create a clientConfig to reuse the existing session for the server that triggered the notification
+	clientConfig := &clientConfig{
+		serverSession: serverSession,
+		server:        server,
+	}
+
+	// Refresh all servers, but the clientPool will reuse the existing session for the one that matches
+	serverNames := configuration.ServerNames()
+	log("- RefreshCapabilities called for session, refreshing servers:", strings.Join(serverNames, ", "))
+
+	err = g.reloadConfiguration(ctx, configuration, serverNames, clientConfig)
+	if err != nil {
+		log("! Failed to refresh capabilities:", err)
+	} else {
+		log("- RefreshCapabilities completed successfully")
+	}
+	return err
 }
 
 // GetSessionCache returns the cached information for a server session
