@@ -4,7 +4,8 @@ long: |-
     Manage experimental features for Docker MCP Gateway.
 
     Features are stored in your Docker configuration file (~/.docker/config.json)
-    and control optional functionality that may change in future versions.
+    and control optional MCP Gateway functionality that may change in future versions.
+    These features are shared with other Docker CLI components and plugins.
 pname: docker mcp
 plink: docker_mcp.yaml
 cname:
