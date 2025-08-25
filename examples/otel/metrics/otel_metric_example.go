@@ -60,7 +60,7 @@ func main() {
 	meter := provider.Meter("example-meter")
 
 	// Create different types of metrics
-	counter, err := meter.Int64Counter("example_counter", 
+	counter, err := meter.Int64Counter("example_counter",
 		metric.WithDescription("An example counter metric"),
 		metric.WithUnit("requests"),
 	)

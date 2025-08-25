@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 
 	"github.com/docker/cli/cli/config/configfile"
@@ -39,7 +38,7 @@ func TestIsFeatureEnabledTrue(t *testing.T) {
 		"configured-catalogs": "enabled",
 	}
 
-	enabled := isFeatureEnabled(configFile2, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile2, "configured-catalogs")
 	assert.True(t, enabled)
 }
 
@@ -50,7 +49,7 @@ func TestIsFeatureEnabledFalse(t *testing.T) {
 		},
 	}
 
-	enabled := isFeatureEnabled(configFile, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile, "configured-catalogs")
 	assert.False(t, enabled)
 }
 
@@ -59,7 +58,7 @@ func TestIsFeatureEnabledMissing(t *testing.T) {
 		Features: make(map[string]string),
 	}
 
-	enabled := isFeatureEnabled(configFile, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile, "configured-catalogs")
 	assert.False(t, enabled, "missing features should default to disabled")
 }
 
@@ -70,7 +69,7 @@ func TestIsFeatureEnabledCorrupt(t *testing.T) {
 		},
 	}
 
-	enabled := isFeatureEnabled(configFile, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile, "configured-catalogs")
 	assert.False(t, enabled, "corrupted feature values should default to disabled")
 }
 
@@ -90,7 +89,7 @@ func TestEnableFeature(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify feature was enabled
-	enabled := isFeatureEnabled(configFile, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile, "configured-catalogs")
 	assert.True(t, enabled, "configured-catalogs feature should be enabled")
 }
 
@@ -112,7 +111,7 @@ func TestDisableFeature(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify feature was disabled
-	enabled := isFeatureEnabled(configFile, "configured-catalogs")
+	enabled := isFeatureEnabledFromConfig(configFile, "configured-catalogs")
 	assert.False(t, enabled, "configured-catalogs feature should be disabled")
 }
 
@@ -190,29 +189,6 @@ func listFeatures(configFile *configfile.ConfigFile) map[string]string {
 		result[k] = v
 	}
 	return result
-}
-
-func isFeatureEnabled(configFile *configfile.ConfigFile, _ string) bool {
-	if configFile.Features == nil {
-		return false
-	}
-
-	value, exists := configFile.Features["configured-catalogs"]
-	if !exists {
-		return false
-	}
-
-	// Handle both boolean string values and "enabled"/"disabled" strings
-	if value == "enabled" {
-		return true
-	}
-	if value == "disabled" {
-		return false
-	}
-
-	// Fallback to parsing as boolean
-	enabled, err := strconv.ParseBool(value)
-	return err == nil && enabled
 }
 
 // Feature error type

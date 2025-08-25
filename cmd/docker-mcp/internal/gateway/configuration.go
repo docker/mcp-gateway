@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
 )
 
 type Configurator interface {
@@ -33,8 +34,13 @@ func (c *Configuration) ServerNames() []string {
 	return c.serverNames
 }
 
-func (c *Configuration) DockerImages() []string {
+func (c *Configuration) DockerImages(provisionerType provisioners.ProvisionerType) []string {
 	uniqueDockerImages := map[string]bool{}
+
+	// Add system/infrastructure images required by the gateway
+	if provisionerType == provisioners.KubernetesProvisioner {
+		uniqueDockerImages["alpine:3.22.1"] = true // Required for POCI sidecar containers
+	}
 
 	for _, serverName := range c.serverNames {
 		serverConfig, tools, found := c.Find(serverName)

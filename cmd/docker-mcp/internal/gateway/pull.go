@@ -6,11 +6,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/provisioners"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/signatures"
 )
 
 func (g *Gateway) pullAndVerify(ctx context.Context, configuration Configuration) error {
-	dockerImages := configuration.DockerImages()
+	// Parse provisioner string to typed enum
+	provisionerType, err := provisioners.ParseProvisionerType(g.Provisioner)
+	if err != nil {
+		return fmt.Errorf("invalid provisioner type %q: %w", g.Provisioner, err)
+	}
+
+	dockerImages := configuration.DockerImages(provisionerType)
 	if len(dockerImages) == 0 {
 		return nil
 	}
