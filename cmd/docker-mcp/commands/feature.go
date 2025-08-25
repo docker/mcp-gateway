@@ -47,7 +47,7 @@ Available features:
 
 			// Validate feature name - only allow MCP Gateway managed features
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nMCP Gateway managed features:\n  configured-catalogs      Allow gateway to use user-managed catalogs\n  oauth-interceptor        Enable GitHub OAuth flow interception\n  kubernetes-provisioning  Enable Kubernetes provisioner\n\nTo manage other Docker CLI features, use the Docker CLI directly.", featureName)
+				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nMCP Gateway managed features:\n  configured-catalogs      Allow gateway to use user-managed catalogs\n  oauth-interceptor        Enable GitHub OAuth flow interception\n  kubernetes-provisioning  Enable Kubernetes provisioner\n\nTo manage other Docker CLI features, use the Docker CLI directly", featureName)
 			}
 
 			// Enable the feature
@@ -100,7 +100,7 @@ func featureDisableCommand(dockerCli command.Cli) *cobra.Command {
 
 			// Validate feature name - only allow MCP Gateway managed features
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nUse 'docker mcp feature list' to see MCP Gateway managed features.\nTo manage other Docker CLI features, use the Docker CLI directly.", featureName)
+				return fmt.Errorf("feature '%s' is not managed by MCP Gateway\n\nUse 'docker mcp feature list' to see MCP Gateway managed features.\nTo manage other Docker CLI features, use the Docker CLI directly", featureName)
 			}
 
 			// Disable the feature
