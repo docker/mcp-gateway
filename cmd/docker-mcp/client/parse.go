@@ -73,7 +73,7 @@ func UnmarshalMCPJSONList(data []byte) (*MCPJSONLists, error) {
 			}
 			cfg.SSEServers = append(cfg.SSEServers, server)
 		default:
-			fmt.Printf("unknown server type for %q\n", itemType)
+			fmt.Fprintf(os.Stderr, "unknown server type for %q\n", itemType)
 		}
 	}
 	return cfg, nil
