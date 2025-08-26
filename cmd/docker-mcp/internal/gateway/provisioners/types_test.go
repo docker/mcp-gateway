@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -89,7 +90,7 @@ func (m *mockProvisioner) PreValidateDeployment(_ context.Context, _ Provisioner
 	return nil
 }
 
-func (m *mockProvisioner) ProvisionServer(_ context.Context, _ ProvisionerSpec) (mcpclient.Client, func(), error) {
+func (m *mockProvisioner) ProvisionServer(_ context.Context, _ ProvisionerSpec, _ *mcp.ServerSession, _ *mcp.Server) (mcpclient.Client, func(), error) {
 	return nil, func() {}, nil
 }
 
@@ -118,7 +119,7 @@ func TestMockProvisioner(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test ProvisionServer
-	client, cleanup, err := provisioner.ProvisionServer(context.Background(), ProvisionerSpec{})
+	client, cleanup, err := provisioner.ProvisionServer(context.Background(), ProvisionerSpec{}, nil, nil)
 	assert.Nil(t, client)     // Mock returns nil
 	assert.NotNil(t, cleanup) // Should return a function
 	require.NoError(t, err)

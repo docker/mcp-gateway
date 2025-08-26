@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway/runtime"
 	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"

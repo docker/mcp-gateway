@@ -188,25 +188,24 @@ func (s *stdioHandleRWC) Close() error {
 	return err2
 }
 
-// createIOTransport creates an ioTransport using reflection
-// This is needed because ioTransport is not exported from the MCP SDK
+// createIOTransport creates an InMemoryTransport with our custom rwc
+// The new go-sdk structure no longer has an internal ioTransport field to modify
 func createIOTransport(rwc io.ReadWriteCloser) mcp.Transport {
-	// Create a StdioTransport and then replace its internal rwc
-	stdioTransport := mcp.NewStdioTransport()
+	// Create an InMemoryTransport and use reflection to set the unexported rwc field
+	transport := &mcp.InMemoryTransport{}
 
-	// Use reflection to access the internal ioTransport field
-	transportValue := reflect.ValueOf(stdioTransport).Elem()
-	ioTransportField := transportValue.FieldByName("ioTransport")
+	// Use reflection to set the rwc field
+	transportValue := reflect.ValueOf(transport).Elem()
+	rwcField := transportValue.FieldByName("rwc")
 
-	// Access the rwc field within ioTransport
-	ioTransportPtr := unsafe.Pointer(ioTransportField.UnsafeAddr())
-	ioTransportValue := reflect.NewAt(ioTransportField.Type(), ioTransportPtr).Elem()
-	rwcField := ioTransportValue.FieldByName("rwc")
+	if !rwcField.IsValid() {
+		panic("InMemoryTransport.rwc field not found")
+	}
 
-	// Set our custom rwc
+	// Set our custom rwc using unsafe pointer access
 	rwcPtr := unsafe.Pointer(rwcField.UnsafeAddr())
 	rwcValue := reflect.NewAt(rwcField.Type(), rwcPtr).Elem()
 	rwcValue.Set(reflect.ValueOf(rwc))
 
-	return stdioTransport
+	return transport
 }

@@ -538,8 +538,8 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// defer cancel()
 
 			// TODO add initial roots
-			//if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
-				//return nil, err
+			// if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
+			//return nil, err
 			//}
 			// Pre-validate deployment
 			if err := provisioner.PreValidateDeployment(ctx, spec); err != nil {

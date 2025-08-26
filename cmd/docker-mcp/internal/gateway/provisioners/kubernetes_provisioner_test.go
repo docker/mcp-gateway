@@ -238,7 +238,7 @@ func TestKubernetesProvisionerProvisionServer_ContainerizedFailure(t *testing.T)
 	}
 
 	ctx := context.Background()
-	client, cleanup, err := provisioner.ProvisionServer(ctx, spec)
+	client, cleanup, err := provisioner.ProvisionServer(ctx, spec, nil, nil)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to start ephemeral Kubernetes Pod")

@@ -178,7 +178,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 				Verbose:          config.Verbose,
 				SessionID:        config.SessionID,
 				// ConfigResolver and SecretManager will be injected later in reloadConfiguration
-				CapRefresher:     gateway,
+				CapRefresher: gateway,
 			})
 			provisionerMap[provisioners.KubernetesProvisioner] = kubernetesProvisioner
 			log("Created Kubernetes provisioner using shared container runtime")

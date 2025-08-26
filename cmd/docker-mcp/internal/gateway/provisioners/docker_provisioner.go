@@ -33,7 +33,7 @@ type DockerProvisionerImpl struct {
 	cpus             int
 	memory           string
 	longLived        bool
-        capRefresher     mcpclient.CapabilityRefresher
+	capRefresher     mcpclient.CapabilityRefresher
 }
 
 // DockerProvisionerConfig holds configuration for creating a Docker provisioner
