@@ -135,7 +135,7 @@ func prettyPrintBaseData(vendor string, data MCPClientCfgBase) {
 	circle := redCircle
 	nrServers := 0
 	if data.cfg != nil {
-		nrServers = len(data.cfg.STDIOServers) + len(data.cfg.SSEServers)
+		nrServers = len(data.cfg.STDIOServers) + len(data.cfg.SSEServers) + len(data.cfg.HTTPServers)
 	}
 	if nrServers > 0 {
 		circle = orangeCircle
@@ -154,6 +154,9 @@ func prettyPrintBaseData(vendor string, data MCPClientCfgBase) {
 	}
 	for _, server := range data.cfg.SSEServers {
 		fmt.Printf("   %s: %s (sse)\n", server.Name, server.String())
+	}
+	for _, server := range data.cfg.HTTPServers {
+		fmt.Printf("   %s: %s (http)\n", server.Name, server.String())
 	}
 }
 

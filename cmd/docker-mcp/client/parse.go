@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ import (
 type MCPJSONLists struct {
 	STDIOServers []MCPServerSTDIO
 	SSEServers   []MCPServerSSE
+	HTTPServers  []MCPServerHTTP
 }
 
 type MCPServerSTDIO struct {
@@ -41,7 +43,17 @@ type MCPServerSSE struct {
 	Headers map[string]string `json:"headers"`
 }
 
+type MCPServerHTTP struct {
+	Name    string            `json:"name"`
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers"`
+}
+
 func (c *MCPServerSSE) String() string {
+	return c.URL
+}
+
+func (c *MCPServerHTTP) String() string {
 	return c.URL
 }
 
@@ -56,6 +68,7 @@ func UnmarshalMCPJSONList(data []byte) (*MCPJSONLists, error) {
 	cfg := &MCPJSONLists{
 		STDIOServers: []MCPServerSTDIO{},
 		SSEServers:   []MCPServerSSE{},
+		HTTPServers:  []MCPServerHTTP{},
 	}
 	for _, raw := range temp {
 		itemType, _ := getType(raw) // type is an optional field, default to stdio if not explicitly set
@@ -72,6 +85,12 @@ func UnmarshalMCPJSONList(data []byte) (*MCPJSONLists, error) {
 				return nil, err
 			}
 			cfg.SSEServers = append(cfg.SSEServers, server)
+		case "http":
+			var server MCPServerHTTP
+			if err := json.Unmarshal(raw, &server); err != nil {
+				return nil, err
+			}
+			cfg.HTTPServers = append(cfg.HTTPServers, server)
 		default:
 			fmt.Fprintf(os.Stderr, "unknown server type for %q\n", itemType)
 		}
