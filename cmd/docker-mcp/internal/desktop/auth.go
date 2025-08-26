@@ -72,6 +72,54 @@ func (c *Tools) GetOAuthApp(ctx context.Context, app string) (OAuthApp, error) {
 	return result, err
 }
 
+// DCR (Dynamic Client Registration) Methods
+
+type RegisterDCRRequest struct {
+	ClientID            string `json:"clientId"`
+	ClientName          string `json:"clientName,omitempty"`
+	AuthorizationServer string `json:"authorizationServer,omitempty"`
+}
+
+type DCRClient struct {
+	ServerName           string `json:"serverName"`
+	ClientID            string `json:"clientId"`
+	ClientName          string `json:"clientName,omitempty"`
+	RegisteredAt        string `json:"registeredAt"` // ISO timestamp
+	AuthorizationServer string `json:"authorizationServer,omitempty"`
+}
+
+func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterDCRRequest) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr", app), req, &result)
+}
+
+func (c *Tools) GetDCRClient(ctx context.Context, app string) (*DCRClient, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result DCRClient
+	err := c.rawClient.Get(ctx, fmt.Sprintf("/apps/%s/dcr", app), &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
+	AvoidResourceSaverMode(ctx)
+
+	return c.rawClient.Delete(ctx, fmt.Sprintf("/apps/%s/dcr", app))
+}
+
+func (c *Tools) ListDCRClients(ctx context.Context) ([]DCRClient, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result []DCRClient
+	err := c.rawClient.Get(ctx, "/apps/dcr", &result)
+	return result, err
+}
+
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {
 		return ""

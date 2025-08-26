@@ -2,9 +2,7 @@ package oauth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
@@ -23,81 +21,64 @@ type CredentialStorage interface {
 	HasClientCredentials(ctx context.Context, serverName string) (bool, error)
 }
 
-// DockerDesktopStorage implements CredentialStorage using Docker Desktop's API
+// DockerDesktopStorage implements CredentialStorage using Docker Desktop's DCR API
 type DockerDesktopStorage struct {
-	client *desktop.RawClient
+	client *desktop.Tools
 }
 
 // NewDockerDesktopStorage creates a new credential storage interface
 func NewDockerDesktopStorage() CredentialStorage {
 	return &DockerDesktopStorage{
-		client: desktop.ClientBackend,
+		client: desktop.NewAuthClient(),
 	}
 }
 
-// StoreClientCredentials stores DCR client credentials via Docker Desktop
+// StoreClientCredentials stores DCR client credentials via Docker Desktop DCR API
 func (s *DockerDesktopStorage) StoreClientCredentials(ctx context.Context, serverName string, creds *ClientCredentials) error {
+	fmt.Printf("DEBUG: StoreClientCredentials called for %s with client_id: %s\n", serverName, creds.ClientID)
+	
 	if creds == nil {
+		fmt.Printf("DEBUG: Credentials are nil for %s\n", serverName)
 		return fmt.Errorf("credentials cannot be nil")
 	}
 
-	// Marshal credentials to JSON
-	data, err := json.Marshal(creds)
-	if err != nil {
-		return fmt.Errorf("failed to marshal credentials: %w", err)
+	// Create DCR registration request
+	req := desktop.RegisterDCRRequest{
+		ClientID:   creds.ClientID,
+		ClientName: fmt.Sprintf("MCP Gateway - %s", serverName),
 	}
 
-	// Create storage request for Docker Desktop
-	credentialKey := formatCredentialKey(serverName, "dcr")
-	
-	req := struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	}{
-		Key:   credentialKey,
-		Value: string(data),
-	}
+	fmt.Printf("DEBUG: Calling RegisterDCRClient with request: %+v\n", req)
 
-	// Send to Docker Desktop credential storage API
-	if err := s.client.Post(ctx, "/oauth/credentials", req, nil); err != nil {
+	// Register with Docker Desktop DCR API
+	if err := s.client.RegisterDCRClient(ctx, serverName, req); err != nil {
+		fmt.Printf("DEBUG: RegisterDCRClient failed: %v\n", err)
 		return fmt.Errorf("failed to store credentials for %s: %w", serverName, err)
 	}
 
+	fmt.Printf("DEBUG: RegisterDCRClient succeeded for %s\n", serverName)
 	return nil
 }
 
 // GetClientCredentials retrieves DCR client credentials from Docker Desktop
 func (s *DockerDesktopStorage) GetClientCredentials(ctx context.Context, serverName string) (*ClientCredentials, error) {
-	credentialKey := formatCredentialKey(serverName, "dcr")
+	fmt.Printf("DEBUG: GetClientCredentials called for %s\n", serverName)
 	
-	// Query Docker Desktop for stored credentials
-	var response struct {
-		Value string `json:"value"`
-	}
-
-	queryParams := url.Values{}
-	queryParams.Set("key", credentialKey)
-	
-	err := s.client.Get(ctx, "/oauth/credentials?"+queryParams.Encode(), &response)
+	// Get DCR client from Docker Desktop DCR API
+	dcrClient, err := s.client.GetDCRClient(ctx, serverName)
 	if err != nil {
-		// Check if it's a "not found" error
-		if isNotFoundError(err) {
-			return nil, fmt.Errorf("no credentials found for %s", serverName)
-		}
-		return nil, fmt.Errorf("failed to retrieve credentials for %s: %w", serverName, err)
+		fmt.Printf("DEBUG: GetDCRClient failed for %s: %v\n", serverName, err)
+		return nil, fmt.Errorf("no credentials found for %s: %w", serverName, err)
 	}
 
-	if response.Value == "" {
-		return nil, fmt.Errorf("empty credentials for %s", serverName)
+	fmt.Printf("DEBUG: Retrieved DCR client: %+v\n", dcrClient)
+	
+	creds := &ClientCredentials{
+		ClientID: dcrClient.ClientID,
 	}
-
-	// Unmarshal the credentials
-	var creds ClientCredentials
-	if err := json.Unmarshal([]byte(response.Value), &creds); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal credentials for %s: %w", serverName, err)
-	}
-
-	return &creds, nil
+	
+	fmt.Printf("DEBUG: Returning credentials with client_id: %s\n", creds.ClientID)
+	return creds, nil
 }
 
 // HasClientCredentials checks if client credentials exist for a server
@@ -114,50 +95,40 @@ func (s *DockerDesktopStorage) HasClientCredentials(ctx context.Context, serverN
 
 // GetOrCreateDCRCredentials gets existing DCR credentials or creates new ones via DCR
 func GetOrCreateDCRCredentials(ctx context.Context, storage CredentialStorage, discovery *OAuthDiscovery, serverName string) (*ClientCredentials, error) {
+	fmt.Printf("DEBUG: Getting or creating DCR credentials for %s\n", serverName)
+	
 	// Check if we already have credentials
 	if exists, err := storage.HasClientCredentials(ctx, serverName); err == nil && exists {
+		fmt.Printf("DEBUG: Found existing credentials for %s\n", serverName)
 		creds, err := storage.GetClientCredentials(ctx, serverName)
 		if err == nil {
+			fmt.Printf("DEBUG: Successfully retrieved existing credentials: %s\n", creds.ClientID)
 			return creds, nil
 		}
+		fmt.Printf("DEBUG: Failed to retrieve existing credentials, falling through to DCR: %v\n", err)
 		// If we can't retrieve them, fall through to DCR
+	} else {
+		fmt.Printf("DEBUG: No existing credentials found (exists=%v, err=%v)\n", exists, err)
 	}
 
 	// No existing credentials, perform DCR
+	fmt.Printf("DEBUG: Performing DCR for %s\n", serverName)
 	creds, err := PerformDCR(ctx, discovery, serverName)
 	if err != nil {
+		fmt.Printf("DEBUG: DCR failed for %s: %v\n", serverName, err)
 		return nil, fmt.Errorf("DCR failed for %s: %w", serverName, err)
 	}
 
+	fmt.Printf("DEBUG: DCR successful, got client_id: %s\n", creds.ClientID)
+
 	// Store the new credentials
+	fmt.Printf("DEBUG: Storing credentials for %s\n", serverName)
 	if err := storage.StoreClientCredentials(ctx, serverName, creds); err != nil {
 		// Log warning but don't fail - we still have the credentials
 		fmt.Printf("Warning: failed to store credentials for %s: %v\n", serverName, err)
+	} else {
+		fmt.Printf("DEBUG: Successfully stored credentials for %s\n", serverName)
 	}
 
 	return creds, nil
-}
-
-// formatCredentialKey creates a consistent key format for storing credentials
-// Format: "dcr_<server-name>" for DCR credentials
-func formatCredentialKey(serverName, credType string) string {
-	// Sanitize server name for use as a key
-	sanitized := strings.ReplaceAll(serverName, "/", "_")
-	sanitized = strings.ReplaceAll(sanitized, ":", "_")
-	sanitized = strings.ReplaceAll(sanitized, ".", "_")
-	
-	return fmt.Sprintf("%s_%s", credType, sanitized)
-}
-
-// isNotFoundError checks if an error represents a "not found" condition
-func isNotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "not found") || 
-		   strings.Contains(errStr, "404") ||
-		   strings.Contains(errStr, "no such") ||
-		   strings.Contains(errStr, "does not exist")
 }
