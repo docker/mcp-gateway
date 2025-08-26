@@ -87,9 +87,29 @@ func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes str
 		}
 	}
 
-	// For MCP Gateway-driven DCR, we need to pass the discovery metadata to Docker Desktop
-	// The server name will trigger DCR in the backend with the discovered configuration
-	// TODO: In Phase 2, we'll implement the full DCR flow here instead of delegating to Desktop
+	// PHASE 1 COMPLETE: Discovery is working ✅
+	// PHASE 2: Dynamic Client Registration (RFC 7591)
+	fmt.Printf("Registering OAuth client for %s...\n", serverName)
+	
+	// Get or create client credentials via DCR
+	storage := oauth.NewDockerDesktopStorage()
+	creds, err := oauth.GetOrCreateDCRCredentials(ctx, storage, discovery, serverName)
+	if err != nil {
+		return fmt.Errorf("failed to obtain client credentials for %s: %w", serverName, err)
+	}
+	
+	fmt.Printf("✅ OAuth client registered: %s\n", creds.ClientID)
+	
+	// PHASE 3 TODO: Generate PKCE and build authorization URL
+	// PHASE 4 TODO: Delegate to Docker Desktop for browser + token exchange
+	//
+	// NEXT STEPS:
+	//   1. Generate code_verifier and code_challenge (PKCE)
+	//   2. Build complete authorization URL with PKCE + resource parameter
+	//   3. Pass to Docker Desktop: {auth_url, code_verifier, resource_url}  
+	//   4. Docker Desktop: open browser, handle callback, exchange tokens
+	//
+	// For now, delegate to Docker Desktop (will be updated in Phase 3)
 	client := desktop.NewAuthClient()
 	authResponse, err := client.PostOAuthApp(ctx, serverName, scopes)
 	if err != nil {

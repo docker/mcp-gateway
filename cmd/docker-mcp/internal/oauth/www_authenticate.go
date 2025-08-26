@@ -7,6 +7,16 @@ import (
 )
 
 // ParseWWWAuthenticate parses a WWW-Authenticate header value according to RFC 7235
+//
+// RFC 7235 COMPLIANCE:
+// - Implements RFC 7235 Section 4.1 "WWW-Authenticate Response Header Field"
+// - Handles multiple challenges and quoted parameter values
+// - Supports auth-scheme = token | quoted-string format
+//
+// MCP SPEC INTEGRATION:
+// - Used for extracting resource_metadata parameter (RFC 9728 Section 5.1)
+// - Parses Bearer challenges for OAuth-protected MCP servers
+//
 // Example: Bearer realm="example", scope="read write", resource_metadata="https://api.example.com/.well-known/oauth-protected-resource"
 func ParseWWWAuthenticate(headerValue string) ([]WWWAuthenticateChallenge, error) {
 	if headerValue == "" {
@@ -172,9 +182,14 @@ func splitRespectingQuotes(s string, delimiter rune) []string {
 }
 
 // FindResourceMetadataURL extracts the resource_metadata URL from WWW-Authenticate challenges
+//
+// MCP SPEC COMPLIANCE:
+// - Implements RFC 9728 Section 5.1 "WWW-Authenticate Response"  
+// - Looks for resource_metadata parameter in Bearer challenges
+// - MCP Spec Section 4.1: "MCP servers MUST use the HTTP header WWW-Authenticate...to indicate the location of the resource server metadata URL"
 func FindResourceMetadataURL(challenges []WWWAuthenticateChallenge) string {
 	for _, challenge := range challenges {
-		// Look for Bearer challenges with resource_metadata parameter
+		// RFC 9728 Section 5.1: Look for Bearer challenges with resource_metadata parameter
 		if strings.EqualFold(challenge.Scheme, "Bearer") {
 			if resourceMetadata, exists := challenge.Parameters["resource_metadata"]; exists {
 				return resourceMetadata
@@ -196,12 +211,17 @@ func FindBearerRealm(challenges []WWWAuthenticateChallenge) string {
 	return ""
 }
 
-// FindRequiredScopes extracts the required scopes from Bearer challenges
+// FindRequiredScopes extracts the required scopes from Bearer challenges  
+//
+// OAUTH 2.0 COMPLIANCE:
+// - Implements OAuth 2.0 scope parameter parsing
+// - Used as fallback when scopes not specified in Protected Resource Metadata
+// - Scope values are space-separated as per OAuth 2.0 specification
 func FindRequiredScopes(challenges []WWWAuthenticateChallenge) []string {
 	for _, challenge := range challenges {
 		if strings.EqualFold(challenge.Scheme, "Bearer") {
 			if scope, exists := challenge.Parameters["scope"]; exists {
-				return strings.Fields(scope) // Split on whitespace
+				return strings.Fields(scope) // Split on whitespace per OAuth 2.0 spec
 			}
 		}
 	}
