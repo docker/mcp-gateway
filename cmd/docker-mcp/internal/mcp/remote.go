@@ -127,11 +127,9 @@ type headerRoundTripper struct {
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	newReq := req.Clone(req.Context())
-	
 	// Add custom headers
 	for key, value := range h.headers {
 		newReq.Header.Set(key, value)
 	}
-	
 	return h.base.RoundTrip(newReq)
 }
