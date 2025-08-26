@@ -100,23 +100,26 @@ func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes str
 	
 	fmt.Printf("✅ OAuth client registered: %s\n", creds.ClientID)
 	
-	// PHASE 3 TODO: Generate PKCE and build authorization URL
-	// PHASE 4 TODO: Delegate to Docker Desktop for browser + token exchange
-	//
-	// NEXT STEPS:
-	//   1. Generate code_verifier and code_challenge (PKCE)
-	//   2. Build complete authorization URL with PKCE + resource parameter
-	//   3. Pass to Docker Desktop: {auth_url, code_verifier, resource_url}  
-	//   4. Docker Desktop: open browser, handle callback, exchange tokens
-	//
-	// For now, delegate to Docker Desktop (will be updated in Phase 3)
-	client := desktop.NewAuthClient()
-	authResponse, err := client.PostOAuthApp(ctx, serverName, scopes)
+	// Phase 3: Generate PKCE and build authorization URL
+	fmt.Printf("Generating OAuth authorization URL with PKCE...\n")
+	
+	authURL, pkceFlow, err := oauth.BuildAuthorizationURL(discovery, creds.ClientID, discovery.Scopes, serverName)
 	if err != nil {
-		return fmt.Errorf("failed to authorize OAuth for %s: %w", serverName, err)
+		return fmt.Errorf("failed to build authorization URL: %w", err)
 	}
 
-	fmt.Printf("Opening your browser for OAuth authentication. If it doesn't open automatically, please visit: %s\n", authResponse.BrowserURL)
+	// Store PKCE parameters in Docker Desktop for callback handling
+	fmt.Printf("Storing PKCE parameters for OAuth callback...\n")
+	if err := storage.StorePKCEParameters(ctx, pkceFlow); err != nil {
+		return fmt.Errorf("failed to store PKCE parameters: %w", err)
+	}
+
+	// Phase 4: Open browser directly from MCP Gateway
+	fmt.Printf("Opening your browser for OAuth authentication...\n")
+	if err := oauth.OpenBrowser(authURL); err != nil {
+		fmt.Printf("Failed to open browser automatically. Please visit: %s\n", authURL)
+	}
+
 	fmt.Printf("Once authenticated, %s will have OAuth access\n", serverName)
 
 	return nil

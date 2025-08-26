@@ -120,6 +120,22 @@ func (c *Tools) ListDCRClients(ctx context.Context) ([]DCRClient, error) {
 	return result, err
 }
 
+// PKCE (Proof Key for Code Exchange) Methods
+
+type StorePKCERequest struct {
+	State        string `json:"state"`
+	CodeVerifier string `json:"codeVerifier"`
+	ResourceURL  string `json:"resourceUrl,omitempty"`
+	ServerName   string `json:"serverName,omitempty"`
+}
+
+func (c *Tools) StorePKCE(ctx context.Context, req StorePKCERequest) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, "/oauth/pkce", req, &result)
+}
+
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {
 		return ""
