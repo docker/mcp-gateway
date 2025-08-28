@@ -308,6 +308,18 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.registeredToolNames = append(g.registeredToolNames, tool.Tool.Name)
 	}
 
+	// Add internal tools when dynamic-tools feature is enabled
+	if g.DynamicTools {
+		log("- Adding internal tools (dynamic-tools feature enabled)")
+		
+		// Add mcp-find tool
+		mcpFindTool := g.createMcpFindTool(configuration)
+		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpFindTool.Tool.Name)
+		
+		log("  > mcp-find: tool for finding MCP servers in the catalog")
+	}
+
 	for _, prompt := range capabilities.Prompts {
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
 		g.registeredPromptNames = append(g.registeredPromptNames, prompt.Prompt.Name)
