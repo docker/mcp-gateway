@@ -171,3 +171,58 @@ func isOAuthInterceptorFeatureEnabledFromConfig(configFile *configfile.ConfigFil
 	}
 	return value == "enabled"
 }
+
+func TestIsDynamicToolsFeatureEnabled(t *testing.T) {
+	t.Run("enabled", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{
+				"dynamic-tools": "enabled",
+			},
+		}
+		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
+		assert.True(t, enabled, "should return true when dynamic-tools is enabled")
+	})
+
+	t.Run("disabled", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{
+				"dynamic-tools": "disabled",
+			},
+		}
+		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when dynamic-tools is disabled")
+	})
+
+	t.Run("missing", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{},
+		}
+		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when dynamic-tools is not set")
+	})
+
+	t.Run("nil config", func(t *testing.T) {
+		enabled := isDynamicToolsFeatureEnabledFromConfig(nil)
+		assert.False(t, enabled, "should return false when config is nil")
+	})
+
+	t.Run("nil features", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: nil,
+		}
+		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when features is nil")
+	})
+}
+
+// Helper function for testing (extract logic from isDynamicToolsFeatureEnabled)
+func isDynamicToolsFeatureEnabledFromConfig(configFile *configfile.ConfigFile) bool {
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+	value, exists := configFile.Features["dynamic-tools"]
+	if !exists {
+		return false
+	}
+	return value == "enabled"
+}
