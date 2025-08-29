@@ -129,19 +129,19 @@ registry:
       provider: globalping-remote
     tools:
 
-  hubspot-remote:
-    description: HubSpot MCP server for CRM operations
-    title: HubSpot MCP
-    type: server
-    dateAdded: "2025-01-15T00:00:00Z"
-    upstream: https://app.hubspot.com
-    remote:
-      url: https://app.hubspot.com/mcp/v1/http
-      transport_type: http
-    oauth:
-      enabled: true
-      provider: hubspot-remote
-    tools:
+  # hubspot-remote:
+  #   description: HubSpot MCP server for CRM operations
+  #   title: HubSpot MCP
+  #   type: server
+  #   dateAdded: "2025-01-15T00:00:00Z"
+  #   upstream: https://app.hubspot.com
+  #   remote:
+  #     url: https://app.hubspot.com/mcp/v1/http
+  #     transport_type: http
+  #   oauth:
+  #     enabled: true
+  #     provider: hubspot-remote
+  #   tools:
 
   huggingface-remote:
     description: Hugging Face MCP server for ML models
@@ -199,19 +199,19 @@ registry:
       provider: linear-remote
     tools:
 
-  listenetic-remote:
-    description: Listenetic MCP server for audio processing
-    title: Listenetic MCP
-    type: server
-    dateAdded: "2025-01-15T00:00:00Z"
-    upstream: https://mcp.listenetic.com
-    remote:
-      url: https://mcp.listenetic.com/v1/mcp
-      transport_type: streaming
-    oauth:
-      enabled: true
-      provider: listenetic-remote
-    tools:
+  # listenetic-remote:
+  #   description: Listenetic MCP server for audio processing
+  #   title: Listenetic MCP
+  #   type: server
+  #   dateAdded: "2025-01-15T00:00:00Z"
+  #   upstream: https://mcp.listenetic.com
+  #   remote:
+  #     url: https://mcp.listenetic.com/v1/mcp
+  #     transport_type: streaming
+  #   oauth:
+  #     enabled: true
+  #     provider: listenetic-remote
+  #   tools:
 
   monday-remote:
     description: Monday.com MCP server for work management
@@ -359,19 +359,19 @@ registry:
       provider: sentry-remote
     tools:
 
-  short-io-remote:
-    description: Short.io MCP server for URL shortening
-    title: Short.io MCP
-    type: server
-    dateAdded: "2025-01-15T00:00:00Z"
-    upstream: https://ai-assistant.short.io
-    remote:
-      url: https://ai-assistant.short.io/mcp
-      transport_type: streaming
-    oauth:
-      enabled: true
-      provider: short-io-remote
-    tools:
+  # short-io-remote:
+  #   description: Short.io MCP server for URL shortening
+  #   title: Short.io MCP
+  #   type: server
+  #   dateAdded: "2025-01-15T00:00:00Z"
+  #   upstream: https://ai-assistant.short.io
+  #   remote:
+  #     url: https://ai-assistant.short.io/mcp
+  #     transport_type: streaming
+  #   oauth:
+  #     enabled: true
+  #     provider: short-io-remote
+  #   tools:
 
   simplescraper-remote:
     description: SimpleScraper MCP server for web scraping
