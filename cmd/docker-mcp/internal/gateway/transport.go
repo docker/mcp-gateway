@@ -14,7 +14,7 @@ import (
 )
 
 func (g *Gateway) startStdioServer(ctx context.Context, _ io.Reader, _ io.Writer) error {
-	transport := mcp.NewStdioTransport()
+	transport := &mcp.StdioTransport{}
 	return g.mcpServer.Run(ctx, transport)
 }
 
@@ -74,7 +74,7 @@ func (g *Gateway) startCentralStreamingServer(ctx context.Context, ln net.Listen
 		lock.Lock()
 		handler := handlersPerSelectionOfServers[serverNames]
 		if handler == nil {
-			if err := g.reloadConfiguration(ctx, configuration, parseServerNames(serverNames)); err != nil {
+			if err := g.reloadConfiguration(ctx, configuration, parseServerNames(serverNames), nil); err != nil {
 				lock.Unlock()
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = io.WriteString(w, "Failed to reload configuration")

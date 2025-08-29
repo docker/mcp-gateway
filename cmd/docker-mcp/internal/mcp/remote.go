@@ -28,7 +28,7 @@ func NewRemoteMCPClient(config *catalog.ServerConfig) Client {
 	}
 }
 
-func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server) error {
+func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server, _ CapabilityRefresher) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
@@ -70,29 +70,28 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		}
 	}
 
-	// Create HTTP client with headers if needed
-	var httpClient *http.Client
-	if len(headers) > 0 {
-		httpClient = &http.Client{
-			Transport: &headerTransport{
-				headers: headers,
-				base:    http.DefaultTransport,
-			},
-		}
-	}
-
 	var mcpTransport mcp.Transport
 	var err error
 
+	// Create HTTP client with custom headers
+	httpClient := &http.Client{
+		Transport: &headerRoundTripper{
+			base:    http.DefaultTransport,
+			headers: headers,
+		},
+	}
+
 	switch strings.ToLower(transport) {
 	case "sse":
-		mcpTransport = mcp.NewSSEClientTransport(url, &mcp.SSEClientTransportOptions{
+		mcpTransport = &mcp.SSEClientTransport{
+			Endpoint:   url,
 			HTTPClient: httpClient,
-		})
+		}
 	case "http", "streamable", "streaming", "streamable-http":
-		mcpTransport = mcp.NewStreamableClientTransport(url, &mcp.StreamableClientTransportOptions{
+		mcpTransport = &mcp.StreamableClientTransport{
+			Endpoint:   url,
 			HTTPClient: httpClient,
-		})
+		}
 	default:
 		return fmt.Errorf("unsupported remote transport: %s", transport)
 	}
@@ -104,7 +103,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	c.client.AddRoots(c.roots...)
 
-	session, err := c.client.Connect(ctx, mcpTransport)
+	session, err := c.client.Connect(ctx, mcpTransport, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
@@ -132,13 +131,14 @@ func expandEnv(value string, secrets map[string]string) string {
 }
 
 func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
-	if c.config.Spec.OAuth == nil || c.config.Spec.OAuth.Provider == "" {
+	if c.config.Spec.OAuth == nil || !c.config.Spec.OAuth.Enabled {
 		return "", nil
 	}
 
-	// Get the OAuth token from pinata
+	// Get the OAuth token from pinata using server name, not provider name
+	// OAuth tokens are stored by server name (e.g., "notion-remote"), not provider name (e.g., "notion")
 	client := desktop.NewAuthClient()
-	app, err := client.GetOAuthApp(ctx, c.config.Spec.OAuth.Provider)
+	app, err := client.GetOAuthApp(ctx, c.config.Name)
 	if err != nil || !app.Authorized {
 		// Token might not exist if user hasn't authorized yet
 		return "", nil
@@ -147,37 +147,38 @@ func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
 	return app.AccessToken, nil
 }
 
-// headerTransport is a http.RoundTripper that adds headers to all requests
-type headerTransport struct {
-	headers map[string]string
+// headerRoundTripper is an http.RoundTripper that adds custom headers to all requests
+type headerRoundTripper struct {
 	base    http.RoundTripper
+	headers map[string]string
 }
 
-func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
-	req = req.Clone(req.Context())
+	newReq := req.Clone(req.Context())
 	
-	for k, v := range t.headers {
+	// Add custom headers
+	for key, value := range h.headers {
 		// Don't override Accept header if already set by streamable transport
-		if k == "Accept" && req.Header.Get("Accept") != "" {
+		if key == "Accept" && newReq.Header.Get("Accept") != "" {
 			continue
 		}
-		req.Header.Set(k, v)
+		newReq.Header.Set(key, value)
 	}
 	
 	// Ensure all requests have proper Accept headers
 	// Notion MCP server requires Accept headers to avoid HTTP 405/406 errors
-	if req.Header.Get("Accept") == "" {
-		if req.Method == "GET" {
-			req.Header.Set("Accept", "text/event-stream")
-		} else if req.Method == "POST" && req.Header.Get("Content-Type") != "" {
+	if newReq.Header.Get("Accept") == "" {
+		if newReq.Method == "GET" {
+			newReq.Header.Set("Accept", "text/event-stream")
+		} else if newReq.Method == "POST" && newReq.Header.Get("Content-Type") != "" {
 			// Only add Accept header to POST requests that have a Content-Type
 			// These are likely MCP JSON-RPC calls that need JSON responses
-			req.Header.Set("Accept", "application/json")
+			newReq.Header.Set("Accept", "application/json")
 		}
 		// Skip adding Accept headers to POST requests without Content-Type
 		// as these might be session management requests
 	}
 	
-	return t.base.RoundTrip(req)
+	return h.base.RoundTrip(newReq)
 }

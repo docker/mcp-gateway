@@ -32,7 +32,8 @@ func Test_yq_list(t *testing.T) {
 						Args:    []string{"mcp", "gateway", "run"},
 					},
 				},
-				SSEServers: []MCPServerSSE{},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
 			},
 		},
 		{
@@ -47,7 +48,8 @@ func Test_yq_list(t *testing.T) {
 						Args:    []string{"mcp", "gateway", "run"},
 					},
 				},
-				SSEServers: []MCPServerSSE{},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
 			},
 		},
 		{
@@ -65,7 +67,8 @@ func Test_yq_list(t *testing.T) {
 						Name: "my-server",
 					},
 				},
-				SSEServers: []MCPServerSSE{},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
 			},
 		},
 		{
@@ -93,6 +96,7 @@ func Test_yq_list(t *testing.T) {
 						Headers: map[string]string{"VERSION": "1.2"},
 					},
 				},
+				HTTPServers: []MCPServerHTTP{},
 			},
 		},
 	}

@@ -55,7 +55,7 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
-	return &Gateway{
+	g := &Gateway{
 		Options: config.Options,
 		docker:  docker,
 		configurator: &FileBasedConfiguration{
@@ -69,9 +69,10 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			Central:      config.Central,
 			docker:       docker,
 		},
-		clientPool:   newClientPool(config.Options, docker),
 		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
 	}
+	g.clientPool = newClientPool(config.Options, docker, g)
+	return g
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
@@ -139,27 +140,28 @@ func (g *Gateway) Run(ctx context.Context) error {
 		Name:    "Docker AI MCP Gateway",
 		Version: "2.0.1",
 	}, &mcp.ServerOptions{
-		SubscribeHandler: func(_ context.Context, _ *mcp.ServerSession, params *mcp.SubscribeParams) error {
-			log("- Client subscribed to URI:", params.URI)
+		SubscribeHandler: func(_ context.Context, req *mcp.SubscribeRequest) error {
+			log("- Client subscribed to URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in SubscribeHandler because it already
 			// keeps track of the mapping between ServerSession and subscribed resources in the Server
-			// g.subsChannel <- SubsMessage{uri: params.URI, action: subscribe , ss: ss}
+			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: subscribe , ss: ss}
 			return nil
 		},
-		UnsubscribeHandler: func(_ context.Context, _ *mcp.ServerSession, params *mcp.UnsubscribeParams) error {
-			log("- Client unsubscribed from URI:", params.URI)
+		UnsubscribeHandler: func(_ context.Context, req *mcp.UnsubscribeRequest) error {
+			log("- Client unsubscribed from URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in UnsubscribeHandler because it already
 			// keeps track of the mapping ServerSession and subscribed resources in the Server
-			// g.subsChannel <- SubsMessage{uri: params.URI, action: unsubscribe , ss: ss}
+			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: unsubscribe , ss: ss}
 			return nil
 		},
-		RootsListChangedHandler: func(ctx context.Context, ss *mcp.ServerSession, _ *mcp.RootsListChangedParams) {
-			log("- Client roots list changed: ", ss.ID())
-			g.ListRoots(ctx, ss)
+		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
+			log("- Client roots list changed")
+			// We can't get the ServerSession from the request anymore, so we'll need to handle this differently
+			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(_ context.Context, ss *mcp.ServerSession, _ *mcp.InitializedParams) {
-			log("- Client initialized: ", ss.ID())
+		InitializedHandler: func(_ context.Context, _ *mcp.InitializedRequest) {
+			log("- Client initialized")
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -167,12 +169,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 
 	// Add interceptor middleware to the server (includes telemetry)
-	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, parsedInterceptors)
+	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
 
-	if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
+	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
@@ -222,7 +224,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 						continue
 					}
 
-					if err := g.reloadConfiguration(ctx, configuration, nil); err != nil {
+					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
 						continue
 					}
@@ -256,7 +258,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 }
 
-func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string) error {
+func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
 	// Which servers are enabled in the registry.yaml?
 	if len(serverNames) == 0 {
 		serverNames = configuration.ServerNames()
@@ -270,7 +272,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	// List all the available tools.
 	startList := time.Now()
 	log("- Listing MCP tools...")
-	capabilities, err := g.listCapabilities(ctx, configuration, serverNames)
+	capabilities, err := g.listCapabilities(ctx, configuration, serverNames, clientConfig)
 	if err != nil {
 		return fmt.Errorf("listing resources: %w", err)
 	}
@@ -332,6 +334,34 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	g.health.SetHealthy()
 
 	return nil
+}
+
+// RefreshCapabilities implements the CapabilityRefresher interface
+// This method updates the server's capabilities by reloading the configuration
+func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error {
+	// Get current configuration
+	configuration, _, _, err := g.configurator.Read(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to read configuration: %w", err)
+	}
+
+	// Create a clientConfig to reuse the existing session for the server that triggered the notification
+	clientConfig := &clientConfig{
+		serverSession: serverSession,
+		server:        server,
+	}
+
+	// Refresh all servers, but the clientPool will reuse the existing session for the one that matches
+	serverNames := configuration.ServerNames()
+	log("- RefreshCapabilities called for session, refreshing servers:", strings.Join(serverNames, ", "))
+
+	err = g.reloadConfiguration(ctx, configuration, serverNames, clientConfig)
+	if err != nil {
+		log("! Failed to refresh capabilities:", err)
+	} else {
+		log("- RefreshCapabilities completed successfully")
+	}
+	return err
 }
 
 // GetSessionCache returns the cached information for a server session

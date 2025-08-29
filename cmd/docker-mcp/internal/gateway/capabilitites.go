@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/modelcontextprotocol/go-sdk/jsonschema"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/sync/errgroup"
 
@@ -42,7 +42,7 @@ type ResourceTemplateRegistration struct {
 	Handler          mcp.ResourceHandler
 }
 
-func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string) (*Capabilities, error) {
+func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
 	var (
 		lock            sync.Mutex
 		allCapabilities []Capabilities
@@ -60,7 +60,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
-				client, err := g.clientPool.AcquireClient(ctx, serverConfig, nil)
+				client, err := g.clientPool.AcquireClient(ctx, serverConfig, clientConfig)
 				if err != nil {
 					logf("  > Can't start %s: %s", serverConfig.Name, err)
 					return nil

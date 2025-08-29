@@ -74,7 +74,7 @@ func serverCommand(docker docker.Client) *cobra.Command {
 		Short: "Get information about a server",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			info, err := server.Inspect(cmd.Context(), args[0])
+			info, err := server.Inspect(cmd.Context(), docker, args[0])
 			if err != nil {
 				return err
 			}

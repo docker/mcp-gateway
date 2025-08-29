@@ -35,6 +35,7 @@ type clientPool struct {
 	clientLock  sync.RWMutex
 	networks    []string
 	docker      docker.Client
+	gateway     *Gateway
 }
 
 type clientConfig struct {
@@ -43,10 +44,11 @@ type clientConfig struct {
 	server        *mcp.Server
 }
 
-func newClientPool(options Options, docker docker.Client) *clientPool {
+func newClientPool(options Options, docker docker.Client, gateway *Gateway) *clientPool {
 	return &clientPool{
 		Options:     options,
 		docker:      docker,
+		gateway:     gateway,
 		keptClients: make(map[clientKey]keptClient),
 	}
 }
@@ -180,6 +182,14 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		args = append(args, "-v", mount)
 	}
 
+	// User
+	if tool.Container.User != "" {
+		userVal := fmt.Sprintf("%v", eval.Evaluate(tool.Container.User, arguments))
+		if userVal != "" {
+			args = append(args, "-u", userVal)
+		}
+	}
+
 	// Image
 	args = append(args, tool.Container.Image)
 
@@ -272,6 +282,7 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 		if ok {
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
 		} else {
+			logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
 		}
 	}
@@ -301,6 +312,17 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 			args = append(args, "-v", mount+":ro")
 		} else {
 			args = append(args, "-v", mount)
+		}
+	}
+
+	// User
+	if serverConfig.Spec.User != "" {
+		val := serverConfig.Spec.User
+		if strings.Contains(val, "{{") && strings.Contains(val, "}}") {
+			val = fmt.Sprintf("%v", eval.Evaluate(val, serverConfig.Config))
+		}
+		if val != "" {
+			args = append(args, "-u", val)
 		}
 	}
 
@@ -412,7 +434,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 			// defer cancel()
 
 			// TODO add initial roots
-			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server); err != nil {
+			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
 				return nil, err
 			}
 

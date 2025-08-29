@@ -13,6 +13,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-containerregistry v0.20.6
+	github.com/google/jsonschema-go v0.2.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/mikefarah/yq/v4 v4.45.4
 	github.com/modelcontextprotocol/go-sdk v0.2.0
@@ -170,4 +171,4 @@ require (
 	k8s.io/client-go v0.33.1 // indirect
 )
 
-replace github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250805181347-0789b2f03a4f
+replace github.com/modelcontextprotocol/go-sdk => github.com/slimslenderslacks/go-sdk v0.0.0-20250822220738-3d404486ee12

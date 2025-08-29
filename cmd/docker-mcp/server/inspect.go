@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 )
 
 type Info struct {
-	Tools  []any  `json:"tools"`
+	Tools  []Tool `json:"tools"`
 	Readme string `json:"readme"`
 }
 
@@ -22,7 +25,21 @@ func (s Info) ToJSON() ([]byte, error) {
 	return json.MarshalIndent(s, "", "  ")
 }
 
-func Inspect(ctx context.Context, serverName string) (Info, error) {
+type ToolArgument struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Desc string `json:"desc"`
+}
+
+type Tool struct {
+	Name        string                     `json:"name"`
+	Description string                     `json:"description"`
+	Arguments   []ToolArgument             `json:"arguments,omitempty"`
+	Annotations map[string]json.RawMessage `json:"annotations,omitempty"`
+	Enabled     bool                       `json:"enabled"`
+}
+
+func Inspect(ctx context.Context, dockerClient docker.Client, serverName string) (Info, error) {
 	catalogYAML, err := catalog.ReadCatalogFile(catalog.DockerCatalogName)
 	if err != nil {
 		return Info{}, err
@@ -39,7 +56,7 @@ func Inspect(ctx context.Context, serverName string) (Info, error) {
 	}
 
 	var (
-		tools     []any
+		tools     []Tool
 		readmeRaw []byte
 		errs      errgroup.Group
 	)
@@ -51,6 +68,27 @@ func Inspect(ctx context.Context, serverName string) (Info, error) {
 
 		if err := json.Unmarshal(toolsRaw, &tools); err != nil {
 			return err
+		}
+
+		toolsYAML, err := config.ReadTools(ctx, dockerClient)
+		if err != nil {
+			return err
+		}
+
+		toolsConfig, err := config.ParseToolsConfig(toolsYAML)
+		if err != nil {
+			return err
+		}
+
+		serverTools, exists := toolsConfig.ServerTools[serverName]
+		for i := range tools {
+			// If server is not present => all tools are enabled
+			if !exists {
+				tools[i].Enabled = true
+				continue
+			}
+			// If server is present => only listed tools are enabled
+			tools[i].Enabled = slices.Contains(serverTools, tools[i].Name)
 		}
 
 		return nil

@@ -39,22 +39,16 @@ func inferServerType(serverConfig *catalog.ServerConfig) string {
 }
 
 func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
-	return func(ctx context.Context, _ *mcp.ServerSession, params *mcp.CallToolParamsFor[map[string]any]) (*mcp.CallToolResultFor[any], error) {
-		// Convert to the generic version for our internal methods
-		genericParams := &mcp.CallToolParams{
-			Meta:      params.Meta,
-			Name:      params.Name,
-			Arguments: params.Arguments,
-		}
-		return g.clientPool.runToolContainer(ctx, tool, genericParams)
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return g.clientPool.runToolContainer(ctx, tool, req.Params)
 	}
 }
 
 func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
-	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[map[string]any]) (*mcp.CallToolResultFor[any], error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Tool call received: %s from server: %s\n", params.Name, serverConfig.Name)
+			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Tool call received: %s from server: %s\n", req.Params.Name, serverConfig.Name)
 		}
 
 		// Start telemetry span for tool call
@@ -77,7 +71,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 			spanAttrs = append(spanAttrs, attribute.String("mcp.server.endpoint", serverConfig.Spec.Remote.URL))
 		}
 
-		ctx, span := telemetry.StartToolCallSpan(ctx, params.Name, spanAttrs...)
+		ctx, span := telemetry.StartToolCallSpan(ctx, req.Params.Name, spanAttrs...)
 		defer span.End()
 
 		// Record tool call counter with server attribution
@@ -85,7 +79,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 			metric.WithAttributes(
 				attribute.String("mcp.server.name", serverConfig.Name),
 				attribute.String("mcp.server.type", serverType),
-				attribute.String("mcp.tool.name", params.Name),
+				attribute.String("mcp.tool.name", req.Params.Name),
 			),
 		)
 
@@ -94,24 +88,17 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 			readOnlyHint = &annotations.ReadOnlyHint
 		}
 
-		// Convert to the generic version for our internal methods
-		genericParams := &mcp.CallToolParams{
-			Meta:      params.Meta,
-			Name:      params.Name,
-			Arguments: params.Arguments,
-		}
-
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(readOnlyHint, ss, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(readOnlyHint, req.Session, server))
 		if err != nil {
 			// Record error in telemetry
-			telemetry.RecordToolError(ctx, span, serverConfig.Name, serverType, params.Name)
+			telemetry.RecordToolError(ctx, span, serverConfig.Name, serverType, req.Params.Name)
 			span.SetStatus(codes.Error, "Failed to acquire client")
 			return nil, err
 		}
 		defer g.clientPool.ReleaseClient(client)
 
 		// Execute the tool call
-		result, err := client.Session().CallTool(ctx, genericParams)
+		result, err := client.Session().CallTool(ctx, req.Params)
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()
@@ -119,13 +106,13 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 			metric.WithAttributes(
 				attribute.String("mcp.server.name", serverConfig.Name),
 				attribute.String("mcp.server.type", serverType),
-				attribute.String("mcp.tool.name", params.Name),
+				attribute.String("mcp.tool.name", req.Params.Name),
 			),
 		)
 
 		if err != nil {
 			// Record error in telemetry
-			telemetry.RecordToolError(ctx, span, serverConfig.Name, serverType, params.Name)
+			telemetry.RecordToolError(ctx, span, serverConfig.Name, serverType, req.Params.Name)
 			span.SetStatus(codes.Error, "Tool execution failed")
 			return nil, err
 		}
@@ -136,10 +123,10 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 }
 
 func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.PromptHandler {
-	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.GetPromptParams) (*mcp.GetPromptResult, error) {
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Prompt get received: %s from server: %s\n", params.Name, serverConfig.Name)
+			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Prompt get received: %s from server: %s\n", req.Params.Name, serverConfig.Name)
 		}
 
 		// Start telemetry span for prompt operation
@@ -162,30 +149,30 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, ser
 			spanAttrs = append(spanAttrs, attribute.String("mcp.server.endpoint", serverConfig.Spec.Remote.URL))
 		}
 
-		ctx, span := telemetry.StartPromptSpan(ctx, params.Name, spanAttrs...)
+		ctx, span := telemetry.StartPromptSpan(ctx, req.Params.Name, spanAttrs...)
 		defer span.End()
 
 		// Record prompt get counter
-		telemetry.RecordPromptGet(ctx, params.Name, serverConfig.Name)
+		telemetry.RecordPromptGet(ctx, req.Params.Name, serverConfig.Name)
 
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, ss, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
 		if err != nil {
 			span.RecordError(err)
-			telemetry.RecordPromptError(ctx, params.Name, serverConfig.Name, "acquire_failed")
+			telemetry.RecordPromptError(ctx, req.Params.Name, serverConfig.Name, "acquire_failed")
 			span.SetStatus(codes.Error, "Failed to acquire client")
 			return nil, err
 		}
 		defer g.clientPool.ReleaseClient(client)
 
-		result, err := client.Session().GetPrompt(ctx, params)
+		result, err := client.Session().GetPrompt(ctx, req.Params)
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.RecordPromptDuration(ctx, params.Name, serverConfig.Name, float64(duration))
+		telemetry.RecordPromptDuration(ctx, req.Params.Name, serverConfig.Name, float64(duration))
 
 		if err != nil {
 			span.RecordError(err)
-			telemetry.RecordPromptError(ctx, params.Name, serverConfig.Name, "execution_failed")
+			telemetry.RecordPromptError(ctx, req.Params.Name, serverConfig.Name, "execution_failed")
 			span.SetStatus(codes.Error, "Prompt execution failed")
 			return nil, err
 		}
@@ -196,10 +183,10 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, ser
 }
 
 func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.ResourceHandler {
-	return func(ctx context.Context, ss *mcp.ServerSession, params *mcp.ReadResourceParams) (*mcp.ReadResourceResult, error) {
+	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Resource read received: %s from server: %s\n", params.URI, serverConfig.Name)
+			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Resource read received: %s from server: %s\n", req.Params.URI, serverConfig.Name)
 		}
 
 		// Start telemetry span for resource operation
@@ -223,31 +210,31 @@ func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, s
 			spanAttrs = append(spanAttrs, attribute.String("mcp.server.remote_url", serverConfig.Spec.Remote.URL))
 		}
 
-		ctx, span := telemetry.StartResourceSpan(ctx, params.URI, spanAttrs...)
+		ctx, span := telemetry.StartResourceSpan(ctx, req.Params.URI, spanAttrs...)
 		defer span.End()
 
 		// Record counter with server attribution
-		telemetry.RecordResourceRead(ctx, params.URI, serverConfig.Name)
+		telemetry.RecordResourceRead(ctx, req.Params.URI, serverConfig.Name)
 
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, ss, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "Failed to acquire client")
-			telemetry.RecordResourceError(ctx, params.URI, serverConfig.Name, "acquire_failed")
+			telemetry.RecordResourceError(ctx, req.Params.URI, serverConfig.Name, "acquire_failed")
 			return nil, err
 		}
 		defer g.clientPool.ReleaseClient(client)
 
-		result, err := client.Session().ReadResource(ctx, params)
+		result, err := client.Session().ReadResource(ctx, req.Params)
 
 		// Record duration regardless of error
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.RecordResourceDuration(ctx, params.URI, serverConfig.Name, float64(duration))
+		telemetry.RecordResourceDuration(ctx, req.Params.URI, serverConfig.Name, float64(duration))
 
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "Resource read failed")
-			telemetry.RecordResourceError(ctx, params.URI, serverConfig.Name, "read_failed")
+			telemetry.RecordResourceError(ctx, req.Params.URI, serverConfig.Name, "read_failed")
 			return nil, err
 		}
 

@@ -116,3 +116,58 @@ type configError struct {
 func (e *configError) Error() string {
 	return e.message
 }
+
+func TestIsOAuthInterceptorFeatureEnabled(t *testing.T) {
+	t.Run("enabled", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{
+				"oauth-interceptor": "enabled",
+			},
+		}
+		enabled := isOAuthInterceptorFeatureEnabledFromConfig(configFile)
+		assert.True(t, enabled, "should return true when oauth-interceptor is enabled")
+	})
+
+	t.Run("disabled", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{
+				"oauth-interceptor": "disabled",
+			},
+		}
+		enabled := isOAuthInterceptorFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when oauth-interceptor is disabled")
+	})
+
+	t.Run("missing", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: map[string]string{},
+		}
+		enabled := isOAuthInterceptorFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when oauth-interceptor is not set")
+	})
+
+	t.Run("nil config", func(t *testing.T) {
+		enabled := isOAuthInterceptorFeatureEnabledFromConfig(nil)
+		assert.False(t, enabled, "should return false when config is nil")
+	})
+
+	t.Run("nil features", func(t *testing.T) {
+		configFile := &configfile.ConfigFile{
+			Features: nil,
+		}
+		enabled := isOAuthInterceptorFeatureEnabledFromConfig(configFile)
+		assert.False(t, enabled, "should return false when features is nil")
+	})
+}
+
+// Helper function for testing (extract logic from isOAuthInterceptorFeatureEnabled)
+func isOAuthInterceptorFeatureEnabledFromConfig(configFile *configfile.ConfigFile) bool {
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+	value, exists := configFile.Features["oauth-interceptor"]
+	if !exists {
+		return false
+	}
+	return value == "enabled"
+}

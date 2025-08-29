@@ -8,10 +8,7 @@ COPY go.mod go.sum ./
 COPY vendor/ ./vendor/
 
 # Copy source code
-COPY server.go ./
-
-# Add main function to make it executable
-RUN echo -e "\n\nfunc main() {\n\tserver()\n}" >> server.go
+COPY test_servers/elicit/server.go ./server.go
 
 # Build the binary using vendor directory
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o server server.go

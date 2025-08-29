@@ -32,7 +32,7 @@ func NewStdioCmdClient(name string, command string, env []string, args ...string
 	}
 }
 
-func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, debug bool, ss *mcp.ServerSession, server *mcp.Server) error {
+func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, debug bool, ss *mcp.ServerSession, server *mcp.Server, refresher CapabilityRefresher) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
@@ -44,15 +44,15 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 		cmd.Stderr = logs.NewPrefixer(os.Stderr, "- "+c.name+": ")
 	}
 
-	transport := mcp.NewCommandTransport(cmd)
+	transport := &mcp.CommandTransport{Command: cmd}
 	c.client = mcp.NewClient(&mcp.Implementation{
 		Name:    "docker-mcp-gateway",
 		Version: "1.0.0",
-	}, notifications(ss, server))
+	}, notifications(ss, server, refresher))
 
 	c.client.AddRoots(c.roots...)
 
-	session, err := c.client.Connect(ctx, transport)
+	session, err := c.client.Connect(ctx, transport, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}

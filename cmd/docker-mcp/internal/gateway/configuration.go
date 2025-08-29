@@ -397,7 +397,9 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 }
 
 func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	var secretNames []string
+	// Use a map to deduplicate secret names
+	uniqueSecretNames := make(map[string]struct{})
+
 	for _, serverName := range serverNames {
 		serverName := strings.TrimSpace(serverName)
 
@@ -407,12 +409,18 @@ func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, s
 		}
 
 		for _, s := range serverSpec.Secrets {
-			secretNames = append(secretNames, s.Name)
+			uniqueSecretNames[s.Name] = struct{}{}
 		}
 	}
 
-	if len(secretNames) == 0 {
+	if len(uniqueSecretNames) == 0 {
 		return map[string]string{}, nil
+	}
+
+	// Convert map keys to slice
+	var secretNames []string
+	for name := range uniqueSecretNames {
+		secretNames = append(secretNames, name)
 	}
 
 	log("  - Reading secrets", secretNames)

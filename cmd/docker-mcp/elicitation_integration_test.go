@@ -54,19 +54,19 @@ func TestIntegrationWithElicitation(t *testing.T) {
 		Name:    "docker",
 		Version: "1.0.0",
 	}, &mcp.ClientOptions{
-		ElicitationHandler: func(_ context.Context, _ *mcp.ClientSession, params *mcp.ElicitParams) (*mcp.ElicitResult, error) {
-			t.Logf("Elicitation handler called with message: %s", params.Message)
-			elicitedMessage = params.Message
+		ElicitationHandler: func(_ context.Context, req *mcp.ElicitRequest) (*mcp.ElicitResult, error) {
+			t.Logf("Elicitation handler called with message: %s", req.Params.Message)
+			elicitedMessage = req.Params.Message
 			elicitationReceived <- true
 			return &mcp.ElicitResult{
 				Action:  "accept",
-				Content: map[string]any{"response": params.Message},
+				Content: map[string]any{"response": req.Params.Message},
 			}, nil
 		},
 	})
 
-	transport := mcp.NewCommandTransport(exec.CommandContext(context.TODO(), "docker", args...))
-	c, err := client.Connect(context.TODO(), transport)
+	transport := &mcp.CommandTransport{Command: exec.CommandContext(context.TODO(), "docker", args...)}
+	c, err := client.Connect(context.TODO(), transport, nil)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

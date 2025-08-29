@@ -22,6 +22,7 @@ type Server struct {
 	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
 	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
 	Volumes        []string `yaml:"volumes,omitempty" json:"volumes,omitempty"`
+	User           string   `yaml:"user,omitempty" json:"user,omitempty"`
 	DisableNetwork bool     `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
 	AllowHosts     []string `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
 	Tools          []Tool   `yaml:"tools,omitempty" json:"tools,omitempty"`
@@ -96,6 +97,7 @@ type Container struct {
 	Image   string   `yaml:"image" json:"image"`
 	Command []string `yaml:"command" json:"command"`
 	Volumes []string `yaml:"volumes" json:"volumes"`
+	User    string   `yaml:"user,omitempty" json:"user,omitempty"`
 }
 
 func (p *Properties) ToMap() map[string]any {

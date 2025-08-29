@@ -18,7 +18,7 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 
 	client := desktop.NewAuthClient()
 
-	authResponse, err := client.PostOAuthApp(ctx, app, scopes)
+	authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)
 	if err != nil {
 		return err
 	}

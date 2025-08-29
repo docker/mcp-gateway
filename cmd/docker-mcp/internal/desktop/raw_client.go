@@ -79,17 +79,23 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	buf, err := json.Marshal(v)
+	var body io.Reader
+	if v != nil {
+		buf, err := json.Marshal(v)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(buf)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost"+endpoint, body)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost"+endpoint, bytes.NewReader(buf))
-	if err != nil {
-		return err
+	if v != nil {
+		req.Header.Set("Content-Type", "application/json")
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 
 	response, err := c.client().Do(req)
 	if err != nil {
@@ -102,12 +108,12 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 		return err
 	}
 
-	buf, err = io.ReadAll(response.Body)
+	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(buf, result); err != nil {
+	if err := json.Unmarshal(buf, &result); err != nil {
 		return err
 	}
 	return nil

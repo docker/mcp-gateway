@@ -1,0 +1,23 @@
+version: 2
+name: remote-mcp-catalog
+displayName: Remote MCP Server Catalog
+registry:
+  notion-remote:
+    description: Remote Notion MCP server for accessing Notion workspaces via streaming transport
+    title: Notion Remote MCP
+    type: server
+    dateAdded: "2024-01-15T00:00:00Z"
+    readme: https://developers.notion.com/docs/mcp-supported-tools
+    upstream: https://mcp.notion.com
+    icon: https://www.notion.so/images/favicon.ico
+    remote:
+      url: https://mcp.notion.com/mcp
+      transport_type: streaming
+    oauth:
+      enabled: true
+      provider: notion-remote
+      scopes:
+        - read_content
+        - read_user
+        - read_database
+    tools:

@@ -24,12 +24,18 @@ func Test_UnmarshalMCPJSONList(t *testing.T) {
    "name": "my-server",
    "type": "stdio"
  },
-	{
-     "name":"my-remote-server",
-     "type": "sse",
-     "url": "http://api.contoso.com/sse",
-     "headers": { "VERSION": "1.2" }
-   }
+ {
+   "name":"my-remote-server",
+   "type": "sse",
+   "url": "http://api.contoso.com/sse",
+   "headers": { "VERSION": "1.2" }
+ },
+ {
+   "name":"my-remote-server",
+   "type": "http",
+   "url": "http://api.contoso.com/http",
+   "headers": { "VERSION": "1.2" }
+ }
 ]`,
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -37,6 +43,9 @@ func Test_UnmarshalMCPJSONList(t *testing.T) {
 				},
 				SSEServers: []MCPServerSSE{
 					{Name: "my-remote-server", URL: "http://api.contoso.com/sse", Headers: map[string]string{"VERSION": "1.2"}},
+				},
+				HTTPServers: []MCPServerHTTP{
+					{Name: "my-remote-server", URL: "http://api.contoso.com/http", Headers: map[string]string{"VERSION": "1.2"}},
 				},
 			},
 		},

@@ -21,7 +21,7 @@ This creates a YAML file with real server definitions that you can:
 
 ## Feature Activation
 
-Custom catalog functionality requires enabling the `configured-catalogs` feature:
+Custom catalogs can be managed by enabling the `configured-catalogs` feature:
 
 ```bash
 # Enable the feature
