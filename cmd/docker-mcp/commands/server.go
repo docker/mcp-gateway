@@ -9,6 +9,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 )
 
@@ -68,6 +69,29 @@ func serverCommand(docker docker.Client) *cobra.Command {
 			return server.Disable(cmd.Context(), docker, args)
 		},
 	})
+
+	var pushFlag bool
+	importCommand := &cobra.Command{
+		Use:   "import",
+		Short: "Import a server",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			push, _ := cmd.Flags().GetBool("push")
+			return server.Import(args[0], args[1], push)
+		},
+	}
+	importCommand.Flags().BoolVar(&pushFlag, "push", false, "push the new server artifact")
+	cmd.AddCommand(importCommand)
+
+	catCmd := &cobra.Command{
+		Use:   "cat <oci-reference>",
+		Short: "inspect an OCI artifact and display its layer contents",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return oci.InspectArtifact(args[0])
+		},
+	}
+	cmd.AddCommand(catCmd)
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "inspect",
