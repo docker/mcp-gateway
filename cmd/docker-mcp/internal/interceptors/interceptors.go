@@ -186,7 +186,11 @@ func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, erro
 		return nil, fmt.Errorf("preparing HTTP request: %w", err)
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	client := &http.Client{
+		Transport: http.DefaultTransport,
+	}
+
+	response, err := client.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("making HTTP request: %w", err)
 	}

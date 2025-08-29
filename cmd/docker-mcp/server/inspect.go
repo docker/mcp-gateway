@@ -119,7 +119,11 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{
+		Transport: http.DefaultTransport,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
