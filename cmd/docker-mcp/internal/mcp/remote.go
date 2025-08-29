@@ -3,7 +3,6 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -158,41 +157,27 @@ func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	req = req.Clone(req.Context())
 	
-	log.Printf("DEBUG: HeaderTransport - Request to %s", req.URL)
-	log.Printf("DEBUG: HeaderTransport - Original headers: %v", req.Header)
-	log.Printf("DEBUG: HeaderTransport - Adding headers: %v", t.headers)
-	
 	for k, v := range t.headers {
 		// Don't override Accept header if already set by streamable transport
 		if k == "Accept" && req.Header.Get("Accept") != "" {
-			log.Printf("DEBUG: HeaderTransport - Skipping Accept header (already set to: %s)", req.Header.Get("Accept"))
 			continue
 		}
 		req.Header.Set(k, v)
 	}
 	
-	// Ensure GET requests for SSE streams have the Accept header
-	// Notion requires this for all GET requests to avoid HTTP 405
-	if req.Method == "GET" {
-		if req.Header.Get("Accept") == "" {
+	// Ensure all requests have proper Accept headers
+	// Notion MCP server requires Accept headers to avoid HTTP 405/406 errors
+	if req.Header.Get("Accept") == "" {
+		if req.Method == "GET" {
 			req.Header.Set("Accept", "text/event-stream")
-			log.Printf("DEBUG: HeaderTransport - Added Accept header for GET request: text/event-stream")
-		} else {
-			log.Printf("DEBUG: HeaderTransport - GET request already has Accept header: %s", req.Header.Get("Accept"))
+		} else if req.Method == "POST" && req.Header.Get("Content-Type") != "" {
+			// Only add Accept header to POST requests that have a Content-Type
+			// These are likely MCP JSON-RPC calls that need JSON responses
+			req.Header.Set("Accept", "application/json")
 		}
+		// Skip adding Accept headers to POST requests without Content-Type
+		// as these might be session management requests
 	}
 	
-	log.Printf("DEBUG: HeaderTransport - Final request headers: %v", req.Header)
-	
-	resp, err := t.base.RoundTrip(req)
-	if err != nil {
-		log.Printf("DEBUG: HeaderTransport - Request failed: %v", err)
-		return resp, err
-	}
-	
-	log.Printf("DEBUG: HeaderTransport - Response status: %d", resp.StatusCode)
-	log.Printf("DEBUG: HeaderTransport - Response headers: %v", resp.Header)
-	log.Printf("DEBUG: HeaderTransport - Content-Type: %s", resp.Header.Get("Content-Type"))
-	
-	return resp, nil
+	return t.base.RoundTrip(req)
 }
