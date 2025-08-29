@@ -10,6 +10,8 @@ This example demonstrates that the MCP catalog commands work correctly through a
 
 ## Setup
 
+Make sure you have coreutils installed if you're on Mac: `brew install coreutils`
+
 The test uses:
 - **Squid proxy** running on port 3128
 - **Test scripts** that configure proxy environment variables
