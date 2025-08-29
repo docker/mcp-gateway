@@ -53,40 +53,40 @@ func BuildAuthorizationURL(discovery *OAuthDiscovery, clientID string, scopes []
 	if discovery.AuthorizationEndpoint == "" {
 		return "", nil, fmt.Errorf("no authorization endpoint found")
 	}
-	
+
 	if clientID == "" {
 		return "", nil, fmt.Errorf("client ID is required")
 	}
-	
+
 	// Generate PKCE parameters
 	verifier := GenerateCodeVerifier()
 	challenge := GenerateS256Challenge(verifier)
 	state := GenerateState()
-	
+
 	// Build OAuth parameters
 	params := url.Values{}
 	params.Set("client_id", clientID)
 	params.Set("response_type", "code")
-	params.Set("redirect_uri", "http://localhost:8080/oauth/callback") // mcp-oauth callback
+	params.Set("redirect_uri", "http://mcp.docker.com/oauth/callback") // mcp-oauth callback
 	params.Set("state", state)
-	
+
 	// PKCE parameters (OAuth 2.1 MUST requirement for public clients)
 	params.Set("code_challenge", challenge)
 	params.Set("code_challenge_method", "S256") // Strongest available method
-	
+
 	// Resource parameter (RFC 8707 for token audience binding)
 	if discovery.ResourceURL != "" {
 		params.Set("resource", discovery.ResourceURL)
 	}
-	
+
 	// Add scopes if provided
 	if len(scopes) > 0 {
 		params.Set("scope", strings.Join(scopes, " "))
 	}
-	
+
 	// Build complete authorization URL
 	authURL := discovery.AuthorizationEndpoint + "?" + params.Encode()
-	
+
 	// Create PKCE flow object
 	pkceFlow := &PKCEFlow{
 		State:        state,
@@ -94,7 +94,7 @@ func BuildAuthorizationURL(discovery *OAuthDiscovery, clientID string, scopes []
 		ResourceURL:  discovery.ResourceURL,
 		ServerName:   serverName,
 	}
-	
+
 	return authURL, pkceFlow, nil
 }
 
@@ -102,7 +102,7 @@ func BuildAuthorizationURL(discovery *OAuthDiscovery, clientID string, scopes []
 func OpenBrowser(url string) error {
 	var cmd string
 	var args []string
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		cmd = "cmd"
@@ -113,6 +113,6 @@ func OpenBrowser(url string) error {
 		cmd = "xdg-open"
 	}
 	args = append(args, url)
-	
+
 	return exec.Command(cmd, args...).Start()
 }
