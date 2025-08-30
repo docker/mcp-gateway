@@ -15,6 +15,7 @@ type Options struct {
 	Transport               string
 	ToolNames               []string
 	Interceptors            []string
+	OciRef                  []string
 	Verbose                 bool
 	LongLived               bool
 	DebugDNS                bool
