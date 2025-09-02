@@ -206,7 +206,7 @@ func isProxyReady(proxyDir string) bool {
 func clearCatalogCache(t *testing.T) {
 	t.Helper()
 
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir() //nolint:forbidigo
 	if err != nil {
 		return // Skip if we can't get home dir
 	}
