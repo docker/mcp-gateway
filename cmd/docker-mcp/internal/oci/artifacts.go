@@ -13,8 +13,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/static"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/opencontainers/go-digest"
-	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/image-spec/specs-go"
+	oci "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const MCPServerArtifactType = "application/vnd.docker.mcp.server"
@@ -47,7 +47,7 @@ func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subje
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal catalog: %w", err)
 	}
-	
+
 	// Create empty config blob
 	emptyConfig := []byte("{}")
 	configDigest := digest.FromBytes(emptyConfig)
@@ -106,23 +106,23 @@ func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subje
 		// Calculate and output the manifest digest
 		manifestDigest := sha256.Sum256(manifestBytes)
 		return fmt.Sprintf("%x", manifestDigest), nil
-	} else {
-		// Store locally using the store package
-		// Note: For local storage, we only need the manifest since the store
-		// handles the artifact metadata, not the actual blob storage
-		fmt.Printf("Storing artifact locally (not pushing to registry)\n")
 	}
+
+	// Store locally using the store package
+	// Note: For local storage, we only need the manifest since the store
+	// handles the artifact metadata, not the actual blob storage
+	fmt.Printf("Storing artifact locally (not pushing to registry)\n")
 
 	return "", nil
 }
 
-func uploadBlob(ref name.Reference, data []byte, digest digest.Digest) error {
+func uploadBlob(ref name.Reference, data []byte, _ digest.Digest) error {
 	// Use go-containerregistry's blob upload mechanism
 	repo := ref.Context()
-	
+
 	// Create a layer with the data
 	layer := static.NewLayer(data, types.MediaType("application/octet-stream"))
-	
+
 	// Write the layer (blob) to the repository with authentication
 	return remote.WriteLayer(repo, layer, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 }
@@ -173,7 +173,7 @@ func (c *customManifest) Manifest() (*v1.Manifest, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create basic manifest structure that go-containerregistry expects
 	// Note: This is a simplified conversion - the subject field won't be preserved
 	// in the go-containerregistry v1.Manifest type, but the raw manifest will contain it
@@ -181,7 +181,7 @@ func (c *customManifest) Manifest() (*v1.Manifest, error) {
 		SchemaVersion: int64(ociManifest.SchemaVersion),
 		MediaType:     types.MediaType(ociManifest.MediaType),
 	}
-	
+
 	// Convert config descriptor
 	configHash, _ := v1.NewHash(ociManifest.Config.Digest.String())
 	manifest.Config = v1.Descriptor{
@@ -189,7 +189,7 @@ func (c *customManifest) Manifest() (*v1.Manifest, error) {
 		Size:      ociManifest.Config.Size,
 		Digest:    configHash,
 	}
-	
+
 	// Convert layer descriptors
 	for _, layer := range ociManifest.Layers {
 		layerHash, _ := v1.NewHash(layer.Digest.String())
@@ -199,7 +199,7 @@ func (c *customManifest) Manifest() (*v1.Manifest, error) {
 			Digest:    layerHash,
 		})
 	}
-	
+
 	return manifest, nil
 }
 
@@ -292,4 +292,3 @@ func InspectArtifact(ociRef string) error {
 	fmt.Printf("%s\n", string(prettyJSON))
 	return nil
 }
-

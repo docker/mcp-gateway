@@ -96,7 +96,7 @@ type FileBasedConfiguration struct {
 	RegistryPath []string
 	ConfigPath   []string
 	ToolsPath    []string
-	SecretsPath  string // Optional, if not set, use Docker Desktop's secrets API
+	SecretsPath  string   // Optional, if not set, use Docker Desktop's secrets API
 	OciRef       []string // OCI references to fetch server definitions from
 	Watch        bool
 	Central      bool
@@ -246,7 +246,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 			log(fmt.Sprintf("Warning: server '%s' from OCI reference overwrites server from catalog", serverName))
 		}
 		servers[serverName] = server
-		
+
 		// Add to serverNames list if not already present
 		found := false
 		for _, existing := range serverNames {
@@ -493,48 +493,44 @@ func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path s
 }
 
 // readServersFromOci fetches and parses server definitions from OCI references
-func (c *FileBasedConfiguration) readServersFromOci(ctx context.Context) (map[string]catalog.Server, error) {
+func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[string]catalog.Server, error) {
 	ociServers := make(map[string]catalog.Server)
-	
+
 	if len(c.OciRef) == 0 {
 		return ociServers, nil
 	}
-	
+
 	log("  - Reading servers from OCI references", c.OciRef)
-	
+
 	for _, ociRef := range c.OciRef {
 		if ociRef == "" {
 			continue
 		}
-		
+
 		// Use the existing oci.ReadArtifact function to get the Catalog data
 		ociCatalog, err := oci.ReadArtifact(ociRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
 		}
-		
+
 		// Process each server in the OCI catalog registry
 		for i, ociServer := range ociCatalog.Registry {
-			// Each oci.Server contains raw JSON data that we need to unmarshal to catalog.Server
-			var server catalog.Server
-			if err := json.Unmarshal(ociServer.Data, &server); err != nil {
+			// Unmarshal the raw JSON data into an oci.ServerDetail
+			var serverDetail oci.ServerDetail
+			if err := json.Unmarshal(ociServer.Data, &serverDetail); err != nil {
 				log(fmt.Sprintf("Warning: failed to parse server %d from OCI reference %s: %v", i, ociRef, err))
 				continue
 			}
-			
-			// Generate a server name based on the index if not provided in the data
-			serverName := fmt.Sprintf("oci-server-%d", i)
-			
-			// Try to extract a name from the server data if available
-			var serverData map[string]interface{}
-			if err := json.Unmarshal(ociServer.Data, &serverData); err == nil {
-				if name, ok := serverData["name"].(string); ok && name != "" {
-					serverName = name
-				} else if identifier, ok := serverData["identifier"].(string); ok && identifier != "" {
-					serverName = identifier
-				}
+
+			// Transform ServerDetail to catalog.Server using the ToCatalogServer method
+			server := serverDetail.ToCatalogServer()
+
+			// Use the name from the ServerDetail if available, otherwise generate one
+			serverName := serverDetail.Name
+			if serverName == "" {
+				serverName = fmt.Sprintf("oci-server-%d", i)
 			}
-			
+
 			if _, exists := ociServers[serverName]; exists {
 				log(fmt.Sprintf("Warning: overlapping server '%s' found in OCI reference '%s', overwriting previous value", serverName, ociRef))
 			}
@@ -542,6 +538,6 @@ func (c *FileBasedConfiguration) readServersFromOci(ctx context.Context) (map[st
 			log(fmt.Sprintf("  - Added server '%s' from OCI reference %s", serverName, ociRef))
 		}
 	}
-	
+
 	return ociServers, nil
 }

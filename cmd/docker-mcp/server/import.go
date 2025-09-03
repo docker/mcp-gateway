@@ -1,20 +1,22 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
 
-func Import(registryUrl string, ociRepository string, push bool) error {
-	if registryUrl == "" {
+func Import(registryURL string, ociRepository string, push bool) error {
+	if registryURL == "" {
 		return fmt.Errorf("registry URL is required")
 	}
 	if ociRepository == "" {
@@ -26,9 +28,14 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 		Timeout: 30 * time.Second,
 	}
 
-	resp, err := client.Get(registryUrl)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
 	if err != nil {
-		return fmt.Errorf("failed to fetch JSON from %s: %w", registryUrl, err)
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch JSON from %s: %w", registryURL, err)
 	}
 	defer resp.Body.Close()
 
@@ -42,7 +49,7 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 	}
 
 	// Pretty print the JSON content
-	var jsonData interface{}
+	var jsonData any
 	if err := json.Unmarshal(jsonContent, &jsonData); err != nil {
 		fmt.Printf("Warning: Failed to parse JSON for pretty printing: %v\n", err)
 		fmt.Printf("Raw JSON content:\n%s\n", string(jsonContent))
@@ -51,19 +58,19 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 		if err != nil {
 			fmt.Printf("Warning: Failed to format JSON: %v\n", err)
 			fmt.Printf("Raw JSON content:\n%s\n", string(jsonContent))
-		} 
+		}
 	}
 
 	// Parse packages from JSON data
-	var dockerPackages []map[string]interface{}
-	if jsonMap, ok := jsonData.(map[string]interface{}); ok {
+	var dockerPackages []map[string]any
+	if jsonMap, ok := jsonData.(map[string]any); ok {
 		if serverInterface, exists := jsonMap["server"]; exists {
-			if serverMap, ok := serverInterface.(map[string]interface{}); ok {
+			if serverMap, ok := serverInterface.(map[string]any); ok {
 				if packagesInterface, exists := serverMap["packages"]; exists {
-					if packages, ok := packagesInterface.([]interface{}); ok {
+					if packages, ok := packagesInterface.([]any); ok {
 						// Filter packages with registry_type=docker
 						for _, pkg := range packages {
-							if pkgMap, ok := pkg.(map[string]interface{}); ok {
+							if pkgMap, ok := pkg.(map[string]any); ok {
 								if registryName, exists := pkgMap["registry_type"]; exists {
 									if registryName == "docker" {
 										dockerPackages = append(dockerPackages, pkgMap)
@@ -82,18 +89,18 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 	for _, pkg := range dockerPackages {
 		nameVal, hasName := pkg["identifier"]
 		versionVal, hasVersion := pkg["version"]
-		
+
 		if !hasName || !hasVersion {
 			fmt.Printf("Warning: Package missing name or version: %v\n", pkg)
 			continue
 		}
-		
+
 		nameStr, ok := nameVal.(string)
 		if !ok {
 			fmt.Printf("Warning: Package name is not a string: %v\n", nameVal)
 			continue
 		}
-		
+
 		versionStr, ok := versionVal.(string)
 		if !ok {
 			fmt.Printf("Warning: Package version is not a string: %v\n", versionVal)
@@ -107,7 +114,7 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 			fmt.Printf("Warning: Failed to parse OCI reference %s: %v\n", refStr, err)
 			continue
 		}
-		
+
 		ociReferences = append(ociReferences, ref)
 	}
 
@@ -148,4 +155,3 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 
 	return nil
 }
-

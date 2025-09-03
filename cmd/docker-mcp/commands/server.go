@@ -89,14 +89,14 @@ func serverCommand(docker docker.Client) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			arg := args[0]
-			
+
 			// Check if the argument looks like an OCI reference
 			// OCI refs typically contain a registry/repository pattern with optional tag or digest
 			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
 				// Use OCI inspect for OCI references
 				return oci.InspectArtifact(arg)
 			}
-			
+
 			// Use regular server inspect for server names
 			info, err := server.Inspect(cmd.Context(), docker, arg)
 			if err != nil {
