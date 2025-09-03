@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
@@ -29,98 +30,107 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 }
 
 func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes string) error {
-	// Get the catalog including user-configured catalogs
+	client := desktop.NewAuthClient()
+
+	// Check if DCR client exists (should exist after server enable)
+	dcrClient, err := client.GetDCRClient(ctx, serverName)
+	if err != nil {
+		// Fallback: DCR client doesn't exist, suggest server enable
+		fmt.Printf("⚠️ OAuth not set up for %s.\n", serverName)
+		fmt.Printf("Run 'docker mcp server enable %s' to set up OAuth automatically.\n", serverName)
+		return fmt.Errorf("DCR client not found for %s: %w", serverName, err)
+	}
+
+	fmt.Printf("🔐 Starting OAuth authorization for %s...\n", serverName)
+	fmt.Printf("   Using existing client: %s\n", dcrClient.ClientID)
+
+	// Generate PKCE parameters for this authorization flow
+	fmt.Printf("🔧 Generating PKCE parameters...\n")
+	codeVerifier := oauth.GenerateCodeVerifier()
+	state := oauth.GenerateState()
+
+	// Store PKCE parameters with server context
+	pkceParams := desktop.StorePKCERequest{
+		State:        state,
+		CodeVerifier: codeVerifier,
+		ServerName:   serverName,
+	}
+	
+	// Get catalog to find resource URL for proper token scoping (RFC 8707)
 	cat, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 
 	server, found := cat.Servers[serverName]
-	if !found {
-		return fmt.Errorf("server %s not found in catalog", serverName)
-	}
-
-	// Validate server has remote URL
-	serverURL := server.Remote.URL
-	if serverURL == "" {
-		// Fallback to deprecated SSEEndpoint
-		serverURL = server.SSEEndpoint
-		if serverURL == "" {
-			return fmt.Errorf("server %s has no remote URL configured", serverName)
+	if found {
+		if server.Remote.URL != "" {
+			pkceParams.ResourceURL = server.Remote.URL
+		} else if server.SSEEndpoint != "" {
+			pkceParams.ResourceURL = server.SSEEndpoint
 		}
 	}
 
-	// Phase 1: Discover OAuth requirements
-	fmt.Printf("Discovering OAuth requirements for %s...\n", serverName)
-	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
-	if err != nil {
-		return fmt.Errorf("failed to discover OAuth requirements: %w", err)
+	// Store PKCE parameters in Docker Desktop
+	if err := client.StorePKCE(ctx, pkceParams); err != nil {
+		return fmt.Errorf("failed to store PKCE parameters: %w", err)
 	}
 
-	// If server doesn't require OAuth, inform user
-	if !discovery.RequiresOAuth {
-		fmt.Printf("Server %s does not require OAuth authentication\n", serverName)
-		return nil
-	}
-
-	fmt.Printf("OAuth required for %s\n", serverName)
-	fmt.Printf("Authorization Server: %s\n", discovery.AuthorizationServer)
-	if len(discovery.Scopes) > 0 {
-		fmt.Printf("Required Scopes: %s\n", strings.Join(discovery.Scopes, " "))
-	}
-
-	// Use discovered scopes if not provided by user
-	if scopes == "" && len(discovery.Scopes) > 0 {
-		scopes = strings.Join(discovery.Scopes, " ")
-	}
-
-	// Check if server has static OAuth configuration (for backward compatibility)
-	if server.OAuth != nil && server.OAuth.Enabled {
-		provider := server.OAuth.Provider
-		if provider != "" {
-			fmt.Printf("Using configured OAuth provider: %s\n", provider)
-		}
-		
-		// Use server's configured scopes if not already set
-		if scopes == "" && len(server.OAuth.Scopes) > 0 {
-			scopes = strings.Join(server.OAuth.Scopes, " ")
-		}
-	}
-
-	// PHASE 1 COMPLETE: Discovery is working ✅
-	// PHASE 2: Dynamic Client Registration (RFC 7591)
-	fmt.Printf("Registering OAuth client for %s...\n", serverName)
-	
-	// Get or create client credentials via DCR
-	storage := oauth.NewDockerDesktopStorage()
-	creds, err := oauth.GetOrCreateDCRCredentials(ctx, storage, discovery, serverName)
-	if err != nil {
-		return fmt.Errorf("failed to obtain client credentials for %s: %w", serverName, err)
-	}
-	
-	fmt.Printf("✅ OAuth client registered: %s\n", creds.ClientID)
-	
-	// Phase 3: Generate PKCE and build authorization URL
-	fmt.Printf("Generating OAuth authorization URL with PKCE...\n")
-	
-	authURL, pkceFlow, err := oauth.BuildAuthorizationURL(discovery, creds.ClientID, discovery.Scopes, serverName)
+	// Build authorization URL using stored DCR client
+	authURL, err := buildAuthorizationURLFromDCRClient(*dcrClient, state, codeVerifier, pkceParams.ResourceURL, strings.Fields(scopes))
 	if err != nil {
 		return fmt.Errorf("failed to build authorization URL: %w", err)
 	}
 
-	// Store PKCE parameters in Docker Desktop for callback handling
-	fmt.Printf("Storing PKCE parameters for OAuth callback...\n")
-	if err := storage.StorePKCEParameters(ctx, pkceFlow); err != nil {
-		return fmt.Errorf("failed to store PKCE parameters: %w", err)
-	}
-
-	// Phase 4: Open browser directly from MCP Gateway
-	fmt.Printf("Opening your browser for OAuth authentication...\n")
+	// Open browser for OAuth flow
+	fmt.Printf("🌐 Opening browser for OAuth authentication...\n")
 	if err := oauth.OpenBrowser(authURL); err != nil {
 		fmt.Printf("Failed to open browser automatically. Please visit: %s\n", authURL)
+	} else {
+		fmt.Printf("If the browser doesn't open, visit: %s\n", authURL)
 	}
 
-	fmt.Printf("Once authenticated, %s will have OAuth access\n", serverName)
+	fmt.Printf("✅ Once authenticated, %s will be ready for use\n", serverName)
 
 	return nil
+}
+
+// buildAuthorizationURLFromDCRClient builds OAuth authorization URL using stored DCR client
+func buildAuthorizationURLFromDCRClient(dcrClient desktop.DCRClient, state, codeVerifier, resourceURL string, scopes []string) (string, error) {
+	if dcrClient.AuthorizationEndpoint == "" {
+		return "", fmt.Errorf("DCR client missing authorization endpoint")
+	}
+
+	if dcrClient.ClientID == "" {
+		return "", fmt.Errorf("DCR client missing client ID")
+	}
+
+	// Generate PKCE challenge
+	challenge := oauth.GenerateS256Challenge(codeVerifier)
+
+	// Build OAuth parameters using url.Values for proper encoding
+	params := url.Values{}
+	params.Set("client_id", dcrClient.ClientID)
+	params.Set("response_type", "code")
+	params.Set("redirect_uri", "https://mcp.docker.com/oauth/callback") // mcp-oauth callback
+	params.Set("state", state)
+
+	// PKCE parameters (OAuth 2.1 MUST requirement for public clients)
+	params.Set("code_challenge", challenge)
+	params.Set("code_challenge_method", "S256") // Strongest available method
+
+	// Resource parameter (RFC 8707 for token audience binding)
+	if resourceURL != "" {
+		params.Set("resource", resourceURL)
+	}
+
+	// Add scopes if provided
+	if len(scopes) > 0 {
+		params.Set("scope", strings.Join(scopes, " "))
+	}
+
+	// Build complete authorization URL
+	authURL := dcrClient.AuthorizationEndpoint + "?" + params.Encode()
+
+	return authURL, nil
 }
