@@ -207,84 +207,84 @@ func (c *customManifest) RawManifest() ([]byte, error) {
 	return c.data, nil
 }
 
-// ReadArtifact reads an OCI artifact by reference and returns parsed JSON from the first layer
+// ReadArtifact reads an OCI artifact by reference and returns parsed Catalog from the first layer
 // if the artifact type is application/vnd.docker.mcp.server, otherwise returns an error
-func ReadArtifact(ociRef string) (interface{}, error) {
+func ReadArtifact(ociRef string) (Catalog, error) {
 	if ociRef == "" {
-		return nil, fmt.Errorf("OCI reference is required")
+		return Catalog{}, fmt.Errorf("OCI reference is required")
 	}
 
 	// Parse the OCI reference
 	ref, err := name.ParseReference(ociRef)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse OCI reference %s: %w", ociRef, err)
+		return Catalog{}, fmt.Errorf("failed to parse OCI reference %s: %w", ociRef, err)
 	}
 
 	// Get the image/artifact from the registry
 	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch image/artifact %s: %w", ociRef, err)
+		return Catalog{}, fmt.Errorf("failed to fetch image/artifact %s: %w", ociRef, err)
 	}
 
 	// Get the raw manifest to check if it's an OCI artifact
 	rawManifest, err := img.RawManifest()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get raw manifest: %w", err)
+		return Catalog{}, fmt.Errorf("failed to get raw manifest: %w", err)
 	}
 
 	// Parse as OCI manifest to check artifact type
 	var ociManifest oci.Manifest
 	if err := json.Unmarshal(rawManifest, &ociManifest); err != nil {
-		return nil, fmt.Errorf("failed to parse OCI manifest: %w", err)
+		return Catalog{}, fmt.Errorf("failed to parse OCI manifest: %w", err)
 	}
 
 	// Check if this is an MCP server artifact
 	if ociManifest.ArtifactType != MCPServerArtifactType {
-		return nil, fmt.Errorf("artifact type %s is not %s", ociManifest.ArtifactType, MCPServerArtifactType)
+		return Catalog{}, fmt.Errorf("artifact type %s is not %s", ociManifest.ArtifactType, MCPServerArtifactType)
 	}
 
 	// Get the layers
 	layers, err := img.Layers()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get layers: %w", err)
+		return Catalog{}, fmt.Errorf("failed to get layers: %w", err)
 	}
 
 	if len(layers) == 0 {
-		return nil, fmt.Errorf("no layers found in artifact")
+		return Catalog{}, fmt.Errorf("no layers found in artifact")
 	}
 
 	// Get content from the first layer
 	firstLayer := layers[0]
 	rc, err := firstLayer.Uncompressed()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get first layer content: %w", err)
+		return Catalog{}, fmt.Errorf("failed to get first layer content: %w", err)
 	}
 	defer rc.Close()
 
 	content, err := io.ReadAll(rc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read first layer content: %w", err)
+		return Catalog{}, fmt.Errorf("failed to read first layer content: %w", err)
 	}
 
-	// Parse JSON from first layer
-	var jsonData interface{}
-	if err := json.Unmarshal(content, &jsonData); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON from first layer: %w", err)
+	// Parse JSON from first layer as Catalog
+	var catalog Catalog
+	if err := json.Unmarshal(content, &catalog); err != nil {
+		return Catalog{}, fmt.Errorf("failed to parse Catalog from first layer: %w", err)
 	}
 
-	return jsonData, nil
+	return catalog, nil
 }
 
 // InspectArtifact reads an OCI artifact and outputs formatted JSON content
 func InspectArtifact(ociRef string) error {
-	// Use ReadArtifact to get the parsed JSON data
-	jsonData, err := ReadArtifact(ociRef)
+	// Use ReadArtifact to get the parsed Catalog data
+	catalog, err := ReadArtifact(ociRef)
 	if err != nil {
 		return fmt.Errorf("failed to read artifact: %w", err)
 	}
 
 	// Format and output the JSON data
-	prettyJSON, err := json.MarshalIndent(jsonData, "", "  ")
+	prettyJSON, err := json.MarshalIndent(catalog, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to format JSON: %w", err)
 	}

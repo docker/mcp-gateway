@@ -507,38 +507,39 @@ func (c *FileBasedConfiguration) readServersFromOci(ctx context.Context) (map[st
 			continue
 		}
 		
-		// Use the existing oci.ReadArtifact function to get the JSON data
-		jsonData, err := oci.ReadArtifact(ociRef)
+		// Use the existing oci.ReadArtifact function to get the Catalog data
+		ociCatalog, err := oci.ReadArtifact(ociRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
 		}
 		
-		// Convert the JSON data to a map[string]catalog.Server
-		jsonBytes, err := json.Marshal(jsonData)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal OCI artifact data from %s: %w", ociRef, err)
-		}
-		
-		// Try to parse as a catalog structure (similar to catalog.json format)
-		var ociCatalog struct {
-			Registry map[string]catalog.Server `json:"registry"`
-			Servers  map[string]catalog.Server `json:"servers"`
-		}
-		
-		if err := json.Unmarshal(jsonBytes, &ociCatalog); err != nil {
-			return nil, fmt.Errorf("failed to parse OCI artifact from %s as server catalog: %w", ociRef, err)
-		}
-		
-		// Merge servers from both possible locations
-		serverSources := []map[string]catalog.Server{ociCatalog.Registry, ociCatalog.Servers}
-		for _, serverSource := range serverSources {
-			for serverName, server := range serverSource {
-				if _, exists := ociServers[serverName]; exists {
-					log(fmt.Sprintf("Warning: overlapping server '%s' found in OCI reference '%s', overwriting previous value", serverName, ociRef))
-				}
-				ociServers[serverName] = server
-				log(fmt.Sprintf("  - Added server '%s' from OCI reference %s", serverName, ociRef))
+		// Process each server in the OCI catalog registry
+		for i, ociServer := range ociCatalog.Registry {
+			// Each oci.Server contains raw JSON data that we need to unmarshal to catalog.Server
+			var server catalog.Server
+			if err := json.Unmarshal(ociServer.Data, &server); err != nil {
+				log(fmt.Sprintf("Warning: failed to parse server %d from OCI reference %s: %v", i, ociRef, err))
+				continue
 			}
+			
+			// Generate a server name based on the index if not provided in the data
+			serverName := fmt.Sprintf("oci-server-%d", i)
+			
+			// Try to extract a name from the server data if available
+			var serverData map[string]interface{}
+			if err := json.Unmarshal(ociServer.Data, &serverData); err == nil {
+				if name, ok := serverData["name"].(string); ok && name != "" {
+					serverName = name
+				} else if identifier, ok := serverData["identifier"].(string); ok && identifier != "" {
+					serverName = identifier
+				}
+			}
+			
+			if _, exists := ociServers[serverName]; exists {
+				log(fmt.Sprintf("Warning: overlapping server '%s' found in OCI reference '%s', overwriting previous value", serverName, ociRef))
+			}
+			ociServers[serverName] = server
+			log(fmt.Sprintf("  - Added server '%s' from OCI reference %s", serverName, ociRef))
 		}
 	}
 	
