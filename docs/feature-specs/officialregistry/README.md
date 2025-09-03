@@ -87,3 +87,13 @@ graph TB
 - Can be hosted anywhere with network connectivity
 - Support custom authentication and header configurations
 - Integrated seamlessly alongside containerized servers
+
+# Importing Servers from the Official Registry
+
+The official registry provides data that can be imported in the existing `Configuration`. Today, the entire Configuration can be read from files (`FileBasedConfiguration`), and with oci registry imports, we are adding the ability to read from a second source.
+
+* **Configuration.serverNames** - enabled servers
+* **Configuration.servers** - map of available `catalog.Server`s
+* **Configuration.config** - current configuration map
+
+

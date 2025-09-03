@@ -65,6 +65,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			ConfigPath:   config.ConfigPath,
 			SecretsPath:  config.SecretsPath,
 			ToolsPath:    config.ToolsPath,
+			OciRef:       config.OciRef,
 			Watch:        config.Watch,
 			Central:      config.Central,
 			docker:       docker,

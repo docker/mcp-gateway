@@ -83,22 +83,22 @@ func serverCommand(docker docker.Client) *cobra.Command {
 	importCommand.Flags().BoolVar(&pushFlag, "push", false, "push the new server artifact")
 	cmd.AddCommand(importCommand)
 
-	catCmd := &cobra.Command{
-		Use:   "cat <oci-reference>",
-		Short: "inspect an OCI artifact and display its layer contents",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return oci.InspectArtifact(args[0])
-		},
-	}
-	cmd.AddCommand(catCmd)
-
 	cmd.AddCommand(&cobra.Command{
 		Use:   "inspect",
-		Short: "Get information about a server",
+		Short: "Get information about a server or inspect an OCI artifact",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			info, err := server.Inspect(cmd.Context(), docker, args[0])
+			arg := args[0]
+			
+			// Check if the argument looks like an OCI reference
+			// OCI refs typically contain a registry/repository pattern with optional tag or digest
+			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
+				// Use OCI inspect for OCI references
+				return oci.InspectArtifact(arg)
+			}
+			
+			// Use regular server inspect for server names
+			info, err := server.Inspect(cmd.Context(), docker, arg)
 			if err != nil {
 				return err
 			}

@@ -116,6 +116,7 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 		return fmt.Errorf("no valid Docker registry packages found")
 	}
 
+	// TODO what about servers with multiple docker packages? It's possible but will publishers ever do this?
 	firstRef := ociReferences[0]
 
 	// Verify the reference can be resolved
@@ -130,13 +131,20 @@ func Import(registryUrl string, ociRepository string, push bool) error {
 		return fmt.Errorf("failed to parse OCI repository reference %s: %w", ociRepository, err)
 	}
 
+	// Create an OCI Catalog with the jsonContent as a single server entry
+	ociCatalog := oci.Catalog{
+		Registry: []oci.Server{
+			{Data: json.RawMessage(jsonContent)},
+		},
+	}
+
 	// Create the OCI artifact with the subject
-	manifest, err := oci.CreateArtifactWithSubjectAndPush(artifactRef, jsonContent, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType, push)
+	manifest, err := oci.CreateArtifactWithSubjectAndPush(artifactRef, ociCatalog, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType, push)
 	if err != nil {
 		return fmt.Errorf("failed to create OCI artifact: %w", err)
 	}
 
-	fmt.Printf("%s@%s", artifactRef.Context().Name(), manifest)
+	fmt.Printf("%s@sha256:%s", artifactRef.Context().Name(), manifest)
 
 	return nil
 }

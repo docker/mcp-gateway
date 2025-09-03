@@ -19,7 +19,35 @@ import (
 
 const MCPServerArtifactType = "application/vnd.docker.mcp.server"
 
-func CreateArtifactWithSubjectAndPush(ref name.Reference, content []byte, subjectDigest v1.Hash, subjectSize int64, subjectMediaType types.MediaType, push bool) (string, error) {
+// Catalog represents an OCI catalog structure with a top-level Registry field
+type Catalog struct {
+	Registry []Server `json:"registry"`
+}
+
+// Server represents a server definition in the OCI catalog
+type Server struct {
+	// This will contain the marshalled JSON content for each server
+	Data json.RawMessage `json:"-"`
+}
+
+// MarshalJSON implements custom marshaling for Server to return the raw data
+func (s Server) MarshalJSON() ([]byte, error) {
+	return s.Data, nil
+}
+
+// UnmarshalJSON implements custom unmarshaling for Server to store raw data
+func (s *Server) UnmarshalJSON(data []byte) error {
+	s.Data = json.RawMessage(data)
+	return nil
+}
+
+func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subjectDigest v1.Hash, subjectSize int64, subjectMediaType types.MediaType, push bool) (string, error) {
+	// Marshal the catalog to bytes
+	content, err := json.Marshal(catalog)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal catalog: %w", err)
+	}
+	
 	// Create empty config blob
 	emptyConfig := []byte("{}")
 	configDigest := digest.FromBytes(emptyConfig)
