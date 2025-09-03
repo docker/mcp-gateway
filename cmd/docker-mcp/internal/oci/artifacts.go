@@ -26,19 +26,8 @@ type Catalog struct {
 
 // Server represents a server definition in the OCI catalog
 type Server struct {
-	// This will contain the marshalled JSON content for each server
-	Data json.RawMessage `json:"-"`
-}
-
-// MarshalJSON implements custom marshaling for Server to return the raw data
-func (s Server) MarshalJSON() ([]byte, error) {
-	return s.Data, nil
-}
-
-// UnmarshalJSON implements custom unmarshaling for Server to store raw data
-func (s *Server) UnmarshalJSON(data []byte) error {
-	s.Data = json.RawMessage(data)
-	return nil
+	Server   ServerDetail    `json:"server"`
+	Registry json.RawMessage `json:"x-io.modelcontextprotocol.registry"`
 }
 
 func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subjectDigest v1.Hash, subjectSize int64, subjectMediaType types.MediaType, push bool) (string, error) {

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -515,12 +514,8 @@ func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[stri
 
 		// Process each server in the OCI catalog registry
 		for i, ociServer := range ociCatalog.Registry {
-			// Unmarshal the raw JSON data into an oci.ServerDetail
-			var serverDetail oci.ServerDetail
-			if err := json.Unmarshal(ociServer.Data, &serverDetail); err != nil {
-				log(fmt.Sprintf("Warning: failed to parse server %d from OCI reference %s: %v", i, ociRef, err))
-				continue
-			}
+			// The ServerDetail is now directly available in ociServer.Server
+			serverDetail := ociServer.Server
 
 			// Transform ServerDetail to catalog.Server using the ToCatalogServer method
 			server := serverDetail.ToCatalogServer()

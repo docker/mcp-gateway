@@ -92,7 +92,7 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 	// Extract image from the first package if available
 	if len(sd.Packages) > 0 {
 		pkg := sd.Packages[0]
-		server.Image = fmt.Sprintf("%s:%s",pkg.Identifier,pkg.Version)
+		server.Image = fmt.Sprintf("%s:%s", pkg.Identifier, pkg.Version)
 
 		// Set command and environment from runtime options
 		if pkg.RuntimeOptions != nil {

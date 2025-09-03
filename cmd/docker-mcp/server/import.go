@@ -138,11 +138,15 @@ func Import(registryURL string, ociRepository string, push bool) error {
 		return fmt.Errorf("failed to parse OCI repository reference %s: %w", ociRepository, err)
 	}
 
-	// Create an OCI Catalog with the jsonContent as a single server entry
+	// Parse the JSON content into a Server
+	var server oci.Server
+	if err := json.Unmarshal(jsonContent, &server); err != nil {
+		return fmt.Errorf("failed to parse JSON content as Server: %w", err)
+	}
+
+	// Create an OCI Catalog with the server entry
 	ociCatalog := oci.Catalog{
-		Registry: []oci.Server{
-			{Data: json.RawMessage(jsonContent)},
-		},
+		Registry: []oci.Server{server},
 	}
 
 	// Create the OCI artifact with the subject
