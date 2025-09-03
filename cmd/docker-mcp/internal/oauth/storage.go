@@ -47,8 +47,10 @@ func (s *DockerDesktopStorage) StoreClientCredentials(ctx context.Context, serve
 
 	// Create DCR registration request
 	req := desktop.RegisterDCRRequest{
-		ClientID:   creds.ClientID,
-		ClientName: fmt.Sprintf("MCP Gateway - %s", serverName),
+		ClientID:              creds.ClientID,
+		ClientName:            fmt.Sprintf("MCP Gateway - %s", serverName),
+		AuthorizationEndpoint: creds.AuthorizationEndpoint,
+		TokenEndpoint:         creds.TokenEndpoint,
 	}
 
 	fmt.Printf("DEBUG: Calling RegisterDCRClient with request: %+v\n", req)
@@ -131,6 +133,17 @@ func GetOrCreateDCRCredentials(ctx context.Context, storage CredentialStorage, d
 		fmt.Printf("Warning: failed to store credentials for %s: %v\n", serverName, err)
 	} else {
 		fmt.Printf("DEBUG: Successfully stored credentials for %s\n", serverName)
+	}
+
+	// Register the DCR client as an OAuth provider immediately
+	// This ensures it's available in /apps for UI visibility and token retrieval
+	fmt.Printf("DEBUG: Registering DCR provider for %s\n", serverName)
+	client := desktop.NewAuthClient()
+	if err := client.RegisterDCRProvider(ctx, serverName); err != nil {
+		fmt.Printf("Warning: failed to register DCR provider for %s: %v\n", serverName, err)
+		// Don't fail - the credentials are stored, provider registration can be done later
+	} else {
+		fmt.Printf("DEBUG: Successfully registered DCR provider for %s\n", serverName)
 	}
 
 	return creds, nil

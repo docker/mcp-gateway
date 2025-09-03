@@ -87,6 +87,8 @@ type RegisterDCRRequest struct {
 	ClientID            string `json:"clientId"`
 	ClientName          string `json:"clientName,omitempty"`
 	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
 }
 
 type DCRClient struct {
@@ -95,6 +97,8 @@ type DCRClient struct {
 	ClientName          string `json:"clientName,omitempty"`
 	RegisteredAt        string `json:"registeredAt"` // ISO timestamp
 	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
 }
 
 func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterDCRRequest) error {
@@ -127,6 +131,13 @@ func (c *Tools) ListDCRClients(ctx context.Context) ([]DCRClient, error) {
 	var result []DCRClient
 	err := c.rawClient.Get(ctx, "/apps/dcr", &result)
 	return result, err
+}
+
+func (c *Tools) RegisterDCRProvider(ctx context.Context, app string) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr/register-provider", app), nil, &result)
 }
 
 // PKCE (Proof Key for Code Exchange) Methods

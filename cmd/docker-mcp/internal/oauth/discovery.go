@@ -31,14 +31,17 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		Timeout: 30 * time.Second,
 	}
 
-	// STEP 1: Make initial request to trigger 401 Unauthorized
-	// MCP Spec Section 4.1: "MCP clients MUST be able to... respond appropriately to HTTP 401 Unauthorized responses"
-	req, err := http.NewRequestWithContext(ctx, "GET", serverURL, nil)
+	// STEP 1: Make initial MCP request to trigger 401 Unauthorized
+	// MCP Spec Section 4.1: "MCP request without token" should trigger 401
+	// Use POST with initialize request as per spec diagrams (line 107, 162)
+	mcpPayload := `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"mcp-gateway","version":"1.0.0"}},"id":1}`
+	req, err := http.NewRequestWithContext(ctx, "POST", serverURL, strings.NewReader(mcpPayload))
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	// Set headers to identify as MCP client
+	// Set headers for MCP protocol request
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "docker-mcp-gateway/1.0.0")
 	req.Header.Set("Accept", "application/json")
 	
@@ -77,7 +80,15 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		// that don't include resource_metadata in WWW-Authenticate headers
 		resourceMetadataURL = tryConventionBasedDiscovery(serverURL)
 		if resourceMetadataURL == "" {
-			return nil, fmt.Errorf("server is not MCP-compliant: no resource_metadata URL found in WWW-Authenticate header and convention-based discovery failed")
+			// ADDITIONAL FALLBACK: Try direct authorization server discovery
+			// Some servers like Atlassian have /.well-known/oauth-authorization-server
+			// but not /.well-known/oauth-protected-resource
+			discovery, err := tryDirectAuthServerDiscovery(ctx, client, serverURL)
+			if err == nil && discovery != nil {
+				fmt.Printf("Server is not fully MCP-compliant, using direct authorization server discovery\n")
+				return discovery, nil
+			}
+			return nil, fmt.Errorf("server is not MCP-compliant: no resource_metadata URL found in WWW-Authenticate header, convention-based discovery failed, and direct auth server discovery failed")
 		}
 		fmt.Printf("Server is not fully MCP-compliant, using convention-based discovery\n")
 	}
@@ -314,4 +325,85 @@ func containsString(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// tryDirectAuthServerDiscovery attempts to discover OAuth configuration by directly
+// accessing the authorization server metadata when resource metadata is not available.
+// This handles servers like Atlassian that have /.well-known/oauth-authorization-server
+// but not /.well-known/oauth-protected-resource
+func tryDirectAuthServerDiscovery(ctx context.Context, client *http.Client, serverURL string) (*OAuthDiscovery, error) {
+	parsedURL, err := url.Parse(serverURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid server URL: %w", err)
+	}
+
+	// Try direct authorization server metadata at server base URL
+	authServerMetadataURL := fmt.Sprintf("%s://%s/.well-known/oauth-authorization-server", parsedURL.Scheme, parsedURL.Host)
+	
+	// Test if the URL is accessible
+	if !testURLAccessible(authServerMetadataURL) {
+		return nil, fmt.Errorf("authorization server metadata not found at %s", authServerMetadataURL)
+	}
+
+	// Fetch authorization server metadata directly without validation
+	// We can't use fetchAuthorizationServerMetadata because it validates issuer matches server URL
+	// but for direct discovery the issuer might be different (e.g., Cloudflare Workers)
+	authServerMetadata, err := fetchDirectAuthorizationServerMetadata(ctx, client, authServerMetadataURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetching direct authorization server metadata: %w", err)
+	}
+
+	// Build discovery result without resource metadata
+	// We use the server URL as both resource URL and the authorization server URL
+	discovery := &OAuthDiscovery{
+		RequiresOAuth:         true,
+		ResourceURL:           serverURL, // Use the MCP server URL as the resource
+		AuthorizationServer:   authServerMetadata.Issuer, // Use issuer from metadata
+		AuthorizationEndpoint: authServerMetadata.AuthorizationEndpoint,
+		TokenEndpoint:         authServerMetadata.TokenEndpoint,
+		RegistrationEndpoint:  authServerMetadata.RegistrationEndpoint,
+		Scopes:                []string{}, // No scopes discovered, will use default or catalog-configured
+	}
+
+	return discovery, nil
+}
+
+// fetchDirectAuthorizationServerMetadata fetches authorization server metadata without issuer validation
+// This is used for direct discovery where the metadata URL might be on a different host than the issuer
+func fetchDirectAuthorizationServerMetadata(ctx context.Context, client *http.Client, metadataURL string) (*OAuthAuthorizationServerMetadata, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", metadataURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "docker-mcp-gateway/1.0.0")
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching metadata from %s: %w", metadataURL, err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("authorization server metadata request returned %d", resp.StatusCode)
+	}
+	
+	var metadata OAuthAuthorizationServerMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return nil, fmt.Errorf("parsing authorization server metadata: %w", err)
+	}
+	
+	// Basic validation without issuer URL matching
+	if metadata.Issuer == "" {
+		return nil, fmt.Errorf("issuer field missing in authorization server metadata")
+	}
+	if metadata.AuthorizationEndpoint == "" {
+		return nil, fmt.Errorf("authorization_endpoint field missing in authorization server metadata")
+	}
+	if metadata.TokenEndpoint == "" {
+		return nil, fmt.Errorf("token_endpoint field missing in authorization server metadata")
+	}
+	
+	return &metadata, nil
 }

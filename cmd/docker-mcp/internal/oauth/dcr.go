@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -12,9 +13,11 @@ import (
 // ClientCredentials represents stored client credentials for a public client
 // For public clients, only the client_id is stored (no client_secret)
 type ClientCredentials struct {
-	ClientID  string `json:"client_id"`
-	ServerURL string `json:"server_url"` // The resource server URL
-	IsPublic  bool   `json:"is_public"`  // Always true for our implementation
+	ClientID              string `json:"client_id"`
+	ServerURL             string `json:"server_url"` // The resource server URL
+	IsPublic              bool   `json:"is_public"`  // Always true for our implementation
+	AuthorizationEndpoint string `json:"authorization_endpoint,omitempty"`
+	TokenEndpoint         string `json:"token_endpoint,omitempty"`
 	// No ClientSecret field - public clients don't have secrets
 }
 
@@ -38,9 +41,7 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	registration := DCRRequest{
 		ClientName: fmt.Sprintf("MCP Gateway - %s", serverName),
 		RedirectURIs: []string{
-			"https://mcp.docker.com/oauth/callback", // mcp-oauth proxy callback
-			"http://localhost:8080/oauth/callback",  // mcp-oauth proxy callback
-			"http://127.0.0.1:8080/oauth/callback",  // IPv4 loopback variant
+			"https://mcp.docker.com/oauth/callback", // mcp-oauth proxy callback only
 		},
 		TokenEndpointAuthMethod: "none", // PUBLIC client (no client secret)
 		GrantTypes:              []string{"authorization_code", "refresh_token"},
@@ -91,8 +92,32 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 
 	// Check response status (201 Created or 200 OK are acceptable)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		// Read error response body to understand why DCR failed
+		errorBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Printf("DEBUG: DCR failed with status %d for %s (could not read error body: %v)\n", resp.StatusCode, serverName, err)
+			return nil, fmt.Errorf("DCR failed with status %d for %s", resp.StatusCode, serverName)
+		}
+		
+		errorMsg := string(errorBody)
+		
+		// Try to parse as JSON for structured error
+		var errorResp map[string]interface{}
+		if err := json.Unmarshal(errorBody, &errorResp); err == nil {
+			// Successfully parsed as JSON - look for common error fields
+			if errDesc, ok := errorResp["error_description"].(string); ok {
+				errorMsg = errDesc
+			} else if errField, ok := errorResp["error"].(string); ok {
+				errorMsg = errField
+			} else if message, ok := errorResp["message"].(string); ok {
+				errorMsg = message
+			}
+		}
+		
 		fmt.Printf("DEBUG: DCR failed with status %d for %s\n", resp.StatusCode, serverName)
-		return nil, fmt.Errorf("DCR failed with status %d for %s", resp.StatusCode, serverName)
+		fmt.Printf("DEBUG: DCR error response: %s\n", errorMsg)
+		
+		return nil, fmt.Errorf("DCR failed with status %d for %s: %s", resp.StatusCode, serverName, errorMsg)
 	}
 
 	// Parse the response
@@ -112,9 +137,11 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 
 	// Create client credentials (public client - no secret)
 	creds := &ClientCredentials{
-		ClientID:  dcrResponse.ClientID,
-		ServerURL: discovery.ResourceURL,
-		IsPublic:  true,
+		ClientID:              dcrResponse.ClientID,
+		ServerURL:             discovery.ResourceURL,
+		IsPublic:              true,
+		AuthorizationEndpoint: discovery.AuthorizationEndpoint,
+		TokenEndpoint:         discovery.TokenEndpoint,
 		// No ClientSecret for public clients
 	}
 

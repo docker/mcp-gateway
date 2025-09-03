@@ -148,9 +148,9 @@ registry:
     title: Hugging Face MCP
     type: server
     dateAdded: "2025-01-15T00:00:00Z"
-    upstream: https://hf.co
+    upstream: https://huggingface.co
     remote:
-      url: https://hf.co/mcp
+      url: https://huggingface.co/mcp?login
       transport_type: streaming
     oauth:
       enabled: true

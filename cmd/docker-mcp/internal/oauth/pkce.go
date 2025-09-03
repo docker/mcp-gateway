@@ -67,7 +67,7 @@ func BuildAuthorizationURL(discovery *OAuthDiscovery, clientID string, scopes []
 	params := url.Values{}
 	params.Set("client_id", clientID)
 	params.Set("response_type", "code")
-	params.Set("redirect_uri", "http://mcp.docker.com/oauth/callback") // mcp-oauth callback
+	params.Set("redirect_uri", "https://mcp.docker.com/oauth/callback") // mcp-oauth callback
 	params.Set("state", state)
 
 	// PKCE parameters (OAuth 2.1 MUST requirement for public clients)
