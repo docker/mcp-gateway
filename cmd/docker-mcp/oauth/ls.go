@@ -13,17 +13,28 @@ import (
 func Ls(ctx context.Context, outputJSON bool) error {
 	client := desktop.NewAuthClient()
 
-	// Get OAuth apps from pinata
+	// Get OAuth apps from Docker Desktop (includes DCR providers)
 	apps, err := client.ListOAuthApps(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Add remote MCP servers with OAuth to the list
+	// Create a map to track existing apps to prevent duplicates
+	existingApps := make(map[string]bool)
+	for _, app := range apps {
+		existingApps[app.App] = true
+	}
+
+	// Add catalog OAuth servers only if they don't already exist as OAuth apps
 	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err == nil {
 		for serverName, server := range catalog.Servers {
 			if server.OAuth != nil && server.OAuth.Enabled {
+				// Skip if this server already exists as an OAuth app (prevents duplicates)
+				if existingApps[serverName] {
+					continue
+				}
+
 				// Check if the provider is authorized
 				providerAuthorized := false
 				for _, app := range apps {
@@ -37,6 +48,9 @@ func Ls(ctx context.Context, outputJSON bool) error {
 					Authorized: providerAuthorized,
 					Provider:   server.OAuth.Provider,
 				})
+				
+				// Track this app to prevent future duplicates
+				existingApps[serverName] = true
 			}
 		}
 	}
