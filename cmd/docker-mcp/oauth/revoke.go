@@ -29,22 +29,15 @@ func revokeRemoteMCPServer(ctx context.Context, serverName string) error {
 	if err == nil {
 		for _, app := range apps {
 			if app.App == serverName {
-				// This is a DCR provider - revoke OAuth access and clean up DCR data
+				// This is a DCR provider - revoke OAuth access only (keep DCR client)
 				fmt.Printf("Revoking OAuth access for %s...\n", serverName)
 				
-				// 1. Revoke OAuth token (removes from OAuth providers)
+				// Revoke OAuth tokens only - DCR client remains for future authorization
 				if err := client.DeleteOAuthApp(ctx, serverName); err != nil {
 					return fmt.Errorf("failed to revoke OAuth access for %s: %w", serverName, err)
 				}
 				
-				// 2. Clean up DCR client data for complete cleanup
-				if err := client.DeleteDCRClient(ctx, serverName); err != nil {
-					// Don't fail the revoke if DCR cleanup fails - token revocation succeeded
-					fmt.Printf("⚠️ Warning: Failed to clean up DCR client data for %s: %v\n", serverName, err)
-					fmt.Printf("✅ OAuth access revoked for %s (DCR data cleanup failed)\n", serverName)
-				} else {
-					fmt.Printf("✅ OAuth access revoked and DCR client cleaned up for %s\n", serverName)
-				}
+				fmt.Printf("✅ OAuth access revoked for %s (DCR client preserved for re-authorization)\n", serverName)
 				
 				return nil
 			}
