@@ -29,11 +29,7 @@ type ClientCredentials struct {
 // - Includes redirect_uris pointing to mcp-oauth proxy
 // - Requests authorization_code and refresh_token grant types
 func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName string) (*ClientCredentials, error) {
-	fmt.Printf("DEBUG: Starting DCR for server: %s\n", serverName)
-	fmt.Printf("DEBUG: Registration endpoint: %s\n", discovery.RegistrationEndpoint)
-
 	if discovery.RegistrationEndpoint == "" {
-		fmt.Printf("DEBUG: No registration endpoint found for %s\n", serverName)
 		return nil, fmt.Errorf("no registration endpoint found for %s", serverName)
 	}
 
@@ -57,7 +53,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	// Add requested scopes if provided
 	if len(discovery.Scopes) > 0 {
 		registration.Scope = joinScopes(discovery.Scopes)
-		fmt.Printf("DEBUG: Added scopes: %s\n", registration.Scope)
 	}
 
 	// Marshal the registration request
@@ -66,7 +61,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 		return nil, fmt.Errorf("failed to marshal DCR request: %w", err)
 	}
 
-	fmt.Printf("DEBUG: DCR request body: %s\n", string(body))
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, discovery.RegistrationEndpoint, bytes.NewReader(body))
@@ -79,23 +73,19 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	req.Header.Set("User-Agent", "MCP-Gateway/1.0.0")
 
 	// Send the request
-	fmt.Printf("DEBUG: Sending DCR request to %s\n", discovery.RegistrationEndpoint)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("DEBUG: DCR request failed: %v\n", err)
 		return nil, fmt.Errorf("failed to send DCR request to %s: %w", discovery.RegistrationEndpoint, err)
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("DEBUG: DCR response status: %d\n", resp.StatusCode)
 
 	// Check response status (201 Created or 200 OK are acceptable)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		// Read error response body to understand why DCR failed
 		errorBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Printf("DEBUG: DCR failed with status %d for %s (could not read error body: %v)\n", resp.StatusCode, serverName, err)
 			return nil, fmt.Errorf("DCR failed with status %d for %s", resp.StatusCode, serverName)
 		}
 		
@@ -114,8 +104,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 			}
 		}
 		
-		fmt.Printf("DEBUG: DCR failed with status %d for %s\n", resp.StatusCode, serverName)
-		fmt.Printf("DEBUG: DCR error response: %s\n", errorMsg)
 		
 		return nil, fmt.Errorf("DCR failed with status %d for %s: %s", resp.StatusCode, serverName, errorMsg)
 	}
@@ -123,15 +111,11 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	// Parse the response
 	var dcrResponse DCRResponse
 	if err := json.NewDecoder(resp.Body).Decode(&dcrResponse); err != nil {
-		fmt.Printf("DEBUG: Failed to decode DCR response: %v\n", err)
 		return nil, fmt.Errorf("failed to decode DCR response: %w", err)
 	}
 
-	fmt.Printf("DEBUG: DCR response client_id: %s\n", dcrResponse.ClientID)
-	fmt.Printf("DEBUG: Full DCR response: %+v\n", dcrResponse)
 
 	if dcrResponse.ClientID == "" {
-		fmt.Printf("DEBUG: DCR response missing client_id for %s\n", serverName)
 		return nil, fmt.Errorf("DCR response missing client_id for %s", serverName)
 	}
 
@@ -145,7 +129,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 		// No ClientSecret for public clients
 	}
 
-	fmt.Printf("DEBUG: Created credentials with client_id: %s\n", creds.ClientID)
 	return creds, nil
 }
 
