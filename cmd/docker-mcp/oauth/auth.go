@@ -12,11 +12,20 @@ import (
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {
-	// Check if this is a remote MCP server
-	if strings.HasSuffix(app, "-remote") {
-		return authorizeRemoteMCPServer(ctx, app, scopes)
+	// Load catalog to check server type and OAuth configuration
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 
+	// Check if this server requires DCR OAuth flow
+	if server, found := cat.Servers[app]; found {
+		if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			return authorizeRemoteMCPServer(ctx, app, scopes)
+		}
+	}
+
+	// Traditional OAuth flow for built-in providers
 	client := desktop.NewAuthClient()
 
 	authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)

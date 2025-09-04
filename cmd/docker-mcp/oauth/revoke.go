@@ -3,18 +3,26 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
 func Revoke(ctx context.Context, app string) error {
-	// Check if this is a remote MCP server
-	if strings.HasSuffix(app, "-remote") {
-		return revokeRemoteMCPServer(ctx, app)
+	// Load catalog to check server type and OAuth configuration
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 
+	// Check if this server requires DCR OAuth flow
+	if server, found := cat.Servers[app]; found {
+		if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			return revokeRemoteMCPServer(ctx, app)
+		}
+	}
+
+	// Traditional OAuth provider revoke
 	client := desktop.NewAuthClient()
 	return client.DeleteOAuthApp(ctx, app)
 }
@@ -56,7 +64,7 @@ func revokeRemoteMCPServer(ctx context.Context, serverName string) error {
 	}
 
 	// Check if the server has OAuth configuration
-	if server.OAuth == nil || !server.OAuth.Enabled {
+	if server.OAuth == nil || len(server.OAuth.Providers) == 0 {
 		return fmt.Errorf("server %s does not have OAuth configured", serverName)
 	}
 

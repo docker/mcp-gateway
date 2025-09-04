@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -16,11 +15,20 @@ import (
 )
 
 func Disable(ctx context.Context, docker docker.Client, serverNames []string) error {
+	// Get catalog to check server types for OAuth cleanup
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog: %w", err)
+	}
+	
 	// Clean up OAuth for disabled servers first
 	for _, serverName := range serverNames {
-		if strings.HasSuffix(serverName, "-remote") {
-			if err := cleanupOAuthForRemoteServer(ctx, serverName); err != nil {
-				fmt.Printf("⚠️ Warning: Failed to cleanup OAuth for %s: %v\n", serverName, err)
+		if server, found := cat.Servers[serverName]; found {
+			// Only cleanup OAuth for remote servers with OAuth config
+			if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+				if err := cleanupOAuthForRemoteServer(ctx, serverName); err != nil {
+					fmt.Printf("⚠️ Warning: Failed to cleanup OAuth for %s: %v\n", serverName, err)
+				}
 			}
 		}
 	}
@@ -65,13 +73,13 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 
 	// Enable servers.
 	for _, serverName := range add {
-		if _, found := cat.Servers[serverName]; found {
+		if server, found := cat.Servers[serverName]; found {
 			updatedRegistry.Servers[serverName] = config.Tile{
 				Ref: "",
 			}
 			
-			// For remote MCP servers, perform OAuth discovery and DCR
-			if strings.HasSuffix(serverName, "-remote") {
+			// For remote MCP servers with OAuth config, perform OAuth discovery and DCR
+			if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
 				if err := setupOAuthForRemoteServer(ctx, serverName, &cat); err != nil {
 					fmt.Printf("⚠️ Warning: Failed to setup OAuth for %s: %v\n", serverName, err)
 					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
@@ -211,6 +219,9 @@ func cleanupOAuthForRemoteServer(ctx context.Context, serverName string) error {
 		}
 		
 		fmt.Printf("✅ OAuth cleanup complete for %s (clean slate achieved)\n", serverName)
+	} else {
+		// Still try to clean up DCR client if it exists (silent cleanup)
+		client.DeleteDCRClient(ctx, serverName) // Ignore errors for silent cleanup
 	}
 	
 	return nil

@@ -59,8 +59,8 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		headers[k] = expandEnv(v, env)
 	}
 
-	// Add OAuth token if configured
-	if c.config.Spec.OAuth != nil && c.config.Spec.OAuth.Enabled {
+	// Add OAuth token if configured (DCR criteria: remote server with OAuth providers)
+	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
 		token, err := c.getOAuthToken(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get OAuth token: %w", err)
@@ -131,7 +131,7 @@ func expandEnv(value string, secrets map[string]string) string {
 }
 
 func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
-	if c.config.Spec.OAuth == nil || !c.config.Spec.OAuth.Enabled {
+	if c.config.Spec.OAuth == nil || len(c.config.Spec.OAuth.Providers) == 0 {
 		return "", nil
 	}
 

@@ -13,6 +13,7 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
+	Type           string   `yaml:"type" json:"type"`
 	Image          string   `yaml:"image" json:"image"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
@@ -45,9 +46,15 @@ type Remote struct {
 }
 
 type OAuth struct {
-	Enabled  bool     `yaml:"enabled" json:"enabled"`
-	Provider string   `yaml:"provider" json:"provider"`
-	Scopes   []string `yaml:"scopes,omitempty" json:"scopes,omitempty"`
+	Provider  string          `yaml:"provider" json:"provider"`          // Legacy single provider
+	Providers []OAuthProvider `yaml:"providers,omitempty" json:"providers,omitempty"` // New providers array
+	Scopes    []string        `yaml:"scopes,omitempty" json:"scopes,omitempty"`
+}
+
+type OAuthProvider struct {
+	Provider string `yaml:"provider" json:"provider"`
+	Secret   string `yaml:"secret" json:"secret"`
+	Env      string `yaml:"env" json:"env"`
 }
 
 // POCI tools
