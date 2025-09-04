@@ -129,8 +129,8 @@ func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *cata
 
 	fmt.Printf("🔍 Discovering OAuth requirements for %s...\n", serverName)
 
-	// Perform OAuth discovery
-	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
+	// Perform OAuth discovery for catalog-configured server (bypass 401 probe)
+	discovery, err := oauth.DiscoverOAuthFromCatalog(ctx, serverURL)
 	if err != nil {
 		return fmt.Errorf("OAuth discovery failed: %w", err)
 	}
