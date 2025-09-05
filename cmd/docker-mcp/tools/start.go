@@ -15,7 +15,7 @@ func start(ctx context.Context, version string, gatewayArgs []string, verbose bo
 	if version == "2" {
 		if verbose {
 			args = []string{"mcp", "gateway", "run", "--verbose"}
-	        } else {
+		} else {
 			args = []string{"mcp", "gateway", "run"}
 		}
 	} else {
