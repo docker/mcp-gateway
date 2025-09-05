@@ -14,7 +14,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
-func Disable(ctx context.Context, docker docker.Client, serverNames []string) error {
+func Disable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
 	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR cleanup
 	cat, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
@@ -24,8 +24,8 @@ func Disable(ctx context.Context, docker docker.Client, serverNames []string) er
 	// Clean up OAuth for disabled servers first
 	for _, serverName := range serverNames {
 		if server, found := cat.Servers[serverName]; found {
-			// Only cleanup OAuth for remote servers with OAuth config
-			if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
+			if mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
 				if err := cleanupOAuthForRemoteServer(ctx, serverName); err != nil {
 					fmt.Printf("⚠️ Warning: Failed to cleanup OAuth for %s: %v\n", serverName, err)
 				}
@@ -33,14 +33,14 @@ func Disable(ctx context.Context, docker docker.Client, serverNames []string) er
 		}
 	}
 	
-	return update(ctx, docker, nil, serverNames)
+	return update(ctx, docker, nil, serverNames, mcpOAuthDcrEnabled)
 }
 
-func Enable(ctx context.Context, docker docker.Client, serverNames []string) error {
-	return update(ctx, docker, serverNames, nil)
+func Enable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
+	return update(ctx, docker, serverNames, nil, mcpOAuthDcrEnabled)
 }
 
-func update(ctx context.Context, docker docker.Client, add []string, remove []string) error {
+func update(ctx context.Context, docker docker.Client, add []string, remove []string, mcpOAuthDcrEnabled bool) error {
 	// Read registry.yaml that contains which servers are enabled.
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
@@ -78,12 +78,17 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 				Ref: "",
 			}
 			
-			// For remote MCP servers with OAuth config, perform OAuth discovery and DCR
-			if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
+			if mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
 				if err := setupOAuthForRemoteServer(ctx, serverName, &cat); err != nil {
 					fmt.Printf("⚠️ Warning: Failed to setup OAuth for %s: %v\n", serverName, err)
 					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
 				}
+			} else if !mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+				// Provide guidance when DCR is needed but disabled
+				fmt.Printf("💡 Server %s requires OAuth authentication but DCR is disabled.\n", serverName)
+				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")
+				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
 			}
 		} else {
 			return fmt.Errorf("server %s not found in catalog", serverName)

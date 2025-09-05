@@ -38,14 +38,15 @@ func featureEnableCommand(dockerCli command.Cli) *cobra.Command {
 
 Available features:
   configured-catalogs    Allow gateway to use user-managed catalogs alongside Docker catalog
-  oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication`,
+  oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication
+  mcp-oauth-dcr          Enable Dynamic Client Registration (DCR) for automatic OAuth client setup`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			featureName := args[0]
 
 			// Validate feature name
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs    Allow gateway to use user-managed catalogs\n  oauth-interceptor      Enable GitHub OAuth flow interception", featureName)
+				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs    Allow gateway to use user-managed catalogs\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  mcp-oauth-dcr          Enable Dynamic Client Registration for automatic OAuth setup", featureName)
 			}
 
 			// Enable the feature
@@ -74,6 +75,13 @@ Available features:
 				fmt.Println("\nThis feature enables automatic GitHub OAuth interception when 401 errors occur.")
 				fmt.Println("When enabled, the gateway will automatically provide OAuth URLs for authentication.")
 				fmt.Println("\nNo additional flags are needed - this applies to all gateway runs.")
+			case "mcp-oauth-dcr":
+				fmt.Println("\nThis feature enables Dynamic Client Registration (DCR) for MCP servers.")
+				fmt.Println("When enabled, remote servers with OAuth configuration will automatically:")
+				fmt.Println("  - Discover OAuth authorization servers")
+				fmt.Println("  - Register public OAuth clients using PKCE")
+				fmt.Println("  - Provide seamless OAuth authentication flows")
+				fmt.Println("\nOnly affects remote servers with OAuth configuration - traditional OAuth flows are unchanged.")
 			}
 
 			return nil
@@ -142,6 +150,8 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 					fmt.Printf("  %-20s %s\n", "", "Allow gateway to use user-managed catalogs alongside Docker catalog")
 				case "oauth-interceptor":
 					fmt.Printf("  %-20s %s\n", "", "Enable GitHub OAuth flow interception for automatic authentication")
+				case "mcp-oauth-dcr":
+					fmt.Printf("  %-20s %s\n", "", "Enable Dynamic Client Registration (DCR) for automatic OAuth client setup")
 				}
 				fmt.Println()
 			}
@@ -204,6 +214,7 @@ func isKnownFeature(feature string) bool {
 	knownFeatures := []string{
 		"configured-catalogs",
 		"oauth-interceptor",
+		"mcp-oauth-dcr",
 	}
 
 	for _, known := range knownFeatures {

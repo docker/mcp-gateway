@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
@@ -12,7 +13,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 )
 
-func serverCommand(docker docker.Client) *cobra.Command {
+func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Manage servers",
@@ -55,7 +56,8 @@ func serverCommand(docker docker.Client) *cobra.Command {
 		Short:   "Enable a server or multiple servers",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return server.Enable(cmd.Context(), docker, args)
+			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+			return server.Enable(cmd.Context(), docker, args, mcpOAuthDcrEnabled)
 		},
 	})
 
@@ -65,7 +67,8 @@ func serverCommand(docker docker.Client) *cobra.Command {
 		Short:   "Disable a server or multiple servers",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return server.Disable(cmd.Context(), docker, args)
+			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+			return server.Disable(cmd.Context(), docker, args, mcpOAuthDcrEnabled)
 		},
 	})
 
