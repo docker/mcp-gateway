@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 )
 
@@ -72,12 +73,35 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 		},
 	})
 
+	var pushFlag bool
+	importCommand := &cobra.Command{
+		Use:   "import",
+		Short: "Import a server",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			push, _ := cmd.Flags().GetBool("push")
+			return server.Import(args[0], args[1], push)
+		},
+	}
+	importCommand.Flags().BoolVar(&pushFlag, "push", false, "push the new server artifact")
+	cmd.AddCommand(importCommand)
+
 	cmd.AddCommand(&cobra.Command{
 		Use:   "inspect",
-		Short: "Get information about a server",
+		Short: "Get information about a server or inspect an OCI artifact",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			info, err := server.Inspect(cmd.Context(), docker, args[0])
+			arg := args[0]
+
+			// Check if the argument looks like an OCI reference
+			// OCI refs typically contain a registry/repository pattern with optional tag or digest
+			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
+				// Use OCI inspect for OCI references
+				return oci.InspectArtifact(arg)
+			}
+
+			// Use regular server inspect for server names
+			info, err := server.Inspect(cmd.Context(), docker, arg)
 			if err != nil {
 				return err
 			}

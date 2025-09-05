@@ -8,4 +8,4 @@
 !/docs
 !/.git
 !/server.go
-!/test_servers
+!/test/servers

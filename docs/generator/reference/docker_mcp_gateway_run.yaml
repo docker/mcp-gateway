@@ -169,6 +169,16 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: oci-ref
+      value_type: stringArray
+      default_value: '[]'
+      description: OCI image references to use
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: port
       value_type: int
       default_value: "0"

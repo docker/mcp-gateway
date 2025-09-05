@@ -9,7 +9,7 @@ import (
 func getGordonSetup(ctx context.Context) MCPClientCfg {
 	result := MCPClientCfg{
 		MCPClientCfgBase: MCPClientCfgBase{
-			DisplayName: "Gordon",
+			DisplayName: "Ask Gordon",
 			Source:      "https://docs.docker.com/ai/gordon/",
 			Icon:        "https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/gordon.png",
 			ConfigName:  vendorGordon,

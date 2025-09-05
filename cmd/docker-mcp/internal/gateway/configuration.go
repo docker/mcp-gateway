@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
 
 type Configurator interface {
@@ -94,7 +95,8 @@ type FileBasedConfiguration struct {
 	RegistryPath []string
 	ConfigPath   []string
 	ToolsPath    []string
-	SecretsPath  string // Optional, if not set, use Docker Desktop's secrets API
+	SecretsPath  string   // Optional, if not set, use Docker Desktop's secrets API
+	OciRef       []string // OCI references to fetch server definitions from
 	Watch        bool
 	Central      bool
 
@@ -230,6 +232,32 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading catalog: %w", err)
 	}
 	servers := mcpCatalog.Servers
+
+	// Read servers from OCI references if any are provided
+	ociServers, err := c.readServersFromOci(ctx)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("reading servers from OCI: %w", err)
+	}
+
+	// Merge OCI servers into the main servers map and add to serverNames list
+	for serverName, server := range ociServers {
+		if _, exists := servers[serverName]; exists {
+			log(fmt.Sprintf("Warning: server '%s' from OCI reference overwrites server from catalog", serverName))
+		}
+		servers[serverName] = server
+
+		// Add to serverNames list if not already present
+		found := false
+		for _, existing := range serverNames {
+			if existing == serverName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			serverNames = append(serverNames, serverName)
+		}
+	}
 
 	// TODO(dga): Do we expect every server to have a config, in Central mode?
 	serversConfig, err := c.readConfig(ctx)
@@ -461,4 +489,50 @@ func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path s
 	}
 
 	return secrets, nil
+}
+
+// readServersFromOci fetches and parses server definitions from OCI references
+func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[string]catalog.Server, error) {
+	ociServers := make(map[string]catalog.Server)
+
+	if len(c.OciRef) == 0 {
+		return ociServers, nil
+	}
+
+	log("  - Reading servers from OCI references", c.OciRef)
+
+	for _, ociRef := range c.OciRef {
+		if ociRef == "" {
+			continue
+		}
+
+		// Use the existing oci.ReadArtifact function to get the Catalog data
+		ociCatalog, err := oci.ReadArtifact(ociRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
+		}
+
+		// Process each server in the OCI catalog registry
+		for i, ociServer := range ociCatalog.Registry {
+			// The ServerDetail is now directly available in ociServer.Server
+			serverDetail := ociServer.Server
+
+			// Transform ServerDetail to catalog.Server using the ToCatalogServer method
+			server := serverDetail.ToCatalogServer()
+
+			// Use the name from the ServerDetail if available, otherwise generate one
+			serverName := serverDetail.Name
+			if serverName == "" {
+				serverName = fmt.Sprintf("oci-server-%d", i)
+			}
+
+			if _, exists := ociServers[serverName]; exists {
+				log(fmt.Sprintf("Warning: overlapping server '%s' found in OCI reference '%s', overwriting previous value", serverName, ociRef))
+			}
+			ociServers[serverName] = server
+			log(fmt.Sprintf("  - Added server '%s' from OCI reference %s", serverName, ociRef))
+		}
+	}
+
+	return ociServers, nil
 }

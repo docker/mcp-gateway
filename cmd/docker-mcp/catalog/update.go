@@ -54,11 +54,12 @@ func updateCatalog(ctx context.Context, name string, catalog Catalog) error {
 		catalogContent []byte
 		err            error
 	)
+	// For the docker catalog, use the default URL if none is set
+	if name == DockerCatalogName && (url == "" || !isValidURL(url)) {
+		url = DockerCatalogURL
+	}
+
 	if isValidURL(url) {
-		// For the docker catalog, always take the most recent URL
-		if name == DockerCatalogName {
-			url = DockerCatalogURL
-		}
 		catalogContent, err = DownloadFile(ctx, url)
 	} else {
 		catalogContent, err = os.ReadFile(url)

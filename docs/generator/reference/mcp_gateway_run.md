@@ -22,6 +22,7 @@ Run the gateway
 | `--log-calls`               | `bool`        | `true`              | Log calls to the tools                                                                                                                        |
 | `--long-lived`              | `bool`        |                     | Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers                                   |
 | `--memory`                  | `string`      | `2Gb`               | Memory allocated to each MCP Server (default is 2Gb)                                                                                          |
+| `--oci-ref`                 | `stringArray` |                     | OCI image references to use                                                                                                                   |
 | `--port`                    | `int`         | `0`                 | TCP port to listen on (default is to listen on stdio)                                                                                         |
 | `--registry`                | `stringSlice` | `[registry.yaml]`   | Paths to the registry files (absolute or relative to ~/.docker/mcp/)                                                                          |
 | `--secrets`                 | `string`      | `docker-desktop`    | Colon separated paths to search for secrets. Can be `docker-desktop` or a path to a .env file (default to using Docker Desktop's secrets API) |

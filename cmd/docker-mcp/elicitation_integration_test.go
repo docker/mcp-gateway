@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -31,8 +33,56 @@ func createDockerClientForElicitation(t *testing.T) docker.Client {
 	return docker.NewClient(dockerCli)
 }
 
+func buildElicitImage(t *testing.T) {
+	t.Helper()
+
+	// Find the project root by looking for test/servers/elicit/Dockerfile
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		t.Fatalf("Failed to find project root: %v", err)
+	}
+	dockerfilePath := filepath.Join("test", "servers", "elicit", "Dockerfile")
+
+	cmd := exec.Command("docker", "build", "-t", "elicit:latest", "-f", dockerfilePath, ".")
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Failed to build elicit:latest image: %v\nOutput: %s", err, string(output))
+	}
+	t.Logf("Successfully built elicit:latest image")
+}
+
+func findProjectRoot() (string, error) {
+	// Start from current directory and walk up
+	currentDir, err := filepath.Abs(".")
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		// Check if test/servers/elicit/Dockerfile exists in current directory
+		dockerfilePath := filepath.Join(currentDir, "test", "servers", "elicit", "Dockerfile")
+		if _, err := os.Stat(dockerfilePath); err == nil {
+			return currentDir, nil
+		}
+
+		// Move up one directory
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			// Reached root directory
+			break
+		}
+		currentDir = parent
+	}
+
+	return "", fmt.Errorf("could not find project root containing test/servers/elicit/Dockerfile")
+}
+
 func TestIntegrationWithElicitation(t *testing.T) {
 	thisIsAnIntegrationTest(t)
+
+	// Build the elicit:latest image before running the test
+	buildElicitImage(t)
 
 	dockerClient := createDockerClientForElicitation(t)
 	tmp := t.TempDir()
