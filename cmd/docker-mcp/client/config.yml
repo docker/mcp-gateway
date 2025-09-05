@@ -84,7 +84,7 @@ system:
       darwin: 
         - $HOME/.config/goose/config.yaml
       windows: 
-        - $USERPROFILE\.config\goose\config.yaml
+        - %APPDATA%\Block\goose\config\config.yaml
     yq:
       list: '.extensions | to_entries | map(select(.value.bundled != true)) | map(.value + {"name": .key})'
       set: '.extensions[$SIMPLE_NAME] = {
