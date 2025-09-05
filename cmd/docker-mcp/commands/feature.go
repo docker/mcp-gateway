@@ -135,7 +135,7 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"configured-catalogs", "oauth-interceptor"}
+			knownFeatures := []string{"configured-catalogs", "oauth-interceptor", "mcp-oauth-dcr"}
 			for _, feature := range knownFeatures {
 				status := "disabled"
 				if isFeatureEnabledFromCli(dockerCli, feature) {

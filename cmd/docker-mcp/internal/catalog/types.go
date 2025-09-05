@@ -46,8 +46,7 @@ type Remote struct {
 }
 
 type OAuth struct {
-	Provider  string          `yaml:"provider" json:"provider"`          // Legacy single provider
-	Providers []OAuthProvider `yaml:"providers,omitempty" json:"providers,omitempty"` // New providers array
+	Providers []OAuthProvider `yaml:"providers,omitempty" json:"providers,omitempty"`
 	Scopes    []string        `yaml:"scopes,omitempty" json:"scopes,omitempty"`
 }
 

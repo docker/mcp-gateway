@@ -59,7 +59,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		headers[k] = expandEnv(v, env)
 	}
 
-	// Add OAuth token if configured (DCR criteria: remote server with OAuth providers)
+	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
 		token, err := c.getOAuthToken(ctx)
 		if err != nil {
@@ -166,6 +166,8 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		newReq.Header.Set(key, value)
 	}
 	
+	// TODO: This Accept header logic is a Notion-specific workaround, not part of MCP spec.
+	// Consider moving to server-specific configuration or making it configurable per catalog entry.
 	// Ensure all requests have proper Accept headers
 	// Notion MCP server requires Accept headers to avoid HTTP 405/406 errors
 	if newReq.Header.Get("Accept") == "" {

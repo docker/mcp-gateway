@@ -68,13 +68,6 @@ func revokeRemoteMCPServer(ctx context.Context, serverName string) error {
 		return fmt.Errorf("server %s does not have OAuth configured", serverName)
 	}
 
-	// This handles the legacy case where catalog servers use separate OAuth providers
-	if server.OAuth.Provider != serverName {
-		fmt.Printf("Note: %s uses %s OAuth provider.\n", serverName, server.OAuth.Provider)
-		fmt.Printf("To revoke access, use: docker mcp oauth revoke %s\n", server.OAuth.Provider)
-		return nil
-	}
-
 	// If we get here, the server should have been a DCR provider but wasn't found
 	return fmt.Errorf("OAuth provider %s not found - it may not be authorized", serverName)
 }
