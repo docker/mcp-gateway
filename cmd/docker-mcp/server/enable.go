@@ -15,7 +15,7 @@ import (
 )
 
 func Disable(ctx context.Context, docker docker.Client, serverNames []string) error {
-	// Get catalog to check server types for OAuth cleanup
+	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR cleanup
 	cat, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get catalog: %w", err)
@@ -52,7 +52,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 		return fmt.Errorf("parsing registry config: %w", err)
 	}
 
-	// Get catalog including user-configured catalogs
+	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR
 	cat, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return err
@@ -109,6 +109,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 
 	return nil
 }
+
 
 // setupOAuthForRemoteServer performs OAuth discovery and DCR for remote MCP servers
 // This enables OAuth providers to appear in the Docker Desktop UI immediately after enable
