@@ -1,3 +1,9 @@
 bin
 dist
 .idea/
+/.direnv/
+/.vscode/
+/.envrc
+.DS_Store
+**/.DS_Store
+/nix/

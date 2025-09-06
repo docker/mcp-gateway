@@ -72,6 +72,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			// Check if OAuth interceptor feature is enabled
 			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
 
+			// Check if dynamic tools feature is enabled
+			options.DynamicTools = isDynamicToolsFeatureEnabled(dockerCli)
+
 			if options.Static {
 				options.Watch = false
 			}
@@ -221,6 +224,21 @@ func isOAuthInterceptorFeatureEnabled(dockerCli command.Cli) bool {
 	}
 
 	value, exists := configFile.Features["oauth-interceptor"]
+	if !exists {
+		return false
+	}
+
+	return value == "enabled"
+}
+
+// isDynamicToolsFeatureEnabled checks if the dynamic-tools feature is enabled
+func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
 		return false
 	}

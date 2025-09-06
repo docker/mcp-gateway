@@ -30,4 +30,5 @@ type Options struct {
 	Static                  bool
 	Central                 bool
 	OAuthInterceptorEnabled bool
+	DynamicTools            bool
 }
