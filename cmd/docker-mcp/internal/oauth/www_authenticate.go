@@ -199,17 +199,6 @@ func FindResourceMetadataURL(challenges []WWWAuthenticateChallenge) string {
 	return ""
 }
 
-// FindBearerRealm extracts the realm from Bearer challenges  
-func FindBearerRealm(challenges []WWWAuthenticateChallenge) string {
-	for _, challenge := range challenges {
-		if strings.EqualFold(challenge.Scheme, "Bearer") {
-			if realm, exists := challenge.Parameters["realm"]; exists {
-				return realm
-			}
-		}
-	}
-	return ""
-}
 
 // FindRequiredScopes extracts the required scopes from Bearer challenges  
 //

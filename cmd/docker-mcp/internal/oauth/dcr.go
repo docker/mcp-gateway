@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 )
 
 // ClientCredentials represents stored client credentials for a public client
@@ -132,73 +131,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	return creds, nil
 }
 
-// GetDCREndpoint discovers the DCR registration endpoint from authorization server metadata
-// This is a fallback method when discovery.RegistrationEndpoint is not already populated
-//
-// RFC 8414 COMPLIANCE:
-// - Fetches from /.well-known/oauth-authorization-server
-// - Falls back to /.well-known/openid-configuration (for OIDC compatibility)
-func GetDCREndpoint(ctx context.Context, authorizationServer string) (string, error) {
-	// Parse the authorization server URL
-	baseURL, err := url.Parse(authorizationServer)
-	if err != nil {
-		return "", fmt.Errorf("invalid authorization server URL: %w", err)
-	}
-
-	// Try OAuth 2.0 Authorization Server Metadata (RFC 8414) first
-	wellKnownURL := baseURL.ResolveReference(&url.URL{Path: "/.well-known/oauth-authorization-server"})
-
-	endpoint, err := fetchRegistrationEndpoint(ctx, wellKnownURL.String())
-	if err == nil && endpoint != "" {
-		return endpoint, nil
-	}
-
-	// Fallback to OpenID Connect Discovery
-	oidcURL := baseURL.ResolveReference(&url.URL{Path: "/.well-known/openid-configuration"})
-
-	endpoint, err = fetchRegistrationEndpoint(ctx, oidcURL.String())
-	if err != nil {
-		return "", fmt.Errorf("failed to discover registration endpoint from %s: %w", authorizationServer, err)
-	}
-
-	if endpoint == "" {
-		return "", fmt.Errorf("registration_endpoint not found in discovery document for %s", authorizationServer)
-	}
-
-	return endpoint, nil
-}
-
-// fetchRegistrationEndpoint fetches the registration endpoint from a well-known URL
-func fetchRegistrationEndpoint(ctx context.Context, wellKnownURL string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, wellKnownURL, nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "MCP-Gateway/1.0.0")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("discovery request failed with status %d", resp.StatusCode)
-	}
-
-	var metadata struct {
-		RegistrationEndpoint string `json:"registration_endpoint"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
-		return "", fmt.Errorf("failed to decode discovery document: %w", err)
-	}
-
-	return metadata.RegistrationEndpoint, nil
-}
 
 // joinScopes joins a slice of scopes into a space-separated string
 // per OAuth 2.0 specification (RFC 6749 Section 3.3)

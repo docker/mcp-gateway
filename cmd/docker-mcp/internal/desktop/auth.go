@@ -125,13 +125,6 @@ func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
 	return c.rawClient.Delete(ctx, fmt.Sprintf("/apps/%s/dcr", app))
 }
 
-func (c *Tools) ListDCRClients(ctx context.Context) ([]DCRClient, error) {
-	AvoidResourceSaverMode(ctx)
-
-	var result []DCRClient
-	err := c.rawClient.Get(ctx, "/apps/dcr", &result)
-	return result, err
-}
 
 
 // PKCE (Proof Key for Code Exchange) Methods

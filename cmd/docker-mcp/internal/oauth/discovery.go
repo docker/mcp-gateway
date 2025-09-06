@@ -72,25 +72,11 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	}
 
 	// STEP 3: Extract resource_metadata URL from Bearer challenge
-	// RFC 9728 Section 5.1: WWW-Authenticate response SHOULD include resource_metadata parameter
+	// MCP SPEC REQUIREMENT (Section 4.1): MCP servers MUST use WWW-Authenticate header to indicate resource metadata URL
+	// RFC 9728 Section 5.1: WWW-Authenticate response MUST include resource_metadata parameter
 	resourceMetadataURL := FindResourceMetadataURL(challenges)
 	if resourceMetadataURL == "" {
-		// COMPATIBILITY EXTENSION: Try convention-based discovery for non-MCP-compliant servers
-		// This is NOT in the MCP spec but enables compatibility with servers like Notion
-		// that don't include resource_metadata in WWW-Authenticate headers
-		resourceMetadataURL = tryConventionBasedDiscovery(serverURL)
-		if resourceMetadataURL == "" {
-			// ADDITIONAL FALLBACK: Try direct authorization server discovery
-			// Some servers like Atlassian have /.well-known/oauth-authorization-server
-			// but not /.well-known/oauth-protected-resource
-			discovery, err := tryDirectAuthServerDiscovery(ctx, client, serverURL)
-			if err == nil && discovery != nil {
-				fmt.Printf("Server is not fully MCP-compliant, using direct authorization server discovery\n")
-				return discovery, nil
-			}
-			return nil, fmt.Errorf("server is not MCP-compliant: no resource_metadata URL found in WWW-Authenticate header, convention-based discovery failed, and direct auth server discovery failed")
-		}
-		fmt.Printf("Server is not fully MCP-compliant, using convention-based discovery\n")
+		return nil, fmt.Errorf("server is not MCP-compliant: no resource_metadata URL found in WWW-Authenticate header")
 	}
 
 	// STEP 4: Fetch OAuth Protected Resource Metadata
@@ -144,33 +130,20 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	return discovery, nil
 }
 
-// DiscoverOAuthFromCatalog discovers OAuth requirements for servers we know from the catalog
-// require OAuth. This bypasses the 401 probe since we already have this information from
-// the catalog configuration and goes directly to well-known endpoint discovery.
+// DiscoverOAuthFromCatalog performs OAuth discovery for servers pre-configured in catalog
+// with OAuth requirements already known. 
 //
-// This handles servers like Stripe that don't return 401 Unauthorized for unauthorized
-// MCP requests (non-MCP-compliant) but do have proper OAuth metadata endpoints.
+// MCP SPEC COMPLIANCE:
+// Even for catalog-configured servers, the MCP specification requires the standard discovery flow:
+// 1. 401 response with WWW-Authenticate header containing resource_metadata URL
+// 2. Fetch /.well-known/oauth-protected-resource metadata
+// 3. Fetch authorization server metadata from the discovered authorization server
+//
+// There are NO exceptions in the MCP spec for "catalog-aware" discovery.
 func DiscoverOAuthFromCatalog(ctx context.Context, serverURL string) (*OAuthDiscovery, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	// CATALOG-AWARE DISCOVERY: Skip 401 probe and go directly to well-known discovery
-	// We know from the catalog that OAuth is required, so try standard RFC 9728/8414 endpoints
-
-	// Try to fetch resource metadata directly using the same logic as tryForcedResourceMetadataDiscovery
-	discovery, err := tryResourceMetadataDiscovery(ctx, client, serverURL)
-	if err == nil && discovery != nil {
-		return discovery, nil
-	}
-
-	// Fallback to direct authorization server discovery
-	discovery, err = tryDirectAuthServerDiscovery(ctx, client, serverURL)
-	if err == nil && discovery != nil {
-		return discovery, nil
-	}
-
-	return nil, fmt.Errorf("OAuth discovery failed: no accessible OAuth metadata endpoints found for catalog-configured server %s", serverURL)
+	// MCP spec requires all servers to follow the same discovery flow
+	// Use the standard DiscoverOAuthRequirements which implements the full MCP-compliant flow
+	return DiscoverOAuthRequirements(ctx, serverURL)
 }
 
 // fetchOAuthProtectedResourceMetadata fetches metadata from /.well-known/oauth-protected-resource
@@ -299,52 +272,7 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 	return &metadata, nil
 }
 
-// tryConventionBasedDiscovery attempts to find OAuth metadata using standard well-known locations
-// when resource_metadata parameter is missing from WWW-Authenticate header (non-MCP-compliant servers)
-func tryConventionBasedDiscovery(serverURL string) string {
-	parsedURL, err := url.Parse(serverURL)
-	if err != nil {
-		return ""
-	}
 
-	// Try convention-based well-known URLs
-	candidates := []string{
-		// Try at the server base URL (e.g., https://mcp.notion.com/.well-known/oauth-protected-resource)
-		fmt.Sprintf("%s://%s/.well-known/oauth-protected-resource", parsedURL.Scheme, parsedURL.Host),
-		// Try at the server path base (e.g., https://mcp.notion.com/mcp/.well-known/oauth-protected-resource)  
-		strings.TrimSuffix(serverURL, "/") + "/.well-known/oauth-protected-resource",
-	}
-
-	for _, candidate := range candidates {
-		// Test if the URL is accessible (don't fully fetch yet, just check if it exists)
-		if testURLAccessible(candidate) {
-			return candidate
-		}
-	}
-
-	return ""
-}
-
-// testURLAccessible makes a HEAD request to check if a URL is accessible
-func testURLAccessible(urlStr string) bool {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	req, err := http.NewRequest("HEAD", urlStr, nil)
-	if err != nil {
-		return false
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	// Accept 200 OK or 405 Method Not Allowed (some servers don't support HEAD)
-	return resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusMethodNotAllowed
-}
 
 // containsString checks if a slice contains a specific string
 func containsString(slice []string, item string) bool {
@@ -356,155 +284,4 @@ func containsString(slice []string, item string) bool {
 	return false
 }
 
-// tryDirectAuthServerDiscovery attempts to discover OAuth configuration by directly
-// accessing the authorization server metadata when resource metadata is not available.
-// This handles servers like Atlassian that have /.well-known/oauth-authorization-server
-// but not /.well-known/oauth-protected-resource
-func tryDirectAuthServerDiscovery(ctx context.Context, client *http.Client, serverURL string) (*OAuthDiscovery, error) {
-	parsedURL, err := url.Parse(serverURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid server URL: %w", err)
-	}
 
-	// Try direct authorization server metadata at server base URL
-	authServerMetadataURL := fmt.Sprintf("%s://%s/.well-known/oauth-authorization-server", parsedURL.Scheme, parsedURL.Host)
-	
-	// Test if the URL is accessible
-	if !testURLAccessible(authServerMetadataURL) {
-		return nil, fmt.Errorf("authorization server metadata not found at %s", authServerMetadataURL)
-	}
-
-	// Fetch authorization server metadata directly without validation
-	// We can't use fetchAuthorizationServerMetadata because it validates issuer matches server URL
-	// but for direct discovery the issuer might be different (e.g., Cloudflare Workers)
-	authServerMetadata, err := fetchDirectAuthorizationServerMetadata(ctx, client, authServerMetadataURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetching direct authorization server metadata: %w", err)
-	}
-
-	// Build discovery result without resource metadata
-	// We use the server URL as both resource URL and the authorization server URL
-	discovery := &OAuthDiscovery{
-		RequiresOAuth:         true,
-		ResourceURL:           serverURL, // Use the MCP server URL as the resource
-		AuthorizationServer:   authServerMetadata.Issuer, // Use issuer from metadata
-		AuthorizationEndpoint: authServerMetadata.AuthorizationEndpoint,
-		TokenEndpoint:         authServerMetadata.TokenEndpoint,
-		RegistrationEndpoint:  authServerMetadata.RegistrationEndpoint,
-		Scopes:                []string{}, // No scopes discovered, will use default or catalog-configured
-	}
-
-	return discovery, nil
-}
-
-// fetchDirectAuthorizationServerMetadata fetches authorization server metadata without issuer validation
-// This is used for direct discovery where the metadata URL might be on a different host than the issuer
-func fetchDirectAuthorizationServerMetadata(ctx context.Context, client *http.Client, metadataURL string) (*OAuthAuthorizationServerMetadata, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", metadataURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-	
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "docker-mcp-gateway/1.0.0")
-	
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("fetching metadata from %s: %w", metadataURL, err)
-	}
-	defer resp.Body.Close()
-	
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("authorization server metadata request returned %d", resp.StatusCode)
-	}
-	
-	var metadata OAuthAuthorizationServerMetadata
-	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
-		return nil, fmt.Errorf("parsing authorization server metadata: %w", err)
-	}
-	
-	// Basic validation without issuer URL matching
-	if metadata.Issuer == "" {
-		return nil, fmt.Errorf("issuer field missing in authorization server metadata")
-	}
-	if metadata.AuthorizationEndpoint == "" {
-		return nil, fmt.Errorf("authorization_endpoint field missing in authorization server metadata")
-	}
-	if metadata.TokenEndpoint == "" {
-		return nil, fmt.Errorf("token_endpoint field missing in authorization server metadata")
-	}
-	
-	return &metadata, nil
-}
-
-// tryResourceMetadataDiscovery attempts to discover OAuth configuration by directly
-// fetching protected resource metadata from well-known locations without pre-testing.
-// This is used for catalog-configured servers that don't return proper HEAD responses.
-func tryResourceMetadataDiscovery(ctx context.Context, client *http.Client, serverURL string) (*OAuthDiscovery, error) {
-	parsedURL, err := url.Parse(serverURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid server URL: %w", err)
-	}
-
-	// Try convention-based well-known URLs (same candidates as tryConventionBasedDiscovery)
-	candidates := []string{
-		// Try at the server base URL (e.g., https://mcp.stripe.com/.well-known/oauth-protected-resource)
-		fmt.Sprintf("%s://%s/.well-known/oauth-protected-resource", parsedURL.Scheme, parsedURL.Host),
-		// Try at the server path base (e.g., https://mcp.stripe.com/sse/.well-known/oauth-protected-resource)  
-		strings.TrimSuffix(serverURL, "/") + "/.well-known/oauth-protected-resource",
-	}
-
-	for _, candidate := range candidates {
-		// Try to fetch resource metadata directly
-		resourceMetadata, err := fetchOAuthProtectedResourceMetadata(ctx, client, candidate)
-		if err != nil {
-			continue // Try next candidate
-		}
-
-		// Fetch authorization server metadata (use direct fetch to skip issuer validation)
-		// This handles cases like Stripe where issuer != authorization server host
-		authServerURL := resourceMetadata.AuthorizationServer
-		var metadataURL string
-		if strings.HasSuffix(authServerURL, "/") {
-			metadataURL = authServerURL + ".well-known/oauth-authorization-server"
-		} else {
-			metadataURL = authServerURL + "/.well-known/oauth-authorization-server"
-		}
-		
-		authServerMetadata, err := fetchDirectAuthorizationServerMetadata(ctx, client, metadataURL)
-		if err != nil {
-			continue // Try next candidate
-		}
-
-		// Build discovery result
-		discovery := &OAuthDiscovery{
-			RequiresOAuth: true,
-			
-			// From Protected Resource Metadata (RFC 9728)
-			ResourceURL:         resourceMetadata.Resource,
-			ResourceServer:      resourceMetadata.Resource,
-			AuthorizationServer: resourceMetadata.AuthorizationServer,
-			Scopes:              resourceMetadata.Scopes,
-			
-			// From Authorization Server Metadata (RFC 8414)
-			Issuer:                authServerMetadata.Issuer,
-			AuthorizationEndpoint: authServerMetadata.AuthorizationEndpoint,
-			TokenEndpoint:         authServerMetadata.TokenEndpoint,
-			RegistrationEndpoint:  authServerMetadata.RegistrationEndpoint,
-			JWKSUri:              authServerMetadata.JWKSUri,
-			ScopesSupported:      authServerMetadata.ScopesSupported,
-			ResponseTypesSupported: authServerMetadata.ResponseTypesSupported,
-			ResponseModesSupported: authServerMetadata.ResponseModesSupported,
-			GrantTypesSupported:   authServerMetadata.GrantTypesSupported,
-			TokenEndpointAuthMethodsSupported: authServerMetadata.TokenEndpointAuthMethodsSupported,
-			
-			// PKCE support detection (OAuth 2.1 MUST requirement)
-			SupportsPKCE:        containsString(authServerMetadata.CodeChallengeMethodsSupported, "S256"),
-			CodeChallengeMethod: authServerMetadata.CodeChallengeMethodsSupported,
-		}
-
-		return discovery, nil
-	}
-
-	return nil, fmt.Errorf("no accessible protected resource metadata found")
-}
