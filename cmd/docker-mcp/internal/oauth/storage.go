@@ -135,16 +135,8 @@ func GetOrCreateDCRCredentials(ctx context.Context, storage CredentialStorage, d
 		fmt.Printf("DEBUG: Successfully stored credentials for %s\n", serverName)
 	}
 
-	// Register the DCR client as an OAuth provider immediately
-	// This ensures it's available in /apps for UI visibility and token retrieval
-	fmt.Printf("DEBUG: Registering DCR provider for %s\n", serverName)
-	client := desktop.NewAuthClient()
-	if err := client.RegisterDCRProvider(ctx, serverName); err != nil {
-		fmt.Printf("Warning: failed to register DCR provider for %s: %v\n", serverName, err)
-		// Don't fail - the credentials are stored, provider registration can be done later
-	} else {
-		fmt.Printf("DEBUG: Successfully registered DCR provider for %s\n", serverName)
-	}
+	// Provider registration is now automatic when DCR client is stored
+	fmt.Printf("DEBUG: DCR client stored - provider will be auto-registered by Docker Desktop\n")
 
 	return creds, nil
 }

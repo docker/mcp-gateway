@@ -145,14 +145,8 @@ func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *cata
 	client := desktop.NewAuthClient()
 	existing, err := client.GetDCRClient(ctx, serverName)
 	if err == nil && existing.ClientID != "" {
-		fmt.Printf("✅ DCR client already exists for %s, registering as provider...\n", serverName)
-		
-		// Still need to register as OAuth provider so it appears in UI
-		if err := client.RegisterDCRProvider(ctx, serverName); err != nil {
-			return fmt.Errorf("failed to register existing DCR client as provider: %w", err)
-		}
-		
-		fmt.Printf("✅ OAuth provider registered for %s (appears in Docker Desktop OAuth tab)\n", serverName)
+		fmt.Printf("✅ DCR client already exists for %s\n", serverName)
+		fmt.Printf("✅ Provider auto-registered (appears in Docker Desktop OAuth tab)\n")
 		return nil
 	}
 
@@ -175,10 +169,7 @@ func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *cata
 		return fmt.Errorf("failed to store DCR client: %w", err)
 	}
 
-	// Register as OAuth provider so it appears in Docker Desktop UI
-	if err := client.RegisterDCRProvider(ctx, serverName); err != nil {
-		return fmt.Errorf("failed to register OAuth provider: %w", err)
-	}
+	// Provider registration is now automatic when DCR client is stored
 
 	fmt.Printf("✅ OAuth setup complete for %s\n", serverName)
 	fmt.Printf("   • Client registered with authorization server\n")

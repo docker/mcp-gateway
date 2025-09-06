@@ -133,12 +133,6 @@ func (c *Tools) ListDCRClients(ctx context.Context) ([]DCRClient, error) {
 	return result, err
 }
 
-func (c *Tools) RegisterDCRProvider(ctx context.Context, app string) error {
-	AvoidResourceSaverMode(ctx)
-
-	var result map[string]string
-	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr/register-provider", app), nil, &result)
-}
 
 // PKCE (Proof Key for Code Exchange) Methods
 
