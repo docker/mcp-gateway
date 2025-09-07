@@ -17,23 +17,30 @@ import (
 // - Implements MCP Authorization Specification Section 4.1 "Authorization Server Discovery"
 // - Follows RFC 9728 "OAuth 2.0 Protected Resource Metadata" 
 // - Follows RFC 8414 "OAuth 2.0 Authorization Server Metadata"
-// - Includes fallback for non-MCP-compliant servers (compatibility extension)
+// - Gracefully handles servers with partial MCP compliance
 //
-// FLOW:
+// ROBUST DISCOVERY FLOW (Inspector-inspired):
 // 1. Make request to MCP server to trigger 401 response
-// 2. Parse WWW-Authenticate header for resource_metadata URL (RFC 9728 Section 5.1)
-// 3. Fetch Protected Resource Metadata (RFC 9728 Section 3)
-// 4. Extract authorization server URL(s) 
-// 5. Fetch Authorization Server Metadata (RFC 8414 Section 3)
+// 2. Default authorization server to MCP server domain
+// 3. Try to parse WWW-Authenticate header for resource_metadata URL
+// 4. If resource metadata available, try to fetch it (optional)
+// 5. Always fetch Authorization Server Metadata (required)
+// 6. Build discovery result with whatever information is available
 func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDiscovery, error) {
 	// Create HTTP client with reasonable timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
+	// Parse server URL to extract base domain for defaults
+	parsedURL, err := url.Parse(serverURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid server URL: %w", err)
+	}
+
 	// STEP 1: Make initial MCP request to trigger 401 Unauthorized
 	// MCP Spec Section 4.1: "MCP request without token" should trigger 401
-	// Use POST with initialize request as per spec diagrams (line 107, 162)
+	// Use POST with initialize request as per spec diagrams
 	mcpPayload := `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"mcp-gateway","version":"1.0.0"}},"id":1}`
 	req, err := http.NewRequestWithContext(ctx, "POST", serverURL, strings.NewReader(mcpPayload))
 	if err != nil {
@@ -58,9 +65,8 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		}, nil
 	}
 
-	// STEP 2: Parse WWW-Authenticate header for resource metadata URL
-	// MCP Spec Section 4.1: "MCP servers MUST use the HTTP header WWW-Authenticate when returning a 401 Unauthorized 
-	// to indicate the location of the resource server metadata URL as described in RFC9728 Section 5.1"
+	// STEP 2: Parse WWW-Authenticate header (if present)
+	// MCP Spec Section 4.1: "MCP servers MUST use the HTTP header WWW-Authenticate when returning a 401 Unauthorized"
 	wwwAuth := resp.Header.Get("WWW-Authenticate")
 	if wwwAuth == "" {
 		return nil, fmt.Errorf("server returned 401 but no WWW-Authenticate header")
@@ -71,41 +77,61 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		return nil, fmt.Errorf("parsing WWW-Authenticate header: %w", err)
 	}
 
-	// STEP 3: Extract resource_metadata URL from Bearer challenge
-	// MCP SPEC REQUIREMENT (Section 4.1): MCP servers MUST use WWW-Authenticate header to indicate resource metadata URL
-	// RFC 9728 Section 5.1: WWW-Authenticate response MUST include resource_metadata parameter
+	// STEP 3: Initialize with intelligent defaults (Inspector pattern)
+	// Default authorization server to MCP server's domain
+	defaultAuthServerURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+	
+	// Initialize discovery with defaults
+	var resourceMetadata *OAuthProtectedResourceMetadata
+	var resourceMetadataError error
+	authServerURL := defaultAuthServerURL
+	
+	// STEP 4: Try to get resource metadata (OPTIONAL - don't fail if missing)
+	// RFC 9728 Section 5.1: resource_metadata parameter in WWW-Authenticate
 	resourceMetadataURL := FindResourceMetadataURL(challenges)
-	if resourceMetadataURL == "" {
-		return nil, fmt.Errorf("server is not MCP-compliant: no resource_metadata URL found in WWW-Authenticate header")
+	if resourceMetadataURL != "" {
+		// Resource metadata URL found - try to fetch it
+		fmt.Printf("📋 Found resource_metadata URL in WWW-Authenticate: %s\n", resourceMetadataURL)
+		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, resourceMetadataURL)
+		if resourceMetadataError != nil {
+			// Log warning but continue - resource metadata is supplementary
+			fmt.Printf("⚠️  Failed to fetch resource metadata: %v (continuing with defaults)\n", resourceMetadataError)
+		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
+			// Use authorization server from resource metadata if available
+			authServerURL = resourceMetadata.AuthorizationServer
+			fmt.Printf("✅ Using authorization server from resource metadata: %s\n", authServerURL)
+		}
+	} else {
+		// No resource_metadata in WWW-Authenticate - try well-known endpoint
+		fmt.Printf("📋 No resource_metadata in WWW-Authenticate, trying well-known endpoint\n")
+		wellKnownURL := fmt.Sprintf("%s/.well-known/oauth-protected-resource", defaultAuthServerURL)
+		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, wellKnownURL)
+		if resourceMetadataError != nil {
+			fmt.Printf("⚠️  Well-known resource metadata not available: %v\n", resourceMetadataError)
+		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
+			authServerURL = resourceMetadata.AuthorizationServer
+			fmt.Printf("✅ Found authorization server via well-known: %s\n", authServerURL)
+		}
 	}
 
-	// STEP 4: Fetch OAuth Protected Resource Metadata
-	// MCP Spec Section 3.1: "MCP servers MUST implement OAuth 2.0 Protected Resource Metadata (RFC9728)"
-	// RFC 9728 Section 3: Defines the structure and required fields
-	resourceMetadata, err := fetchOAuthProtectedResourceMetadata(ctx, client, resourceMetadataURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetching protected resource metadata: %w", err)
-	}
-
-	// STEP 5: Fetch Authorization Server Metadata  
+	// STEP 5: Fetch Authorization Server Metadata (REQUIRED)
 	// MCP Spec Section 3.1: "Authorization servers MUST provide OAuth 2.0 Authorization Server Metadata (RFC8414)"
-	// MCP Spec Section 4.2: "MCP clients MUST use the OAuth 2.0 Authorization Server Metadata"
-	authServerMetadata, err := fetchAuthorizationServerMetadata(ctx, client, resourceMetadata.AuthorizationServer)
+	authServerMetadata, err := fetchAuthorizationServerMetadata(ctx, client, authServerURL)
 	if err != nil {
-		return nil, fmt.Errorf("fetching authorization server metadata: %w", err)
+		return nil, fmt.Errorf("fetching authorization server metadata from %s: %w", authServerURL, err)
 	}
+	fmt.Printf("✅ Successfully fetched authorization server metadata\n")
 
-	// STEP 6: Build discovery result with all discovered OAuth configuration
+	// STEP 6: Build discovery result with all available information
 	discovery := &OAuthDiscovery{
 		RequiresOAuth: true,
 		
-		// From Protected Resource Metadata (RFC 9728)
-		ResourceURL:         resourceMetadata.Resource,
-		ResourceServer:      resourceMetadata.Resource,
-		AuthorizationServer: resourceMetadata.AuthorizationServer,
-		Scopes:              resourceMetadata.Scopes,
+		// Use resource metadata if available, otherwise use defaults
+		ResourceURL:         defaultAuthServerURL,
+		ResourceServer:      defaultAuthServerURL,
+		AuthorizationServer: authServerURL,
 		
-		// From Authorization Server Metadata (RFC 8414)
+		// From Authorization Server Metadata (RFC 8414) - always available
 		Issuer:                authServerMetadata.Issuer,
 		AuthorizationEndpoint: authServerMetadata.AuthorizationEndpoint,
 		TokenEndpoint:         authServerMetadata.TokenEndpoint,
@@ -122,7 +148,18 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		CodeChallengeMethod: authServerMetadata.CodeChallengeMethodsSupported,
 	}
 
-	// Extract additional scopes from WWW-Authenticate if not available in resource metadata
+	// Override with resource metadata if successfully fetched
+	if resourceMetadata != nil {
+		if resourceMetadata.Resource != "" {
+			discovery.ResourceURL = resourceMetadata.Resource
+			discovery.ResourceServer = resourceMetadata.Resource
+		}
+		if len(resourceMetadata.Scopes) > 0 {
+			discovery.Scopes = resourceMetadata.Scopes
+		}
+	}
+
+	// Extract additional scopes from WWW-Authenticate if not available from metadata
 	if len(discovery.Scopes) == 0 {
 		discovery.Scopes = FindRequiredScopes(challenges)
 	}
@@ -131,18 +168,12 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 }
 
 // DiscoverOAuthFromCatalog performs OAuth discovery for servers pre-configured in catalog
-// with OAuth requirements already known. 
+// with OAuth requirements already known.
 //
-// MCP SPEC COMPLIANCE:
-// Even for catalog-configured servers, the MCP specification requires the standard discovery flow:
-// 1. 401 response with WWW-Authenticate header containing resource_metadata URL
-// 2. Fetch /.well-known/oauth-protected-resource metadata
-// 3. Fetch authorization server metadata from the discovered authorization server
-//
-// There are NO exceptions in the MCP spec for "catalog-aware" discovery.
+// This now simply delegates to the main DiscoverOAuthRequirements function,
+// which has been refactored to handle all discovery patterns robustly.
 func DiscoverOAuthFromCatalog(ctx context.Context, serverURL string) (*OAuthDiscovery, error) {
-	// MCP spec requires all servers to follow the same discovery flow
-	// Use the standard DiscoverOAuthRequirements which implements the full MCP-compliant flow
+	// The main discovery function now handles all cases gracefully
 	return DiscoverOAuthRequirements(ctx, serverURL)
 }
 
