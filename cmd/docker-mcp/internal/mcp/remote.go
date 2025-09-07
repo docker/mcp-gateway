@@ -166,21 +166,5 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		newReq.Header.Set(key, value)
 	}
 	
-	// TODO: This Accept header logic is a Notion-specific workaround, not part of MCP spec.
-	// Consider moving to server-specific configuration or making it configurable per catalog entry.
-	// Ensure all requests have proper Accept headers
-	// Notion MCP server requires Accept headers to avoid HTTP 405/406 errors
-	if newReq.Header.Get("Accept") == "" {
-		if newReq.Method == "GET" {
-			newReq.Header.Set("Accept", "text/event-stream")
-		} else if newReq.Method == "POST" && newReq.Header.Get("Content-Type") != "" {
-			// Only add Accept header to POST requests that have a Content-Type
-			// These are likely MCP JSON-RPC calls that need JSON responses
-			newReq.Header.Set("Accept", "application/json")
-		}
-		// Skip adding Accept headers to POST requests without Content-Type
-		// as these might be session management requests
-	}
-	
 	return h.base.RoundTrip(newReq)
 }
