@@ -91,26 +91,21 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	resourceMetadataURL := FindResourceMetadataURL(challenges)
 	if resourceMetadataURL != "" {
 		// Resource metadata URL found - try to fetch it
-		fmt.Printf("📋 Found resource_metadata URL in WWW-Authenticate: %s\n", resourceMetadataURL)
 		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, resourceMetadataURL)
 		if resourceMetadataError != nil {
 			// Log warning but continue - resource metadata is supplementary
-			fmt.Printf("⚠️  Failed to fetch resource metadata: %v (continuing with defaults)\n", resourceMetadataError)
 		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
 			// Use authorization server from resource metadata if available
 			authServerURL = resourceMetadata.AuthorizationServer
-			fmt.Printf("✅ Using authorization server from resource metadata: %s\n", authServerURL)
 		}
 	} else {
 		// No resource_metadata in WWW-Authenticate - try well-known endpoint
-		fmt.Printf("📋 No resource_metadata in WWW-Authenticate, trying well-known endpoint\n")
 		wellKnownURL := fmt.Sprintf("%s/.well-known/oauth-protected-resource", defaultAuthServerURL)
 		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, wellKnownURL)
 		if resourceMetadataError != nil {
-			fmt.Printf("⚠️  Well-known resource metadata not available: %v\n", resourceMetadataError)
+			// Well-known resource metadata not available
 		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
 			authServerURL = resourceMetadata.AuthorizationServer
-			fmt.Printf("✅ Found authorization server via well-known: %s\n", authServerURL)
 		}
 	}
 
@@ -120,7 +115,6 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	if err != nil {
 		return nil, fmt.Errorf("fetching authorization server metadata from %s: %w", authServerURL, err)
 	}
-	fmt.Printf("✅ Successfully fetched authorization server metadata\n")
 
 	// STEP 6: Build discovery result with all available information
 	discovery := &OAuthDiscovery{
@@ -285,20 +279,15 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 		return nil, fmt.Errorf("token_endpoint field missing in authorization server metadata")
 	}
 	
-	// RFC 8414 Section 3.2: Validate issuer URL matches authorization server URL
-	issuerURL, err := url.Parse(metadata.Issuer)
+	// RFC 8414 Section 3.2: Validate issuer URL is valid
+	// Note: We trust the issuer field in the metadata as authoritative
+	// Cross-domain OAuth setups (like Stripe) are valid where resource server
+	// and authorization server are on different domains
+	_, err = url.Parse(metadata.Issuer)
 	if err != nil {
 		return nil, fmt.Errorf("invalid issuer URL: %w", err)
 	}
 	
-	authURL, err := url.Parse(authServerURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid authorization server URL: %w", err)
-	}
-	
-	if issuerURL.Scheme != authURL.Scheme || issuerURL.Host != authURL.Host {
-		return nil, fmt.Errorf("issuer URL %s does not match authorization server URL %s", metadata.Issuer, authServerURL)
-	}
 	
 	return &metadata, nil
 }

@@ -28,6 +28,7 @@ type ClientCredentials struct {
 // - Includes redirect_uris pointing to mcp-oauth proxy
 // - Requests authorization_code and refresh_token grant types
 func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName string) (*ClientCredentials, error) {
+	
 	if discovery.RegistrationEndpoint == "" {
 		return nil, fmt.Errorf("no registration endpoint found for %s", serverName)
 	}
