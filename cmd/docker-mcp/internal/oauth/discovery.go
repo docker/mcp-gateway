@@ -218,7 +218,7 @@ func fetchOAuthProtectedResourceMetadata(ctx context.Context, client *http.Clien
 			return nil, fmt.Errorf("authorization_server or authorization_servers field missing in protected resource metadata")
 		}
 		// MCP Spec Section 4.1: "The responsibility for selecting which authorization server to use lies with the MCP client"
-		// TODO: Implement selection logic for multiple authorization servers (Phase 2)
+		// Taking the first authorization server is a valid implementation per RFC 9728
 		metadata.AuthorizationServer = metadata.AuthorizationServers[0]
 	}
 	

@@ -1,0 +1,20 @@
+command: docker mcp officialregistry import
+short: Import a server from an official registry URL
+long: |-
+    Import and parse a server definition from an official MCP registry URL.
+
+    This command fetches the server definition from the provided URL, parses it as a ServerDetail,
+    converts it to the internal Server format, and displays the results.
+
+    Example:
+      docker mcp officialregistry import https://registry.example.com/servers/my-server
+usage: docker mcp officialregistry import <url>
+pname: docker mcp officialregistry
+plink: docker_mcp_officialregistry.yaml
+deprecated: false
+hidden: true
+experimental: false
+experimentalcli: false
+kubernetes: false
+swarm: false
+

@@ -24,5 +24,7 @@ WORKDIR /root/
 # Copy the binary from builder stage
 COPY --from=builder /app/server .
 
+LABEL io.modelcontextprotocol.server.name="io.github.slimslenderslacks/poci"
+
 # Run the binary
 ENTRYPOINT ["./server"]

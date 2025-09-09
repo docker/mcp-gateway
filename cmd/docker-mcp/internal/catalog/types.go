@@ -15,6 +15,7 @@ type topLevel struct {
 type Server struct {
 	Type           string   `yaml:"type" json:"type"`
 	Image          string   `yaml:"image" json:"image"`
+	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
 	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
@@ -27,6 +28,7 @@ type Server struct {
 	DisableNetwork bool     `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
 	AllowHosts     []string `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
 	Tools          []Tool   `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Config         []any    `yaml:"config,omitempty" json:"config,omitempty"`
 }
 
 type Secret struct {

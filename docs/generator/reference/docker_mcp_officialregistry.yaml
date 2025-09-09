@@ -1,0 +1,16 @@
+command: docker mcp officialregistry
+short: Manage official MCP registry operations
+long: Commands for importing and managing servers from official MCP registries
+pname: docker mcp
+plink: docker_mcp.yaml
+cname:
+    - docker mcp officialregistry import
+clink:
+    - docker_mcp_officialregistry_import.yaml
+deprecated: false
+hidden: true
+experimental: false
+experimentalcli: false
+kubernetes: false
+swarm: false
+

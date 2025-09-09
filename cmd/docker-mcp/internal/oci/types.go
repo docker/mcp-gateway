@@ -37,10 +37,16 @@ type Package struct {
 	Identifier       string            `json:"identifier"`
 	Version          string            `json:"version,omitempty"`
 	Args             []string          `json:"args,omitempty"`
-	Env              map[string]any    `json:"env,omitempty"`
-	RuntimeOptions   *RuntimeOptions   `json:"runtime_options,omitempty"`
-	TransportOptions *TransportOptions `json:"transport_options,omitempty"`
+	Env              []KeyValueInput   `json:"environment_variables,omitempty"`
+	RuntimeOptions   *RuntimeOptions   `json:"runtime_arguments,omitempty"`
+	TransportOptions *TransportOptions `json:"transport,omitempty"`
 	Inputs           []Input           `json:"inputs,omitempty"`
+}
+
+type KeyValueInput struct {
+	Input
+	Name      string  `json:"name"`
+	Variables []Input `json:"variable,omitempty"`
 }
 
 // RuntimeOptions contains runtime configuration
@@ -54,17 +60,20 @@ type RuntimeOptions struct {
 // TransportOptions contains transport configuration
 type TransportOptions struct {
 	Type    string            `json:"type,omitempty"` // "stdio", "sse", etc.
+	URL     string            `json:"url,omitempty"`
 	Headers map[string]string `json:"headers,omitempty"`
 }
 
 // Input represents input configuration
 type Input struct {
-	Name         string        `json:"name"`
-	Type         string        `json:"type"` // "positional", "named", "secret", "configurable"
-	Description  string        `json:"description,omitempty"`
-	Required     bool          `json:"required,omitempty"`
-	DefaultValue any           `json:"default_value,omitempty"`
-	Options      []InputOption `json:"options,omitempty"`
+	Name         string   `json:"name"`
+	Type         string   `json:"type"` // "positional", "named", "secret", "configurable"
+	Description  string   `json:"description,omitempty"`
+	Value        string   `json:"string,omitempty"`
+	Required     bool     `json:"is_required,omitempty"`
+	Secret       bool     `json:"is_secret,omitempty"`
+	DefaultValue any      `json:"default,omitempty"`
+	Choices      []string `json:"choices,omitempty"`
 }
 
 // InputOption represents an option for input validation
@@ -87,7 +96,9 @@ type Remote = RemoteServer
 
 // ToCatalogServer converts an OCI ServerDetail to a catalog.Server
 func (sd *ServerDetail) ToCatalogServer() catalog.Server {
-	server := catalog.Server{}
+	server := catalog.Server{
+		Description: sd.Description,
+	}
 
 	// Extract image from the first package if available
 	if len(sd.Packages) > 0 {
@@ -119,13 +130,56 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 			}
 		}
 
-		// Convert inputs to secrets for credential-type inputs
+		// Convert environment variables to secrets and config schemas
+		for _, envVar := range pkg.Env {
+			if envVar.Secret {
+				server.Secrets = append(server.Secrets, catalog.Secret{
+					Name: envVar.Name,
+					Env:  envVar.Name, // Use actual name instead of uppercase conversion
+				})
+			} else if envVar.Type == "configurable" {
+				// Convert configurable input to JSON schema object
+				schema := map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						envVar.Name: map[string]any{
+							"type":        "string", // Default to string, could be enhanced based on input validation
+							"description": envVar.Description,
+						},
+					},
+					"required": []string{},
+				}
+				if envVar.Required {
+					schema["required"] = []string{envVar.Name}
+				}
+				server.Config = append(server.Config, schema)
+			}
+		}
+
+		// Convert inputs to secrets for credential-type inputs and config schemas for configurable inputs
 		for _, input := range pkg.Inputs {
-			if input.Type == "secret" {
+			switch input.Type {
+			case "secret":
 				server.Secrets = append(server.Secrets, catalog.Secret{
 					Name: input.Name,
 					Env:  strings.ToUpper(input.Name),
 				})
+			case "configurable":
+				// Convert configurable input to JSON schema object
+				schema := map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						input.Name: map[string]any{
+							"type":        "string", // Default to string, could be enhanced based on input validation
+							"description": input.Description,
+						},
+					},
+					"required": []string{},
+				}
+				if input.Required {
+					schema["required"] = []string{input.Name}
+				}
+				server.Config = append(server.Config, schema)
 			}
 		}
 	}
@@ -139,13 +193,30 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 			Headers:   remote.Headers,
 		}
 
-		// Convert remote inputs to secrets
+		// Convert remote inputs to secrets and config schemas
 		for _, input := range remote.Inputs {
-			if input.Type == "secret" {
+			switch input.Type {
+			case "secret":
 				server.Secrets = append(server.Secrets, catalog.Secret{
 					Name: input.Name,
 					Env:  strings.ToUpper(input.Name),
 				})
+			case "configurable":
+				// Convert configurable input to JSON schema object
+				schema := map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						input.Name: map[string]any{
+							"type":        "string", // Default to string, could be enhanced based on input validation
+							"description": input.Description,
+						},
+					},
+					"required": []string{},
+				}
+				if input.Required {
+					schema["required"] = []string{input.Name}
+				}
+				server.Config = append(server.Config, schema)
 			}
 		}
 	}

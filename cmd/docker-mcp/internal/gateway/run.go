@@ -37,11 +37,12 @@ type ServerSessionCache struct {
 
 type Gateway struct {
 	Options
-	docker       docker.Client
-	configurator Configurator
-	clientPool   *clientPool
-	mcpServer    *mcp.Server
-	health       health.State
+	docker        docker.Client
+	configurator  Configurator
+	configuration Configuration
+	clientPool    *clientPool
+	mcpServer     *mcp.Server
+	health        health.State
 	// subsChannel  chan SubsMessage
 
 	sessionCacheMu sync.RWMutex
@@ -121,6 +122,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Read the configuration.
 	configuration, configurationUpdates, stopConfigWatcher, err := g.configurator.Read(ctx)
+	g.configuration = configuration
 	if err != nil {
 		return err
 	}
@@ -309,6 +311,42 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.registeredToolNames = append(g.registeredToolNames, tool.Tool.Name)
 	}
 
+	// Add internal tools when dynamic-tools feature is enabled
+	if g.DynamicTools {
+		log("- Adding internal tools (dynamic-tools feature enabled)")
+
+		// Add mcp-find tool
+		mcpFindTool := g.createMcpFindTool(configuration)
+		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpFindTool.Tool.Name)
+
+		// Add mcp-add tool
+		mcpAddTool := g.createMcpAddTool(configuration, clientConfig)
+		g.mcpServer.AddTool(mcpAddTool.Tool, mcpAddTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpAddTool.Tool.Name)
+
+		// Add mcp-remove tool
+		mcpRemoveTool := g.createMcpRemoveTool(configuration, clientConfig)
+		g.mcpServer.AddTool(mcpRemoveTool.Tool, mcpRemoveTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpRemoveTool.Tool.Name)
+
+		// Add mcp-official-registry-import tool
+		mcpOfficialRegistryImportTool := g.createMcpOfficialRegistryImportTool(configuration, clientConfig)
+		g.mcpServer.AddTool(mcpOfficialRegistryImportTool.Tool, mcpOfficialRegistryImportTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpOfficialRegistryImportTool.Tool.Name)
+
+		// Add mcp-config-set tool
+		mcpConfigSetTool := g.createMcpConfigSetTool(configuration, clientConfig)
+		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
+		g.registeredToolNames = append(g.registeredToolNames, mcpConfigSetTool.Tool.Name)
+
+		log("  > mcp-find: tool for finding MCP servers in the catalog")
+		log("  > mcp-add: tool for adding MCP servers to the registry")
+		log("  > mcp-remove: tool for removing MCP servers from the registry")
+		log("  > mcp-official-registry-import: tool for importing servers from official registry URLs")
+		log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+	}
+
 	for _, prompt := range capabilities.Prompts {
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
 		g.registeredPromptNames = append(g.registeredPromptNames, prompt.Prompt.Name)
@@ -342,6 +380,10 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error {
 	// Get current configuration
 	configuration, _, _, err := g.configurator.Read(ctx)
+	// hold on to current serverNames
+	configuration.serverNames = g.configuration.serverNames
+	// reset on Gateway
+	g.configuration = configuration
 	if err != nil {
 		return fmt.Errorf("failed to read configuration: %w", err)
 	}

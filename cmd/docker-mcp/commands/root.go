@@ -76,6 +76,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 	cmd.AddCommand(featureCommand(dockerCli))
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli))
 	cmd.AddCommand(oauthCommand())
+	cmd.AddCommand(officialregistryCommand())
 	cmd.AddCommand(policyCommand())
 	cmd.AddCommand(secretCommand(dockerClient))
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli))

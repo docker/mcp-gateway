@@ -64,18 +64,15 @@ func Import(registryURL string, ociRepository string, push bool) error {
 	// Parse packages from JSON data
 	var dockerPackages []map[string]any
 	if jsonMap, ok := jsonData.(map[string]any); ok {
-		if serverInterface, exists := jsonMap["server"]; exists {
-			if serverMap, ok := serverInterface.(map[string]any); ok {
-				if packagesInterface, exists := serverMap["packages"]; exists {
-					if packages, ok := packagesInterface.([]any); ok {
-						// Filter packages with registry_type=docker
-						for _, pkg := range packages {
-							if pkgMap, ok := pkg.(map[string]any); ok {
-								if registryName, exists := pkgMap["registry_type"]; exists {
-									if registryName == "docker" {
-										dockerPackages = append(dockerPackages, pkgMap)
-									}
-								}
+		// The new structure has packages at the top level
+		if packagesInterface, exists := jsonMap["packages"]; exists {
+			if packages, ok := packagesInterface.([]any); ok {
+				// Filter packages with registry_type=oci
+				for _, pkg := range packages {
+					if pkgMap, ok := pkg.(map[string]any); ok {
+						if registryType, exists := pkgMap["registry_type"]; exists {
+							if registryType == "oci" {
+								dockerPackages = append(dockerPackages, pkgMap)
 							}
 						}
 					}
@@ -138,10 +135,16 @@ func Import(registryURL string, ociRepository string, push bool) error {
 		return fmt.Errorf("failed to parse OCI repository reference %s: %w", ociRepository, err)
 	}
 
-	// Parse the JSON content into a Server
-	var server oci.Server
-	if err := json.Unmarshal(jsonContent, &server); err != nil {
-		return fmt.Errorf("failed to parse JSON content as Server: %w", err)
+	// Parse the JSON content into a ServerDetail (the new structure is the server data directly)
+	var serverDetail oci.ServerDetail
+	if err := json.Unmarshal(jsonContent, &serverDetail); err != nil {
+		return fmt.Errorf("failed to parse JSON content as ServerDetail: %w", err)
+	}
+
+	// Wrap it in an oci.Server structure for the OCI catalog
+	server := oci.Server{
+		Server:   serverDetail,
+		Registry: json.RawMessage(`{}`), // Empty registry metadata
 	}
 
 	// Create an OCI Catalog with the server entry

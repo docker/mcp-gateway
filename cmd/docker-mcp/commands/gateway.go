@@ -75,6 +75,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			// Check if MCP OAuth DCR feature is enabled
 			options.McpOAuthDcrEnabled = isMcpOAuthDcrFeatureEnabled(dockerCli)
 
+			// Check if dynamic tools feature is enabled
+			options.DynamicTools = isDynamicToolsFeatureEnabled(dockerCli)
+
 			if options.Static {
 				options.Watch = false
 			}
@@ -239,6 +242,21 @@ func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
 	}
 
 	value, exists := configFile.Features["mcp-oauth-dcr"]
+	if !exists {
+		return false
+	}
+
+	return value == "enabled"
+}
+
+// isDynamicToolsFeatureEnabled checks if the dynamic-tools feature is enabled
+func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
 		return false
 	}

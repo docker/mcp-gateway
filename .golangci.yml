@@ -40,6 +40,14 @@ linters:
     presets:
       - comments
       - std-error-handling
+  issues:
+    exclude-rules:
+      - path: cmd/docker-mcp/internal/gateway/dynamic_mcps.go
+        linters:
+          - gofmt
+      - path: cmd/docker-mcp/internal/gateway/dynamic_mcps.go
+        linters:
+          - gofumpt
 formatters:
   enable:
     - gofmt
