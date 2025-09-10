@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -40,6 +41,9 @@ var (
 
 	// GatewayStartCounter tracks gateway starts
 	GatewayStartCounter metric.Int64Counter
+
+	// InitializeCounter tracks initialize calls
+	InitializeCounter metric.Int64Counter
 
 	// ListToolsCounter tracks list tools calls
 	ListToolsCounter metric.Int64Counter
@@ -131,6 +135,16 @@ func Init() {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating gateway start counter: %v\n", err)
+		}
+	}
+
+	InitializeCounter, err = meter.Int64Counter("mcp.initialize",
+		metric.WithDescription("Number of initialize calls"),
+		metric.WithUnit("1"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating initialize counter: %v\n", err)
 		}
 	}
 
@@ -402,6 +416,13 @@ func StartPromptSpan(ctx context.Context, promptName string, attrs ...attribute.
 }
 
 // StartListSpan starts a new span for a list operation (tools, prompts, resources)
+func StartInitializeSpan(ctx context.Context, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
+	return tracer.Start(ctx, "mcp.initialize",
+		trace.WithAttributes(attrs...),
+		trace.WithSpanKind(trace.SpanKindServer))
+}
+
+// StartListSpan starts a new span for a list operation (tools, prompts, resources)
 func StartListSpan(ctx context.Context, listType string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
 	allAttrs := append([]attribute.KeyValue{
 		attribute.String("mcp.list.type", listType),
@@ -463,6 +484,25 @@ func RecordGatewayStart(ctx context.Context, transportMode string) {
 	GatewayStartCounter.Add(ctx, 1,
 		metric.WithAttributes(
 			attribute.String("mcp.gateway.transport", transportMode),
+		))
+}
+
+func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
+	if InitializeCounter == nil {
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: InitializeCounter is nil - metrics not initialized\n")
+		}
+		return // Telemetry not initialized
+	}
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Initialize called - adding to counter\n")
+	}
+
+	InitializeCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.client.name", params.ClientInfo.Name),
+			attribute.String("mcp.client.version", params.ClientInfo.Version),
 		))
 }
 
