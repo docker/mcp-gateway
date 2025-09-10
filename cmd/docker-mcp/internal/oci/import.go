@@ -1,4 +1,4 @@
-package server
+package oci
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
 
 func ImportToServer(registryURL string) (catalog.Server, error) {
@@ -47,7 +46,7 @@ func ImportToServer(registryURL string) (catalog.Server, error) {
 	}
 
 	// Parse the JSON content into a ServerDetail (the new structure is the server data directly)
-	var serverDetail oci.ServerDetail
+	var serverDetail ServerDetail
 	if err := json.Unmarshal(jsonContent, &serverDetail); err != nil {
 		return catalog.Server{}, fmt.Errorf("failed to parse JSON content as ServerDetail: %w", err)
 	}
@@ -176,24 +175,24 @@ func Import(registryURL string, ociRepository string, push bool) error {
 	}
 
 	// Parse the JSON content into a ServerDetail (the new structure is the server data directly)
-	var serverDetail oci.ServerDetail
+	var serverDetail ServerDetail
 	if err := json.Unmarshal(jsonContent, &serverDetail); err != nil {
 		return fmt.Errorf("failed to parse JSON content as ServerDetail: %w", err)
 	}
 
 	// Wrap it in an oci.Server structure for the OCI catalog
-	server := oci.Server{
+	server := Server{
 		Server:   serverDetail,
 		Registry: json.RawMessage(`{}`), // Empty registry metadata
 	}
 
 	// Create an OCI Catalog with the server entry
-	ociCatalog := oci.Catalog{
-		Registry: []oci.Server{server},
+	ociCatalog := Catalog{
+		Registry: []Server{server},
 	}
 
 	// Create the OCI artifact with the subject
-	manifest, err := oci.CreateArtifactWithSubjectAndPush(artifactRef, ociCatalog, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType, push)
+	manifest, err := CreateArtifactWithSubjectAndPush(artifactRef, ociCatalog, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType, push)
 	if err != nil {
 		return fmt.Errorf("failed to create OCI artifact: %w", err)
 	}
