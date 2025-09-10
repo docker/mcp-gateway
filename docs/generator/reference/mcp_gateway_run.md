@@ -21,6 +21,7 @@ Run the gateway
 | `--interceptor`             | `stringArray` |                     | List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')                                                            |
 | `--log-calls`               | `bool`        | `true`              | Log calls to the tools                                                                                                                        |
 | `--long-lived`              | `bool`        |                     | Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers                                   |
+| `--mcp-registry`            | `stringSlice` |                     | MCP registry URLs to fetch servers from (can be repeated)                                                                                     |
 | `--memory`                  | `string`      | `2Gb`               | Memory allocated to each MCP Server (default is 2Gb)                                                                                          |
 | `--oci-ref`                 | `stringArray` |                     | OCI image references to use                                                                                                                   |
 | `--port`                    | `int`         | `0`                 | TCP port to listen on (default is to listen on stdio)                                                                                         |

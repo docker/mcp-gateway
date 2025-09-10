@@ -159,6 +159,16 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: mcp-registry
+      value_type: stringSlice
+      default_value: '[]'
+      description: MCP registry URLs to fetch servers from (can be repeated)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: memory
       value_type: string
       default_value: 2Gb

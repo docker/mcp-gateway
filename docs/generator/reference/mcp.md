@@ -12,6 +12,7 @@ Manage MCP servers and clients
 | [`config`](mcp_config.md)   | Manage the configuration      |
 | [`feature`](mcp_feature.md) | Manage experimental features  |
 | [`gateway`](mcp_gateway.md) | Manage the MCP Server gateway |
+| [`import`](mcp_import.md)   | Import a server               |
 | [`policy`](mcp_policy.md)   | Manage secret policies        |
 | [`secret`](mcp_secret.md)   | Manage secrets                |
 | [`server`](mcp_server.md)   | Manage servers                |
