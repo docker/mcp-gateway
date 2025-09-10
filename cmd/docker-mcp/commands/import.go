@@ -7,48 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/spf13/cobra"
-
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
-
-func importCommand(_ docker.Client) *cobra.Command {
-	var pushFlag bool
-	var mcpRegistry string
-	var catalog string
-	cmd := &cobra.Command{
-		Use:   "import",
-		Short: "Import a server",
-		Long: `Import and parse a server definition from an official MCP registry URL.
-
-This command fetches the server definition from the provided URL, parses it as a ServerDetail,
-converts it to the internal Server format, and displays the results.
-
-Example:
-  docker mcp officialregistry import https://registry.example.com/servers/my-server`,
-
-		Args: cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			push, _ := cmd.Flags().GetBool("push")
-			mcpReg, _ := cmd.Flags().GetString("mcp-registry")
-			cat, _ := cmd.Flags().GetString("catalog")
-
-			// TODO: Implement logic for mcp-registry and catalog flags
-			_ = mcpReg
-			_ = cat
-			_ = push
-
-			return runOfficialregistryImport(context.Background(), mcpReg, nil)
-		},
-	}
-	cmd.Flags().BoolVar(&pushFlag, "push", false, "push the new server artifact")
-	cmd.Flags().StringVar(&mcpRegistry, "mcp-registry", "", "import from MCP registry format")
-	cmd.Flags().StringVar(&catalog, "catalog", "", "import to local catalog")
-
-	return cmd
-}
 
 func runOfficialregistryImport(ctx context.Context, serverURL string, servers *[]catalog.Server) error {
 	// Validate URL

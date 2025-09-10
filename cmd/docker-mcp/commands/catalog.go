@@ -36,6 +36,7 @@ func catalogCommand() *cobra.Command {
 
 func importCatalogCommand() *cobra.Command {
 	var mcpRegistry string
+	var dryRun bool
 	cmd := &cobra.Command{
 		Use:   "import <alias|url|file>",
 		Short: "Import a catalog from URL or file",
@@ -56,6 +57,9 @@ command will import servers from the MCP registry URL into that catalog.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// If mcp-registry flag is provided, import to existing catalog
 			if mcpRegistry != "" {
+				if dryRun {
+					return runOfficialregistryImport(cmd.Context(), mcpRegistry, nil)
+				}
 				return importMCPRegistryToCatalog(cmd.Context(), args[0], mcpRegistry)
 			}
 			// Default behavior: import entire catalog
@@ -63,6 +67,7 @@ command will import servers from the MCP registry URL into that catalog.`,
 		},
 	}
 	cmd.Flags().StringVar(&mcpRegistry, "mcp-registry", "", "Import server from MCP registry URL into existing catalog")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show Imported Data but do not update the Catalog")
 	return cmd
 }
 
