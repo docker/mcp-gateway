@@ -79,8 +79,8 @@ func TestServerDetailParsing(t *testing.T) {
 	}
 
 	// Verify repository
-	if serverDetail.Repository == nil {
-		t.Error("Expected Repository to be non-nil")
+	if serverDetail.Repository.URL == "" {
+		t.Error("Expected Repository URL to be non-empty")
 	} else {
 		if serverDetail.Repository.URL != "https://github.com/slimslenderslacks/poci" {
 			t.Errorf("Expected repository URL 'https://github.com/slimslenderslacks/poci', got '%s'", serverDetail.Repository.URL)

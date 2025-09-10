@@ -2,7 +2,6 @@ package oci
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 )
@@ -11,9 +10,10 @@ import (
 type ServerDetail struct {
 	Name          string         `json:"name"`
 	Description   string         `json:"description"`
+	Version       string         `json:"version"`
 	VersionDetail *VersionDetail `json:"version_detail,omitempty"`
 	Status        string         `json:"status,omitempty"` // "active", "deprecated", or "deleted"
-	Repository    *Repository    `json:"repository,omitempty"`
+	Repository    Repository     `json:"repository,omitempty"`
 	Packages      []Package      `json:"packages,omitempty"`
 	Remotes       []Remote       `json:"remotes,omitempty"`
 	Meta          map[string]any `json:"_meta,omitempty"`
@@ -33,20 +33,30 @@ type VersionDetail struct {
 
 // Package represents a package definition
 type Package struct {
-	RegistryType     string            `json:"registry_type"`
-	Identifier       string            `json:"identifier"`
-	Version          string            `json:"version,omitempty"`
-	Args             []string          `json:"args,omitempty"`
-	Env              []KeyValueInput   `json:"environment_variables,omitempty"`
-	RuntimeOptions   *RuntimeOptions   `json:"runtime_arguments,omitempty"`
-	TransportOptions *TransportOptions `json:"transport,omitempty"`
-	Inputs           []Input           `json:"inputs,omitempty"`
+	RegistryType     string          `json:"registry_type"`
+	Identifier       string          `json:"identifier"`
+	Version          string          `json:"version,omitempty"`
+	Args             []string        `json:"args,omitempty"`
+	Env              []KeyValueInput `json:"environment_variables,omitempty"`
+	RuntimeOptions   []Argument      `json:"runtime_arguments,omitempty"`
+	PackageArguments []Argument      `json:"package_arguments,omitempty"`
+	Inputs           []Input         `json:"inputs,omitempty"`
+}
+
+type Argument struct {
+	Input
+	Variables map[string]Input `json:"variables,omitempty"`
+
+	Type       string `json:"type"`
+	ValueHint  string `json:"value_hint,omitempty"`
+	IsRepeated bool   `json:"is_repeated,omitempty"`
+	Name       string `json:"name,omitempty"`
 }
 
 type KeyValueInput struct {
 	Input
-	Name      string  `json:"name"`
-	Variables []Input `json:"variable,omitempty"`
+	Name      string           `json:"name"`
+	Variables map[string]Input `json:"variables,omitempty"`
 }
 
 // RuntimeOptions contains runtime configuration
@@ -66,29 +76,28 @@ type TransportOptions struct {
 
 // Input represents input configuration
 type Input struct {
-	Name         string   `json:"name"`
-	Type         string   `json:"type"` // "positional", "named", "secret", "configurable"
+	Type         string   `json:"type,omitempty"` // "positional", "named", "secret", "configurable"
 	Description  string   `json:"description,omitempty"`
-	Value        string   `json:"string,omitempty"`
+	Value        string   `json:"value,omitempty"`
 	Required     bool     `json:"is_required,omitempty"`
 	Secret       bool     `json:"is_secret,omitempty"`
 	DefaultValue any      `json:"default,omitempty"`
 	Choices      []string `json:"choices,omitempty"`
+	Format       string   `json:"format,omitempty"`
 }
 
 // InputOption represents an option for input validation
 type InputOption struct {
-	Value       any    `json:"value"`
+	Value       any    `json:"value,omitempty"`
 	Label       string `json:"label,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
 // Remote represents a remote server configuration
 type RemoteServer struct {
-	URL           string            `json:"url"`
-	TransportType string            `json:"transport_type,omitempty"`
-	Headers       map[string]string `json:"headers,omitempty"`
-	Inputs        []Input           `json:"inputs,omitempty"`
+	URL           string                   `json:"url,omitempty"`
+	TransportType string                   `json:"transport_type,omitempty"`
+	Headers       map[string]KeyValueInput `json:"headers,omitempty"`
 }
 
 // Remote alias for consistency with existing code
@@ -98,6 +107,7 @@ type Remote = RemoteServer
 func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 	server := catalog.Server{
 		Description: sd.Description,
+		Name:        sd.Name,
 	}
 
 	// Extract image from the first package if available
@@ -105,37 +115,12 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 		pkg := sd.Packages[0]
 		server.Image = fmt.Sprintf("%s:%s", pkg.Identifier, pkg.Version)
 
-		// Set command and environment from runtime options
-		if pkg.RuntimeOptions != nil {
-			server.Command = pkg.RuntimeOptions.Command
-
-			// Convert env map to env slice
-			if pkg.RuntimeOptions.Env != nil {
-				for key, value := range pkg.RuntimeOptions.Env {
-					if strVal, ok := value.(string); ok {
-						server.Env = append(server.Env, catalog.Env{
-							Name:  key,
-							Value: strVal,
-						})
-					}
-				}
-			}
-		}
-
-		// Set transport options
-		if pkg.TransportOptions != nil {
-			server.Remote = catalog.Remote{
-				Transport: pkg.TransportOptions.Type,
-				Headers:   pkg.TransportOptions.Headers,
-			}
-		}
-
-		// Convert environment variables to secrets and config schemas
+		// Convert environment variables to secrets, env vars, and config schemas
 		for _, envVar := range pkg.Env {
-			if envVar.Secret {
+			if envVar.Secret || envVar.Type == "secret" {
 				server.Secrets = append(server.Secrets, catalog.Secret{
 					Name: envVar.Name,
-					Env:  envVar.Name, // Use actual name instead of uppercase conversion
+					Env:  envVar.Name,
 				})
 			} else if envVar.Type == "configurable" {
 				// Convert configurable input to JSON schema object
@@ -153,33 +138,36 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 					schema["required"] = []string{envVar.Name}
 				}
 				server.Config = append(server.Config, schema)
+			} else {
+				// Add as environment variable
+				value := envVar.Value
+				if value == "" {
+					value = fmt.Sprintf("%v", envVar.DefaultValue)
+				}
+				server.Env = append(server.Env, catalog.Env{
+					Name:  envVar.Name,
+					Value: value,
+				})
 			}
 		}
 
-		// Convert inputs to secrets for credential-type inputs and config schemas for configurable inputs
-		for _, input := range pkg.Inputs {
-			switch input.Type {
-			case "secret":
-				server.Secrets = append(server.Secrets, catalog.Secret{
-					Name: input.Name,
-					Env:  strings.ToUpper(input.Name),
-				})
-			case "configurable":
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						input.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": input.Description,
-						},
-					},
-					"required": []string{},
+		// Process package arguments and append positional ones to command
+		for _, arg := range pkg.PackageArguments {
+			if arg.Type == "positional" {
+				server.Command = append(server.Command, arg.Value)
+			}
+		}
+
+		// Process runtime arguments for volume mounting
+		for _, arg := range pkg.RuntimeOptions {
+			if arg.Type == "named" && (arg.Name == "-v" || arg.Name == "--mount") {
+				config, volume := createVolume(arg)
+				if volume != "" {
+					server.Volumes = append(server.Volumes, volume)
 				}
-				if input.Required {
-					schema["required"] = []string{input.Name}
+				if config != nil {
+					server.Config = append(server.Config, config)
 				}
-				server.Config = append(server.Config, schema)
 			}
 		}
 	}
@@ -190,36 +178,53 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 		server.Remote = catalog.Remote{
 			URL:       remote.URL,
 			Transport: remote.TransportType,
-			Headers:   remote.Headers,
-		}
-
-		// Convert remote inputs to secrets and config schemas
-		for _, input := range remote.Inputs {
-			switch input.Type {
-			case "secret":
-				server.Secrets = append(server.Secrets, catalog.Secret{
-					Name: input.Name,
-					Env:  strings.ToUpper(input.Name),
-				})
-			case "configurable":
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						input.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": input.Description,
-						},
-					},
-					"required": []string{},
-				}
-				if input.Required {
-					schema["required"] = []string{input.Name}
-				}
-				server.Config = append(server.Config, schema)
-			}
 		}
 	}
 
 	return server
+}
+
+// createVolume creates both a config schema and volume string from a runtime argument
+func createVolume(arg Argument) (map[string]any, string) {
+	var config map[string]any
+	var volume string
+
+	if arg.Name == "--mount" || arg.Name == "-v" {
+		volume = arg.Value
+
+		// Create config schema from the argument's variables
+		if len(arg.Variables) > 0 {
+			properties := make(map[string]any)
+			required := []string{}
+
+			for varName, variable := range arg.Variables {
+				prop := map[string]any{
+					"type":        "string", // Default to string
+					"description": variable.Description,
+				}
+
+				if variable.DefaultValue != nil {
+					prop["default"] = variable.DefaultValue
+				}
+
+				if variable.Format != "" {
+					prop["format"] = variable.Format
+				}
+
+				properties[varName] = prop
+
+				if variable.Required {
+					required = append(required, varName)
+				}
+			}
+
+			config = map[string]any{
+				"type":       "object",
+				"properties": properties,
+				"required":   required,
+			}
+		}
+	}
+
+	return config, volume
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	catalogTypes "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway"
 )
@@ -25,6 +26,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var additionalRegistries []string
 	var additionalConfigs []string
 	var additionalToolsConfig []string
+	var mcpRegistryUrls []string
 	var useConfiguredCatalogs bool
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
@@ -115,6 +117,17 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			options.ConfigPath = append(options.ConfigPath, additionalConfigs...)
 			options.ToolsPath = append(options.ToolsPath, additionalToolsConfig...)
 
+			// Process MCP registry URLs if provided
+			if len(mcpRegistryUrls) > 0 {
+				var mcpServers []catalogTypes.Server
+				for _, registryURL := range mcpRegistryUrls {
+					if err := runOfficialregistryImport(cmd.Context(), registryURL, &mcpServers); err != nil {
+						return fmt.Errorf("failed to fetch server from MCP registry %s: %w", registryURL, err)
+					}
+				}
+				options.MCPRegistryServers = mcpServers
+			}
+
 			return gateway.NewGateway(options, docker).Run(cmd.Context())
 		},
 	}
@@ -132,6 +145,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().StringSliceVar(&options.ToolNames, "tools", options.ToolNames, "List of tools to enable")
 	runCmd.Flags().StringArrayVar(&options.Interceptors, "interceptor", options.Interceptors, "List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')")
 	runCmd.Flags().StringArrayVar(&options.OciRef, "oci-ref", options.OciRef, "OCI image references to use")
+	runCmd.Flags().StringSliceVar(&mcpRegistryUrls, "mcp-registry", nil, "MCP registry URLs to fetch servers from (can be repeated)")
 	runCmd.Flags().IntVar(&options.Port, "port", options.Port, "TCP port to listen on (default is to listen on stdio)")
 	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming (default is stdio)")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")

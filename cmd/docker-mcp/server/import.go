@@ -12,8 +12,48 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
+
+func ImportToServer(registryURL string) (catalog.Server, error) {
+	if registryURL == "" {
+		return catalog.Server{}, fmt.Errorf("registry URL is required")
+	}
+
+	// Fetch JSON document from registryUrl
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
+	if err != nil {
+		return catalog.Server{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return catalog.Server{}, fmt.Errorf("failed to fetch JSON from %s: %w", registryURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return catalog.Server{}, fmt.Errorf("failed to fetch JSON: HTTP %d", resp.StatusCode)
+	}
+
+	jsonContent, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return catalog.Server{}, fmt.Errorf("failed to read JSON content: %w", err)
+	}
+
+	// Parse the JSON content into a ServerDetail (the new structure is the server data directly)
+	var serverDetail oci.ServerDetail
+	if err := json.Unmarshal(jsonContent, &serverDetail); err != nil {
+		return catalog.Server{}, fmt.Errorf("failed to parse JSON content as ServerDetail: %w", err)
+	}
+
+	return serverDetail.ToCatalogServer(), nil
+}
 
 func Import(registryURL string, ociRepository string, push bool) error {
 	if registryURL == "" {
