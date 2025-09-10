@@ -11,6 +11,7 @@ command will import servers from the MCP registry URL into that catalog.
 
 | Name             | Type     | Default | Description                                               |
 |:-----------------|:---------|:--------|:----------------------------------------------------------|
+| `--dry-run`      | `bool`   |         | Show Imported Data but do not update the Catalog          |
 | `--mcp-registry` | `string` |         | Import server from MCP registry URL into existing catalog |
 
 

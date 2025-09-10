@@ -5,6 +5,16 @@ usage: docker mcp catalog import <alias|url|file>
 pname: docker mcp catalog
 plink: docker_mcp_catalog.yaml
 options:
+    - option: dry-run
+      value_type: bool
+      default_value: "false"
+      description: Show Imported Data but do not update the Catalog
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: mcp-registry
       value_type: string
       description: Import server from MCP registry URL into existing catalog
