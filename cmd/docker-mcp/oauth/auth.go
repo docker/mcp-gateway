@@ -11,22 +11,14 @@ import (
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {
-	// Load catalog to check server type and OAuth configuration
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get catalog: %w", err)
-	}
-
-	// Check if this server requires DCR OAuth flow
-	if server, found := cat.Servers[app]; found {
-		if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
-			return authorizeRemoteMCPServer(ctx, app, scopes)
-		}
-	}
-
-	// Traditional OAuth flow for built-in providers
+	// First check if DCR client exists (indicates this is a DCR provider)
 	client := desktop.NewAuthClient()
+	if _, err := client.GetDCRClient(ctx, app); err == nil {
+		// This is a DCR provider - handle it with the MCP OAuth flow
+		return authorizeRemoteMCPServer(ctx, app, scopes)
+	}
 
+	// Not a DCR provider - handle traditional OAuth flow for built-in providers
 	authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)
 	if err != nil {
 		return err
