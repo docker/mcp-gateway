@@ -136,6 +136,7 @@ type AuthorizationURLRequest struct {
 type AuthorizationURLResponse struct {
 	AuthorizationURL string `json:"authorizationUrl"`
 	State           string `json:"state"`
+	BrowserOpened   bool   `json:"browserOpened"`
 }
 
 func (c *Tools) GetAuthorizationURL(ctx context.Context, serverName string, scopes []string) (*AuthorizationURLResponse, error) {

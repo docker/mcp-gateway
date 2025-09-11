@@ -1,25 +1,5 @@
 package oauth
 
-import (
-	"os/exec"
-	"runtime"
-)
-
-// OpenBrowser opens the given URL in the user's default browser
-func OpenBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-	}
-	args = append(args, url)
-
-	return exec.Command(cmd, args...).Start()
-}
+// This file previously contained PKCE generation and browser opening logic.
+// PKCE generation has been moved to Docker Desktop for security reasons.
+// Browser opening has been moved to Docker Desktop for consistency with traditional OAuth flows.

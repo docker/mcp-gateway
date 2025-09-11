@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {
@@ -50,19 +49,20 @@ func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes str
 
 
 
-	// Get authorization URL from Docker Desktop (with internal PKCE generation)
+	// Get authorization URL from Docker Desktop (with internal PKCE generation and browser opening)
 	fmt.Printf("🔧 Generating authorization URL with PKCE...\n")
 	authResponse, err := client.GetAuthorizationURL(ctx, serverName, strings.Fields(scopes))
 	if err != nil {
 		return fmt.Errorf("failed to get authorization URL: %w", err)
 	}
 
-	// Open browser for OAuth flow
-	fmt.Printf("🌐 Opening browser for OAuth authentication...\n")
-	if err := oauth.OpenBrowser(authResponse.AuthorizationURL); err != nil {
-		fmt.Printf("Failed to open browser automatically. Please visit: %s\n", authResponse.AuthorizationURL)
-	} else {
+	// Provide user feedback based on browser opening status
+	if authResponse.BrowserOpened {
+		fmt.Printf("🌐 Browser opened for OAuth authentication\n")
 		fmt.Printf("If the browser doesn't open, visit: %s\n", authResponse.AuthorizationURL)
+	} else {
+		fmt.Printf("🌐 Please visit the following URL for OAuth authentication:\n")
+		fmt.Printf("%s\n", authResponse.AuthorizationURL)
 	}
 
 	fmt.Printf("✅ Once authenticated, %s will be ready for use\n", serverName)
