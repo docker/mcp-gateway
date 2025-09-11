@@ -174,6 +174,44 @@ func TestInitialization(t *testing.T) {
 	})
 }
 
+func TestStartInitializeSpan(t *testing.T) {
+	spanRecorder, _ := setupTestTelemetry(t)
+	Init()
+
+	ctx := context.Background()
+	clientName := "claude-ai"
+	clientVersion := "1.0.0"
+
+	// Start a tool call span
+	newCtx, span := StartInitializeSpan(ctx,
+		attribute.String("mcp.client.name", clientName),
+		attribute.String("mcp.client.version", clientVersion),
+	)
+
+	// Verify context was updated
+	assert.NotEqual(t, ctx, newCtx, "should return new context with span")
+
+	// End the span
+	span.End()
+
+	// Verify span attributes
+	spans := spanRecorder.Ended()
+	require.Len(t, spans, 1)
+
+	recordedSpan := spans[0]
+	assert.Equal(t, "mcp.initialize", recordedSpan.Name())
+
+	// Check attributes
+	attrs := recordedSpan.Attributes()
+	attrMap := make(map[string]string)
+	for _, attr := range attrs {
+		attrMap[string(attr.Key)] = attr.Value.AsString()
+	}
+
+	assert.Equal(t, clientName, attrMap["mcp.client.name"])
+	assert.Equal(t, clientVersion, attrMap["mcp.client.version"])
+}
+
 func TestStartToolCallSpan(t *testing.T) {
 	spanRecorder, _ := setupTestTelemetry(t)
 	Init()
