@@ -37,7 +37,6 @@ func featureEnableCommand(dockerCli command.Cli) *cobra.Command {
 		Long: `Enable an experimental feature.
 
 Available features:
-  configured-catalogs    Allow gateway to use user-managed catalogs alongside Docker catalog
   oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication
   dynamic-tools          Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)`,
 		Args: cobra.ExactArgs(1),
@@ -46,7 +45,7 @@ Available features:
 
 			// Validate feature name
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  configured-catalogs    Allow gateway to use user-managed catalogs\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  dynamic-tools          Enable internal MCP management tools", featureName)
+				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  dynamic-tools          Enable internal MCP management tools", featureName)
 			}
 
 			// Enable the feature
@@ -65,12 +64,6 @@ Available features:
 
 			// Provide usage hints for features
 			switch featureName {
-			case "configured-catalogs":
-				fmt.Println("\nTo use configured catalogs with the gateway, run:")
-				fmt.Println("  docker mcp gateway run --use-configured-catalogs")
-				fmt.Println("\nTo create and manage catalogs, use:")
-				fmt.Println("  docker mcp catalog create <name>")
-				fmt.Println("  docker mcp catalog add <catalog> <server-name> <server-file>")
 			case "oauth-interceptor":
 				fmt.Println("\nThis feature enables automatic GitHub OAuth interception when 401 errors occur.")
 				fmt.Println("When enabled, the gateway will automatically provide OAuth URLs for authentication.")
@@ -135,7 +128,7 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"configured-catalogs", "oauth-interceptor", "dynamic-tools"}
+			knownFeatures := []string{"oauth-interceptor", "dynamic-tools"}
 			for _, feature := range knownFeatures {
 				status := "disabled"
 				if isFeatureEnabledFromCli(dockerCli, feature) {
@@ -146,8 +139,6 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 
 				// Add description for each feature
 				switch feature {
-				case "configured-catalogs":
-					fmt.Printf("  %-20s %s\n", "", "Allow gateway to use user-managed catalogs alongside Docker catalog")
 				case "oauth-interceptor":
 					fmt.Printf("  %-20s %s\n", "", "Enable GitHub OAuth flow interception for automatic authentication")
 				case "dynamic-tools":
@@ -212,7 +203,6 @@ func isFeatureEnabledFromConfig(configFile *configfile.ConfigFile, feature strin
 // isKnownFeature checks if the feature name is valid
 func isKnownFeature(feature string) bool {
 	knownFeatures := []string{
-		"configured-catalogs",
 		"oauth-interceptor",
 		"dynamic-tools",
 	}

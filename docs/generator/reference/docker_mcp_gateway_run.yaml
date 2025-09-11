@@ -272,17 +272,6 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
-    - option: use-configured-catalogs
-      value_type: bool
-      default_value: "false"
-      description: |
-        Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)
-      deprecated: false
-      hidden: false
-      experimental: false
-      experimentalcli: false
-      kubernetes: false
-      swarm: false
     - option: verbose
       value_type: bool
       default_value: "false"
