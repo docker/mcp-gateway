@@ -11,7 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 type remoteMCPClient struct {
@@ -135,16 +135,16 @@ func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
 		return "", nil
 	}
 
-	// Get the OAuth token from pinata using server name, not provider name
-	// OAuth tokens are stored by server name (e.g., "notion-remote"), not provider name (e.g., "notion")
-	client := desktop.NewAuthClient()
-	app, err := client.GetOAuthApp(ctx, c.config.Name)
-	if err != nil || !app.Authorized {
+	// Use secure credential helper to get OAuth token directly from system credential store
+	// This bypasses the vulnerable IPC endpoint that exposes tokens
+	credHelper := oauth.NewOAuthCredentialHelper()
+	token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+	if err != nil {
 		// Token might not exist if user hasn't authorized yet
 		return "", nil
 	}
 
-	return app.AccessToken, nil
+	return token, nil
 }
 
 // headerRoundTripper is an http.RoundTripper that adds custom headers to all requests

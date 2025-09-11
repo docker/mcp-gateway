@@ -158,9 +158,18 @@ func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *cata
 		return fmt.Errorf("DCR registration failed: %w", err)
 	}
 
+	// Extract provider name from OAuth config
+	var providerName string
+	if server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+		providerName = server.OAuth.Providers[0].Provider // Use first provider
+	} else {
+		return fmt.Errorf("no OAuth providers configured for server %s", serverName)
+	}
+
 	// Store DCR client in Docker Desktop
 	dcrRequest := desktop.RegisterDCRRequest{
 		ClientID:              credentials.ClientID,
+		ProviderName:          providerName,
 		AuthorizationEndpoint: credentials.AuthorizationEndpoint,
 		TokenEndpoint:         credentials.TokenEndpoint,
 	}

@@ -85,6 +85,7 @@ func (c *Tools) GetOAuthApp(ctx context.Context, app string) (OAuthApp, error) {
 
 type RegisterDCRRequest struct {
 	ClientID            string `json:"clientId"`
+	ProviderName        string `json:"providerName"`
 	ClientName          string `json:"clientName,omitempty"`
 	AuthorizationServer string `json:"authorizationServer,omitempty"`
 	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
@@ -93,6 +94,7 @@ type RegisterDCRRequest struct {
 
 type DCRClient struct {
 	ServerName           string `json:"serverName"`
+	ProviderName         string `json:"providerName"`
 	ClientID            string `json:"clientId"`
 	ClientName          string `json:"clientName,omitempty"`
 	RegisteredAt        string `json:"registeredAt"` // ISO timestamp
