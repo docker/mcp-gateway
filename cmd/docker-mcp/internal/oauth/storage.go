@@ -20,8 +20,6 @@ type CredentialStorage interface {
 	// HasClientCredentials checks if client credentials exist for a server
 	HasClientCredentials(ctx context.Context, serverName string) (bool, error)
 	
-	// StorePKCEParameters stores PKCE parameters for OAuth callback
-	StorePKCEParameters(ctx context.Context, flow *PKCEFlow) error
 }
 
 // DockerDesktopStorage implements CredentialStorage using Docker Desktop's DCR API
@@ -86,24 +84,3 @@ func (s *DockerDesktopStorage) HasClientCredentials(ctx context.Context, serverN
 }
 
 
-// StorePKCEParameters stores PKCE parameters in Docker Desktop for OAuth callback
-func (s *DockerDesktopStorage) StorePKCEParameters(ctx context.Context, flow *PKCEFlow) error {
-	
-	if flow == nil {
-		return fmt.Errorf("PKCE flow cannot be nil")
-	}
-
-	// Create PKCE storage request
-	req := desktop.StorePKCERequest{
-		State:        flow.State,
-		CodeVerifier: flow.CodeVerifier,
-		ResourceURL:  flow.ResourceURL,
-		ServerName:   flow.ServerName,
-	}
-
-	// Store with Docker Desktop PKCE API
-	if err := s.client.StorePKCE(ctx, req); err != nil {
-		return fmt.Errorf("failed to store PKCE parameters for state %s: %w", flow.State, err)
-	}
-	return nil
-}

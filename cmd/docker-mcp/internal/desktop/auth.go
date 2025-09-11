@@ -127,20 +127,31 @@ func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
 
 
 
-// PKCE (Proof Key for Code Exchange) Methods
+// Authorization URL Generation
 
-type StorePKCERequest struct {
-	State        string `json:"state"`
-	CodeVerifier string `json:"codeVerifier"`
-	ResourceURL  string `json:"resourceUrl,omitempty"`
-	ServerName   string `json:"serverName,omitempty"`
+type AuthorizationURLRequest struct {
+	Scopes []string `json:"scopes,omitempty"`
 }
 
-func (c *Tools) StorePKCE(ctx context.Context, req StorePKCERequest) error {
+type AuthorizationURLResponse struct {
+	AuthorizationURL string `json:"authorizationUrl"`
+	State           string `json:"state"`
+}
+
+func (c *Tools) GetAuthorizationURL(ctx context.Context, serverName string, scopes []string) (*AuthorizationURLResponse, error) {
 	AvoidResourceSaverMode(ctx)
 
-	var result map[string]string
-	return c.rawClient.Post(ctx, "/oauth/pkce", req, &result)
+	req := AuthorizationURLRequest{
+		Scopes: scopes,
+	}
+
+	var result AuthorizationURLResponse
+	err := c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/authorization-url", serverName), req, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 func addQueryParam[T any](q, name string, value T, required bool) string {
