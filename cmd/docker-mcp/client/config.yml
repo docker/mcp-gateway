@@ -4,14 +4,14 @@ system:
     source: https://claude.ai/download
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/claude.svg
     installCheckPaths:
-    - /Applications/Claude.app
-    - $AppData\Claude\
+      - /Applications/Claude.app
+      - $AppData\Claude\
     paths:
-      linux: 
+      linux:
         - $HOME/.config/claude/claude_desktop_config.json
-      darwin: 
+      darwin:
         - $HOME/Library/Application Support/Claude/claude_desktop_config.json
-      windows: 
+      windows:
         - $APPDATA\Claude\claude_desktop_config.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
@@ -22,14 +22,14 @@ system:
     source: https://www.continue.dev/
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/continue.svg
     installCheckPaths:
-    - $HOME/.continue
-    - $USERPROFILE\.continue
+      - $HOME/.continue
+      - $USERPROFILE\.continue
     paths:
-      linux: 
+      linux:
         - $HOME/.continue/config.yaml
-      darwin: 
+      darwin:
         - $HOME/.continue/config.yaml
-      windows: 
+      windows:
         - $USERPROFILE\.continue\config.yaml
     yq:
       list: .mcpServers
@@ -40,14 +40,14 @@ system:
     source: https://www.cursor.com/
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/cursor.svg
     installCheckPaths:
-    - /Applications/Cursor.app
-    - $AppData/Cursor/
+      - /Applications/Cursor.app
+      - $AppData/Cursor/
     paths:
-      linux: 
+      linux:
         - $HOME/.cursor/mcp.json
-      darwin: 
+      darwin:
         - $HOME/.cursor/mcp.json
-      windows: 
+      windows:
         - $USERPROFILE\.cursor\mcp.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
@@ -58,14 +58,14 @@ system:
     source: https://github.com/google-gemini/gemini-cli
     icon: https://avatars.githubusercontent.com/u/161781182?s=120&v=4
     installCheckPaths:
-    - $HOME/.gemini
-    - $USERPROFILE\.gemini
+      - $HOME/.gemini
+      - $USERPROFILE\.gemini
     paths:
-      linux: 
+      linux:
         - $HOME/.gemini/settings.json
-      darwin: 
+      darwin:
         - $HOME/.gemini/settings.json
-      windows: 
+      windows:
         - $USERPROFILE\.gemini\settings.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
@@ -76,47 +76,48 @@ system:
     source: https://github.com/block/goose
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/goose.png
     installCheckPaths:
-    - $HOME/.config/goose
-    - $USERPROFILE\.config\goose
+      - $HOME/.config/goose
+      - $USERPROFILE\.config\goose
     paths:
-      linux: 
+      linux:
         - $HOME/.config/goose/config.yaml
-      darwin: 
+      darwin:
         - $HOME/.config/goose/config.yaml
-      windows: 
+      windows:
         - $APPDATA\Block\goose\config\config.yaml
     yq:
       list: '.extensions | to_entries | map(select(.value.bundled != true)) | map(.value + {"name": .key})'
-      set: '.extensions[$SIMPLE_NAME] = {
-        "args": $JSON.args,
-        "bundled": null,
-        "cmd": $JSON.command,
-        "description": "The Docker MCP Toolkit allows for easy configuration and consumption of MCP servers from the Docker MCP Catalog",
-        "enabled": true,
-        "env_keys": [],
-        "envs": {},
-        "name": $SIMPLE_NAME,
-        "timeout": 300,
-        "type": "stdio"
-      }'
+      set: |
+        .extensions[$SIMPLE_NAME] = {
+          "args": $JSON.args,
+          "bundled": null,
+          "cmd": $JSON.command,
+          "description": "The Docker MCP Toolkit allows for easy configuration and consumption of MCP servers from the Docker MCP Catalog",
+          "enabled": true,
+          "env_keys": [],
+          "envs": {},
+          "name": $SIMPLE_NAME,
+          "timeout": 300,
+          "type": "stdio"
+        }
       del: del(.extensions[$SIMPLE_NAME])
   lmstudio:
     displayName: LM Studio
     source: https://lmstudio.ai/
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/lmstudio.png
     installCheckPaths:
-    - $HOME/.lmstudio
-    - $HOME/.cache/lm-studio
-    - $USERPROFILE\.lmstudio
-    - $USERPROFILE\.cache\lm-studio
+      - $HOME/.lmstudio
+      - $HOME/.cache/lm-studio
+      - $USERPROFILE\.lmstudio
+      - $USERPROFILE\.cache\lm-studio
     paths:
-      linux: 
+      linux:
         - $HOME/.cache/lm-studio/mcp.json
         - $HOME/.lmstudio/mcp.json
-      darwin: 
+      darwin:
         - $HOME/.cache/lm-studio/mcp.json
         - $HOME/.lmstudio/mcp.json
-      windows: 
+      windows:
         - $USERPROFILE\.cache\lm-studio\mcp.json
         - $USERPROFILE\.lmstudio\mcp.json
     yq:
@@ -128,14 +129,14 @@ system:
     source: https://sema4.ai/links/docker-mcp-download
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/sema4.png
     installCheckPaths:
-    - $HOME/.sema4ai
-    - $USERPROFILE\AppData\Local\sema4ai
+      - $HOME/.sema4ai
+      - $USERPROFILE\AppData\Local\sema4ai
     paths:
-      linux: 
+      linux:
         - $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
-      darwin: 
+      darwin:
         - $HOME/.sema4ai/sema4ai-studio/mcp_servers.json
-      windows: 
+      windows:
         - $USERPROFILE\AppData\Local\sema4ai\sema4ai-studio\mcp_servers.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
