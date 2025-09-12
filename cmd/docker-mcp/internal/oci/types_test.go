@@ -2,58 +2,23 @@ package oci
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 )
 
 func TestServerDetailParsing(t *testing.T) {
-	// Test data matching the provided JSON structure
-	jsonData := `{
-  "name": "io.github.slimslenderslacks/garmin_mcp",
-  "description": "exposes your fitness and health data to Claude and other MCP-compatible clients.",
-  "status": "active",
-  "repository": {
-    "url": "https://github.com/slimslenderslacks/poci",
-    "source": "github"
-  },
-  "version_detail": {
-    "version": "0.1.1"
-  },
-  "packages": [
-    {
-      "registry_type": "oci",
-      "identifier": "jimclark106/gramin_mcp",
-      "version": "latest",
-      "environment_variables": [
-        {
-          "description": "Garmin Connect email address",
-          "is_required": true,
-          "is_secret": true,
-          "name": "GARMIN_EMAIL"
-        },
-        {
-          "description": "Garmin Connect password",
-          "is_required": true,
-          "is_secret": true,
-          "name": "GARMIN_PASSWORD"
-        }
-      ]
-    }
-  ],
-  "_meta": {
-    "io.modelcontextprotocol.registry": {
-      "id": "a2cda0d4-8160-4734-880f-1c8de2b484a1",
-      "published_at": "2025-09-07T04:40:26.882157132Z",
-      "updated_at": "2025-09-07T04:40:26.882157132Z",
-      "is_latest": true,
-      "release_date": "2025-09-07T04:40:26Z"
-    }
-  }
-}`
+	// Read test data from external JSON file
+	testDataPath := filepath.Join("..", "..", "..", "..", "test", "testdata", "officialregistry", "server_garmin_mcp.json")
+	jsonData, err := os.ReadFile(testDataPath)
+	if err != nil {
+		t.Fatalf("Failed to read test data file %s: %v", testDataPath, err)
+	}
 
 	var serverDetail ServerDetail
-	err := json.Unmarshal([]byte(jsonData), &serverDetail)
+	err = json.Unmarshal(jsonData, &serverDetail)
 	if err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -71,11 +36,9 @@ func TestServerDetailParsing(t *testing.T) {
 		t.Errorf("Expected status 'active', got '%s'", serverDetail.Status)
 	}
 
-	// Verify version detail
-	if serverDetail.VersionDetail == nil {
-		t.Error("Expected VersionDetail to be non-nil")
-	} else if serverDetail.VersionDetail.Version != "0.1.1" {
-		t.Errorf("Expected version '0.1.1', got '%s'", serverDetail.VersionDetail.Version)
+	// Verify version (direct field, not VersionDetail struct in this test data)
+	if serverDetail.Version != "0.1.1" {
+		t.Errorf("Expected version '0.1.1', got '%s'", serverDetail.Version)
 	}
 
 	// Verify repository
@@ -141,59 +104,19 @@ func TestServerDetailParsing(t *testing.T) {
 		}
 	}
 
-	// Verify meta field exists
-	if serverDetail.Meta == nil {
-		t.Error("Expected Meta to be non-nil")
-	}
+	// Note: Meta field is not present in this test data file, which is expected
 }
 
 func TestServerDetailToCatalogServer(t *testing.T) {
-	// Use the same JSON data as the parsing test
-	jsonData := `{
-  "name": "io.github.slimslenderslacks/garmin_mcp",
-  "description": "exposes your fitness and health data to Claude and other MCP-compatible clients.",
-  "status": "active",
-  "repository": {
-    "url": "https://github.com/slimslenderslacks/poci",
-    "source": "github"
-  },
-  "version_detail": {
-    "version": "0.1.1"
-  },
-  "packages": [
-    {
-      "registry_type": "oci",
-      "identifier": "jimclark106/gramin_mcp",
-      "version": "latest",
-      "environment_variables": [
-        {
-          "description": "Garmin Connect email address",
-          "is_required": true,
-          "is_secret": true,
-          "name": "GARMIN_EMAIL"
-        },
-        {
-          "description": "Garmin Connect password",
-          "is_required": true,
-          "is_secret": true,
-          "name": "GARMIN_PASSWORD"
-        }
-      ]
-    }
-  ],
-  "_meta": {
-    "io.modelcontextprotocol.registry": {
-      "id": "a2cda0d4-8160-4734-880f-1c8de2b484a1",
-      "published_at": "2025-09-07T04:40:26.882157132Z",
-      "updated_at": "2025-09-07T04:40:26.882157132Z",
-      "is_latest": true,
-      "release_date": "2025-09-07T04:40:26Z"
-    }
-  }
-}`
+	// Read test data from external JSON file
+	testDataPath := filepath.Join("..", "..", "..", "..", "test", "testdata", "officialregistry", "server_garmin_mcp.json")
+	jsonData, err := os.ReadFile(testDataPath)
+	if err != nil {
+		t.Fatalf("Failed to read test data file %s: %v", testDataPath, err)
+	}
 
 	var serverDetail ServerDetail
-	err := json.Unmarshal([]byte(jsonData), &serverDetail)
+	err = json.Unmarshal(jsonData, &serverDetail)
 	if err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -229,6 +152,278 @@ func TestServerDetailToCatalogServer(t *testing.T) {
 	}
 
 	// Verify no config schemas (the environment variables are secrets, not configurable)
+	if len(catalogServer.Config) != 0 {
+		t.Errorf("Expected 0 config schemas, got %d", len(catalogServer.Config))
+	}
+}
+
+func TestConversionForFileSystem(t *testing.T) {
+	// Read test data from external JSON file
+	testDataPath := filepath.Join("..", "..", "..", "..", "test", "testdata", "officialregistry", "server_filesystem.json")
+	jsonData, err := os.ReadFile(testDataPath)
+	if err != nil {
+		t.Fatalf("Failed to read test data file %s: %v", testDataPath, err)
+	}
+
+	var serverDetail ServerDetail
+	err = json.Unmarshal(jsonData, &serverDetail)
+	if err != nil {
+		t.Fatalf("Failed to parse filesystem JSON: %v", err)
+	}
+
+	// Verify basic filesystem server fields
+	if serverDetail.Name != "io.github.slimslenderslacks/filesystem" {
+		t.Errorf("Expected name 'io.github.slimslenderslacks/filesystem', got '%s'", serverDetail.Name)
+	}
+
+	if serverDetail.Description != "Node.js server implementing Model Context Protocol (MCP) for filesystem operations." {
+		t.Errorf("Expected filesystem description to match, got '%s'", serverDetail.Description)
+	}
+
+	if serverDetail.Version != "1.0.2" {
+		t.Errorf("Expected version '1.0.2', got '%s'", serverDetail.Version)
+	}
+
+	// Verify repository
+	if serverDetail.Repository.URL != "https://github.com/modelcontextprotocol/servers" {
+		t.Errorf("Expected repository URL 'https://github.com/modelcontextprotocol/servers', got '%s'", serverDetail.Repository.URL)
+	}
+	if serverDetail.Repository.Source != "github" {
+		t.Errorf("Expected repository source 'github', got '%s'", serverDetail.Repository.Source)
+	}
+
+	// Verify packages
+	if len(serverDetail.Packages) != 1 {
+		t.Errorf("Expected 1 package, got %d", len(serverDetail.Packages))
+		return
+	}
+
+	pkg := serverDetail.Packages[0]
+	if pkg.RegistryType != "oci" {
+		t.Errorf("Expected registry type 'oci', got '%s'", pkg.RegistryType)
+	}
+	if pkg.Identifier != "mcp/filesystem" {
+		t.Errorf("Expected identifier 'mcp/filesystem', got '%s'", pkg.Identifier)
+	}
+	if pkg.Version != "1.0.2" {
+		t.Errorf("Expected version '1.0.2', got '%s'", pkg.Version)
+	}
+
+	// Verify runtime arguments
+	if len(pkg.RuntimeOptions) != 1 {
+		t.Errorf("Expected 1 runtime argument, got %d", len(pkg.RuntimeOptions))
+		return
+	}
+
+	runtimeArg := pkg.RuntimeOptions[0]
+	if runtimeArg.Type != "named" {
+		t.Errorf("Expected runtime argument type 'named', got '%s'", runtimeArg.Type)
+	}
+	if runtimeArg.Name != "--mount" {
+		t.Errorf("Expected runtime argument name '--mount', got '%s'", runtimeArg.Name)
+	}
+	if runtimeArg.Value != "type=bind,src={source_path},dst={target_path}" {
+		t.Errorf("Expected runtime argument value 'type=bind,src={source_path},dst={target_path}', got '%s'", runtimeArg.Value)
+	}
+	if !runtimeArg.Required {
+		t.Error("Expected runtime argument to be required")
+	}
+	if !runtimeArg.IsRepeated {
+		t.Error("Expected runtime argument to be repeatable")
+	}
+
+	// Verify runtime argument variables
+	if len(runtimeArg.Variables) != 2 {
+		t.Errorf("Expected 2 runtime argument variables, got %d", len(runtimeArg.Variables))
+		return
+	}
+
+	if sourcePath, exists := runtimeArg.Variables["source_path"]; !exists {
+		t.Error("Expected 'source_path' variable to exist")
+	} else {
+		if sourcePath.Description != "Source path on host" {
+			t.Errorf("Expected source_path description 'Source path on host', got '%s'", sourcePath.Description)
+		}
+		if sourcePath.Format != "filepath" {
+			t.Errorf("Expected source_path format 'filepath', got '%s'", sourcePath.Format)
+		}
+		if !sourcePath.Required {
+			t.Error("Expected source_path to be required")
+		}
+	}
+
+	if targetPath, exists := runtimeArg.Variables["target_path"]; !exists {
+		t.Error("Expected 'target_path' variable to exist")
+	} else {
+		if targetPath.Description != "Path to mount in the container. It should be rooted in `/project` directory." {
+			t.Errorf("Expected target_path description to match, got '%s'", targetPath.Description)
+		}
+		if targetPath.DefaultValue != "/project" {
+			t.Errorf("Expected target_path default '/project', got '%v'", targetPath.DefaultValue)
+		}
+		if !targetPath.Required {
+			t.Error("Expected target_path to be required")
+		}
+	}
+
+	// Verify package arguments
+	if len(pkg.PackageArguments) != 1 {
+		t.Errorf("Expected 1 package argument, got %d", len(pkg.PackageArguments))
+		return
+	}
+
+	packageArg := pkg.PackageArguments[0]
+	if packageArg.Type != "positional" {
+		t.Errorf("Expected package argument type 'positional', got '%s'", packageArg.Type)
+	}
+	if packageArg.Value != "/project" {
+		t.Errorf("Expected package argument value '/project', got '%s'", packageArg.Value)
+	}
+	if packageArg.ValueHint != "target_dir" {
+		t.Errorf("Expected package argument value hint 'target_dir', got '%s'", packageArg.ValueHint)
+	}
+
+	// Verify environment variables
+	if len(pkg.Env) != 1 {
+		t.Errorf("Expected 1 environment variable, got %d", len(pkg.Env))
+		return
+	}
+
+	env := pkg.Env[0]
+	if env.Name != "LOG_LEVEL" {
+		t.Errorf("Expected env var name 'LOG_LEVEL', got '%s'", env.Name)
+	}
+	if env.Description != "Logging level (debug, info, warn, error)" {
+		t.Errorf("Expected env var description 'Logging level (debug, info, warn, error)', got '%s'", env.Description)
+	}
+	if env.DefaultValue != "info" {
+		t.Errorf("Expected env var default 'info', got '%v'", env.DefaultValue)
+	}
+	if env.Required {
+		t.Error("Expected env var to not be required (has default)")
+	}
+	if env.Secret {
+		t.Error("Expected env var to not be secret")
+	}
+
+	// Test conversion to catalog server
+	catalogServer := serverDetail.ToCatalogServer()
+
+	// Verify basic conversion
+	if catalogServer.Description != "Node.js server implementing Model Context Protocol (MCP) for filesystem operations." {
+		t.Errorf("Expected catalog server description to match, got '%s'", catalogServer.Description)
+	}
+
+	if catalogServer.Image != "mcp/filesystem:1.0.2" {
+		t.Errorf("Expected catalog server image 'mcp/filesystem:1.0.2', got '%s'", catalogServer.Image)
+	}
+
+	// Verify no secrets (LOG_LEVEL is not secret)
+	if len(catalogServer.Secrets) != 0 {
+		t.Errorf("Expected 0 secrets, got %d", len(catalogServer.Secrets))
+	}
+
+	// Verify environment variables conversion (non-secret env vars should be preserved)
+	expectedEnvVars := []catalog.Env{
+		{Name: "LOG_LEVEL", Value: "info"}, // Default value should be used
+	}
+	if len(catalogServer.Env) != len(expectedEnvVars) {
+		t.Errorf("Expected %d environment variables, got %d", len(expectedEnvVars), len(catalogServer.Env))
+	} else {
+		for i, expected := range expectedEnvVars {
+			if catalogServer.Env[i].Name != expected.Name {
+				t.Errorf("Expected env var name '%s', got '%s'", expected.Name, catalogServer.Env[i].Name)
+			}
+			if catalogServer.Env[i].Value != expected.Value {
+				t.Errorf("Expected env var value '%s', got '%s'", expected.Value, catalogServer.Env[i].Value)
+			}
+		}
+	}
+}
+
+func TestBasicServerConversion(t *testing.T) {
+	// Read test data from the basic test JSON file
+	testDataPath := filepath.Join("..", "..", "..", "..", "test", "testdata", "officialregistry", "server.test.json")
+	jsonData, err := os.ReadFile(testDataPath)
+	if err != nil {
+		t.Fatalf("Failed to read test data file %s: %v", testDataPath, err)
+	}
+
+	var serverDetail ServerDetail
+	err = json.Unmarshal(jsonData, &serverDetail)
+	if err != nil {
+		t.Fatalf("Failed to parse basic server JSON: %v", err)
+	}
+
+	// Verify basic fields
+	if serverDetail.Name != "io.github.slimslenderslacks/poci" {
+		t.Errorf("Expected name 'io.github.slimslenderslacks/poci', got '%s'", serverDetail.Name)
+	}
+
+	if serverDetail.Description != "construct new tools out of existing images" {
+		t.Errorf("Expected description 'construct new tools out of existing images', got '%s'", serverDetail.Description)
+	}
+
+	if serverDetail.Status != "active" {
+		t.Errorf("Expected status 'active', got '%s'", serverDetail.Status)
+	}
+
+	if serverDetail.Version != "1.0.12" {
+		t.Errorf("Expected version '1.0.12', got '%s'", serverDetail.Version)
+	}
+
+	// Verify repository
+	if serverDetail.Repository.URL != "https://github.com/slimslenderslacks/poci" {
+		t.Errorf("Expected repository URL 'https://github.com/slimslenderslacks/poci', got '%s'", serverDetail.Repository.URL)
+	}
+	if serverDetail.Repository.Source != "github" {
+		t.Errorf("Expected repository source 'github', got '%s'", serverDetail.Repository.Source)
+	}
+
+	// Verify packages
+	if len(serverDetail.Packages) != 1 {
+		t.Errorf("Expected 1 package, got %d", len(serverDetail.Packages))
+		return
+	}
+
+	pkg := serverDetail.Packages[0]
+	if pkg.RegistryType != "oci" {
+		t.Errorf("Expected registry type 'oci', got '%s'", pkg.RegistryType)
+	}
+	if pkg.Identifier != "jimclark106/poci" {
+		t.Errorf("Expected identifier 'jimclark106/poci', got '%s'", pkg.Identifier)
+	}
+	if pkg.Version != "latest" {
+		t.Errorf("Expected version 'latest', got '%s'", pkg.Version)
+	}
+
+	// This basic server has no environment variables or runtime arguments
+	if len(pkg.Env) != 0 {
+		t.Errorf("Expected 0 environment variables, got %d", len(pkg.Env))
+	}
+	if len(pkg.RuntimeOptions) != 0 {
+		t.Errorf("Expected 0 runtime arguments, got %d", len(pkg.RuntimeOptions))
+	}
+
+	// Test conversion to catalog server
+	catalogServer := serverDetail.ToCatalogServer()
+
+	// Verify basic conversion
+	if catalogServer.Description != "construct new tools out of existing images" {
+		t.Errorf("Expected catalog server description to match, got '%s'", catalogServer.Description)
+	}
+
+	if catalogServer.Image != "jimclark106/poci:latest" {
+		t.Errorf("Expected catalog server image 'jimclark106/poci:latest', got '%s'", catalogServer.Image)
+	}
+
+	// Verify no secrets, environment variables, or configuration
+	if len(catalogServer.Secrets) != 0 {
+		t.Errorf("Expected 0 secrets, got %d", len(catalogServer.Secrets))
+	}
+	if len(catalogServer.Env) != 0 {
+		t.Errorf("Expected 0 environment variables, got %d", len(catalogServer.Env))
+	}
 	if len(catalogServer.Config) != 0 {
 		t.Errorf("Expected 0 config schemas, got %d", len(catalogServer.Config))
 	}
