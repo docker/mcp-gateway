@@ -32,20 +32,24 @@ func TelemetryMiddleware() mcp.Middleware {
 				telemetry.RecordInitialize(ctx, params)
 				tracked = true
 			case "tools/list":
+				session := req.GetSession().(*mcp.ServerSession)
 				ctx, span = telemetry.StartListSpan(ctx, "tools")
-				telemetry.RecordListTools(ctx)
+				telemetry.RecordListTools(ctx, session.InitializeParams().ClientInfo.Name)
 				tracked = true
 			case "prompts/list":
+				session := req.GetSession().(*mcp.ServerSession)
 				ctx, span = telemetry.StartListSpan(ctx, "prompts")
-				telemetry.RecordListPrompts(ctx)
+				telemetry.RecordListPrompts(ctx, session.InitializeParams().ClientInfo.Name)
 				tracked = true
 			case "resources/list":
+				session := req.GetSession().(*mcp.ServerSession)
 				ctx, span = telemetry.StartListSpan(ctx, "resources")
-				telemetry.RecordListResources(ctx)
+				telemetry.RecordListResources(ctx, session.InitializeParams().ClientInfo.Name)
 				tracked = true
 			case "resourceTemplates/list":
+				session := req.GetSession().(*mcp.ServerSession)
 				ctx, span = telemetry.StartListSpan(ctx, "resourceTemplates")
-				telemetry.RecordListResourceTemplates(ctx)
+				telemetry.RecordListResourceTemplates(ctx, session.InitializeParams().ClientInfo.Name)
 				tracked = true
 			}
 

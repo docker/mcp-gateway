@@ -48,7 +48,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 
 		// Record prompt call
 		ctx := context.Background()
-		telemetry.RecordPromptGet(ctx, promptName, serverConfig.Name)
+		telemetry.RecordPromptGet(ctx, promptName, serverConfig.Name, "test-client")
 
 		// Collect metrics
 		var rm metricdata.ResourceMetrics
@@ -79,6 +79,8 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 						attribute.String("mcp.prompt.name", promptName))
 					assert.Contains(t, attrs,
 						attribute.String("mcp.server.origin", serverConfig.Name))
+					assert.Contains(t, attrs,
+						attribute.String("mcp.client.name", "test-client"))
 				}
 			}
 		}
@@ -110,7 +112,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 
 		// Record prompt duration
 		ctx := context.Background()
-		telemetry.RecordPromptDuration(ctx, promptName, serverConfig.Name, duration)
+		telemetry.RecordPromptDuration(ctx, promptName, serverConfig.Name, duration, "test-client")
 
 		// Collect metrics
 		var rm metricdata.ResourceMetrics
@@ -142,6 +144,8 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 						attribute.String("mcp.prompt.name", promptName))
 					assert.Contains(t, attrs,
 						attribute.String("mcp.server.origin", serverConfig.Name))
+					assert.Contains(t, attrs,
+						attribute.String("mcp.client.name", "test-client"))
 				}
 			}
 		}

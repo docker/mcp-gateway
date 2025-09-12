@@ -170,6 +170,7 @@ func TestTelemetryMetricRecording(t *testing.T) {
 	serverName := "test-server"
 	serverType := "docker"
 	toolName := "test-tool"
+	clientName := "test-client"
 
 	// Record metrics as the handler would
 	telemetry.ToolCallCounter.Add(ctx, 1,
@@ -177,6 +178,7 @@ func TestTelemetryMetricRecording(t *testing.T) {
 			attribute.String("mcp.server.name", serverName),
 			attribute.String("mcp.server.type", serverType),
 			attribute.String("mcp.tool.name", toolName),
+			attribute.String("mcp.client.name", clientName),
 		),
 	)
 
@@ -186,6 +188,7 @@ func TestTelemetryMetricRecording(t *testing.T) {
 			attribute.String("mcp.server.name", serverName),
 			attribute.String("mcp.server.type", serverType),
 			attribute.String("mcp.tool.name", toolName),
+			attribute.String("mcp.client.name", clientName),
 		),
 	)
 
@@ -210,6 +213,7 @@ func TestTelemetryMetricRecording(t *testing.T) {
 				assertMetricAttribute(t, attrs, "mcp.server.name", serverName)
 				assertMetricAttribute(t, attrs, "mcp.server.type", serverType)
 				assertMetricAttribute(t, attrs, "mcp.tool.name", toolName)
+				assertMetricAttribute(t, attrs, "mcp.client.name", clientName)
 
 			case "mcp.tool.duration":
 				foundHistogram = true
@@ -303,6 +307,7 @@ func TestToolCallDurationMeasurement(t *testing.T) {
 			attribute.String("mcp.server.name", "test-server"),
 			attribute.String("mcp.server.type", "docker"),
 			attribute.String("mcp.tool.name", "test-tool"),
+			attribute.String("mcp.client.name", "test-client"),
 		),
 	)
 
