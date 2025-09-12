@@ -28,6 +28,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var additionalConfigs []string
 	var additionalToolsConfig []string
 	var mcpRegistryUrls []string
+	var enableAllServers bool
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
 		options = gateway.Config{
@@ -116,11 +117,32 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.MCPRegistryServers = mcpServers
 			}
 
+			// Handle --enable-all-servers flag
+			if enableAllServers {
+				if len(options.ServerNames) > 0 {
+					return fmt.Errorf("cannot use --enable-all-servers with --servers flag")
+				}
+
+				// Read all catalogs to get server names
+				mcpCatalog, err := catalogTypes.ReadFrom(cmd.Context(), catalogPaths)
+				if err != nil {
+					return fmt.Errorf("failed to read catalogs for --enable-all-servers: %w", err)
+				}
+
+				// Extract all server names from the catalog
+				var allServerNames []string
+				for serverName := range mcpCatalog.Servers {
+					allServerNames = append(allServerNames, serverName)
+				}
+				options.ServerNames = allServerNames
+			}
+
 			return gateway.NewGateway(options, docker).Run(cmd.Context())
 		},
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
+	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
 	runCmd.Flags().StringSliceVar(&options.RegistryPath, "registry", options.RegistryPath, "Paths to the registry files (absolute or relative to ~/.docker/mcp/)")
