@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
 )
@@ -49,13 +50,13 @@ func registryConvertCommand() *cobra.Command {
 			// Convert to catalog server
 			catalogServer := serverDetail.ToCatalogServer()
 
-			// Pretty print the JSON to stdout
-			outputJSON, err := json.MarshalIndent(catalogServer, "", "  ")
+			// Marshal to YAML and print to stdout
+			outputYAML, err := yaml.Marshal(catalogServer)
 			if err != nil {
-				return fmt.Errorf("failed to marshal catalog server to JSON: %w", err)
+				return fmt.Errorf("failed to marshal catalog server to YAML: %w", err)
 			}
 
-			fmt.Println(string(outputJSON))
+			fmt.Print(string(outputYAML))
 			return nil
 		},
 	}

@@ -75,7 +75,7 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 			Name: serverName,
 			Spec: server,
 			Config: map[string]any{
-				serverName: c.config[serverName],
+				oci.CanonicalizeServerName(serverName): c.config[oci.CanonicalizeServerName(serverName)],
 			},
 			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
 		}, nil, true

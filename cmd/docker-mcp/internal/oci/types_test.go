@@ -428,3 +428,143 @@ func TestBasicServerConversion(t *testing.T) {
 		t.Errorf("Expected 0 config schemas, got %d", len(catalogServer.Config))
 	}
 }
+
+func TestRemoteServerConversion(t *testing.T) {
+	// Read test data from remote server JSON file
+	testDataPath := filepath.Join("..", "..", "..", "..", "test", "testdata", "officialregistry", "server.remote.json")
+	jsonData, err := os.ReadFile(testDataPath)
+	if err != nil {
+		t.Fatalf("Failed to read test data file %s: %v", testDataPath, err)
+	}
+
+	var serverDetail ServerDetail
+	err = json.Unmarshal(jsonData, &serverDetail)
+	if err != nil {
+		t.Fatalf("Failed to parse remote server JSON: %v", err)
+	}
+
+	// Verify basic fields
+	if serverDetail.Name != "io.github.slimslenderslacks/remote" {
+		t.Errorf("Expected name 'io.github.slimslenderslacks/remote', got '%s'", serverDetail.Name)
+	}
+
+	if serverDetail.Description != "remote example" {
+		t.Errorf("Expected description 'remote example', got '%s'", serverDetail.Description)
+	}
+
+	if serverDetail.Status != "active" {
+		t.Errorf("Expected status 'active', got '%s'", serverDetail.Status)
+	}
+
+	if serverDetail.Version != "0.1.0" {
+		t.Errorf("Expected version '0.1.0', got '%s'", serverDetail.Version)
+	}
+
+	// Verify repository
+	if serverDetail.Repository.URL != "https://github.com/slimslenderslacks/poci" {
+		t.Errorf("Expected repository URL 'https://github.com/slimslenderslacks/poci', got '%s'", serverDetail.Repository.URL)
+	}
+	if serverDetail.Repository.Source != "github" {
+		t.Errorf("Expected repository source 'github', got '%s'", serverDetail.Repository.Source)
+	}
+
+	// Verify remotes configuration
+	if len(serverDetail.Remotes) != 1 {
+		t.Fatalf("Expected 1 remote configuration, got %d", len(serverDetail.Remotes))
+	}
+
+	remote := serverDetail.Remotes[0]
+	if remote.TransportType != "sse" {
+		t.Errorf("Expected transport type 'sse', got '%s'", remote.TransportType)
+	}
+	if remote.URL != "http://mcp-fs.anonymous.modelcontextprotocol.io/sse" {
+		t.Errorf("Expected remote URL 'http://mcp-fs.anonymous.modelcontextprotocol.io/sse', got '%s'", remote.URL)
+	}
+
+	// Verify headers
+	if len(remote.Headers) != 2 {
+		t.Fatalf("Expected 2 headers, got %d", len(remote.Headers))
+	}
+
+	// Check secret header (X-API-Key)
+	apiKeyHeader := remote.Headers[0]
+	if apiKeyHeader.Name != "X-API-Key" {
+		t.Errorf("Expected first header name 'X-API-Key', got '%s'", apiKeyHeader.Name)
+	}
+	if apiKeyHeader.Description != "API key for authentication" {
+		t.Errorf("Expected first header description 'API key for authentication', got '%s'", apiKeyHeader.Description)
+	}
+	if !apiKeyHeader.Required {
+		t.Error("Expected X-API-Key header to be required")
+	}
+	if !apiKeyHeader.Secret {
+		t.Error("Expected X-API-Key header to be secret")
+	}
+
+	// Check non-secret header (X-Region) with choices
+	regionHeader := remote.Headers[1]
+	if regionHeader.Name != "X-Region" {
+		t.Errorf("Expected second header name 'X-Region', got '%s'", regionHeader.Name)
+	}
+	if regionHeader.Description != "Service region" {
+		t.Errorf("Expected second header description 'Service region', got '%s'", regionHeader.Description)
+	}
+	if regionHeader.DefaultValue != "us-east-1" {
+		t.Errorf("Expected X-Region header default 'us-east-1', got '%v'", regionHeader.DefaultValue)
+	}
+	expectedChoices := []string{"us-east-1", "eu-west-1", "ap-southeast-1"}
+	if len(regionHeader.Choices) != len(expectedChoices) {
+		t.Errorf("Expected %d choices, got %d", len(expectedChoices), len(regionHeader.Choices))
+	} else {
+		for i, expected := range expectedChoices {
+			if regionHeader.Choices[i] != expected {
+				t.Errorf("Expected choice '%s' at index %d, got '%s'", expected, i, regionHeader.Choices[i])
+			}
+		}
+	}
+
+	// Test conversion to catalog server
+	catalogServer := serverDetail.ToCatalogServer()
+
+	// Verify basic conversion
+	if catalogServer.Description != "remote example" {
+		t.Errorf("Expected catalog server description 'remote example', got '%s'", catalogServer.Description)
+	}
+
+	// Verify remote configuration
+	if catalogServer.Remote.URL != "http://mcp-fs.anonymous.modelcontextprotocol.io/sse" {
+		t.Errorf("Expected catalog remote URL 'http://mcp-fs.anonymous.modelcontextprotocol.io/sse', got '%s'", catalogServer.Remote.URL)
+	}
+	if catalogServer.Remote.Transport != "sse" {
+		t.Errorf("Expected catalog remote transport 'sse', got '%s'", catalogServer.Remote.Transport)
+	}
+
+	// Verify headers conversion
+	expectedHeaders := map[string]string{
+		"X-API-Key": "${X-API-Key}", // Secret header should become template
+		"X-Region":  "us-east-1",    // Non-secret header should use default value
+	}
+	if len(catalogServer.Remote.Headers) != len(expectedHeaders) {
+		t.Errorf("Expected %d headers, got %d", len(expectedHeaders), len(catalogServer.Remote.Headers))
+	}
+	for key, expectedValue := range expectedHeaders {
+		if actualValue, exists := catalogServer.Remote.Headers[key]; !exists {
+			t.Errorf("Expected header '%s' to exist", key)
+		} else if actualValue != expectedValue {
+			t.Errorf("Expected header '%s' value '%s', got '%s'", key, expectedValue, actualValue)
+		}
+	}
+
+	// Verify secrets (only X-API-Key should become a secret)
+	if len(catalogServer.Secrets) != 1 {
+		t.Errorf("Expected 1 secret, got %d", len(catalogServer.Secrets))
+	} else {
+		secret := catalogServer.Secrets[0]
+		if secret.Name != "X-API-Key" {
+			t.Errorf("Expected secret name 'X-API-Key', got '%s'", secret.Name)
+		}
+		if secret.Env != "X-API-Key" {
+			t.Errorf("Expected secret env 'X-API-Key', got '%s'", secret.Env)
+		}
+	}
+}

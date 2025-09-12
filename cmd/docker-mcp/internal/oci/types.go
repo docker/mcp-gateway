@@ -2,6 +2,8 @@ package oci
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 )
@@ -67,13 +69,6 @@ type RuntimeOptions struct {
 	WorkDir string         `json:"work_dir,omitempty"`
 }
 
-// TransportOptions contains transport configuration
-type TransportOptions struct {
-	Type    string            `json:"type,omitempty"` // "stdio", "sse", etc.
-	URL     string            `json:"url,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-}
-
 // Input represents input configuration
 type Input struct {
 	Type         string   `json:"type,omitempty"` // "positional", "named", "secret", "configurable"
@@ -95,9 +90,9 @@ type InputOption struct {
 
 // Remote represents a remote server configuration
 type RemoteServer struct {
-	URL           string                   `json:"url,omitempty"`
-	TransportType string                   `json:"transport_type,omitempty"`
-	Headers       map[string]KeyValueInput `json:"headers,omitempty"`
+	URL           string          `json:"url,omitempty"`
+	TransportType string          `json:"type,omitempty"`
+	Headers       []KeyValueInput `json:"headers,omitempty"`
 }
 
 // Remote alias for consistency with existing code
@@ -122,22 +117,6 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 					Name: envVar.Name,
 					Env:  envVar.Name,
 				})
-			} else if envVar.Type == "configurable" {
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						envVar.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": envVar.Description,
-						},
-					},
-					"required": []string{},
-				}
-				if envVar.Required {
-					schema["required"] = []string{envVar.Name}
-				}
-				server.Config = append(server.Config, schema)
 			} else {
 				// Add as environment variable
 				value := envVar.Value
@@ -161,12 +140,12 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 		// Process runtime arguments for volume mounting
 		for _, arg := range pkg.RuntimeOptions {
 			if arg.Type == "named" && (arg.Name == "-v" || arg.Name == "--mount") {
-				config, volume := createVolume(arg)
+				config, volume := createVolume(arg, CanonicalizeServerName(sd.Name))
 				if volume != "" {
 					server.Volumes = append(server.Volumes, volume)
 				}
 				if config != nil {
-					server.Config = append(server.Config, config)
+					server.Config = mergeConfig(server.Config, CanonicalizeServerName(sd.Name), config)
 				}
 			}
 		}
@@ -175,22 +154,55 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 	// Handle remote configuration if available
 	if len(sd.Remotes) > 0 {
 		remote := sd.Remotes[0]
+
+		// Convert KeyValueInput headers to string headers
+		headers := make(map[string]string)
+		headerSecrets := []catalog.Secret{}
+		for _, header := range remote.Headers {
+			value, secrets := getHeaderInput(header)
+			headers[header.Name] = value
+			headerSecrets = append(headerSecrets, secrets...)
+		}
+
 		server.Remote = catalog.Remote{
 			URL:       remote.URL,
 			Transport: remote.TransportType,
+			Headers:   headers,
+		}
+		if len(headerSecrets) > 0 {
+			server.Secrets = headerSecrets
 		}
 	}
 
 	return server
 }
 
+func getHeaderInput(header KeyValueInput) (string, []catalog.Secret) {
+	// If this is a secret with no variables, return template expression and secret
+	if header.Secret && len(header.Variables) == 0 {
+		templateValue := fmt.Sprintf("${%s}", header.Name)
+		secrets := catalog.Secret{
+			Name: header.Name,
+			Env:  header.Name,
+		}
+		return templateValue, []catalog.Secret{secrets}
+	} else if header.Value != "" {
+		return header.Value, []catalog.Secret{}
+	} else if header.Description != "" {
+		return header.DefaultValue.(string), []catalog.Secret{}
+	}
+
+	// For non-secret headers, return the value directly
+	return header.Value, []catalog.Secret{}
+}
+
 // createVolume creates both a config schema and volume string from a runtime argument
-func createVolume(arg Argument) (map[string]any, string) {
+func createVolume(arg Argument, serverName string) (map[string]any, string) {
 	var config map[string]any
 	var volume string
 
 	if arg.Name == "--mount" || arg.Name == "-v" {
-		volume = arg.Value
+		volume = replaceVariables(parseVolumeMount(arg.Value), serverName)
 
 		// Create config schema from the argument's variables
 		if len(arg.Variables) > 0 {
@@ -227,4 +239,104 @@ func createVolume(arg Argument) (map[string]any, string) {
 	}
 
 	return config, volume
+}
+
+// mergeConfig merges a new config into the existing config slice, creating a top-level
+// schema object with name, type "object", and properties fields
+func mergeConfig(existingConfig []any, serverName string, newConfig map[string]any) []any {
+	// If there's no existing config, create a new schema object
+	if len(existingConfig) == 0 {
+		schemaObject := map[string]any{
+			"name":       serverName,
+			"type":       "object",
+			"properties": map[string]any{},
+		}
+		// Merge new properties if they exist
+		if newProperties, hasProps := newConfig["properties"].(map[string]any); hasProps {
+			schemaObject["properties"] = newProperties
+		}
+		return []any{schemaObject}
+	}
+
+	// Find existing server config object by name
+	for _, configItem := range existingConfig {
+		if configMap, ok := configItem.(map[string]any); ok {
+			if name, hasName := configMap["name"].(string); hasName && name == serverName {
+				// Merge properties into the existing server config
+				if properties, hasProps := configMap["properties"].(map[string]any); hasProps {
+					if newProperties, newHasProps := newConfig["properties"].(map[string]any); newHasProps {
+						// Merge new properties into existing properties
+						for key, value := range newProperties {
+							properties[key] = value
+						}
+					}
+				} else {
+					// Initialize properties if they don't exist
+					if newProperties, newHasProps := newConfig["properties"].(map[string]any); newHasProps {
+						configMap["properties"] = newProperties
+					}
+				}
+				return existingConfig
+			}
+		}
+	}
+
+	// If no existing config for this server, append a new schema object
+	schemaObject := map[string]any{
+		"name":       serverName,
+		"type":       "object",
+		"properties": map[string]any{},
+	}
+	if newProperties, hasProps := newConfig["properties"].(map[string]any); hasProps {
+		schemaObject["properties"] = newProperties
+	}
+	return append(existingConfig, schemaObject)
+}
+
+// parseVolumeMount parses a volume mount string and converts it to src:dst format if it's a bind mount
+func parseVolumeMount(value string) string {
+	// If the string doesn't contain type=bind, return as-is
+	if !strings.Contains(value, "type=bind") {
+		return value
+	}
+
+	// Parse comma-separated values
+	parts := strings.Split(value, ",")
+	mountOptions := make(map[string]string)
+
+	for _, part := range parts {
+		// Parse each part as "X=Y"
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) == 2 {
+			mountOptions[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		}
+	}
+
+	// Check for required src and dst entries
+	src, hasSrc := mountOptions["src"]
+	dst, hasDst := mountOptions["dst"]
+
+	if !hasSrc || !hasDst {
+		// Return original value if both src and dst are not present
+		return value
+	}
+
+	// Return in src:dst format
+	return fmt.Sprintf("%s:%s", src, dst)
+}
+
+// replaceVariables replaces {X} patterns with {{serverName.X}} in the input string
+func replaceVariables(input, serverName string) string {
+	// Use regex to find all {X} patterns and replace with {{serverName.X}}
+	re := regexp.MustCompile(`\{([^}]+)\}`)
+	return re.ReplaceAllStringFunc(input, func(match string) string {
+		// Extract the variable name (remove the braces)
+		varName := match[1 : len(match)-1]
+		return fmt.Sprintf("{{%s.%s}}", serverName, varName)
+	})
+}
+
+// canonicalizeServerName replaces all dots in a string with underscores
+func CanonicalizeServerName(serverName string) string {
+	return strings.ReplaceAll(serverName, ".", "_")
 }
