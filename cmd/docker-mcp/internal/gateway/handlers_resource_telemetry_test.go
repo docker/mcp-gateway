@@ -55,6 +55,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		// Test data
 		ctx := context.Background()
 		resourceURI := "file:///test/resource.txt"
+		clientName := "test-client"
 		serverConfig := &catalog.ServerConfig{
 			Name: "test-server",
 			Spec: catalog.Server{
@@ -63,7 +64,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		}
 
 		// Record resource read
-		telemetry.RecordResourceRead(ctx, resourceURI, serverConfig.Name)
+		telemetry.RecordResourceRead(ctx, resourceURI, serverConfig.Name, clientName)
 
 		// Verify metrics were collected
 		var rm metricdata.ResourceMetrics
@@ -92,6 +93,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 						attrs := sum.DataPoints[0].Attributes
 						hasURI := false
 						hasServer := false
+						hasClient := false
 						for _, attr := range attrs.ToSlice() {
 							if attr.Key == "mcp.resource.uri" {
 								assert.Equal(t, resourceURI, attr.Value.AsString())
@@ -101,9 +103,14 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 								assert.Equal(t, serverConfig.Name, attr.Value.AsString())
 								hasServer = true
 							}
+							if attr.Key == "mcp.client.name" {
+								assert.Equal(t, clientName, attr.Value.AsString())
+								hasClient = true
+							}
 						}
 						assert.True(t, hasURI, "Should have resource URI attribute")
 						assert.True(t, hasServer, "Should have server origin attribute")
+						assert.True(t, hasClient, "Should have client name attribute")
 					}
 				}
 			}
@@ -126,10 +133,11 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		ctx := context.Background()
 		resourceURI := "file:///test/resource.txt"
 		serverName := "test-server"
+		clientName := "test-client"
 		duration := 42.5 // milliseconds
 
 		// Record duration
-		telemetry.RecordResourceDuration(ctx, resourceURI, serverName, duration)
+		telemetry.RecordResourceDuration(ctx, resourceURI, serverName, duration, clientName)
 
 		// Verify metrics
 		var rm metricdata.ResourceMetrics
@@ -284,9 +292,10 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 		ctx := context.Background()
 		uriTemplate := "file:///test/{id}/resource.txt"
 		serverName := "test-server"
+		clientName := "test-client"
 
 		// Record resource template read
-		telemetry.RecordResourceTemplateRead(ctx, uriTemplate, serverName)
+		telemetry.RecordResourceTemplateRead(ctx, uriTemplate, serverName, clientName)
 
 		// Verify metrics
 		var rm metricdata.ResourceMetrics
@@ -484,6 +493,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 				Image: "test/image:latest",
 			},
 		}
+		clientName := "test-client"
 		params := &mcp.ReadResourceParams{
 			URI: "file:///test/resource.txt",
 		}
@@ -498,14 +508,14 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		startTime := time.Now()
 
 		// Record counter (as handler would)
-		telemetry.RecordResourceRead(ctx, params.URI, serverConfig.Name)
+		telemetry.RecordResourceRead(ctx, params.URI, serverConfig.Name, clientName)
 
 		// Simulate some work
 		time.Sleep(10 * time.Millisecond)
 
 		// Record duration (as handler would)
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.RecordResourceDuration(ctx, params.URI, serverConfig.Name, float64(duration))
+		telemetry.RecordResourceDuration(ctx, params.URI, serverConfig.Name, float64(duration), clientName)
 
 		// End span
 		span.End()
@@ -560,6 +570,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 				Image: "test/image:latest",
 			},
 		}
+		clientName := "test-client"
 		params := &mcp.ReadResourceParams{
 			URI: "file:///test/missing.txt",
 		}
@@ -572,7 +583,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		)
 
 		// Record counter
-		telemetry.RecordResourceRead(ctx, params.URI, serverConfig.Name)
+		telemetry.RecordResourceRead(ctx, params.URI, serverConfig.Name, clientName)
 
 		// Simulate error
 		err := errors.New("resource not found")

@@ -80,6 +80,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 				attribute.String("mcp.server.name", serverConfig.Name),
 				attribute.String("mcp.server.type", serverType),
 				attribute.String("mcp.tool.name", req.Params.Name),
+				attribute.String("mcp.client.name", req.Session.InitializeParams().ClientInfo.Name),
 			),
 		)
 
@@ -107,6 +108,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 				attribute.String("mcp.server.name", serverConfig.Name),
 				attribute.String("mcp.server.type", serverType),
 				attribute.String("mcp.tool.name", req.Params.Name),
+				attribute.String("mcp.client.name", req.Session.InitializeParams().ClientInfo.Name),
 			),
 		)
 
@@ -153,7 +155,7 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, ser
 		defer span.End()
 
 		// Record prompt get counter
-		telemetry.RecordPromptGet(ctx, req.Params.Name, serverConfig.Name)
+		telemetry.RecordPromptGet(ctx, req.Params.Name, serverConfig.Name, req.Session.InitializeParams().ClientInfo.Name)
 
 		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
 		if err != nil {
@@ -168,7 +170,7 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, ser
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.RecordPromptDuration(ctx, req.Params.Name, serverConfig.Name, float64(duration))
+		telemetry.RecordPromptDuration(ctx, req.Params.Name, serverConfig.Name, float64(duration), req.Session.InitializeParams().ClientInfo.Name)
 
 		if err != nil {
 			span.RecordError(err)
@@ -214,7 +216,7 @@ func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, s
 		defer span.End()
 
 		// Record counter with server attribution
-		telemetry.RecordResourceRead(ctx, req.Params.URI, serverConfig.Name)
+		telemetry.RecordResourceRead(ctx, req.Params.URI, serverConfig.Name, req.Session.InitializeParams().ClientInfo.Name)
 
 		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
 		if err != nil {
@@ -229,7 +231,7 @@ func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, s
 
 		// Record duration regardless of error
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.RecordResourceDuration(ctx, req.Params.URI, serverConfig.Name, float64(duration))
+		telemetry.RecordResourceDuration(ctx, req.Params.URI, serverConfig.Name, float64(duration), req.Session.InitializeParams().ClientInfo.Name)
 
 		if err != nil {
 			span.RecordError(err)

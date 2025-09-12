@@ -507,7 +507,7 @@ func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
 }
 
 // RecordListTools records a list tools call
-func RecordListTools(ctx context.Context) {
+func RecordListTools(ctx context.Context, clientName string) {
 	if ListToolsCounter == nil {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: ListToolsCounter is nil - metrics not initialized\n")
@@ -519,7 +519,10 @@ func RecordListTools(ctx context.Context) {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List tools called - adding to counter\n")
 	}
 
-	ListToolsCounter.Add(ctx, 1)
+	ListToolsCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.client.name", clientName),
+		))
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List tools counter incremented\n")
@@ -581,7 +584,7 @@ func RecordCatalogServers(ctx context.Context, catalogName string, serverCount i
 }
 
 // RecordPromptGet records a prompt get operation
-func RecordPromptGet(ctx context.Context, promptName string, serverName string) {
+func RecordPromptGet(ctx context.Context, promptName string, serverName string, clientName string) {
 	if PromptGetCounter == nil {
 		return // Telemetry not initialized
 	}
@@ -594,11 +597,12 @@ func RecordPromptGet(ctx context.Context, promptName string, serverName string) 
 		metric.WithAttributes(
 			attribute.String("mcp.prompt.name", promptName),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
 // RecordPromptDuration records the duration of a prompt operation
-func RecordPromptDuration(ctx context.Context, promptName string, serverName string, durationMs float64) {
+func RecordPromptDuration(ctx context.Context, promptName string, serverName string, durationMs float64, clientName string) {
 	if PromptDuration == nil {
 		return // Telemetry not initialized
 	}
@@ -612,6 +616,7 @@ func RecordPromptDuration(ctx context.Context, promptName string, serverName str
 		metric.WithAttributes(
 			attribute.String("mcp.prompt.name", promptName),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
@@ -652,7 +657,7 @@ func RecordPromptList(ctx context.Context, serverName string, promptCount int) {
 }
 
 // RecordListPrompts records a list prompts call (similar to RecordListTools)
-func RecordListPrompts(ctx context.Context) {
+func RecordListPrompts(ctx context.Context, clientName string) {
 	if ListPromptsCounter == nil {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: ListPromptsCounter is nil - metrics not initialized\n")
@@ -664,7 +669,10 @@ func RecordListPrompts(ctx context.Context) {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List prompts called - adding to counter\n")
 	}
 
-	ListPromptsCounter.Add(ctx, 1)
+	ListPromptsCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.client.name", clientName),
+		))
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List prompts counter incremented\n")
@@ -672,7 +680,7 @@ func RecordListPrompts(ctx context.Context) {
 }
 
 // RecordListResources records a list resources call
-func RecordListResources(ctx context.Context) {
+func RecordListResources(ctx context.Context, clientName string) {
 	if ListResourcesCounter == nil {
 		return // Telemetry not initialized
 	}
@@ -681,11 +689,14 @@ func RecordListResources(ctx context.Context) {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List resources called\n")
 	}
 
-	ListResourcesCounter.Add(ctx, 1)
+	ListResourcesCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.client.name", clientName),
+		))
 }
 
 // RecordResourceRead records a resource read operation
-func RecordResourceRead(ctx context.Context, resourceURI string, serverName string) {
+func RecordResourceRead(ctx context.Context, resourceURI string, serverName string, clientName string) {
 	if ResourceReadCounter == nil {
 		return // Telemetry not initialized
 	}
@@ -698,11 +709,12 @@ func RecordResourceRead(ctx context.Context, resourceURI string, serverName stri
 		metric.WithAttributes(
 			attribute.String("mcp.resource.uri", resourceURI),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
 // RecordResourceDuration records the duration of a resource operation
-func RecordResourceDuration(ctx context.Context, resourceURI string, serverName string, durationMs float64) {
+func RecordResourceDuration(ctx context.Context, resourceURI string, serverName string, durationMs float64, clientName string) {
 	if ResourceDuration == nil {
 		return // Telemetry not initialized
 	}
@@ -716,6 +728,7 @@ func RecordResourceDuration(ctx context.Context, resourceURI string, serverName 
 		metric.WithAttributes(
 			attribute.String("mcp.resource.uri", resourceURI),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
@@ -756,7 +769,7 @@ func RecordResourceList(ctx context.Context, serverName string, resourceCount in
 }
 
 // RecordListResourceTemplates records a list resource templates call
-func RecordListResourceTemplates(ctx context.Context) {
+func RecordListResourceTemplates(ctx context.Context, clientName string) {
 	if ListResourceTemplatesCounter == nil {
 		return // Telemetry not initialized
 	}
@@ -765,11 +778,14 @@ func RecordListResourceTemplates(ctx context.Context) {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List resource templates called\n")
 	}
 
-	ListResourceTemplatesCounter.Add(ctx, 1)
+	ListResourceTemplatesCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.client.name", clientName),
+		))
 }
 
 // RecordResourceTemplateRead records a resource template read operation
-func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverName string) {
+func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverName string, clientName string) {
 	if ResourceTemplateReadCounter == nil {
 		return // Telemetry not initialized
 	}
@@ -782,11 +798,12 @@ func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverN
 		metric.WithAttributes(
 			attribute.String("mcp.resource_template.uri", uriTemplate),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
 // RecordResourceTemplateDuration records the duration of a resource template operation
-func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, serverName string, durationMs float64) {
+func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, serverName string, durationMs float64, clientName string) {
 	if ResourceTemplateDuration == nil {
 		return // Telemetry not initialized
 	}
@@ -800,6 +817,7 @@ func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, ser
 		metric.WithAttributes(
 			attribute.String("mcp.resource_template.uri", uriTemplate),
 			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.client.name", clientName),
 		))
 }
 
