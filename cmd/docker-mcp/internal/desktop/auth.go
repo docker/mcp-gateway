@@ -93,6 +93,7 @@ type RegisterDCRRequest struct {
 }
 
 type DCRClient struct {
+	State               string `json:"state"`
 	ServerName           string `json:"serverName"`
 	ProviderName         string `json:"providerName"`
 	ClientID            string `json:"clientId"`
@@ -137,33 +138,6 @@ func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
 
 
 
-// Authorization URL Generation
-
-type AuthorizationURLRequest struct {
-	Scopes []string `json:"scopes,omitempty"`
-}
-
-type AuthorizationURLResponse struct {
-	AuthorizationURL string `json:"authorizationUrl"`
-	State           string `json:"state"`
-	BrowserOpened   bool   `json:"browserOpened"`
-}
-
-func (c *Tools) GetAuthorizationURL(ctx context.Context, serverName string, scopes []string) (*AuthorizationURLResponse, error) {
-	AvoidResourceSaverMode(ctx)
-
-	req := AuthorizationURLRequest{
-		Scopes: scopes,
-	}
-
-	var result AuthorizationURLResponse
-	err := c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/authorization-url", serverName), req, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
 
 
 func addQueryParam[T any](q, name string, value T, required bool) string {

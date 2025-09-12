@@ -3,7 +3,6 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
@@ -32,8 +31,8 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 	}
 	
 	// This is a DCR provider - check if it needs setup (atomic DCR)
-	if dcrClient.ClientID == "" {
-		// Pending DCR provider - needs atomic discovery + DCR + auth
+	if dcrClient.State == "unregistered" {
+		// Unregistered DCR provider - needs atomic discovery + DCR + auth
 		fmt.Printf("🔍 First-time OAuth setup for %s...\n", app)
 		return performAtomicDCRAndAuthorize(ctx, app, scopes)
 	}
@@ -121,20 +120,19 @@ func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes str
 	fmt.Printf("🔐 Starting OAuth authorization for %s...\n", serverName)
 	fmt.Printf("   Using client: %s\n", dcrClient.ClientID)
 
-	// Get authorization URL from Docker Desktop (with internal PKCE generation and browser opening)
-	fmt.Printf("🔧 Generating authorization URL with PKCE...\n")
-	authResponse, err := client.GetAuthorizationURL(ctx, serverName, strings.Fields(scopes))
+	// Start OAuth flow via Docker Desktop (handles PKCE generation and browser opening)
+	fmt.Printf("🔧 Starting OAuth authorization flow...\n")
+	authResponse, err := client.PostOAuthApp(ctx, serverName, scopes, false)
 	if err != nil {
-		return fmt.Errorf("failed to get authorization URL: %w", err)
+		return fmt.Errorf("failed to start OAuth flow: %w", err)
 	}
 
-	// Provide user feedback based on browser opening status
-	if authResponse.BrowserOpened {
+	// Provide user feedback based on auth response
+	if authResponse.BrowserURL != "" {
 		fmt.Printf("🌐 Browser opened for OAuth authentication\n")
-		fmt.Printf("If the browser doesn't open, visit: %s\n", authResponse.AuthorizationURL)
+		fmt.Printf("If the browser doesn't open, visit: %s\n", authResponse.BrowserURL)
 	} else {
-		fmt.Printf("🌐 Please visit the following URL for OAuth authentication:\n")
-		fmt.Printf("%s\n", authResponse.AuthorizationURL)
+		fmt.Printf("🌐 OAuth flow started successfully\n")
 	}
 
 	fmt.Printf("✅ Once authenticated, %s will be ready for use\n", serverName)
