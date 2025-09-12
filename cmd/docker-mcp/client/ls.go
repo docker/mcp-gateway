@@ -15,6 +15,7 @@ const (
 	vendorClaudeDesktop = "claude-desktop"
 	vendorContinueDev   = "continue"
 	vendorGordon        = "gordon"
+	vendorZed           = "zed"
 )
 
 const (

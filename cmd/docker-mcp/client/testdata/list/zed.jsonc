@@ -1,0 +1,24 @@
+{
+  // Zed settings
+  //
+  // For information on how to configure Zed, see the Zed
+  // documentation: https://zed.dev/docs/configuring-zed
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "One Dark",
+  },
+  "vim_mode": true,
+  "context_servers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": ["mcp", "gateway", "run"],
+    },
+    "sqlite-server": {
+      "command": "uvx",
+      "args": ["mcp-server-sqlite", "--db-path", "/Users/moby/test.db"],
+    },
+  },
+}

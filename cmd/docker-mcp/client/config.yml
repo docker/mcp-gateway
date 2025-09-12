@@ -142,6 +142,24 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"transport":"stdio"}
       del: del(.mcpServers[$NAME])
+  zed:
+    displayName: Zed
+    source: https://zed.dev/
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/zed.png
+    installCheckPaths:
+      - $HOME/.config/zed
+      - $USERPROFILE\.config\zed
+    paths:
+      linux:
+        - $HOME/.config/zed/settings.json
+      darwin:
+        - $HOME/.config/zed/settings.json
+      windows:
+        - $USERPROFILE\.config\zed\settings.json
+    yq:
+      list: '.context_servers | to_entries | map(.value + {"name": .key})'
+      set: .context_servers[$NAME] = {"source":"custom","enabled":true}+$JSON
+      del: del(.context_servers[$NAME])
 project:
   cursor:
     displayname: Cursor

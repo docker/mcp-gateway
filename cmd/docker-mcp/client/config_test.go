@@ -99,6 +99,27 @@ func Test_yq_list(t *testing.T) {
 				HTTPServers: []MCPServerHTTP{},
 			},
 		},
+		{
+			name:    "Zed",
+			cfg:     config.System[vendorZed],
+			content: "list/zed.jsonc",
+			result: &MCPJSONLists{
+				STDIOServers: []MCPServerSTDIO{
+					{
+						Name:    "MCP_DOCKER",
+						Command: "docker",
+						Args:    []string{"mcp", "gateway", "run"},
+					},
+					{
+						Name:    "sqlite-server",
+						Command: "uvx",
+						Args:    []string{"mcp-server-sqlite", "--db-path", "/Users/moby/test.db"},
+					},
+				},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -174,6 +195,23 @@ func Test_yq_add_del(t *testing.T) {
 			original: "vscode-create/original.json",
 			afterAdd: "vscode-create/after-add.json",
 			afterDel: "vscode-create/after-del.json",
+		},
+		{
+			name:     "Zed - append",
+			cfg:      config.System[vendorZed],
+			original: "zed-append/original.jsonc",
+			afterAdd: "zed-append/after-add.json",
+			afterDel: "zed-append/after-del.json",
+		},
+		{
+			name: "Zed - create",
+			cfg:  config.System[vendorZed],
+			// The real configuation file is .json and nothing rewrites
+			// the file extension. The .jsonc extension is only used so
+			// that IDEs do not complain that comments are invalid .json
+			original: "zed-create/original.jsonc",
+			afterAdd: "zed-create/after-add.json",
+			afterDel: "zed-create/after-del.json",
 		},
 	}
 	for _, tc := range tests {
