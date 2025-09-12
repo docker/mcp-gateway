@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/tui"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/provider"
 )
 
 const (
@@ -54,17 +54,9 @@ func isDirectValueProvider(provider string) bool {
 }
 
 func Set(ctx context.Context, s Secret, opts SetOpts) error {
-	if opts.Provider == Credstore {
-		p := NewCredStoreProvider()
-		if err := p.SetSecret(s.key, s.val); err != nil {
-			return err
-		}
-	}
-	return desktop.NewSecretsClient().SetJfsSecret(ctx, desktop.Secret{
-		Name:     s.key,
-		Value:    s.val,
-		Provider: opts.Provider,
-	})
+	// Use the default provider chain which handles fallback automatically
+	secretProvider := provider.GetDefaultProvider()
+	return secretProvider.SetSecret(ctx, s.key, s.val)
 }
 
 func IsValidProvider(provider string) bool {

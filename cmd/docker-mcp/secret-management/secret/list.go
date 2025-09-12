@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/provider"
 )
 
 type ListOptions struct {
@@ -14,14 +14,16 @@ type ListOptions struct {
 }
 
 func List(ctx context.Context, opts ListOptions) error {
-	l, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
+	secretProvider := provider.GetDefaultProvider()
+	
+	l, err := secretProvider.ListSecrets(ctx)
 	if err != nil {
 		return err
 	}
 
 	if opts.JSON {
 		if len(l) == 0 {
-			l = []desktop.StoredSecret{} // Guarantee empty list (instead of displaying null)
+			l = []provider.StoredSecret{} // Guarantee empty list (instead of displaying null)
 		}
 		jsonData, err := json.MarshalIndent(l, "", "  ")
 		if err != nil {

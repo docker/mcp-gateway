@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/provider"
 )
 
 type RmOpts struct {
@@ -13,9 +13,10 @@ type RmOpts struct {
 }
 
 func Remove(ctx context.Context, names []string, opts RmOpts) error {
-	c := desktop.NewSecretsClient()
+	secretProvider := provider.GetDefaultProvider()
+	
 	if opts.All && len(names) == 0 {
-		l, err := c.ListJfsSecrets(ctx)
+		l, err := secretProvider.ListSecrets(ctx)
 		if err != nil {
 			return err
 		}
@@ -25,7 +26,7 @@ func Remove(ctx context.Context, names []string, opts RmOpts) error {
 	}
 	var errs []error
 	for _, name := range names {
-		if err := c.DeleteJfsSecret(ctx, name); err != nil {
+		if err := secretProvider.DeleteSecret(ctx, name); err != nil {
 			errs = append(errs, err)
 			fmt.Printf("failed removing secret %s\n", name)
 			continue

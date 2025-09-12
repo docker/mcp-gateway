@@ -45,6 +45,7 @@ func serverCommand(docker docker.Client) *cobra.Command {
 
 			return nil
 		},
+		Hidden: true,
 	}
 	lsCommand.Flags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
 	cmd.AddCommand(lsCommand)

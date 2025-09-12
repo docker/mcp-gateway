@@ -16,6 +16,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/provider"
 )
 
 type Configurator interface {
@@ -449,10 +450,79 @@ func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, s
 	log("  - Reading secrets", secretNames)
 	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
 	if err != nil {
-		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
+		log("  - Docker ReadSecrets failed, trying direct provider fallback:", err)
+		return c.readSecretsViaProviders(ctx, secretNames)
+	}
+
+	// For secrets that couldn't be read via Docker, try direct provider fallback
+	if len(secretsByName) < len(secretNames) {
+		missing := []string{}
+		for _, name := range secretNames {
+			if _, found := secretsByName[name]; !found {
+				missing = append(missing, name)
+			}
+		}
+		if len(missing) > 0 {
+			log("  - Some secrets missing from Docker, trying providers for:", missing)
+			fallbackSecrets, err := c.readSecretsViaProviders(ctx, missing)
+			if err != nil {
+				log("    - Provider fallback failed:", err)
+			} else {
+				// Merge fallback secrets
+				for name, value := range fallbackSecrets {
+					secretsByName[name] = value
+				}
+			}
+		}
 	}
 
 	return secretsByName, nil
+}
+
+// readSecretsViaProviders attempts to read secrets directly through their providers
+func (c *FileBasedConfiguration) readSecretsViaProviders(ctx context.Context, secretNames []string) (map[string]string, error) {
+	secrets := make(map[string]string)
+	
+	// Try file provider first (most common case)
+	fileProvider := provider.NewFileProvider()
+	for _, name := range secretNames {
+		if value, err := fileProvider.GetSecret(ctx, name); err == nil {
+			secrets[name] = value
+			log("    - Successfully read", name, "via file provider")
+		}
+	}
+	
+	// Try credstore provider for remaining secrets
+	for _, name := range secretNames {
+		if _, found := secrets[name]; found {
+			continue // Already found via file provider
+		}
+		
+		credstoreProvider := provider.NewCredStoreProvider()
+		if value, err := credstoreProvider.GetSecret(ctx, name); err == nil {
+			secrets[name] = value
+			log("    - Successfully read", name, "via credstore provider")
+		}
+	}
+	
+	// Try desktop provider for remaining secrets
+	for _, name := range secretNames {
+		if _, found := secrets[name]; found {
+			continue // Already found via other providers
+		}
+		
+		desktopProvider := provider.NewDesktopProvider()
+		if value, err := desktopProvider.GetSecret(ctx, name); err == nil {
+			secrets[name] = value
+			log("    - Successfully read", name, "via desktop provider")
+		}
+	}
+	
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("no secrets could be read via any provider")
+	}
+	
+	return secrets, nil
 }
 
 func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path string) (map[string]string, error) {

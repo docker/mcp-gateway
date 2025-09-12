@@ -282,7 +282,7 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 		if ok {
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
 		} else {
-			logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
+			logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>. To fix: docker mcp secret set %s=<value>", s.Name, serverConfig.Name, s.Env, s.Name)
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
 		}
 	}
