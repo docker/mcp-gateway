@@ -110,6 +110,14 @@ func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterD
 	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr", app), req, &result)
 }
 
+// RegisterDCRClientPending registers a provider for lazy DCR setup using pending=true
+func (c *Tools) RegisterDCRClientPending(ctx context.Context, app string, req RegisterDCRRequest) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr?pending=true", app), req, &result)
+}
+
 func (c *Tools) GetDCRClient(ctx context.Context, app string) (*DCRClient, error) {
 	AvoidResourceSaverMode(ctx)
 
@@ -156,6 +164,7 @@ func (c *Tools) GetAuthorizationURL(ctx context.Context, serverName string, scop
 
 	return &result, nil
 }
+
 
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {

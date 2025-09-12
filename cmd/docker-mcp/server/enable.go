@@ -80,9 +80,11 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 			
 			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
-				if err := setupOAuthForRemoteServer(ctx, serverName, &cat); err != nil {
-					fmt.Printf("⚠️ Warning: Failed to setup OAuth for %s: %v\n", serverName, err)
+				if err := registerProviderForLazySetup(ctx, serverName); err != nil {
+					fmt.Printf("⚠️ Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
+				} else {
+					fmt.Printf("✅ OAuth provider registered for %s - use 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				}
 			} else if !mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
 				// Provide guidance when DCR is needed but disabled
@@ -185,6 +187,55 @@ func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *cata
 	fmt.Printf("   • Provider appears in Docker Desktop OAuth tab\n")
 	fmt.Printf("   • Ready for authorization (click Authorize in UI or run 'docker mcp oauth authorize %s')\n", serverName)
 
+	return nil
+}
+
+// registerProviderForLazySetup registers a provider for lazy DCR setup
+// This shows the provider in the OAuth tab immediately without doing network calls
+func registerProviderForLazySetup(ctx context.Context, serverName string) error {
+	// Check if provider already exists to avoid double-registration
+	client := desktop.NewAuthClient()
+	apps, err := client.ListOAuthApps(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list OAuth apps: %w", err)
+	}
+	
+	for _, app := range apps {
+		if app.App == serverName {
+			// Provider already exists, no need to register again
+			return nil
+		}
+	}
+	
+	// Get catalog to extract provider name
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog: %w", err)
+	}
+	
+	server, found := cat.Servers[serverName]
+	if !found {
+		return fmt.Errorf("server %s not found in catalog", serverName)
+	}
+	
+	// Extract provider name from OAuth config
+	if server.OAuth == nil || len(server.OAuth.Providers) == 0 {
+		return fmt.Errorf("server %s has no OAuth providers configured", serverName)
+	}
+	
+	providerName := server.OAuth.Providers[0].Provider // Use first provider
+	
+	fmt.Printf("🔧 Registering OAuth provider %s (provider: %s) for lazy setup...\n", serverName, providerName)
+	
+	// Use the existing DCR endpoint with pending=true to register provider without DCR
+	dcrRequest := desktop.RegisterDCRRequest{
+		ProviderName: providerName,
+	}
+	
+	if err := client.RegisterDCRClientPending(ctx, serverName, dcrRequest); err != nil {
+		return fmt.Errorf("failed to register pending DCR provider: %w", err)
+	}
+	
 	return nil
 }
 
