@@ -18,9 +18,11 @@ Run the gateway
 | `--cpus`                    | `int`         | `1`                 | CPUs allocated to each MCP Server (default is 1)                                                                                              |
 | `--debug-dns`               | `bool`        |                     | Debug DNS resolution                                                                                                                          |
 | `--dry-run`                 | `bool`        |                     | Start the gateway but do not listen for connections (useful for testing the configuration)                                                    |
+| `--enable-all-servers`      | `bool`        |                     | Enable all servers in the catalog (instead of using individual --servers options)                                                             |
 | `--interceptor`             | `stringArray` |                     | List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')                                                            |
 | `--log-calls`               | `bool`        | `true`              | Log calls to the tools                                                                                                                        |
 | `--long-lived`              | `bool`        |                     | Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers                                   |
+| `--mcp-registry`            | `stringSlice` |                     | MCP registry URLs to fetch servers from (can be repeated)                                                                                     |
 | `--memory`                  | `string`      | `2Gb`               | Memory allocated to each MCP Server (default is 2Gb)                                                                                          |
 | `--oci-ref`                 | `stringArray` |                     | OCI image references to use                                                                                                                   |
 | `--port`                    | `int`         | `0`                 | TCP port to listen on (default is to listen on stdio)                                                                                         |
@@ -31,7 +33,6 @@ Run the gateway
 | `--tools`                   | `stringSlice` |                     | List of tools to enable                                                                                                                       |
 | `--tools-config`            | `stringSlice` | `[tools.yaml]`      | Paths to the tools files (absolute or relative to ~/.docker/mcp/)                                                                             |
 | `--transport`               | `string`      | `stdio`             | stdio, sse or streaming (default is stdio)                                                                                                    |
-| `--use-configured-catalogs` | `bool`        |                     | Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)                                                          |
 | `--verbose`                 | `bool`        |                     | Verbose output                                                                                                                                |
 | `--verify-signatures`       | `bool`        |                     | Verify signatures of the server images                                                                                                        |
 | `--watch`                   | `bool`        | `true`              | Watch for changes and reconfigure the gateway                                                                                                 |

@@ -13,6 +13,7 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
+	Name           string   `yaml:"name,omitempty" json:"name,omitempty"`
 	Image          string   `yaml:"image" json:"image"`
 	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
@@ -40,7 +41,7 @@ type Env struct {
 }
 
 type Remote struct {
-	URL       string            `yaml:"url" json:"url"`
+	URL       string            `yaml:"url,omitempty" json:"url,omitempty"`
 	Transport string            `yaml:"transport_type,omitempty" json:"transport_type,omitempty"`
 	Headers   map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
 }

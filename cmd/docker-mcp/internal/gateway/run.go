@@ -60,16 +60,17 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		Options: config.Options,
 		docker:  docker,
 		configurator: &FileBasedConfiguration{
-			ServerNames:  config.ServerNames,
-			CatalogPath:  config.CatalogPath,
-			RegistryPath: config.RegistryPath,
-			ConfigPath:   config.ConfigPath,
-			SecretsPath:  config.SecretsPath,
-			ToolsPath:    config.ToolsPath,
-			OciRef:       config.OciRef,
-			Watch:        config.Watch,
-			Central:      config.Central,
-			docker:       docker,
+			ServerNames:        config.ServerNames,
+			CatalogPath:        config.CatalogPath,
+			RegistryPath:       config.RegistryPath,
+			ConfigPath:         config.ConfigPath,
+			SecretsPath:        config.SecretsPath,
+			ToolsPath:          config.ToolsPath,
+			OciRef:             config.OciRef,
+			MCPRegistryServers: config.MCPRegistryServers,
+			Watch:              config.Watch,
+			Central:            config.Central,
+			docker:             docker,
 		},
 		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
 	}
@@ -177,22 +178,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
 
-	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
-		return fmt.Errorf("loading configuration: %w", err)
-	}
-
-	// Central mode.
-	if g.Central {
-		log("> Initialized (in central mode) in", time.Since(start))
-		if g.DryRun {
-			log("Dry run mode enabled, not starting the server.")
-			return nil
-		}
-
-		log("> Start streaming server on port", g.Port)
-		return g.startCentralStreamingServer(ctx, ln, configuration)
-	}
-
 	// Which docker images are used?
 	// Pull them and verify them if possible.
 	if !g.Static {
@@ -208,6 +193,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 			g.clientPool.SetNetworks(networks)
 		}
+	}
+
+	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+		return fmt.Errorf("loading configuration: %w", err)
+	}
+
+	// Central mode.
+	if g.Central {
+		log("> Initialized (in central mode) in", time.Since(start))
+		if g.DryRun {
+			log("Dry run mode enabled, not starting the server.")
+			return nil
+		}
+
+		log("> Start streaming server on port", g.Port)
+		return g.startCentralStreamingServer(ctx, ln, configuration)
 	}
 
 	// Optionally watch for configuration updates.

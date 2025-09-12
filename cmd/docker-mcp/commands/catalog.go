@@ -1,11 +1,15 @@
 package commands
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	catalogTypes "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/yq"
 )
 
 func catalogCommand() *cobra.Command {
@@ -31,21 +35,40 @@ func catalogCommand() *cobra.Command {
 }
 
 func importCatalogCommand() *cobra.Command {
-	return &cobra.Command{
+	var mcpRegistry string
+	var dryRun bool
+	cmd := &cobra.Command{
 		Use:   "import <alias|url|file>",
 		Short: "Import a catalog from URL or file",
 		Long: `Import an MCP server catalog from a URL or local file. The catalog will be downloaded 
-and stored locally for use with the MCP gateway.`,
+and stored locally for use with the MCP gateway.
+
+When --mcp-registry flag is used, the argument must be an existing catalog name, and the
+command will import servers from the MCP registry URL into that catalog.`,
 		Args: cobra.ExactArgs(1),
 		Example: `  # Import from URL
   docker mcp catalog import https://example.com/my-catalog.yaml
   
   # Import from local file
-  docker mcp catalog import ./shared-catalog.yaml`,
+  docker mcp catalog import ./shared-catalog.yaml
+  
+  # Import from MCP registry URL into existing catalog
+  docker mcp catalog import my-catalog --mcp-registry https://registry.example.com/server`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// If mcp-registry flag is provided, import to existing catalog
+			if mcpRegistry != "" {
+				if dryRun {
+					return runOfficialregistryImport(cmd.Context(), mcpRegistry, nil)
+				}
+				return importMCPRegistryToCatalog(cmd.Context(), args[0], mcpRegistry)
+			}
+			// Default behavior: import entire catalog
 			return catalog.Import(cmd.Context(), args[0])
 		},
 	}
+	cmd.Flags().StringVar(&mcpRegistry, "mcp-registry", "", "Import server from MCP registry URL into existing catalog")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show Imported Data but do not update the Catalog")
+	return cmd
 }
 
 func exportCatalogCommand() *cobra.Command {
@@ -236,4 +259,70 @@ func resetCatalogCommand() *cobra.Command {
 			return catalog.Reset(cmd.Context())
 		},
 	}
+}
+
+// importMCPRegistryToCatalog imports a server from an MCP registry URL into an existing catalog
+func importMCPRegistryToCatalog(ctx context.Context, catalogName, mcpRegistryURL string) error {
+	// Check if the catalog exists
+	cfg, err := catalog.ReadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to read catalog config: %w", err)
+	}
+
+	_, exists := cfg.Catalogs[catalogName]
+	if !exists {
+		return fmt.Errorf("catalog '%s' does not exist", catalogName)
+	}
+
+	// Prevent users from modifying the Docker catalog
+	if catalogName == catalog.DockerCatalogName {
+		return fmt.Errorf("cannot import servers into catalog '%s' as it is managed by Docker", catalogName)
+	}
+
+	// Fetch server from MCP registry
+	var servers []catalogTypes.Server
+	if err := runOfficialregistryImport(ctx, mcpRegistryURL, &servers); err != nil {
+		return fmt.Errorf("failed to fetch server from MCP registry: %w", err)
+	}
+
+	if len(servers) == 0 {
+		return fmt.Errorf("no servers found at MCP registry URL")
+	}
+
+	// For now, we'll import the first server (MCP registry URLs typically contain one server)
+	server := servers[0]
+
+	serverName := server.Name
+
+	// Convert the server to JSON for injection into the catalog
+	serverJSON, err := json.Marshal(server)
+	if err != nil {
+		return fmt.Errorf("failed to marshal server: %w", err)
+	}
+
+	// Read the current catalog content
+	catalogContent, err := catalog.ReadCatalogFile(catalogName)
+	if err != nil {
+		return fmt.Errorf("failed to read catalog file: %w", err)
+	}
+
+	// Inject the server into the catalog using the same pattern as the add function
+	updatedContent, err := injectServerIntoCatalog(catalogContent, serverName, serverJSON)
+	if err != nil {
+		return fmt.Errorf("failed to inject server into catalog: %w", err)
+	}
+
+	// Write the updated catalog back
+	if err := catalog.WriteCatalogFile(catalogName, updatedContent); err != nil {
+		return fmt.Errorf("failed to write updated catalog: %w", err)
+	}
+
+	fmt.Printf("Successfully imported server '%s' from MCP registry into catalog '%s'\n", serverName, catalogName)
+	return nil
+}
+
+// injectServerIntoCatalog injects a server JSON into a catalog YAML using yq
+func injectServerIntoCatalog(yamlData []byte, serverName string, serverJSON []byte) ([]byte, error) {
+	query := fmt.Sprintf(`.registry."%s" = %s`, serverName, string(serverJSON))
+	return yq.Evaluate(query, yamlData, yq.NewYamlDecoder(), yq.NewYamlEncoder())
 }

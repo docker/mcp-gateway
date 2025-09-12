@@ -1,0 +1,58 @@
+{
+  "name": "io.github.slimslenderslacks/filesystem",
+  "description": "Node.js server implementing Model Context Protocol (MCP) for filesystem operations.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/modelcontextprotocol/servers",
+    "source": "github",
+    "id": "b94b5f7e-c7c6-d760-2c78-a5e9b8a5b8c9"
+  },
+  "version": "1.0.2",
+  "packages": [
+    {
+      "registry_type": "oci",
+      "registry_base_url": "https://docker.io",
+      "identifier": "mcp/filesystem",
+      "version": "1.0.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtime_arguments": [
+        {
+          "type": "named",
+          "description": "Mount a volume into the container",
+          "name": "--mount",
+          "value": "type=bind,src={source_path},dst={target_path}",
+          "is_required": true,
+          "is_repeated": true,
+          "variables": {
+            "source_path": {
+              "description": "Source path on host",
+              "format": "filepath",
+              "is_required": true
+            },
+            "target_path": {
+              "description": "Path to mount in the container. It should be rooted in `/project` directory.",
+              "is_required": true,
+              "default": "/project"
+            }
+          }
+        }
+      ],
+      "package_arguments": [
+        {
+          "type": "positional",
+          "value_hint": "target_dir",
+          "value": "/project"
+        }
+      ],
+      "environment_variables": [
+        {
+          "name": "LOG_LEVEL",
+          "description": "Logging level (debug, info, warn, error)",
+          "default": "info"
+        }
+      ]
+    }
+  ]
+}

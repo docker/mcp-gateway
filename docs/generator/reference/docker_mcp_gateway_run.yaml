@@ -127,6 +127,17 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: enable-all-servers
+      value_type: bool
+      default_value: "false"
+      description: |
+        Enable all servers in the catalog (instead of using individual --servers options)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: interceptor
       value_type: stringArray
       default_value: '[]'
@@ -153,6 +164,16 @@ options:
       default_value: "false"
       description: |
         Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: mcp-registry
+      value_type: stringSlice
+      default_value: '[]'
+      description: MCP registry URLs to fetch servers from (can be repeated)
       deprecated: false
       hidden: false
       experimental: false
@@ -256,17 +277,6 @@ options:
       value_type: string
       default_value: stdio
       description: stdio, sse or streaming (default is stdio)
-      deprecated: false
-      hidden: false
-      experimental: false
-      experimentalcli: false
-      kubernetes: false
-      swarm: false
-    - option: use-configured-catalogs
-      value_type: bool
-      default_value: "false"
-      description: |
-        Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)
       deprecated: false
       hidden: false
       experimental: false
