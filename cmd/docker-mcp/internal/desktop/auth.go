@@ -75,24 +75,24 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAut
 // DCR (Dynamic Client Registration) Methods
 
 type RegisterDCRRequest struct {
-	ClientID            string `json:"clientId"`
-	ProviderName        string `json:"providerName"`
-	ClientName          string `json:"clientName,omitempty"`
-	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	ClientID              string `json:"clientId"`
+	ProviderName          string `json:"providerName"`
+	ClientName            string `json:"clientName,omitempty"`
+	AuthorizationServer   string `json:"authorizationServer,omitempty"`
 	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
-	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
+	TokenEndpoint         string `json:"tokenEndpoint,omitempty"`
 }
 
 type DCRClient struct {
-	State               string `json:"state"`
-	ServerName           string `json:"serverName"`
-	ProviderName         string `json:"providerName"`
-	ClientID            string `json:"clientId"`
-	ClientName          string `json:"clientName,omitempty"`
-	RegisteredAt        string `json:"registeredAt"` // ISO timestamp
-	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	State                 string `json:"state"`
+	ServerName            string `json:"serverName"`
+	ProviderName          string `json:"providerName"`
+	ClientID              string `json:"clientId"`
+	ClientName            string `json:"clientName,omitempty"`
+	RegisteredAt          string `json:"registeredAt"` // ISO timestamp
+	AuthorizationServer   string `json:"authorizationServer,omitempty"`
 	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
-	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
+	TokenEndpoint         string `json:"tokenEndpoint,omitempty"`
 }
 
 func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterDCRRequest) error {
@@ -126,10 +126,6 @@ func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
 
 	return c.rawClient.Delete(ctx, fmt.Sprintf("/apps/%s/dcr", app))
 }
-
-
-
-
 
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {

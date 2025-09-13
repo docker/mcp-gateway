@@ -66,7 +66,7 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 	fmt.Printf("🔍 Discovering OAuth requirements for %s...\n", serverName)
 	
 	// STEP 1: OAuth Discovery (catalog-based, bypass 401 probe)
-	discovery, err := oauth.DiscoverOAuthFromCatalog(ctx, serverURL)
+	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
 	if err != nil {
 		return fmt.Errorf("OAuth discovery failed: %w", err)
 	}

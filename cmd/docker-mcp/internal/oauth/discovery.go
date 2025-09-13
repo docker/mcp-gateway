@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 )
@@ -138,7 +139,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		TokenEndpointAuthMethodsSupported: authServerMetadata.TokenEndpointAuthMethodsSupported,
 		
 		// PKCE support detection (OAuth 2.1 MUST requirement)
-		SupportsPKCE:        containsString(authServerMetadata.CodeChallengeMethodsSupported, "S256"),
+		SupportsPKCE:        slices.Contains(authServerMetadata.CodeChallengeMethodsSupported, "S256"),
 		CodeChallengeMethod: authServerMetadata.CodeChallengeMethodsSupported,
 	}
 
@@ -161,15 +162,6 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	return discovery, nil
 }
 
-// DiscoverOAuthFromCatalog performs OAuth discovery for servers pre-configured in catalog
-// with OAuth requirements already known.
-//
-// This now simply delegates to the main DiscoverOAuthRequirements function,
-// which has been refactored to handle all discovery patterns robustly.
-func DiscoverOAuthFromCatalog(ctx context.Context, serverURL string) (*OAuthDiscovery, error) {
-	// The main discovery function now handles all cases gracefully
-	return DiscoverOAuthRequirements(ctx, serverURL)
-}
 
 // fetchOAuthProtectedResourceMetadata fetches metadata from /.well-known/oauth-protected-resource
 // 
@@ -294,14 +286,5 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 
 
 
-// containsString checks if a slice contains a specific string
-func containsString(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
 
 
