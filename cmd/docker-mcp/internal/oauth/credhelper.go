@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"strings"
 
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
@@ -41,7 +40,7 @@ func (h *OAuthCredentialHelper) GetOAuthToken(ctx context.Context, serverName st
 
 	// Step 2: Construct credential key using authorization endpoint + provider name
 	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
-	
+
 	// Step 3: Retrieve token from docker-credential-desktop
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
@@ -132,10 +131,6 @@ func (h oauthHelper) Get(credentialKey string) (string, string, error) {
 		return "", "", err
 	}
 	return creds.Username, creds.Secret, nil
-}
-
-func isErrDecryption(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "gpg: decryption failed: No secret key")
 }
 
 var _ credentials.Helper = oauthHelper{}
