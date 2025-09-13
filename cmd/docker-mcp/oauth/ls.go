@@ -12,8 +12,8 @@ import (
 func Ls(ctx context.Context, outputJSON bool) error {
 	client := desktop.NewAuthClient()
 
-	// Get OAuth apps from Docker Desktop (includes only DCR providers automatically registered)
-	// This ensures we only show servers that have performed DCR via 'docker mcp server enable'
+	// Get OAuth apps from Docker Desktop (includes both built-in and DCR providers)
+	// DCR providers are created by 'docker mcp server enable' (unregistered) and registered by 'docker mcp oauth authorize'
 	apps, err := client.ListOAuthApps(ctx)
 	if err != nil {
 		return err

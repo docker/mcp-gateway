@@ -121,18 +121,13 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 // registerProviderForLazySetup registers a provider for lazy DCR setup
 // This shows the provider in the OAuth tab immediately without doing network calls
 func registerProviderForLazySetup(ctx context.Context, serverName string) error {
-	// Check if provider already exists to avoid double-registration
 	client := desktop.NewAuthClient()
-	apps, err := client.ListOAuthApps(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list OAuth apps: %w", err)
-	}
 	
-	for _, app := range apps {
-		if app.App == serverName {
-			// Provider already exists, no need to register again
-			return nil
-		}
+	// Check if DCR client already exists to avoid double-registration
+	_, err := client.GetDCRClient(ctx, serverName)
+	if err == nil {
+		// Provider already registered, no need to register again
+		return nil
 	}
 	
 	// Get catalog to extract provider name
@@ -172,42 +167,22 @@ func registerProviderForLazySetup(ctx context.Context, serverName string) error 
 func cleanupOAuthForRemoteServer(ctx context.Context, serverName string) error {
 	client := desktop.NewAuthClient()
 	
-	// Check if OAuth provider exists
-	apps, err := client.ListOAuthApps(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list OAuth apps: %w", err)
-	}
+	fmt.Printf("🧹 Cleaning up OAuth for %s...\n", serverName)
 	
-	var hasOAuthProvider bool
-	for _, app := range apps {
-		if app.App == serverName {
-			hasOAuthProvider = true
-			break
-		}
-	}
-	
-	if hasOAuthProvider {
-		fmt.Printf("🧹 Cleaning up OAuth for %s...\n", serverName)
-		
-		// 1. Revoke OAuth tokens (removes from OAuth providers)
-		if err := client.DeleteOAuthApp(ctx, serverName); err != nil {
-			fmt.Printf("⚠️ Warning: Failed to revoke OAuth access for %s: %v\n", serverName, err)
-		} else {
-			fmt.Printf("   • OAuth tokens revoked\n")
-		}
-		
-		// 2. Delete DCR client data for complete cleanup
-		if err := client.DeleteDCRClient(ctx, serverName); err != nil {
-			fmt.Printf("⚠️ Warning: Failed to clean up DCR client for %s: %v\n", serverName, err)
-		} else {
-			fmt.Printf("   • DCR client data removed\n")
-		}
-		
-		fmt.Printf("✅ OAuth cleanup complete for %s (clean slate achieved)\n", serverName)
+	// 1. Revoke OAuth tokens (idempotent - fails gracefully if not exists)
+	if err := client.DeleteOAuthApp(ctx, serverName); err != nil {
+		fmt.Printf("   • No OAuth tokens to revoke\n")
 	} else {
-		// Still try to clean up DCR client if it exists (silent cleanup)
-		client.DeleteDCRClient(ctx, serverName) // Ignore errors for silent cleanup
+		fmt.Printf("   • OAuth tokens revoked\n")
 	}
 	
+	// 2. Delete DCR client data (idempotent - fails gracefully if not exists)
+	if err := client.DeleteDCRClient(ctx, serverName); err != nil {
+		fmt.Printf("   • No DCR client to remove\n")
+	} else {
+		fmt.Printf("   • DCR client data removed\n")
+	}
+	
+	fmt.Printf("✅ OAuth cleanup complete for %s (clean slate achieved)\n", serverName)
 	return nil
 }
