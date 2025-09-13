@@ -111,12 +111,12 @@ func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterD
 	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr", app), req, &result)
 }
 
-// RegisterDCRClientPending registers a provider for lazy DCR setup using pending=true
+// RegisterDCRClientPending registers a provider for lazy DCR setup using state=unregistered
 func (c *Tools) RegisterDCRClientPending(ctx context.Context, app string, req RegisterDCRRequest) error {
 	AvoidResourceSaverMode(ctx)
 
 	var result map[string]string
-	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr?pending=true", app), req, &result)
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr?state=unregistered", app), req, &result)
 }
 
 func (c *Tools) GetDCRClient(ctx context.Context, app string) (*DCRClient, error) {
