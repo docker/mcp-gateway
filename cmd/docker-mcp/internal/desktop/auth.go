@@ -10,11 +10,12 @@ import (
 )
 
 type OAuthApp struct {
-	App        string        `json:"app"`
-	Authorized bool          `json:"authorized"`
-	Provider   string        `json:"provider"`
-	Scopes     []OAuthScopes `json:"scopes,omitempty"`
-	Tools      []string      `json:"tools"`
+	App         string        `json:"app"`
+	Authorized  bool          `json:"authorized"`
+	Provider    string        `json:"provider"`
+	Scopes      []OAuthScopes `json:"scopes,omitempty"`
+	Tools       []string      `json:"tools"`
+	AccessToken string        `json:"accessToken,omitempty"`
 }
 
 type OAuthScopes struct {
@@ -71,6 +72,73 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAut
 	err := c.rawClient.Post(ctx, fmt.Sprintf("/apps/%v", app)+q, nil, &result)
 	return result, err
 }
+
+func (c *Tools) GetOAuthApp(ctx context.Context, app string) (OAuthApp, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result OAuthApp
+	err := c.rawClient.Get(ctx, fmt.Sprintf("/apps/%v", app), &result)
+	return result, err
+}
+
+// DCR (Dynamic Client Registration) Methods
+
+type RegisterDCRRequest struct {
+	ClientID            string `json:"clientId"`
+	ProviderName        string `json:"providerName"`
+	ClientName          string `json:"clientName,omitempty"`
+	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
+}
+
+type DCRClient struct {
+	State               string `json:"state"`
+	ServerName           string `json:"serverName"`
+	ProviderName         string `json:"providerName"`
+	ClientID            string `json:"clientId"`
+	ClientName          string `json:"clientName,omitempty"`
+	RegisteredAt        string `json:"registeredAt"` // ISO timestamp
+	AuthorizationServer string `json:"authorizationServer,omitempty"`
+	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint        string `json:"tokenEndpoint,omitempty"`
+}
+
+func (c *Tools) RegisterDCRClient(ctx context.Context, app string, req RegisterDCRRequest) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr", app), req, &result)
+}
+
+// RegisterDCRClientPending registers a provider for lazy DCR setup using state=unregistered
+func (c *Tools) RegisterDCRClientPending(ctx context.Context, app string, req RegisterDCRRequest) error {
+	AvoidResourceSaverMode(ctx)
+
+	var result map[string]string
+	return c.rawClient.Post(ctx, fmt.Sprintf("/apps/%s/dcr?state=unregistered", app), req, &result)
+}
+
+func (c *Tools) GetDCRClient(ctx context.Context, app string) (*DCRClient, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result DCRClient
+	err := c.rawClient.Get(ctx, fmt.Sprintf("/apps/%s/dcr", app), &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *Tools) DeleteDCRClient(ctx context.Context, app string) error {
+	AvoidResourceSaverMode(ctx)
+
+	return c.rawClient.Delete(ctx, fmt.Sprintf("/apps/%s/dcr", app))
+}
+
+
+
+
 
 func addQueryParam[T any](q, name string, value T, required bool) string {
 	if !required && reflect.DeepEqual(value, reflect.Zero(reflect.TypeOf(value)).Interface()) {

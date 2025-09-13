@@ -36,7 +36,7 @@ func ReadFrom(ctx context.Context, fileOrURLs []string) (Catalog, error) {
 		// Merge servers into the combined map, checking for overlaps
 		for key, server := range servers {
 			if _, exists := mergedServers[key]; exists {
-				log.Printf("Warning: overlapping key '%s' found in catalog '%s', overwriting previous value", key, fileOrURL)
+				fmt.Fprintf(os.Stdout, "Warning: overlapping key '%s' found in catalog '%s', overwriting previous value\n", key, fileOrURL)
 			}
 			mergedServers[key] = server
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 type remoteMCPClient struct {
@@ -56,6 +57,17 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	headers := map[string]string{}
 	for k, v := range c.config.Spec.Remote.Headers {
 		headers[k] = expandEnv(v, env)
+	}
+
+	// Add OAuth token if remote server has OAuth configuration
+	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
+		token, err := c.getOAuthToken(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get OAuth token: %w", err)
+		}
+		if token != "" {
+			headers["Authorization"] = "Bearer " + token
+		}
 	}
 
 	var mcpTransport mcp.Transport
@@ -118,6 +130,23 @@ func expandEnv(value string, secrets map[string]string) string {
 	})
 }
 
+func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
+	if c.config.Spec.OAuth == nil || len(c.config.Spec.OAuth.Providers) == 0 {
+		return "", nil
+	}
+
+	// Use secure credential helper to get OAuth token directly from system credential store
+	// This bypasses the vulnerable IPC endpoint that exposes tokens
+	credHelper := oauth.NewOAuthCredentialHelper()
+	token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+	if err != nil {
+		// Token might not exist if user hasn't authorized yet
+		return "", nil
+	}
+
+	return token, nil
+}
+
 // headerRoundTripper is an http.RoundTripper that adds custom headers to all requests
 type headerRoundTripper struct {
 	base    http.RoundTripper
@@ -127,9 +156,15 @@ type headerRoundTripper struct {
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	newReq := req.Clone(req.Context())
+	
 	// Add custom headers
 	for key, value := range h.headers {
+		// Don't override Accept header if already set by streamable transport
+		if key == "Accept" && newReq.Header.Get("Accept") != "" {
+			continue
+		}
 		newReq.Header.Set(key, value)
 	}
+	
 	return h.base.RoundTrip(newReq)
 }

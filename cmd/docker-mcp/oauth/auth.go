@@ -4,23 +4,139 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {
 	client := desktop.NewAuthClient()
-
-	authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)
+	
+	// Check if DCR client exists
+	dcrClient, err := client.GetDCRClient(ctx, app)
 	if err != nil {
-		return err
+		// Not a DCR provider - handle traditional OAuth flow for built-in providers
+		authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)
+		if err != nil {
+			return err
+		}
+
+		// Check if the response contains a valid browser URL
+		if authResponse.BrowserURL == "" {
+			return fmt.Errorf("OAuth provider does not exist")
+		}
+
+		fmt.Printf("Opening your browser for authentication. If it doesn't open automatically, please visit: %s\n", authResponse.BrowserURL)
+		return nil
+	}
+	
+	// This is a DCR provider - check if it needs setup (atomic DCR)
+	if dcrClient.State == "unregistered" {
+		// Unregistered DCR provider - needs atomic discovery + DCR + auth
+		fmt.Printf("🔍 First-time OAuth setup for %s...\n", app)
+		return performAtomicDCRAndAuthorize(ctx, app, scopes)
+	}
+	
+	// DCR client exists and is ready - proceed with normal authorization
+	return authorizeRemoteMCPServer(ctx, app, scopes, dcrClient)
+}
+
+// performAtomicDCRAndAuthorize performs discovery, DCR, and authorization atomically
+func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes string) error {
+	// Get catalog to find server configuration
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog: %w", err)
+	}
+	
+	server, found := cat.Servers[serverName]
+	if !found {
+		return fmt.Errorf("server %s not found in catalog", serverName)
+	}
+	
+	// Get server URL
+	serverURL := server.Remote.URL
+	if serverURL == "" {
+		serverURL = server.SSEEndpoint
+		if serverURL == "" {
+			return fmt.Errorf("server %s has no remote URL configured", serverName)
+		}
+	}
+	
+	fmt.Printf("🔍 Discovering OAuth requirements for %s...\n", serverName)
+	
+	// STEP 1: OAuth Discovery (catalog-based, bypass 401 probe)
+	discovery, err := oauth.DiscoverOAuthFromCatalog(ctx, serverURL)
+	if err != nil {
+		return fmt.Errorf("OAuth discovery failed: %w", err)
+	}
+	
+	// STEP 2: Dynamic Client Registration
+	fmt.Printf("🔧 Registering OAuth client for %s...\n", serverName)
+	credentials, err := oauth.PerformDCR(ctx, discovery, serverName)
+	if err != nil {
+		return fmt.Errorf("DCR registration failed: %w", err)
+	}
+	
+	// Extract provider name from OAuth config
+	var providerName string
+	if server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+		providerName = server.OAuth.Providers[0].Provider // Use first provider
+	} else {
+		return fmt.Errorf("no OAuth providers configured for server %s", serverName)
+	}
+	
+	// STEP 3: Store DCR client in Docker Desktop (updates the pending provider)
+	client := desktop.NewAuthClient()
+	dcrRequest := desktop.RegisterDCRRequest{
+		ClientID:              credentials.ClientID,
+		ProviderName:          providerName,
+		AuthorizationEndpoint: credentials.AuthorizationEndpoint,
+		TokenEndpoint:         credentials.TokenEndpoint,
+	}
+	
+	if err := client.RegisterDCRClient(ctx, serverName, dcrRequest); err != nil {
+		return fmt.Errorf("failed to store DCR client: %w", err)
+	}
+	
+	fmt.Printf("✅ OAuth client registered successfully\n")
+	fmt.Printf("   Client ID: %s\n", credentials.ClientID)
+	
+	// STEP 4: Continue with authorization
+	dcrClient := &desktop.DCRClient{
+		ServerName:            serverName,
+		ProviderName:          providerName,
+		ClientID:              credentials.ClientID,
+		AuthorizationEndpoint: credentials.AuthorizationEndpoint,
+		TokenEndpoint:         credentials.TokenEndpoint,
+	}
+	
+	return authorizeRemoteMCPServer(ctx, serverName, scopes, dcrClient)
+}
+
+func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes string, dcrClient *desktop.DCRClient) error {
+	client := desktop.NewAuthClient()
+
+	fmt.Printf("🔐 Starting OAuth authorization for %s...\n", serverName)
+	fmt.Printf("   Using client: %s\n", dcrClient.ClientID)
+
+	// Start OAuth flow via Docker Desktop (handles PKCE generation and browser opening)
+	fmt.Printf("🔧 Starting OAuth authorization flow...\n")
+	authResponse, err := client.PostOAuthApp(ctx, serverName, scopes, false)
+	if err != nil {
+		return fmt.Errorf("failed to start OAuth flow: %w", err)
 	}
 
-	// Check if the response contains a valid browser URL
-	if authResponse.BrowserURL == "" {
-		return fmt.Errorf("OAuth provider does not exist")
+	// Provide user feedback based on auth response
+	if authResponse.BrowserURL != "" {
+		fmt.Printf("🌐 Browser opened for OAuth authentication\n")
+		fmt.Printf("If the browser doesn't open, visit: %s\n", authResponse.BrowserURL)
+	} else {
+		fmt.Printf("🌐 OAuth flow started successfully\n")
 	}
 
-	fmt.Printf("Opening your browser for authentication. If it doesn't open automatically, please visit: %s\n", authResponse.BrowserURL)
+	fmt.Printf("✅ Once authenticated, %s will be ready for use\n", serverName)
 
 	return nil
 }
+

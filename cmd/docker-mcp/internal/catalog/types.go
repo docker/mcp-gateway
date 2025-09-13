@@ -13,11 +13,13 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
+	Type           string   `yaml:"type" json:"type"`
 	Image          string   `yaml:"image" json:"image"`
 	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
 	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
+	OAuth          *OAuth   `yaml:"oauth,omitempty" json:"oauth,omitempty"`
 	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
 	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
@@ -43,6 +45,17 @@ type Remote struct {
 	URL       string            `yaml:"url" json:"url"`
 	Transport string            `yaml:"transport_type,omitempty" json:"transport_type,omitempty"`
 	Headers   map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+}
+
+type OAuth struct {
+	Providers []OAuthProvider `yaml:"providers,omitempty" json:"providers,omitempty"`
+	Scopes    []string        `yaml:"scopes,omitempty" json:"scopes,omitempty"`
+}
+
+type OAuthProvider struct {
+	Provider string `yaml:"provider" json:"provider"`
+	Secret   string `yaml:"secret" json:"secret"`
+	Env      string `yaml:"env" json:"env"`
 }
 
 // POCI tools
