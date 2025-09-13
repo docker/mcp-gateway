@@ -1,7 +1,5 @@
 package oauth
 
-import "time"
-
 // OAuthDiscovery contains OAuth configuration discovered from MCP server
 //
 // MCP SPEC COMPLIANCE:  
@@ -138,32 +136,3 @@ type DCRResponse struct {
 	RegistrationClientURI    string    `json:"registration_client_uri,omitempty"`
 }
 
-// OAuthToken represents an OAuth access token with metadata
-type OAuthToken struct {
-	AccessToken  string    `json:"access_token"`
-	TokenType    string    `json:"token_type"`
-	ExpiresIn    int64     `json:"expires_in,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	Scope        string    `json:"scope,omitempty"`
-	
-	// Internal metadata
-	IssuedAt   time.Time `json:"issued_at"`
-	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
-	Resource   string    `json:"resource,omitempty"`
-}
-
-// IsExpired checks if the token is expired
-func (t *OAuthToken) IsExpired() bool {
-	if t.ExpiresAt == nil {
-		return false
-	}
-	return time.Now().After(*t.ExpiresAt)
-}
-
-// WillExpireSoon checks if the token will expire within the given duration
-func (t *OAuthToken) WillExpireSoon(within time.Duration) bool {
-	if t.ExpiresAt == nil {
-		return false
-	}
-	return time.Now().Add(within).After(*t.ExpiresAt)
-}

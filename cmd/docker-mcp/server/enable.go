@@ -11,19 +11,18 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oauth"
 )
 
 func Disable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
 	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR cleanup
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 	
 	// Clean up OAuth for disabled servers first
 	for _, serverName := range serverNames {
-		if server, found := cat.Servers[serverName]; found {
+		if server, found := catalog.Servers[serverName]; found {
 			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
 				if err := cleanupOAuthForRemoteServer(ctx, serverName); err != nil {
@@ -53,7 +52,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 	}
 
 	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return err
 	}
@@ -64,7 +63,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 
 	// Keep only servers that are still in the catalog.
 	for serverName := range registry.Servers {
-		if _, found := cat.Servers[serverName]; found {
+		if _, found := catalog.Servers[serverName]; found {
 			updatedRegistry.Servers[serverName] = config.Tile{
 				Ref: "",
 			}
@@ -73,7 +72,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 
 	// Enable servers.
 	for _, serverName := range add {
-		if server, found := cat.Servers[serverName]; found {
+		if server, found := catalog.Servers[serverName]; found {
 			updatedRegistry.Servers[serverName] = config.Tile{
 				Ref: "",
 			}
@@ -118,77 +117,6 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 }
 
 
-// setupOAuthForRemoteServer performs OAuth discovery and DCR for remote MCP servers
-// This enables OAuth providers to appear in the Docker Desktop UI immediately after enable
-func setupOAuthForRemoteServer(ctx context.Context, serverName string, cat *catalog.Catalog) error {
-	server, found := cat.Servers[serverName]
-	if !found {
-		return fmt.Errorf("server %s not found in catalog", serverName)
-	}
-
-	// Get server URL
-	serverURL := server.Remote.URL
-	if serverURL == "" {
-		serverURL = server.SSEEndpoint
-		if serverURL == "" {
-			return fmt.Errorf("server %s has no remote URL configured", serverName)
-		}
-	}
-
-	fmt.Printf("🔍 Discovering OAuth requirements for %s...\n", serverName)
-
-	// Perform OAuth discovery for catalog-configured server (bypass 401 probe)
-	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
-	if err != nil {
-		return fmt.Errorf("OAuth discovery failed: %w", err)
-	}
-
-	// Check if DCR client already exists (avoid re-registration)
-	client := desktop.NewAuthClient()
-	existing, err := client.GetDCRClient(ctx, serverName)
-	if err == nil && existing.ClientID != "" {
-		fmt.Printf("✅ DCR client already exists for %s\n", serverName)
-		fmt.Printf("✅ Provider auto-registered (appears in Docker Desktop OAuth tab)\n")
-		return nil
-	}
-
-	// Perform DCR to get client credentials
-	fmt.Printf("🔧 Registering OAuth client for %s...\n", serverName)
-	
-	credentials, err := oauth.PerformDCR(ctx, discovery, serverName)
-	if err != nil {
-		return fmt.Errorf("DCR registration failed: %w", err)
-	}
-
-	// Extract provider name from OAuth config
-	var providerName string
-	if server.OAuth != nil && len(server.OAuth.Providers) > 0 {
-		providerName = server.OAuth.Providers[0].Provider // Use first provider
-	} else {
-		return fmt.Errorf("no OAuth providers configured for server %s", serverName)
-	}
-
-	// Store DCR client in Docker Desktop
-	dcrRequest := desktop.RegisterDCRRequest{
-		ClientID:              credentials.ClientID,
-		ProviderName:          providerName,
-		AuthorizationEndpoint: credentials.AuthorizationEndpoint,
-		TokenEndpoint:         credentials.TokenEndpoint,
-	}
-
-	if err := client.RegisterDCRClient(ctx, serverName, dcrRequest); err != nil {
-		return fmt.Errorf("failed to store DCR client: %w", err)
-	}
-
-	// Provider registration is now automatic when DCR client is stored
-
-	fmt.Printf("✅ OAuth setup complete for %s\n", serverName)
-	fmt.Printf("   • Client registered with authorization server\n")
-	fmt.Printf("   • Provider appears in Docker Desktop OAuth tab\n")
-	fmt.Printf("   • Ready for authorization (click Authorize in UI or run 'docker mcp oauth authorize %s')\n", serverName)
-
-	return nil
-}
 
 // registerProviderForLazySetup registers a provider for lazy DCR setup
 // This shows the provider in the OAuth tab immediately without doing network calls
@@ -208,12 +136,12 @@ func registerProviderForLazySetup(ctx context.Context, serverName string) error 
 	}
 	
 	// Get catalog to extract provider name
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 	
-	server, found := cat.Servers[serverName]
+	server, found := catalog.Servers[serverName]
 	if !found {
 		return fmt.Errorf("server %s not found in catalog", serverName)
 	}

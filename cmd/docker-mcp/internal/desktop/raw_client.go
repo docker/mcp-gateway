@@ -113,6 +113,18 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 		return err
 	}
 
+	// Check HTTP status code - return error for non-2xx responses
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		// Try to parse error message from response
+		var errorMsg struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(buf, &errorMsg) == nil && errorMsg.Message != "" {
+			return fmt.Errorf("HTTP %d: %s", response.StatusCode, errorMsg.Message)
+		}
+		return fmt.Errorf("HTTP %d: %s", response.StatusCode, string(buf))
+	}
+
 	if err := json.Unmarshal(buf, &result); err != nil {
 		return err
 	}
