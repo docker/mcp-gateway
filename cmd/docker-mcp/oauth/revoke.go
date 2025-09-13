@@ -31,6 +31,6 @@ func revokeRemoteMCPServer(ctx context.Context, serverName string) error {
 		return fmt.Errorf("failed to revoke OAuth access for %s: %w", serverName, err)
 	}
 	
-	fmt.Printf("✅ OAuth access revoked for %s (DCR client preserved for re-authorization)\n", serverName)
+	fmt.Printf("oauth access revoked for %s (DCR client preserved for re-authorization)\n", serverName)
 	return nil
 }

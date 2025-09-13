@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
@@ -31,9 +32,10 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 	}
 	
 	// This is a DCR provider - check if it needs setup (atomic DCR)
+	fmt.Fprintf(os.Stderr, "[MCP-DCR] Found DCR client for %s, state: %s\n", app, dcrClient.State)
 	if dcrClient.State == "unregistered" {
 		// Unregistered DCR provider - needs atomic discovery + DCR + auth
-		fmt.Printf("🔍 First-time OAuth setup for %s...\n", app)
+		fmt.Printf("first-time oauth setup for %s\n", app)
 		return performAtomicDCRAndAuthorize(ctx, app, scopes)
 	}
 	
@@ -63,7 +65,8 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 		}
 	}
 	
-	fmt.Printf("🔍 Discovering OAuth requirements for %s...\n", serverName)
+	fmt.Fprintf(os.Stderr, "[MCP-DCR] Starting OAuth discovery for server: %s\n", serverName)
+	fmt.Printf("discovering oauth requirements for %s\n", serverName)
 	
 	// STEP 1: OAuth Discovery (catalog-based, bypass 401 probe)
 	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
@@ -72,7 +75,8 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 	}
 	
 	// STEP 2: Dynamic Client Registration
-	fmt.Printf("🔧 Registering OAuth client for %s...\n", serverName)
+	fmt.Fprintf(os.Stderr, "[MCP-DCR] Starting DCR registration for server: %s\n", serverName)
+	fmt.Printf("registering oauth client for %s\n", serverName)
 	credentials, err := oauth.PerformDCR(ctx, discovery, serverName)
 	if err != nil {
 		return fmt.Errorf("DCR registration failed: %w", err)
@@ -99,7 +103,8 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 		return fmt.Errorf("failed to store DCR client: %w", err)
 	}
 	
-	fmt.Printf("✅ OAuth client registered successfully\n")
+	fmt.Fprintf(os.Stderr, "[MCP-DCR] DCR registration successful, clientID: %s, authEndpoint: %s\n", credentials.ClientID, credentials.AuthorizationEndpoint)
+	fmt.Printf("oauth client registered successfully\n")
 	fmt.Printf("   Client ID: %s\n", credentials.ClientID)
 	
 	// STEP 4: Continue with authorization
@@ -117,11 +122,11 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes string, dcrClient *desktop.DCRClient) error {
 	client := desktop.NewAuthClient()
 
-	fmt.Printf("🔐 Starting OAuth authorization for %s...\n", serverName)
+	fmt.Printf("starting oauth authorization for %s\n", serverName)
 	fmt.Printf("   Using client: %s\n", dcrClient.ClientID)
 
 	// Start OAuth flow via Docker Desktop (handles PKCE generation and browser opening)
-	fmt.Printf("🔧 Starting OAuth authorization flow...\n")
+	fmt.Printf("starting oauth authorization flow\n")
 	authResponse, err := client.PostOAuthApp(ctx, serverName, scopes, false)
 	if err != nil {
 		return fmt.Errorf("failed to start OAuth flow: %w", err)
@@ -129,13 +134,13 @@ func authorizeRemoteMCPServer(ctx context.Context, serverName string, scopes str
 
 	// Provide user feedback based on auth response
 	if authResponse.BrowserURL != "" {
-		fmt.Printf("🌐 Browser opened for OAuth authentication\n")
+		fmt.Printf("browser opened for oauth authentication\n")
 		fmt.Printf("If the browser doesn't open, visit: %s\n", authResponse.BrowserURL)
 	} else {
-		fmt.Printf("🌐 OAuth flow started successfully\n")
+		fmt.Printf("oauth flow started successfully\n")
 	}
 
-	fmt.Printf("✅ Once authenticated, %s will be ready for use\n", serverName)
+	fmt.Printf("once authenticated, %s will be ready for use\n", serverName)
 
 	return nil
 }
