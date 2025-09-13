@@ -54,8 +54,6 @@ type OAuth struct {
 
 type OAuthProvider struct {
 	Provider string `yaml:"provider" json:"provider"`
-	Secret   string `yaml:"secret" json:"secret"`
-	Env      string `yaml:"env" json:"env"`
 }
 
 // POCI tools
@@ -137,4 +135,8 @@ type ServerConfig struct {
 	Spec    Server
 	Config  map[string]any
 	Secrets map[string]string
+}
+
+func (s *Server) IsRemoteOAuthServer() bool {
+	return s.Type == "remote" && s.OAuth != nil && len(s.OAuth.Providers) > 0
 }

@@ -25,7 +25,7 @@ func Disable(ctx context.Context, docker docker.Client, serverNames []string, mc
 	for _, serverName := range serverNames {
 		if server, found := cat.Servers[serverName]; found {
 			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
-			if mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
 				if err := cleanupOAuthForRemoteServer(ctx, serverName); err != nil {
 					fmt.Printf("⚠️ Warning: Failed to cleanup OAuth for %s: %v\n", serverName, err)
 				}
@@ -79,14 +79,14 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 			}
 			
 			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
-			if mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
 				if err := registerProviderForLazySetup(ctx, serverName); err != nil {
 					fmt.Printf("⚠️ Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
 				} else {
 					fmt.Printf("✅ OAuth provider registered for %s - use 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				}
-			} else if !mcpOAuthDcrEnabled && server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			} else if !mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
 				// Provide guidance when DCR is needed but disabled
 				fmt.Printf("💡 Server %s requires OAuth authentication but DCR is disabled.\n", serverName)
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")

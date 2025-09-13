@@ -17,7 +17,7 @@ func Revoke(ctx context.Context, app string) error {
 
 	// Check if this server requires DCR OAuth flow
 	if server, found := cat.Servers[app]; found {
-		if server.Type == "remote" && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+		if server.IsRemoteOAuthServer() {
 			return revokeRemoteMCPServer(ctx, app)
 		}
 	}
