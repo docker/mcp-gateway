@@ -54,6 +54,7 @@ AI Client (e.g., Claude Code)
 
 #### Startup and Lifecycle
 - **`mcp.gateway.starts`** - Records when the gateway starts, including transport mode (stdio/sse/streaming)
+- **`mcp.initialize`** - Records when the host initializes a connection with the gateway
 
 #### Discovery Operations
 When the gateway connects to MCP servers, it discovers their capabilities:
@@ -114,6 +115,10 @@ All metrics include contextual attributes for filtering and aggregation:
 ### Common Attributes
 - **`mcp.server.name`** - Name of the MCP server handling the operation
 - **`mcp.server.type`** - Type of server (docker, stdio, sse, unknown)
+
+### Initialize Attributes
+- **`mcp.client.name`** - Name of the connecting client (e.g. `claude-ai`)
+- **`mcp.client.version`** - Version of the connecting client (e.g. `0.1.0`)
 
 ### Operation-Specific Attributes
 - **`mcp.tool.name`** - Name of the tool being called

@@ -40,7 +40,6 @@ func run(ctx context.Context) error {
 				cmd := exec.CommandContext(ctx, os.Args[1], os.Args[2:]...)
 				cmd.Stdin = conn
 				cmd.Stdout = conn
-				cmd.Stderr = conn
 				if err := cmd.Run(); err != nil {
 					log.Println("Error running command:", err)
 				}

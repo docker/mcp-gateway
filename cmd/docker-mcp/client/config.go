@@ -17,7 +17,7 @@ var configYaml string
 
 var (
 	getProjectRoot  = findGitProjectRoot
-	errNotInGitRepo = errors.New("not in a git repo")
+	errNotInGitRepo = errors.New("could not find root project root (use --global flag to update global configuration)")
 )
 
 type Config struct {

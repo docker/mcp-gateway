@@ -8,12 +8,14 @@ cname:
     - docker mcp server enable
     - docker mcp server import
     - docker mcp server inspect
+    - docker mcp server list
     - docker mcp server reset
 clink:
     - docker_mcp_server_disable.yaml
     - docker_mcp_server_enable.yaml
     - docker_mcp_server_import.yaml
     - docker_mcp_server_inspect.yaml
+    - docker_mcp_server_list.yaml
     - docker_mcp_server_reset.yaml
 deprecated: false
 hidden: false

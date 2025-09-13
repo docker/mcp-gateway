@@ -26,6 +26,11 @@ func TelemetryMiddleware() mcp.Middleware {
 			var tracked bool
 
 			switch method {
+			case "initialize":
+				params := req.GetParams().(*mcp.InitializeParams)
+				ctx, span = telemetry.StartInitializeSpan(ctx)
+				telemetry.RecordInitialize(ctx, params)
+				tracked = true
 			case "tools/list":
 				ctx, span = telemetry.StartListSpan(ctx, "tools")
 				telemetry.RecordListTools(ctx)
