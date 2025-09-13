@@ -2,6 +2,8 @@ package oauth
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
@@ -41,7 +43,7 @@ func (h *OAuthCredentialHelper) GetOAuthToken(ctx context.Context, serverName st
 	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 	
 	// Step 3: Retrieve token from docker-credential-desktop
-	_, token, err := h.credentialHelper.Get(credentialKey)
+	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
 			return "", fmt.Errorf("OAuth token not found for %s (key: %s). Run 'docker mcp oauth authorize %s' to authenticate", serverName, credentialKey, serverName)
@@ -49,11 +51,30 @@ func (h *OAuthCredentialHelper) GetOAuthToken(ctx context.Context, serverName st
 		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
-	if token == "" {
+	if tokenSecret == "" {
 		return "", fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	return token, nil
+	// The secret is base64-encoded JSON, decode it first
+	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+	}
+
+	// Parse the JSON to extract the actual access token
+	var tokenData struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+	}
+	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
+		return "", fmt.Errorf("failed to parse OAuth token JSON for %s: %w", serverName, err)
+	}
+
+	if tokenData.AccessToken == "" {
+		return "", fmt.Errorf("empty OAuth access token found for %s", serverName)
+	}
+
+	return tokenData.AccessToken, nil
 }
 
 // newOAuthHelper creates a credential helper for OAuth token access

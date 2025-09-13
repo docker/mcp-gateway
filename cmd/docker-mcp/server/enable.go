@@ -183,6 +183,6 @@ func cleanupOAuthForRemoteServer(ctx context.Context, serverName string) error {
 		fmt.Printf("   • DCR client data removed\n")
 	}
 	
-	fmt.Printf("OAuth cleanup complete for %s (clean slate achieved)\n", serverName)
+	fmt.Printf("OAuth cleanup complete for %s\n", serverName)
 	return nil
 }
