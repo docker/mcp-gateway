@@ -279,6 +279,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 // handleTokenEvent checks for and processes OAuth token events
 func (g *Gateway) handleTokenEvent(_ context.Context) {
+	// Small delay to ensure token is fully written to credential store
+	// This handles the race condition where registry.yaml updates before token is stored
+	time.Sleep(200 * time.Millisecond)
+	
 	tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
 	
 	// Check if token event file exists
@@ -294,6 +298,11 @@ func (g *Gateway) handleTokenEvent(_ context.Context) {
 		return
 	}
 	
+	// Skip if file is empty or just placeholder
+	if len(data) == 0 || string(data) == "{}" {
+		return
+	}
+	
 	var event TokenEvent
 	if err := json.Unmarshal(data, &event); err != nil {
 		log(fmt.Sprintf("Failed to parse token event: %v", err))
@@ -306,13 +315,9 @@ func (g *Gateway) handleTokenEvent(_ context.Context) {
 	// Invalidate OAuth clients for the specified provider
 	g.clientPool.InvalidateOAuthClients(event.Provider)
 	
-	// Remove the token event file to avoid reprocessing
-	if err := os.Remove(tokenEventPath); err != nil {
-		log(fmt.Sprintf("Warning - failed to cleanup token event file: %v", err))
-		// Don't fail the operation if cleanup fails
-	} else {
-		log(fmt.Sprintf("Token event processed and cleaned up for %s", event.Provider))
-	}
+	// Don't delete the file - allow all MCP Gateway instances to process the event
+	// File will be overwritten on next token event or cleaned up on DD startup
+	log(fmt.Sprintf("Token event processed for %s", event.Provider))
 }
 
 func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
