@@ -159,6 +159,49 @@ func (cp *clientPool) SetNetworks(networks []string) {
 	cp.networks = networks
 }
 
+// InvalidateOAuthClients closes and removes all OAuth client connections for the specified provider
+// This allows clients to reconnect with updated/refreshed tokens
+func (cp *clientPool) InvalidateOAuthClients(provider string) {
+	cp.clientLock.Lock()
+	defer cp.clientLock.Unlock()
+
+	log(fmt.Sprintf("ClientPool: Invalidating OAuth clients for provider: %s", provider))
+
+	var invalidatedKeys []clientKey
+	for key, keptClient := range cp.keptClients {
+		// Check if this client uses OAuth for the specified provider
+		if keptClient.Config.Spec.OAuth != nil {
+			// Match by server name (for DCR providers, server name matches provider)
+			if keptClient.Config.Name == provider {
+				log(fmt.Sprintf("ClientPool: Closing OAuth connection for server: %s", keptClient.Config.Name))
+
+				// Close the connection
+				client, err := keptClient.Getter.GetClient(context.TODO())
+				if err == nil {
+					client.Session().Close()
+					log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
+				} else {
+					log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
+				}
+
+				// Mark for removal from kept clients
+				invalidatedKeys = append(invalidatedKeys, key)
+			}
+		}
+	}
+
+	// Remove invalidated clients from the pool (they will be recreated on next request with new tokens)
+	for _, key := range invalidatedKeys {
+		delete(cp.keptClients, key)
+	}
+
+	if len(invalidatedKeys) > 0 {
+		log(fmt.Sprintf("ClientPool: Invalidated %d OAuth connections for provider %s", len(invalidatedKeys), provider))
+	} else {
+		log(fmt.Sprintf("ClientPool: No active OAuth connections found for provider %s", provider))
+	}
+}
+
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 	args := cp.baseArgs(tool.Name)
 

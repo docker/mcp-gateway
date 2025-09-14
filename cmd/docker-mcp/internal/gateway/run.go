@@ -2,9 +2,11 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -18,8 +20,18 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
 )
 
+const TokenEventFilename = "token-event.json"
+
 type ServerSessionCache struct {
 	Roots []*mcp.Root
+}
+
+// TokenEvent represents a token refresh or acquisition event
+type TokenEvent struct {
+	Provider    string    `json:"provider"`
+	Timestamp   time.Time `json:"timestamp"`
+	EventType   string    `json:"event_type"`   // EventTypeTokenAcquired or EventTypeTokenRefreshed
+	ServerName  string    `json:"server_name"`
 }
 
 // type SubsAction int
@@ -60,16 +72,17 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		Options: config.Options,
 		docker:  docker,
 		configurator: &FileBasedConfiguration{
-			ServerNames:  config.ServerNames,
-			CatalogPath:  config.CatalogPath,
-			RegistryPath: config.RegistryPath,
-			ConfigPath:   config.ConfigPath,
-			SecretsPath:  config.SecretsPath,
-			ToolsPath:    config.ToolsPath,
-			OciRef:       config.OciRef,
-			Watch:        config.Watch,
-			Central:      config.Central,
-			docker:       docker,
+			ServerNames:        config.ServerNames,
+			CatalogPath:        config.CatalogPath,
+			RegistryPath:       config.RegistryPath,
+			ConfigPath:         config.ConfigPath,
+			SecretsPath:        config.SecretsPath,
+			ToolsPath:          config.ToolsPath,
+			OciRef:             config.OciRef,
+			Watch:              config.Watch,
+			Central:            config.Central,
+			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
+			docker:             docker,
 		},
 		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
 	}
@@ -220,6 +233,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 					log("> Stop watching for updates")
 					return
 				case configuration := <-configurationUpdates:
+					// First, check and handle any token events
+					g.handleTokenEvent(ctx)
+					
 					log("> Configuration updated, reloading...")
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
@@ -258,6 +274,44 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
+	}
+}
+
+// handleTokenEvent checks for and processes OAuth token events
+func (g *Gateway) handleTokenEvent(_ context.Context) {
+	tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
+	
+	// Check if token event file exists
+	if _, err := os.Stat(tokenEventPath); os.IsNotExist(err) {
+		// File doesn't exist, no token event
+		return
+	}
+	
+	// Read and parse token event
+	data, err := os.ReadFile(tokenEventPath)
+	if err != nil {
+		log(fmt.Sprintf("Failed to read token event file: %v", err))
+		return
+	}
+	
+	var event TokenEvent
+	if err := json.Unmarshal(data, &event); err != nil {
+		log(fmt.Sprintf("Failed to parse token event: %v", err))
+		return
+	}
+	
+	log(fmt.Sprintf("Processing %s event for provider %s at %v", 
+		event.EventType, event.Provider, event.Timestamp.Format(time.RFC3339)))
+	
+	// Invalidate OAuth clients for the specified provider
+	g.clientPool.InvalidateOAuthClients(event.Provider)
+	
+	// Remove the token event file to avoid reprocessing
+	if err := os.Remove(tokenEventPath); err != nil {
+		log(fmt.Sprintf("Warning - failed to cleanup token event file: %v", err))
+		// Don't fail the operation if cleanup fails
+	} else {
+		log(fmt.Sprintf("Token event processed and cleaned up for %s", event.Provider))
 	}
 }
 
