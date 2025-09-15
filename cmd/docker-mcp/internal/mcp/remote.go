@@ -61,10 +61,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
-		token, err := c.getOAuthToken(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get OAuth token: %w", err)
-		}
+		token := c.getOAuthToken(ctx)
 		if token != "" {
 			headers["Authorization"] = "Bearer " + token
 		}
@@ -130,9 +127,9 @@ func expandEnv(value string, secrets map[string]string) string {
 	})
 }
 
-func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
+func (c *remoteMCPClient) getOAuthToken(ctx context.Context) string {
 	if c.config.Spec.OAuth == nil || len(c.config.Spec.OAuth.Providers) == 0 {
-		return "", nil
+		return ""
 	}
 
 	// Use secure credential helper to get OAuth token directly from system credential store
@@ -141,10 +138,10 @@ func (c *remoteMCPClient) getOAuthToken(ctx context.Context) (string, error) {
 	token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
 	if err != nil {
 		// Token might not exist if user hasn't authorized yet
-		return "", nil
+		return ""
 	}
 
-	return token, nil
+	return token
 }
 
 // headerRoundTripper is an http.RoundTripper that adds custom headers to all requests
@@ -156,7 +153,7 @@ type headerRoundTripper struct {
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	newReq := req.Clone(req.Context())
-	
+
 	// Add custom headers
 	for key, value := range h.headers {
 		// Don't override Accept header if already set by streamable transport
@@ -165,6 +162,6 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		}
 		newReq.Header.Set(key, value)
 	}
-	
+
 	return h.base.RoundTrip(newReq)
 }

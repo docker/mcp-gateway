@@ -24,71 +24,65 @@ func ParseWWWAuthenticate(headerValue string) ([]WWWAuthenticateChallenge, error
 	}
 
 	var challenges []WWWAuthenticateChallenge
-	
+
 	// Split on commas that are not within quotes to separate multiple challenges
 	parts := splitRespectingQuotes(headerValue, ',')
-	
+
 	var currentChallenge *WWWAuthenticateChallenge
-	
+
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
-		
+
 		// Check if this starts a new challenge (contains auth-scheme)
 		if containsScheme(part) {
 			// Save previous challenge if exists
 			if currentChallenge != nil {
 				challenges = append(challenges, *currentChallenge)
 			}
-			
+
 			// Parse new challenge
-			scheme, params, err := parseChallenge(part)
-			if err != nil {
-				return nil, fmt.Errorf("parsing challenge '%s': %w", part, err)
-			}
-			
+			scheme, params := parseChallenge(part)
+
 			currentChallenge = &WWWAuthenticateChallenge{
 				Scheme:     scheme,
 				Parameters: params,
 			}
 		} else if currentChallenge != nil {
 			// This is a continuation of parameters for the current challenge
-			params, err := parseParameters(part)
-			if err != nil {
-				return nil, fmt.Errorf("parsing parameters '%s': %w", part, err)
-			}
-			
+			params := parseParameters(part)
+
 			// Merge parameters
 			for k, v := range params {
 				currentChallenge.Parameters[k] = v
 			}
 		}
 	}
-	
+
 	// Add the last challenge
 	if currentChallenge != nil {
 		challenges = append(challenges, *currentChallenge)
 	}
-	
+
 	if len(challenges) == 0 {
 		return nil, fmt.Errorf("no valid challenges found")
 	}
-	
+
 	return challenges, nil
 }
 
 // parseChallenge parses a single challenge starting with auth-scheme
-func parseChallenge(challenge string) (string, map[string]string, error) {
+func parseChallenge(challenge string) (string, map[string]string) {
 	// Find the first space or comma to separate scheme from parameters
 	spaceIdx := strings.Index(challenge, " ")
 	commaIdx := strings.Index(challenge, ",")
-	
+
 	var schemeEnd int
 	if spaceIdx == -1 && commaIdx == -1 {
 		// Only scheme, no parameters
-		return strings.TrimSpace(challenge), make(map[string]string), nil
+		return strings.TrimSpace(challenge), make(map[string]string)
 	} else if spaceIdx == -1 {
 		schemeEnd = commaIdx
 	} else if commaIdx == -1 {
@@ -96,42 +90,39 @@ func parseChallenge(challenge string) (string, map[string]string, error) {
 	} else {
 		schemeEnd = min(spaceIdx, commaIdx)
 	}
-	
+
 	scheme := strings.TrimSpace(challenge[:schemeEnd])
 	paramString := strings.TrimSpace(challenge[schemeEnd:])
-	
+
 	// Remove leading comma if present
 	if strings.HasPrefix(paramString, ",") {
 		paramString = strings.TrimSpace(paramString[1:])
 	}
-	
-	params, err := parseParameters(paramString)
-	if err != nil {
-		return "", nil, err
-	}
-	
-	return scheme, params, nil
+
+	params := parseParameters(paramString)
+
+	return scheme, params
 }
 
 // parseParameters parses auth-param = auth-param-name "=" ( token | quoted-string )
-func parseParameters(paramString string) (map[string]string, error) {
+func parseParameters(paramString string) map[string]string {
 	params := make(map[string]string)
-	
+
 	if paramString == "" {
-		return params, nil
+		return params
 	}
-	
+
 	// Regular expression to match key=value pairs, handling quoted strings
 	// This matches: key="quoted value" or key=token
 	re := regexp.MustCompile(`([a-zA-Z0-9_-]+)\s*=\s*("([^"]*)"|([^,\s]+))`)
-	
+
 	matches := re.FindAllStringSubmatch(paramString, -1)
-	
+
 	for _, match := range matches {
 		if len(match) >= 5 {
 			key := match[1]
 			var value string
-			
+
 			if match[3] != "" {
 				// Quoted string value
 				value = match[3]
@@ -139,12 +130,12 @@ func parseParameters(paramString string) (map[string]string, error) {
 				// Token value
 				value = match[4]
 			}
-			
+
 			params[key] = value
 		}
 	}
-	
-	return params, nil
+
+	return params
 }
 
 // containsScheme checks if the string starts with a scheme (word followed by space or params)
@@ -159,7 +150,7 @@ func splitRespectingQuotes(s string, delimiter rune) []string {
 	var result []string
 	var current strings.Builder
 	inQuotes := false
-	
+
 	for _, char := range s {
 		if char == '"' {
 			inQuotes = !inQuotes
@@ -173,18 +164,18 @@ func splitRespectingQuotes(s string, delimiter rune) []string {
 			current.WriteRune(char)
 		}
 	}
-	
+
 	if current.Len() > 0 {
 		result = append(result, current.String())
 	}
-	
+
 	return result
 }
 
 // FindResourceMetadataURL extracts the resource_metadata URL from WWW-Authenticate challenges
 //
 // MCP SPEC COMPLIANCE:
-// - Implements RFC 9728 Section 5.1 "WWW-Authenticate Response"  
+// - Implements RFC 9728 Section 5.1 "WWW-Authenticate Response"
 // - Looks for resource_metadata parameter in Bearer challenges
 // - MCP Spec Section 4.1: "MCP servers MUST use the HTTP header WWW-Authenticate...to indicate the location of the resource server metadata URL"
 func FindResourceMetadataURL(challenges []WWWAuthenticateChallenge) string {
@@ -199,8 +190,7 @@ func FindResourceMetadataURL(challenges []WWWAuthenticateChallenge) string {
 	return ""
 }
 
-
-// FindRequiredScopes extracts the required scopes from Bearer challenges  
+// FindRequiredScopes extracts the required scopes from Bearer challenges
 //
 // OAUTH 2.0 COMPLIANCE:
 // - Implements OAuth 2.0 scope parameter parsing
@@ -216,4 +206,3 @@ func FindRequiredScopes(challenges []WWWAuthenticateChallenge) []string {
 	}
 	return nil
 }
-

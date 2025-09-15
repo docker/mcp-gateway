@@ -27,8 +27,7 @@ type ClientCredentials struct {
 // - Uses token_endpoint_auth_method="none" for public clients
 // - Includes redirect_uris pointing to mcp-oauth proxy
 // - Requests authorization_code and refresh_token grant types
-func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName string) (*ClientCredentials, error) {
-	
+func PerformDCR(ctx context.Context, discovery *Discovery, serverName string) (*ClientCredentials, error) {
 	if discovery.RegistrationEndpoint == "" {
 		return nil, fmt.Errorf("no registration endpoint found for %s", serverName)
 	}
@@ -61,7 +60,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 		return nil, fmt.Errorf("failed to marshal DCR request: %w", err)
 	}
 
-
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, discovery.RegistrationEndpoint, bytes.NewReader(body))
 	if err != nil {
@@ -80,7 +78,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	}
 	defer resp.Body.Close()
 
-
 	// Check response status (201 Created or 200 OK are acceptable)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		// Read error response body to understand why DCR failed
@@ -88,11 +85,11 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 		if err != nil {
 			return nil, fmt.Errorf("DCR failed with status %d for %s", resp.StatusCode, serverName)
 		}
-		
+
 		errorMsg := string(errorBody)
-		
+
 		// Try to parse as JSON for structured error
-		var errorResp map[string]interface{}
+		var errorResp map[string]any
 		if err := json.Unmarshal(errorBody, &errorResp); err == nil {
 			// Successfully parsed as JSON - look for common error fields
 			if errDesc, ok := errorResp["error_description"].(string); ok {
@@ -103,8 +100,7 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 				errorMsg = message
 			}
 		}
-		
-		
+
 		return nil, fmt.Errorf("DCR failed with status %d for %s: %s", resp.StatusCode, serverName, errorMsg)
 	}
 
@@ -113,7 +109,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 	if err := json.NewDecoder(resp.Body).Decode(&dcrResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode DCR response: %w", err)
 	}
-
 
 	if dcrResponse.ClientID == "" {
 		return nil, fmt.Errorf("DCR response missing client_id for %s", serverName)
@@ -131,7 +126,6 @@ func PerformDCR(ctx context.Context, discovery *OAuthDiscovery, serverName strin
 
 	return creds, nil
 }
-
 
 // joinScopes joins a slice of scopes into a space-separated string
 // per OAuth 2.0 specification (RFC 6749 Section 3.3)

@@ -28,10 +28,10 @@ type ServerSessionCache struct {
 
 // TokenEvent represents a token refresh or acquisition event
 type TokenEvent struct {
-	Provider    string    `json:"provider"`
-	Timestamp   time.Time `json:"timestamp"`
-	EventType   string    `json:"event_type"`   // EventTypeTokenAcquired or EventTypeTokenRefreshed
-	ServerName  string    `json:"server_name"`
+	Provider   string    `json:"provider"`
+	Timestamp  time.Time `json:"timestamp"`
+	EventType  string    `json:"event_type"` // EventTypeTokenAcquired or EventTypeTokenRefreshed
+	ServerName string    `json:"server_name"`
 }
 
 // type SubsAction int
@@ -235,7 +235,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 				case configuration := <-configurationUpdates:
 					// First, check and handle any token events
 					g.handleTokenEvent(ctx)
-					
+
 					log("> Configuration updated, reloading...")
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
@@ -282,39 +282,39 @@ func (g *Gateway) handleTokenEvent(_ context.Context) {
 	// Small delay to ensure token is fully written to credential store
 	// This handles the race condition where registry.yaml updates before token is stored
 	time.Sleep(200 * time.Millisecond)
-	
+
 	tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
-	
+
 	// Check if token event file exists
 	if _, err := os.Stat(tokenEventPath); os.IsNotExist(err) {
 		// File doesn't exist, no token event
 		return
 	}
-	
+
 	// Read and parse token event
 	data, err := os.ReadFile(tokenEventPath)
 	if err != nil {
 		log(fmt.Sprintf("Failed to read token event file: %v", err))
 		return
 	}
-	
+
 	// Skip if file is empty or just placeholder
 	if len(data) == 0 || string(data) == "{}" {
 		return
 	}
-	
+
 	var event TokenEvent
 	if err := json.Unmarshal(data, &event); err != nil {
 		log(fmt.Sprintf("Failed to parse token event: %v", err))
 		return
 	}
-	
-	log(fmt.Sprintf("Processing %s event for provider %s at %v", 
+
+	log(fmt.Sprintf("Processing %s event for provider %s at %v",
 		event.EventType, event.Provider, event.Timestamp.Format(time.RFC3339)))
-	
+
 	// Invalidate OAuth clients for the specified provider
 	g.clientPool.InvalidateOAuthClients(event.Provider)
-	
+
 	// Don't delete the file - allow all MCP Gateway instances to process the event
 	// File will be overwritten on next token event or cleaned up on DD startup
 	log(fmt.Sprintf("Token event processed for %s", event.Provider))

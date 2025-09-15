@@ -30,7 +30,7 @@ func newClientWithCleanup(client mcp.Client, cleanup func(context.Context) error
 }
 
 func (c *clientWithCleanup) Close() error {
-	return errors.Join(c.Session().Close(), c.cleanup(context.TODO()))
+	return errors.Join(c.Client.Session().Close(), c.cleanup(context.TODO()))
 }
 
 type clientWithCleanup struct {

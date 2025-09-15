@@ -10,17 +10,18 @@ import (
 
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
 )
 
-// OAuthCredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
-type OAuthCredentialHelper struct {
+// CredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
+type CredentialHelper struct {
 	credentialHelper credentials.Helper
 }
 
 // NewOAuthCredentialHelper creates a new OAuth credential helper
-func NewOAuthCredentialHelper() *OAuthCredentialHelper {
-	return &OAuthCredentialHelper{
+func NewOAuthCredentialHelper() *CredentialHelper {
+	return &CredentialHelper{
 		credentialHelper: newOAuthHelper(),
 	}
 }
@@ -30,7 +31,7 @@ func NewOAuthCredentialHelper() *OAuthCredentialHelper {
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
 // 2. Construct credential key using: [AuthorizationEndpoint]/[ProviderName]
 // 3. Retrieve token from docker-credential-desktop
-func (h *OAuthCredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
+func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
 	// Step 1: Get DCR client info (includes stored provider name)
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
@@ -115,12 +116,12 @@ func (h oauthHelper) List() (map[string]string, error) {
 }
 
 // Add stores new credentials (not used for OAuth token retrieval)
-func (h oauthHelper) Add(creds *credentials.Credentials) error {
+func (h oauthHelper) Add(_ *credentials.Credentials) error {
 	return fmt.Errorf("OAuth credential helper is read-only")
 }
 
 // Delete removes credentials (not used for OAuth token retrieval)
-func (h oauthHelper) Delete(serverURL string) error {
+func (h oauthHelper) Delete(_ string) error {
 	return fmt.Errorf("OAuth credential helper is read-only")
 }
 

@@ -13,10 +13,10 @@ import (
 )
 
 // DiscoverOAuthRequirements probes an MCP server to discover OAuth requirements
-// 
+//
 // MCP AUTHORIZATION SPEC COMPLIANCE:
 // - Implements MCP Authorization Specification Section 4.1 "Authorization Server Discovery"
-// - Follows RFC 9728 "OAuth 2.0 Protected Resource Metadata" 
+// - Follows RFC 9728 "OAuth 2.0 Protected Resource Metadata"
 // - Follows RFC 8414 "OAuth 2.0 Authorization Server Metadata"
 // - Gracefully handles servers with partial MCP compliance
 //
@@ -27,7 +27,7 @@ import (
 // 4. If resource metadata available, try to fetch it (optional)
 // 5. Always fetch Authorization Server Metadata (required)
 // 6. Build discovery result with whatever information is available
-func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDiscovery, error) {
+func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*Discovery, error) {
 	// Create HTTP client with reasonable timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -43,7 +43,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	// MCP Spec Section 4.1: "MCP request without token" should trigger 401
 	// Use POST with initialize request as per spec diagrams
 	mcpPayload := `{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"mcp-gateway","version":"1.0.0"}},"id":1}`
-	req, err := http.NewRequestWithContext(ctx, "POST", serverURL, strings.NewReader(mcpPayload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, serverURL, strings.NewReader(mcpPayload))
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
@@ -52,7 +52,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "docker-mcp-gateway/1.0.0")
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to server %s: %w", serverURL, err)
@@ -61,7 +61,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 
 	// If not 401, OAuth is not required (Authorization is OPTIONAL per MCP spec Section 2.1)
 	if resp.StatusCode != http.StatusUnauthorized {
-		return &OAuthDiscovery{
+		return &Discovery{
 			RequiresOAuth: false,
 		}, nil
 	}
@@ -81,21 +81,19 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	// STEP 3: Initialize with intelligent defaults (Inspector pattern)
 	// Default authorization server to MCP server's domain
 	defaultAuthServerURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
-	
+
 	// Initialize discovery with defaults
-	var resourceMetadata *OAuthProtectedResourceMetadata
+	var resourceMetadata *ProtectedResourceMetadata
 	var resourceMetadataError error
 	authServerURL := defaultAuthServerURL
-	
+
 	// STEP 4: Try to get resource metadata (OPTIONAL - don't fail if missing)
 	// RFC 9728 Section 5.1: resource_metadata parameter in WWW-Authenticate
 	resourceMetadataURL := FindResourceMetadataURL(challenges)
 	if resourceMetadataURL != "" {
 		// Resource metadata URL found - try to fetch it
 		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, resourceMetadataURL)
-		if resourceMetadataError != nil {
-			// Log warning but continue - resource metadata is supplementary
-		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
+		if resourceMetadataError == nil && resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
 			// Use authorization server from resource metadata if available
 			authServerURL = resourceMetadata.AuthorizationServer
 		}
@@ -103,9 +101,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 		// No resource_metadata in WWW-Authenticate - try well-known endpoint
 		wellKnownURL := fmt.Sprintf("%s/.well-known/oauth-protected-resource", defaultAuthServerURL)
 		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, wellKnownURL)
-		if resourceMetadataError != nil {
-			// Well-known resource metadata not available
-		} else if resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
+		if resourceMetadataError == nil && resourceMetadata != nil && resourceMetadata.AuthorizationServer != "" {
 			authServerURL = resourceMetadata.AuthorizationServer
 		}
 	}
@@ -118,26 +114,26 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	}
 
 	// STEP 6: Build discovery result with all available information
-	discovery := &OAuthDiscovery{
+	discovery := &Discovery{
 		RequiresOAuth: true,
-		
+
 		// Use resource metadata if available, otherwise use defaults
 		ResourceURL:         defaultAuthServerURL,
 		ResourceServer:      defaultAuthServerURL,
 		AuthorizationServer: authServerURL,
-		
+
 		// From Authorization Server Metadata (RFC 8414) - always available
-		Issuer:                authServerMetadata.Issuer,
-		AuthorizationEndpoint: authServerMetadata.AuthorizationEndpoint,
-		TokenEndpoint:         authServerMetadata.TokenEndpoint,
-		RegistrationEndpoint:  authServerMetadata.RegistrationEndpoint,
-		JWKSUri:              authServerMetadata.JWKSUri,
-		ScopesSupported:      authServerMetadata.ScopesSupported,
-		ResponseTypesSupported: authServerMetadata.ResponseTypesSupported,
-		ResponseModesSupported: authServerMetadata.ResponseModesSupported,
-		GrantTypesSupported:   authServerMetadata.GrantTypesSupported,
+		Issuer:                            authServerMetadata.Issuer,
+		AuthorizationEndpoint:             authServerMetadata.AuthorizationEndpoint,
+		TokenEndpoint:                     authServerMetadata.TokenEndpoint,
+		RegistrationEndpoint:              authServerMetadata.RegistrationEndpoint,
+		JWKSUri:                           authServerMetadata.JWKSUri,
+		ScopesSupported:                   authServerMetadata.ScopesSupported,
+		ResponseTypesSupported:            authServerMetadata.ResponseTypesSupported,
+		ResponseModesSupported:            authServerMetadata.ResponseModesSupported,
+		GrantTypesSupported:               authServerMetadata.GrantTypesSupported,
 		TokenEndpointAuthMethodsSupported: authServerMetadata.TokenEndpointAuthMethodsSupported,
-		
+
 		// PKCE support detection (OAuth 2.1 MUST requirement)
 		SupportsPKCE:        slices.Contains(authServerMetadata.CodeChallengeMethodsSupported, "S256"),
 		CodeChallengeMethod: authServerMetadata.CodeChallengeMethodsSupported,
@@ -162,47 +158,46 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*OAuthDis
 	return discovery, nil
 }
 
-
 // fetchOAuthProtectedResourceMetadata fetches metadata from /.well-known/oauth-protected-resource
-// 
+//
 // RFC 9728 COMPLIANCE:
 // - Implements RFC 9728 Section 3 "Protected Resource Metadata"
 // - Validates required fields: resource, authorization_server(s)
 // - Handles both singular and plural authorization server formats
-func fetchOAuthProtectedResourceMetadata(ctx context.Context, client *http.Client, metadataURL string) (*OAuthProtectedResourceMetadata, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", metadataURL, nil)
+func fetchOAuthProtectedResourceMetadata(ctx context.Context, client *http.Client, metadataURL string) (*ProtectedResourceMetadata, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	
+
 	// RFC 9728 Section 3.1: Response MUST be application/json
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching metadata from %s: %w", metadataURL, err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("metadata endpoint returned status %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response body: %w", err)
 	}
-	
-	var metadata OAuthProtectedResourceMetadata
+
+	var metadata ProtectedResourceMetadata
 	if err := json.Unmarshal(body, &metadata); err != nil {
 		return nil, fmt.Errorf("parsing JSON response: %w", err)
 	}
-	
+
 	// RFC 9728 Section 3.2: Validate required fields
 	if metadata.Resource == "" {
 		return nil, fmt.Errorf("resource field missing in protected resource metadata")
 	}
-	
+
 	// COMPATIBILITY: Handle both authorization_server (singular) and authorization_servers (plural) formats
 	// RFC 9728 defines authorization_servers as array, but some servers use singular form
 	if metadata.AuthorizationServer == "" {
@@ -213,17 +208,17 @@ func fetchOAuthProtectedResourceMetadata(ctx context.Context, client *http.Clien
 		// Taking the first authorization server is a valid implementation per RFC 9728
 		metadata.AuthorizationServer = metadata.AuthorizationServers[0]
 	}
-	
+
 	return &metadata, nil
 }
 
 // fetchAuthorizationServerMetadata fetches metadata from /.well-known/oauth-authorization-server
 //
 // RFC 8414 COMPLIANCE:
-// - Implements RFC 8414 Section 3 "Authorization Server Metadata"  
+// - Implements RFC 8414 Section 3 "Authorization Server Metadata"
 // - Validates required fields: issuer, authorization_endpoint, token_endpoint
 // - Validates issuer URL matches authorization server URL (RFC 8414 Section 3.2)
-func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, authServerURL string) (*OAuthAuthorizationServerMetadata, error) {
+func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, authServerURL string) (*AuthorizationServerMetadata, error) {
 	// RFC 8414 Section 3: Construct well-known URL
 	var metadataURL string
 	if strings.HasSuffix(authServerURL, "/") {
@@ -231,35 +226,35 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 	} else {
 		metadataURL = authServerURL + "/.well-known/oauth-authorization-server"
 	}
-	
-	req, err := http.NewRequestWithContext(ctx, "GET", metadataURL, nil)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
-	
+
 	// RFC 8414 Section 3.1: Response MUST be application/json
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetching metadata from %s: %w", metadataURL, err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("authorization server metadata endpoint returned status %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response body: %w", err)
 	}
-	
-	var metadata OAuthAuthorizationServerMetadata
+
+	var metadata AuthorizationServerMetadata
 	if err := json.Unmarshal(body, &metadata); err != nil {
 		return nil, fmt.Errorf("parsing JSON response: %w", err)
 	}
-	
+
 	// RFC 8414 Section 3.2: Validate required fields
 	if metadata.Issuer == "" {
 		return nil, fmt.Errorf("issuer field missing in authorization server metadata")
@@ -270,7 +265,7 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 	if metadata.TokenEndpoint == "" {
 		return nil, fmt.Errorf("token_endpoint field missing in authorization server metadata")
 	}
-	
+
 	// RFC 8414 Section 3.2: Validate issuer URL is valid
 	// Note: We trust the issuer field in the metadata as authoritative
 	// Cross-domain OAuth setups (like Stripe) are valid where resource server
@@ -279,12 +274,6 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 	if err != nil {
 		return nil, fmt.Errorf("invalid issuer URL: %w", err)
 	}
-	
-	
+
 	return &metadata, nil
 }
-
-
-
-
-
