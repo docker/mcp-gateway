@@ -81,7 +81,7 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 			Name: serverName,
 			Spec: server,
 			Config: map[string]any{
-				serverName: c.config[serverName],
+				oci.CanonicalizeServerName(serverName): c.config[oci.CanonicalizeServerName(serverName)],
 			},
 			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
 		}, nil, true
@@ -101,8 +101,9 @@ type FileBasedConfiguration struct {
 	RegistryPath       []string
 	ConfigPath         []string
 	ToolsPath          []string
-	SecretsPath        string   // Optional, if not set, use Docker Desktop's secrets API
-	OciRef             []string // OCI references to fetch server definitions from
+	SecretsPath        string           // Optional, if not set, use Docker Desktop's secrets API
+	OciRef             []string         // OCI references to fetch server definitions from
+	MCPRegistryServers []catalog.Server // Servers fetched from MCP registries
 	Watch              bool
 	Central            bool
 	McpOAuthDcrEnabled bool
@@ -276,6 +277,48 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 		if !found {
 			serverNames = append(serverNames, serverName)
+		}
+	}
+
+	// Add MCP registry servers if any are provided
+	if len(c.MCPRegistryServers) > 0 {
+		for i, mcpServer := range c.MCPRegistryServers {
+			// Generate a unique name for the MCP registry server based on its image
+			serverName := fmt.Sprintf("mcp-registry-%d", i)
+			if mcpServer.Image != "" {
+				// Use image name as server name if available, cleaned up
+				parts := strings.Split(mcpServer.Image, "/")
+				imageName := parts[len(parts)-1] // Get the last part (image:tag)
+				if colonIdx := strings.Index(imageName, ":"); colonIdx != -1 {
+					imageName = imageName[:colonIdx] // Remove tag
+				}
+				serverName = fmt.Sprintf("mcp-registry-%s", imageName)
+			}
+
+			// Ensure unique server name
+			originalName := serverName
+			counter := 1
+			for _, exists := servers[serverName]; exists; _, exists = servers[serverName] {
+				serverName = fmt.Sprintf("%s-%d", originalName, counter)
+				counter++
+			}
+
+			// Add the MCP registry server directly
+			servers[serverName] = mcpServer
+
+			// Add to serverNames list if not already present
+			found := false
+			for _, existing := range serverNames {
+				if existing == serverName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				serverNames = append(serverNames, serverName)
+			}
+
+			log(fmt.Sprintf("Added MCP registry server: %s (image: %s)", serverName, mcpServer.Image))
 		}
 	}
 

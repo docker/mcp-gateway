@@ -1,0 +1,35 @@
+
+{
+  "name": "io.github.slimslenderslacks/cockroach",
+  "description": "cockroach",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/slimslenderslacks/cockroach",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registry_type": "oci",
+      "identifier": "mcp/cockroach",
+      "version": "latest",
+      "transport": {
+        "type": "stdio"
+      },
+      "environment_variables": [
+        {
+          "name": "CRDB_HOST",
+          "description": "host",
+          "is_required": true,
+          "is_secret": false
+        },
+        {
+          "name": "CRDB_PWD",
+          "description": "pwd",
+          "is_required": true,
+          "is_secret": true
+        }
+      ]
+    }
+  ]
+}

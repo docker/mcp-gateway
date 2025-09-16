@@ -1,13 +1,16 @@
 package gateway
 
+import "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
+
 type Config struct {
 	Options
-	ServerNames  []string
-	CatalogPath  []string
-	ConfigPath   []string
-	RegistryPath []string
-	ToolsPath    []string
-	SecretsPath  string
+	ServerNames        []string
+	CatalogPath        []string
+	ConfigPath         []string
+	RegistryPath       []string
+	ToolsPath          []string
+	SecretsPath        string
+	MCPRegistryServers []catalog.Server // catalog.Server objects from MCP registries
 }
 
 type Options struct {

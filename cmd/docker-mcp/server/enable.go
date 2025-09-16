@@ -49,7 +49,6 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 		return fmt.Errorf("parsing registry config: %w", err)
 	}
 
-	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR
 	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return err

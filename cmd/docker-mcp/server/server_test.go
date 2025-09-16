@@ -229,6 +229,18 @@ func withCatalog(yaml string) option {
 	return func(t *testing.T, home string, _ *fakeDocker) {
 		t.Helper()
 		writeFile(t, filepath.Join(home, ".docker/mcp/catalogs/docker-mcp.yaml"), []byte(yaml))
+
+		// Create catalog.json registry file to register the docker-mcp catalog
+		catalogRegistry := `{
+  "catalogs": {
+    "docker-mcp": {
+      "displayName": "Docker MCP Default Catalog",
+      "url": "docker-mcp.yaml",
+      "lastUpdate": "2024-01-01T00:00:00Z"
+    }
+  }
+}`
+		writeFile(t, filepath.Join(home, ".docker/mcp/catalog.json"), []byte(catalogRegistry))
 	}
 }
 

@@ -1,0 +1,49 @@
+{
+  "name": "io.github.slimslenderslacks/gadget",
+  "description": "gadget",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/slimslenderslacks/gadget",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registry_type": "oci",
+      "identifier": "mcp/gadget",
+      "version": "latest",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtime_arguments": [
+	{
+          "type": "named",
+	  "name": "-v",
+	  "value": "{kubeconfig}:/kubeconfig",
+	  "variables": {
+	    "kubeconfig": {
+	      "is_required": true,
+	      "description": "path to kube file"
+	    }
+	  }
+	}
+      ],
+      "package_arguments": [
+        {
+	  "type": "positional",
+	  "value": "-gadget-discoverer=artifacthub"
+	},
+	{
+	  "type": "positional",
+	  "value": "-gadget-images={gadget-images}",
+	  "variables": {
+	    "gadget-images": {
+	      "is_required": true,
+              "description": "comma separated list of stuff"
+	    }
+	  }
+	}
+      ]
+    }
+  ]
+}

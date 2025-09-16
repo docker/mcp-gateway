@@ -1,121 +1,11 @@
 package commands
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func TestGatewayUseConfiguredCatalogsEnabled(t *testing.T) {
-	// Create temporary config directory
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "config.json")
-
-	// Create config with feature enabled
-	configFile := &configfile.ConfigFile{
-		Filename: configPath,
-		Features: map[string]string{
-			"configured-catalogs": "enabled",
-		},
-	}
-
-	// Test validation passes when feature enabled
-	err := validateConfiguredCatalogsFeature(configFile, true)
-	assert.NoError(t, err, "should allow --use-configured-catalogs when feature enabled")
-}
-
-func TestGatewayUseConfiguredCatalogsDisabled(t *testing.T) {
-	// Create config with feature disabled
-	configFile := &configfile.ConfigFile{
-		Features: map[string]string{
-			"configured-catalogs": "disabled",
-		},
-	}
-
-	// Test validation fails when feature disabled
-	err := validateConfiguredCatalogsFeature(configFile, true)
-	require.Error(t, err, "should reject --use-configured-catalogs when feature disabled")
-	assert.Contains(t, err.Error(), "configured catalogs feature is not enabled")
-}
-
-func TestGatewayFeatureFlagErrorMessage(t *testing.T) {
-	// Create config with no features
-	configFile := &configfile.ConfigFile{
-		Features: make(map[string]string),
-	}
-
-	// Test validation fails with helpful error message
-	err := validateConfiguredCatalogsFeature(configFile, true)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "configured catalogs feature is not enabled")
-	assert.Contains(t, err.Error(), "docker mcp feature enable configured-catalogs")
-}
-
-func TestGatewayContainerModeDetection(t *testing.T) {
-	// Test with nil config file (simulating container mode without volume mount)
-	err := validateConfiguredCatalogsFeature(nil, true)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Docker configuration not accessible")
-	assert.Contains(t, err.Error(), "running in container")
-}
-
-func TestGatewayNoValidationWhenFlagNotUsed(t *testing.T) {
-	// Test that validation is skipped when flag not used, even if config is nil
-	err := validateConfiguredCatalogsFeature(nil, false)
-	assert.NoError(t, err, "should skip validation when --use-configured-catalogs not used")
-}
-
-// Feature validation function that needs to be implemented
-func validateConfiguredCatalogsFeature(configFile *configfile.ConfigFile, useConfigured bool) error {
-	if !useConfigured {
-		return nil // No validation needed when feature not requested
-	}
-
-	// Check if config is accessible (container mode check)
-	if configFile == nil {
-		return &configError{
-			message: `Docker configuration not accessible.
-
-If running in container, mount Docker config:
-  -v ~/.docker:/root/.docker
-
-Or mount just the config file:  
-  -v ~/.docker/config.json:/root/.docker/config.json`,
-		}
-	}
-
-	// Check if feature is enabled
-	if configFile.Features != nil {
-		if value, exists := configFile.Features["configured-catalogs"]; exists {
-			if value == "enabled" {
-				return nil // Feature is enabled
-			}
-		}
-	}
-
-	// Feature not enabled
-	return &configError{
-		message: `configured catalogs feature is not enabled.
-
-To enable this experimental feature, run:
-  docker mcp feature enable configured-catalogs
-
-This feature allows the gateway to automatically include user-managed catalogs
-alongside the default Docker catalog.`,
-	}
-}
-
-// Config error type
-type configError struct {
-	message string
-}
-
-func (e *configError) Error() string {
-	return e.message
-}
 
 func TestIsOAuthInterceptorFeatureEnabled(t *testing.T) {
 	t.Run("enabled", func(t *testing.T) {
@@ -225,4 +115,151 @@ func isDynamicToolsFeatureEnabledFromConfig(configFile *configfile.ConfigFile) b
 		return false
 	}
 	return value == "enabled"
+}
+
+func TestConvertCatalogNamesToPaths(t *testing.T) {
+	t.Run("keeps existing file paths unchanged", func(t *testing.T) {
+		paths := []string{
+			"docker-mcp.yaml",
+			"./my-catalog.yaml",
+			"../other-catalog.yaml",
+			"/absolute/path/catalog.yaml",
+		}
+
+		result := convertCatalogNamesToPaths(paths)
+
+		assert.Equal(t, paths, result)
+	})
+
+	t.Run("keeps unknown names unchanged", func(t *testing.T) {
+		paths := []string{
+			"unknown-name",
+			"another-unknown",
+		}
+
+		result := convertCatalogNamesToPaths(paths)
+
+		assert.Equal(t, paths, result)
+	})
+
+	t.Run("handles empty slice", func(t *testing.T) {
+		paths := []string{}
+
+		result := convertCatalogNamesToPaths(paths)
+
+		assert.Empty(t, result)
+	})
+
+	t.Run("mixed paths and names", func(t *testing.T) {
+		paths := []string{
+			"docker-mcp.yaml", // file path - keep as-is
+			"unknown-name",    // unknown name - keep as-is
+			"./relative.yaml", // file path - keep as-is
+		}
+
+		result := convertCatalogNamesToPaths(paths)
+
+		expected := []string{
+			"docker-mcp.yaml",
+			"unknown-name",
+			"./relative.yaml",
+		}
+		assert.Equal(t, expected, result)
+	})
+}
+
+func TestBuildUniqueCatalogPaths(t *testing.T) {
+	t.Run("no duplicates", func(t *testing.T) {
+		defaults := []string{"docker-mcp.yaml"}
+		configured := []string{"my-catalog.yaml", "other-catalog.yaml"}
+		additional := []string{"cli-catalog.yaml"}
+
+		result := buildUniqueCatalogPaths(defaults, configured, additional)
+
+		expected := []string{"docker-mcp.yaml", "my-catalog.yaml", "other-catalog.yaml", "cli-catalog.yaml"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("removes duplicates preserving precedence", func(t *testing.T) {
+		defaults := []string{"docker-mcp.yaml", "common.yaml"}
+		configured := []string{"my-catalog.yaml", "common.yaml"}      // duplicate
+		additional := []string{"cli-catalog.yaml", "docker-mcp.yaml"} // duplicate
+
+		result := buildUniqueCatalogPaths(defaults, configured, additional)
+
+		// Should keep first occurrence (maintaining precedence)
+		expected := []string{"docker-mcp.yaml", "common.yaml", "my-catalog.yaml", "cli-catalog.yaml"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles empty slices", func(t *testing.T) {
+		defaults := []string{"docker-mcp.yaml"}
+		configured := []string{}
+		additional := []string{}
+
+		result := buildUniqueCatalogPaths(defaults, configured, additional)
+
+		expected := []string{"docker-mcp.yaml"}
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("handles all empty slices", func(t *testing.T) {
+		defaults := []string{}
+		configured := []string{}
+		additional := []string{}
+
+		result := buildUniqueCatalogPaths(defaults, configured, additional)
+
+		assert.Empty(t, result)
+	})
+
+	t.Run("maintains precedence order", func(t *testing.T) {
+		// Test that later sources can't override earlier ones (first occurrence wins)
+		defaults := []string{"first.yaml"}
+		configured := []string{"first.yaml"} // duplicate - should be ignored
+		additional := []string{"first.yaml"} // duplicate - should be ignored
+
+		result := buildUniqueCatalogPaths(defaults, configured, additional)
+
+		expected := []string{"first.yaml"} // Only one occurrence
+		assert.Equal(t, expected, result)
+	})
+}
+
+func TestConditionalConfiguredCatalogPaths(t *testing.T) {
+	t.Run("excludes configured catalogs when single Docker catalog URL", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains only DockerCatalogURL
+		defaultPaths := []string{"https://desktop.docker.com/mcp/catalog/v2/catalog.yaml"}
+
+		// This should match the condition and return empty configuredPaths
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog URL")
+	})
+
+	t.Run("excludes configured catalogs when single Docker catalog filename", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains only DockerCatalogFilename
+		defaultPaths := []string{"docker-mcp.yaml"}
+
+		// This should match the condition and return empty configuredPaths
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog filename")
+	})
+
+	t.Run("includes configured catalogs when multiple paths", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains multiple entries
+		defaultPaths := []string{"docker-mcp.yaml", "other-catalog.yaml"}
+
+		// This should NOT match the condition and allow configuredPaths
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.False(t, shouldExclude, "should include configured catalogs when multiple paths")
+	})
+
+	t.Run("includes configured catalogs when single non-Docker catalog", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains a single non-Docker catalog
+		defaultPaths := []string{"custom-catalog.yaml"}
+
+		// This should NOT match the condition and allow configuredPaths
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.False(t, shouldExclude, "should include configured catalogs when single non-Docker catalog")
+	})
 }

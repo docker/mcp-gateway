@@ -69,7 +69,7 @@ func TestOfficialregistryImportCommand(t *testing.T) {
 
 	// Test the import function
 	ctx := context.Background()
-	err := runOfficialregistryImport(ctx, testServer.URL)
+	err := runOfficialregistryImport(ctx, testServer.URL, nil)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -79,13 +79,13 @@ func TestOfficialregistryImportCommand_InvalidURL(t *testing.T) {
 	ctx := context.Background()
 
 	// Test invalid URL
-	err := runOfficialregistryImport(ctx, "not-a-url")
+	err := runOfficialregistryImport(ctx, "not-a-url", nil)
 	if err == nil {
 		t.Error("Expected error for invalid URL, got none")
 	}
 
 	// Test unsupported scheme
-	err = runOfficialregistryImport(ctx, "ftp://example.com")
+	err = runOfficialregistryImport(ctx, "ftp://example.com", nil)
 	if err == nil {
 		t.Error("Expected error for unsupported scheme, got none")
 	}
@@ -99,7 +99,7 @@ func TestOfficialregistryImportCommand_HTTPError(t *testing.T) {
 	defer testServer.Close()
 
 	ctx := context.Background()
-	err := runOfficialregistryImport(ctx, testServer.URL)
+	err := runOfficialregistryImport(ctx, testServer.URL, nil)
 	if err == nil {
 		t.Error("Expected error for 404 response, got none")
 	}
@@ -118,7 +118,7 @@ func TestOfficialregistryImportCommand_InvalidJSON(t *testing.T) {
 	defer testServer.Close()
 
 	ctx := context.Background()
-	err := runOfficialregistryImport(ctx, testServer.URL)
+	err := runOfficialregistryImport(ctx, testServer.URL, nil)
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got none")
 	}

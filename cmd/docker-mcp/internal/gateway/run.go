@@ -79,6 +79,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			SecretsPath:        config.SecretsPath,
 			ToolsPath:          config.ToolsPath,
 			OciRef:             config.OciRef,
+			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
 			Central:            config.Central,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
@@ -190,22 +191,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
 
-	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
-		return fmt.Errorf("loading configuration: %w", err)
-	}
-
-	// Central mode.
-	if g.Central {
-		log("> Initialized (in central mode) in", time.Since(start))
-		if g.DryRun {
-			log("Dry run mode enabled, not starting the server.")
-			return nil
-		}
-
-		log("> Start streaming server on port", g.Port)
-		return g.startCentralStreamingServer(ctx, ln, configuration)
-	}
-
 	// Which docker images are used?
 	// Pull them and verify them if possible.
 	if !g.Static {
@@ -221,6 +206,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 			g.clientPool.SetNetworks(networks)
 		}
+	}
+
+	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+		return fmt.Errorf("loading configuration: %w", err)
+	}
+
+	// Central mode.
+	if g.Central {
+		log("> Initialized (in central mode) in", time.Since(start))
+		if g.DryRun {
+			log("Dry run mode enabled, not starting the server.")
+			return nil
+		}
+
+		log("> Start streaming server on port", g.Port)
+		return g.startCentralStreamingServer(ctx, ln, configuration)
 	}
 
 	// Optionally watch for configuration updates.

@@ -2,6 +2,7 @@ package oci
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
@@ -11,9 +12,10 @@ import (
 type ServerDetail struct {
 	Name          string         `json:"name"`
 	Description   string         `json:"description"`
+	Version       string         `json:"version"`
 	VersionDetail *VersionDetail `json:"version_detail,omitempty"`
 	Status        string         `json:"status,omitempty"` // "active", "deprecated", or "deleted"
-	Repository    *Repository    `json:"repository,omitempty"`
+	Repository    Repository     `json:"repository,omitempty"`
 	Packages      []Package      `json:"packages,omitempty"`
 	Remotes       []Remote       `json:"remotes,omitempty"`
 	Meta          map[string]any `json:"_meta,omitempty"`
@@ -33,20 +35,34 @@ type VersionDetail struct {
 
 // Package represents a package definition
 type Package struct {
-	RegistryType     string            `json:"registry_type"`
-	Identifier       string            `json:"identifier"`
-	Version          string            `json:"version,omitempty"`
-	Args             []string          `json:"args,omitempty"`
-	Env              []KeyValueInput   `json:"environment_variables,omitempty"`
-	RuntimeOptions   *RuntimeOptions   `json:"runtime_arguments,omitempty"`
-	TransportOptions *TransportOptions `json:"transport,omitempty"`
-	Inputs           []Input           `json:"inputs,omitempty"`
+	RegistryType     string          `json:"registry_type"`     // npm, pypi, oci, nuget, mcpb
+	Identifier       string          `json:"identifier"`        // registry name
+	Version          string          `json:"version,omitempty"` // tag or digest
+	RegistryBaseURL  string          `json:"registry_base_url,omitempty"`
+	Env              []KeyValueInput `json:"environment_variables,omitempty"`
+	RuntimeOptions   []Argument      `json:"runtime_arguments,omitempty"`
+	PackageArguments []Argument      `json:"package_arguments,omitempty"`
+}
+
+type InputWithVariables struct {
+	Input
+
+	Variables map[string]Input `json:"variables,omitempty"`
+}
+
+type Argument struct {
+	InputWithVariables
+
+	Type       string `json:"type"` // named, positional
+	ValueHint  string `json:"value_hint,omitempty"`
+	IsRepeated bool   `json:"is_repeated,omitempty"`
+	Name       string `json:"name,omitempty"` // required if named
 }
 
 type KeyValueInput struct {
-	Input
-	Name      string  `json:"name"`
-	Variables []Input `json:"variable,omitempty"`
+	InputWithVariables
+
+	Name string `json:"name"`
 }
 
 // RuntimeOptions contains runtime configuration
@@ -57,38 +73,22 @@ type RuntimeOptions struct {
 	WorkDir string         `json:"work_dir,omitempty"`
 }
 
-// TransportOptions contains transport configuration
-type TransportOptions struct {
-	Type    string            `json:"type,omitempty"` // "stdio", "sse", etc.
-	URL     string            `json:"url,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-}
-
 // Input represents input configuration
 type Input struct {
-	Name         string   `json:"name"`
-	Type         string   `json:"type"` // "positional", "named", "secret", "configurable"
 	Description  string   `json:"description,omitempty"`
-	Value        string   `json:"string,omitempty"`
+	Value        string   `json:"value,omitempty"`
 	Required     bool     `json:"is_required,omitempty"`
 	Secret       bool     `json:"is_secret,omitempty"`
-	DefaultValue any      `json:"default,omitempty"`
+	DefaultValue string   `json:"default,omitempty"`
 	Choices      []string `json:"choices,omitempty"`
-}
-
-// InputOption represents an option for input validation
-type InputOption struct {
-	Value       any    `json:"value"`
-	Label       string `json:"label,omitempty"`
-	Description string `json:"description,omitempty"`
+	Format       string   `json:"format,omitempty"` // "string", "number", "boolean", "filepath"
 }
 
 // Remote represents a remote server configuration
 type RemoteServer struct {
-	URL           string            `json:"url"`
-	TransportType string            `json:"transport_type,omitempty"`
-	Headers       map[string]string `json:"headers,omitempty"`
-	Inputs        []Input           `json:"inputs,omitempty"`
+	URL           string          `json:"url,omitempty"`
+	TransportType string          `json:"type,omitempty"` // "streamable-http", "sse"
+	Headers       []KeyValueInput `json:"headers,omitempty"`
 }
 
 // Remote alias for consistency with existing code
@@ -98,6 +98,7 @@ type Remote = RemoteServer
 func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 	server := catalog.Server{
 		Description: sd.Description,
+		Name:        sd.Name,
 	}
 
 	// Extract image from the first package if available
@@ -105,121 +106,358 @@ func (sd *ServerDetail) ToCatalogServer() catalog.Server {
 		pkg := sd.Packages[0]
 		server.Image = fmt.Sprintf("%s:%s", pkg.Identifier, pkg.Version)
 
-		// Set command and environment from runtime options
-		if pkg.RuntimeOptions != nil {
-			server.Command = pkg.RuntimeOptions.Command
-
-			// Convert env map to env slice
-			if pkg.RuntimeOptions.Env != nil {
-				for key, value := range pkg.RuntimeOptions.Env {
-					if strVal, ok := value.(string); ok {
-						server.Env = append(server.Env, catalog.Env{
-							Name:  key,
-							Value: strVal,
-						})
-					}
-				}
-			}
-		}
-
-		// Set transport options
-		if pkg.TransportOptions != nil {
-			server.Remote = catalog.Remote{
-				Transport: pkg.TransportOptions.Type,
-				Headers:   pkg.TransportOptions.Headers,
-			}
-		}
-
-		// Convert environment variables to secrets and config schemas
+		// Convert environment variables to secrets, env vars, and config schemas
 		for _, envVar := range pkg.Env {
-			if envVar.Secret {
-				server.Secrets = append(server.Secrets, catalog.Secret{
-					Name: envVar.Name,
-					Env:  envVar.Name, // Use actual name instead of uppercase conversion
+			value, secrets, config := getKeyValueInput(envVar, CanonicalizeServerName(sd.Name), false)
+			if len(secrets) > 0 {
+				// don't need explicit env because secret adds it
+				server.Secrets = append(server.Secrets, secrets...)
+			} else {
+				server.Env = append(server.Env, catalog.Env{
+					Name:  envVar.Name,
+					Value: value,
 				})
-			} else if envVar.Type == "configurable" {
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						envVar.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": envVar.Description,
-						},
-					},
-					"required": []string{},
-				}
-				if envVar.Required {
-					schema["required"] = []string{envVar.Name}
-				}
-				server.Config = append(server.Config, schema)
+				server.Config = mergeConfig(server.Config, CanonicalizeServerName(sd.Name), config)
 			}
 		}
 
-		// Convert inputs to secrets for credential-type inputs and config schemas for configurable inputs
-		for _, input := range pkg.Inputs {
-			switch input.Type {
-			case "secret":
-				server.Secrets = append(server.Secrets, catalog.Secret{
-					Name: input.Name,
-					Env:  strings.ToUpper(input.Name),
-				})
-			case "configurable":
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						input.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": input.Description,
-						},
-					},
-					"required": []string{},
+		// Process package arguments and append positional ones to command
+		for _, arg := range pkg.PackageArguments {
+			switch arg.Type {
+			case "positional":
+				value, secrets, configSchema := getInput(arg.InputWithVariables, CanonicalizeServerName(sd.Name))
+				server.Command = append(server.Command, value)
+
+				// Add any secrets from the argument
+				if len(secrets) > 0 {
+					server.Secrets = append(server.Secrets, secrets...)
 				}
-				if input.Required {
-					schema["required"] = []string{input.Name}
+
+				// Add any config schema from the argument
+				if configSchema != nil {
+					server.Config = mergeConfig(server.Config, CanonicalizeServerName(sd.Name), configSchema)
 				}
-				server.Config = append(server.Config, schema)
+			case "named":
+				value, secrets, configSchema := getInput(arg.InputWithVariables, CanonicalizeServerName(sd.Name))
+				server.Command = append(server.Command, fmt.Sprintf("--%s", arg.Name), value)
+
+				// Add any secrets from the argument
+				if len(secrets) > 0 {
+					server.Secrets = append(server.Secrets, secrets...)
+				}
+
+				// Add any config schema from the argument
+				if configSchema != nil {
+					server.Config = mergeConfig(server.Config, CanonicalizeServerName(sd.Name), configSchema)
+				}
 			}
+		}
+
+		// Process runtime arguments
+		for _, arg := range pkg.RuntimeOptions {
+			// volume arguments have special meaning
+			if arg.Type == "named" && (arg.Name == "-v" || arg.Name == "--mount") {
+				config, volume := createVolume(arg, CanonicalizeServerName(sd.Name))
+				if volume != "" {
+					server.Volumes = append(server.Volumes, volume)
+				}
+				if config != nil {
+					server.Config = mergeConfig(server.Config, CanonicalizeServerName(sd.Name), config)
+				}
+			}
+			// TODO support User args explicitly
 		}
 	}
 
 	// Handle remote configuration if available
 	if len(sd.Remotes) > 0 {
 		remote := sd.Remotes[0]
+
+		// Convert KeyValueInput headers to string headers
+		headers := make(map[string]string)
+		headerSecrets := []catalog.Secret{}
+		for _, header := range remote.Headers {
+			value, secrets, _ := getKeyValueInput(header, CanonicalizeServerName(sd.Name), true)
+			headers[header.Name] = value
+			headerSecrets = append(headerSecrets, secrets...)
+		}
+
 		server.Remote = catalog.Remote{
 			URL:       remote.URL,
 			Transport: remote.TransportType,
-			Headers:   remote.Headers,
+			Headers:   headers,
 		}
-
-		// Convert remote inputs to secrets and config schemas
-		for _, input := range remote.Inputs {
-			switch input.Type {
-			case "secret":
-				server.Secrets = append(server.Secrets, catalog.Secret{
-					Name: input.Name,
-					Env:  strings.ToUpper(input.Name),
-				})
-			case "configurable":
-				// Convert configurable input to JSON schema object
-				schema := map[string]any{
-					"type": "object",
-					"properties": map[string]any{
-						input.Name: map[string]any{
-							"type":        "string", // Default to string, could be enhanced based on input validation
-							"description": input.Description,
-						},
-					},
-					"required": []string{},
-				}
-				if input.Required {
-					schema["required"] = []string{input.Name}
-				}
-				server.Config = append(server.Config, schema)
-			}
+		if len(headerSecrets) > 0 {
+			server.Secrets = headerSecrets
 		}
 	}
 
 	return server
+}
+
+func getKeyValueInput(kvi KeyValueInput, serverName string, useEnvForm bool) (string, []catalog.Secret, map[string]any) {
+	if len(kvi.Variables) == 0 {
+		if kvi.Secret {
+			var templateValue string
+			if useEnvForm {
+				templateValue = fmt.Sprintf("${%s}", canonicalizeEnvName(kvi.Name))
+			} else {
+				templateValue = fmt.Sprintf("{{%s}}", kvi.Name)
+			}
+			secret := catalog.Secret{
+				Name: fmt.Sprintf("%s.%s", serverName, kvi.Name),
+				Env:  canonicalizeEnvName(kvi.Name),
+			}
+			return templateValue, []catalog.Secret{secret}, map[string]any{}
+		} else if kvi.Value != "" {
+			return kvi.Value, []catalog.Secret{}, map[string]any{}
+		} else if kvi.DefaultValue != "" {
+			// Use default value when no explicit value is provided
+			return fmt.Sprintf("%v", kvi.DefaultValue), []catalog.Secret{}, map[string]any{}
+		}
+		config := map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				kvi.Name: map[string]any{
+					"type": "string",
+				},
+			},
+		}
+		return fmt.Sprintf("{{%s}}", fmt.Sprintf("%s.%s", serverName, kvi.Name)), []catalog.Secret{}, config
+	}
+	value, secrets, config := getInput(kvi.InputWithVariables, serverName)
+	return value, secrets, config
+}
+
+func getInput(arg InputWithVariables, serverName string) (string, []catalog.Secret, map[string]any) {
+	var secrets []catalog.Secret
+	var configSchema map[string]any
+
+	// Process the main input
+	value := arg.Value
+	if arg.Secret {
+		// TODO - this is bad practice (visible to docker inspect)
+		secret := catalog.Secret{
+			Name: fmt.Sprintf("%s.%s", serverName, arg.Description),
+			Env:  canonicalizeEnvName(arg.Description),
+		}
+		secrets = append(secrets, secret)
+
+		// Replace with template reference
+		value = fmt.Sprintf("{{%s}}", arg.Description)
+	} else if len(arg.Variables) > 0 {
+		// This input has variables, create config schema
+		properties := make(map[string]any)
+		required := []string{}
+
+		for varName, variable := range arg.Variables {
+			prop := map[string]any{
+				"type":        "string", // Default to string
+				"description": variable.Description,
+			}
+
+			// Add default value if present
+			if variable.DefaultValue != "" {
+				prop["default"] = variable.DefaultValue
+			}
+
+			// Add format if specified
+			if variable.Format != "" {
+				prop["format"] = variable.Format
+			}
+
+			// Add choices as enum if present
+			if len(variable.Choices) > 0 {
+				prop["enum"] = variable.Choices
+			}
+
+			properties[varName] = prop
+
+			// Add to required if the variable is required
+			if variable.Required {
+				required = append(required, varName)
+			}
+
+			// Handle secret variables
+			if variable.Secret {
+				secret := catalog.Secret{
+					Name: fmt.Sprintf("%s.%s", serverName, varName),
+					Env:  canonicalizeEnvName(varName),
+				}
+				secrets = append(secrets, secret)
+
+				// Replace in value string using secret reference
+				value = replaceVariables(value, serverName)
+			}
+		}
+
+		// Create the config schema
+		configSchema = map[string]any{
+			"type":       "object",
+			"properties": properties,
+		}
+
+		if len(required) > 0 {
+			configSchema["required"] = required
+		}
+
+		// Replace variables in the value string
+		value = replaceVariables(value, serverName)
+	}
+
+	// If we have a default value and no explicit value, use the default
+	if value == "" && arg.DefaultValue != "" {
+		value = fmt.Sprintf("%v", arg.DefaultValue)
+	}
+
+	return value, secrets, configSchema
+}
+
+func canonicalizeEnvName(s string) string {
+	return strings.ReplaceAll(s, "-", "_")
+}
+
+// createVolume creates both a config schema and volume string from a runtime argument
+func createVolume(arg Argument, serverName string) (map[string]any, string) {
+	var config map[string]any
+	var volume string
+
+	if arg.Name == "--mount" || arg.Name == "-v" {
+		volume = replaceVariables(parseVolumeMount(arg.Value), serverName)
+
+		// Create config schema from the argument's variables
+		if len(arg.Variables) > 0 {
+			properties := make(map[string]any)
+			required := []string{}
+
+			for varName, variable := range arg.Variables {
+				prop := map[string]any{
+					"type":        "string", // Default to string
+					"description": variable.Description,
+				}
+
+				if variable.DefaultValue != "" {
+					prop["default"] = variable.DefaultValue
+				}
+
+				if variable.Format != "" {
+					prop["format"] = variable.Format
+				}
+
+				properties[varName] = prop
+
+				if variable.Required {
+					required = append(required, varName)
+				}
+			}
+
+			config = map[string]any{
+				"type":       "object",
+				"properties": properties,
+				"required":   required,
+			}
+		}
+	}
+
+	return config, volume
+}
+
+// mergeConfig merges a new config into the existing config slice, creating a top-level
+// schema object with name, type "object", and properties fields
+func mergeConfig(existingConfig []any, serverName string, newConfig map[string]any) []any {
+	// If there's no existing config, create a new schema object
+	if len(existingConfig) == 0 {
+		schemaObject := map[string]any{
+			"name":       serverName,
+			"type":       "object",
+			"properties": map[string]any{},
+		}
+		// Merge new properties if they exist
+		if newProperties, hasProps := newConfig["properties"].(map[string]any); hasProps {
+			schemaObject["properties"] = newProperties
+		}
+		return []any{schemaObject}
+	}
+
+	// Find existing server config object by name
+	for _, configItem := range existingConfig {
+		if configMap, ok := configItem.(map[string]any); ok {
+			if name, hasName := configMap["name"].(string); hasName && name == serverName {
+				// Merge properties into the existing server config
+				if properties, hasProps := configMap["properties"].(map[string]any); hasProps {
+					if newProperties, newHasProps := newConfig["properties"].(map[string]any); newHasProps {
+						// Merge new properties into existing properties
+						for key, value := range newProperties {
+							properties[key] = value
+						}
+					}
+				} else {
+					// Initialize properties if they don't exist
+					if newProperties, newHasProps := newConfig["properties"].(map[string]any); newHasProps {
+						configMap["properties"] = newProperties
+					}
+				}
+				return existingConfig
+			}
+		}
+	}
+
+	// If no existing config for this server, append a new schema object
+	schemaObject := map[string]any{
+		"name":       serverName,
+		"type":       "object",
+		"properties": map[string]any{},
+	}
+	if newProperties, hasProps := newConfig["properties"].(map[string]any); hasProps {
+		schemaObject["properties"] = newProperties
+	}
+	return append(existingConfig, schemaObject)
+}
+
+// parseVolumeMount parses a volume mount string and converts it to src:dst format if it's a bind mount
+func parseVolumeMount(value string) string {
+	// If the string doesn't contain type=bind, return as-is
+	if !strings.Contains(value, "type=bind") {
+		return value
+	}
+
+	// Parse comma-separated values
+	parts := strings.Split(value, ",")
+	mountOptions := make(map[string]string)
+
+	for _, part := range parts {
+		// Parse each part as "X=Y"
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) == 2 {
+			mountOptions[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		}
+	}
+
+	// Check for required src and dst entries
+	src, hasSrc := mountOptions["src"]
+	dst, hasDst := mountOptions["dst"]
+
+	if !hasSrc || !hasDst {
+		// Return original value if both src and dst are not present
+		return value
+	}
+
+	// Return in src:dst format
+	return fmt.Sprintf("%s:%s", src, dst)
+}
+
+// replaceVariables replaces {X} patterns with {{serverName.X}} in the input string
+func replaceVariables(input, serverName string) string {
+	// Use regex to find all {X} patterns and replace with {{serverName.X}}
+	re := regexp.MustCompile(`\{([^}]+)\}`)
+	return re.ReplaceAllStringFunc(input, func(match string) string {
+		// Extract the variable name (remove the braces)
+		varName := match[1 : len(match)-1]
+		return fmt.Sprintf("{{%s.%s}}", serverName, varName)
+	})
+}
+
+// canonicalizeServerName replaces all dots in a string with underscores
+func CanonicalizeServerName(serverName string) string {
+	return strings.ReplaceAll(serverName, ".", "_")
 }

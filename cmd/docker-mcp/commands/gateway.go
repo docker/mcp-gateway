@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	catalogTypes "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/gateway"
 )
@@ -25,7 +27,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var additionalRegistries []string
 	var additionalConfigs []string
 	var additionalToolsConfig []string
-	var useConfiguredCatalogs bool
+	var mcpRegistryUrls []string
+	var enableAllServers bool
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
 		options = gateway.Config{
@@ -64,10 +67,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 		Use:   "run",
 		Short: "Run the gateway",
 		Args:  cobra.NoArgs,
-		PreRunE: func(_ *cobra.Command, _ []string) error {
-			// Validate configured catalogs feature flag
-			return validateConfiguredCatalogsFeatureForCli(dockerCli, useConfiguredCatalogs)
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Check if OAuth interceptor feature is enabled
 			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
@@ -95,34 +94,58 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.Port = 8811
 			}
 
-			// Build catalog path list with proper precedence order
-			catalogPaths := options.CatalogPath // Start with existing catalog paths (includes docker-mcp.yaml default)
+			// Build catalog path list with proper precedence order and no duplicates
+			defaultPaths := convertCatalogNamesToPaths(options.CatalogPath) // Convert any catalog names to paths
 
-			// Add configured catalogs if requested
-			if useConfiguredCatalogs {
-				configuredPaths := getConfiguredCatalogPaths()
-				// Insert configured catalogs after docker-mcp.yaml but before CLI-specified catalogs
-				if len(catalogPaths) > 0 {
-					// Insert after the first element (docker-mcp.yaml)
-					catalogPaths = append(catalogPaths[:1], append(configuredPaths, catalogPaths[1:]...)...)
-				} else {
-					catalogPaths = append(catalogPaths, configuredPaths...)
-				}
+			// Only add configured catalogs if defaultPaths is not a single Docker catalog entry
+			var configuredPaths []string
+			if len(defaultPaths) == 1 && (defaultPaths[0] == catalog.DockerCatalogURL || defaultPaths[0] == catalog.DockerCatalogFilename) {
+				configuredPaths = getConfiguredCatalogPaths()
 			}
-
-			// Append additional catalogs (CLI-specified have highest precedence)
-			catalogPaths = append(catalogPaths, additionalCatalogs...)
+			catalogPaths := buildUniqueCatalogPaths(defaultPaths, configuredPaths, additionalCatalogs)
 			options.CatalogPath = catalogPaths
 
 			options.RegistryPath = append(options.RegistryPath, additionalRegistries...)
 			options.ConfigPath = append(options.ConfigPath, additionalConfigs...)
 			options.ToolsPath = append(options.ToolsPath, additionalToolsConfig...)
 
+			// Process MCP registry URLs if provided
+			if len(mcpRegistryUrls) > 0 {
+				var mcpServers []catalogTypes.Server
+				for _, registryURL := range mcpRegistryUrls {
+					if err := runOfficialregistryImport(cmd.Context(), registryURL, &mcpServers); err != nil {
+						return fmt.Errorf("failed to fetch server from MCP registry %s: %w", registryURL, err)
+					}
+				}
+				options.MCPRegistryServers = mcpServers
+			}
+
+			// Handle --enable-all-servers flag
+			if enableAllServers {
+				if len(options.ServerNames) > 0 {
+					return fmt.Errorf("cannot use --enable-all-servers with --servers flag")
+				}
+
+				// Read all catalogs to get server names
+				mcpCatalog, err := catalogTypes.ReadFrom(cmd.Context(), catalogPaths)
+				if err != nil {
+					return fmt.Errorf("failed to read catalogs for --enable-all-servers: %w", err)
+				}
+
+				// Extract all server names from the catalog
+				var allServerNames []string
+				for serverName := range mcpCatalog.Servers {
+					allServerNames = append(allServerNames, serverName)
+				}
+				options.ServerNames = allServerNames
+			}
+
 			return gateway.NewGateway(options, docker).Run(cmd.Context())
 		},
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
+	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
 	runCmd.Flags().StringSliceVar(&options.RegistryPath, "registry", options.RegistryPath, "Paths to the registry files (absolute or relative to ~/.docker/mcp/)")
@@ -135,6 +158,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().StringSliceVar(&options.ToolNames, "tools", options.ToolNames, "List of tools to enable")
 	runCmd.Flags().StringArrayVar(&options.Interceptors, "interceptor", options.Interceptors, "List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')")
 	runCmd.Flags().StringArrayVar(&options.OciRef, "oci-ref", options.OciRef, "OCI image references to use")
+	runCmd.Flags().StringSliceVar(&mcpRegistryUrls, "mcp-registry", nil, "MCP registry URLs to fetch servers from (can be repeated)")
 	runCmd.Flags().IntVar(&options.Port, "port", options.Port, "TCP port to listen on (default is to listen on stdio)")
 	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming (default is stdio)")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
@@ -150,9 +174,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")
 
-	// Configured catalogs feature
-	runCmd.Flags().BoolVar(&useConfiguredCatalogs, "use-configured-catalogs", false, "Include user-managed catalogs (requires 'configured-catalogs' feature to be enabled)")
-
 	// Very experimental features
 	runCmd.Flags().BoolVar(&options.Central, "central", options.Central, "In central mode, clients tell us which servers to enable")
 	_ = runCmd.Flags().MarkHidden("central")
@@ -160,43 +181,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	cmd.AddCommand(runCmd)
 
 	return cmd
-}
-
-// validateConfiguredCatalogsFeatureForCli validates that the configured-catalogs feature is enabled when requested
-func validateConfiguredCatalogsFeatureForCli(dockerCli command.Cli, useConfigured bool) error {
-	if !useConfigured {
-		return nil // No validation needed when feature not requested
-	}
-
-	// Check if config is accessible (container mode check)
-	configFile := dockerCli.ConfigFile()
-	if configFile == nil {
-		return fmt.Errorf(`docker configuration not accessible.
-
-If running in container, mount Docker config:
-  -v ~/.docker:/root/.docker
-
-Or mount just the config file:  
-  -v ~/.docker/config.json:/root/.docker/config.json`)
-	}
-
-	// Check if feature is enabled
-	if configFile.Features != nil {
-		if value, exists := configFile.Features["configured-catalogs"]; exists {
-			if value == "enabled" {
-				return nil // Feature is enabled
-			}
-		}
-	}
-
-	// Feature not enabled
-	return fmt.Errorf(`configured catalogs feature is not enabled
-
-To enable this experimental feature, run:
-  docker mcp feature enable configured-catalogs
-
-This feature allows the gateway to automatically include user-managed catalogs
-alongside the default Docker catalog`)
 }
 
 // getConfiguredCatalogPaths returns the file paths of all configured catalogs
@@ -217,6 +201,61 @@ func getConfiguredCatalogPaths() []string {
 	}
 
 	return catalogPaths
+}
+
+// convertCatalogNamesToPaths converts catalog names to their corresponding file paths.
+// If a path entry is already a file path (contains .yaml or is an absolute/relative path),
+// it's returned as-is. If it's a catalog name from the configuration, it's converted to catalogName.yaml.
+func convertCatalogNamesToPaths(catalogPaths []string) []string {
+	cfg, err := catalog.ReadConfig()
+	if err != nil {
+		// If config doesn't exist or can't be read, return paths as-is
+		return catalogPaths
+	}
+
+	var result []string
+	for _, path := range catalogPaths {
+		// If it's already a file path (contains .yaml, starts with /, ./, or ../), keep as-is
+		if strings.Contains(path, ".yaml") || strings.HasPrefix(path, "/") ||
+			strings.HasPrefix(path, "./") || strings.HasPrefix(path, "../") {
+			result = append(result, path)
+		} else if _, exists := cfg.Catalogs[path]; exists {
+			// It's a catalog name from config, convert to file path
+			result = append(result, path+".yaml")
+		} else {
+			// Not a known catalog name and not a clear file path, keep as-is
+			result = append(result, path)
+		}
+	}
+
+	return result
+}
+
+// buildUniqueCatalogPaths builds a unique list of catalog paths with proper precedence order:
+// 1. Default catalogs (e.g., docker-mcp.yaml)
+// 2. Configured catalogs (from catalog management system)
+// 3. Additional catalogs (CLI-specified, highest precedence)
+// Duplicates are removed while preserving order and precedence.
+func buildUniqueCatalogPaths(defaultPaths, configuredPaths, additionalPaths []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+
+	// Helper function to add unique paths
+	addUnique := func(paths []string) {
+		for _, path := range paths {
+			if !seen[path] {
+				seen[path] = true
+				result = append(result, path)
+			}
+		}
+	}
+
+	// Add paths in precedence order
+	addUnique(defaultPaths)
+	addUnique(configuredPaths)
+	addUnique(additionalPaths)
+
+	return result
 }
 
 // isOAuthInterceptorFeatureEnabled checks if the oauth-interceptor feature is enabled

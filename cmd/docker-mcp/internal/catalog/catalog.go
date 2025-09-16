@@ -140,7 +140,25 @@ func GetWithOptions(ctx context.Context, useConfigured bool, additionalCatalogs 
 		catalogPaths = append(catalogPaths, additionalCatalogs...)
 	}
 
+	// Remove duplicates while preserving order
+	catalogPaths = removeDuplicates(catalogPaths)
+
 	return ReadFrom(ctx, catalogPaths)
+}
+
+// removeDuplicates removes duplicate strings while preserving order (first occurrence wins)
+func removeDuplicates(slice []string) []string {
+	keys := make(map[string]bool)
+	result := []string{}
+
+	for _, item := range slice {
+		if !keys[item] {
+			keys[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
 
 // getConfiguredCatalogs reads the catalog registry and returns the list of configured catalog files

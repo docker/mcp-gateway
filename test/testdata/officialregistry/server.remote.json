@@ -1,0 +1,34 @@
+{
+  "name": "io.github.slimslenderslacks/remote",
+  "description": "remote example",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/slimslenderslacks/poci",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "remotes": [
+    {
+      "type": "sse",
+      "url": "http://mcp-fs.anonymous.modelcontextprotocol.io/sse",
+      "headers": [
+        {
+          "name": "X-API-Key",
+          "description": "API key for authentication",
+          "is_required": true,
+          "is_secret": true
+        },
+        {
+          "name": "X-Region",
+          "description": "Service region",
+          "default": "us-east-1",
+          "choices": [
+            "us-east-1",
+            "eu-west-1",
+            "ap-southeast-1"
+          ]
+        }
+      ]
+    }
+  ]
+}

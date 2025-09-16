@@ -72,19 +72,6 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 		},
 	})
 
-	var pushFlag bool
-	importCommand := &cobra.Command{
-		Use:   "import",
-		Short: "Import a server",
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			push, _ := cmd.Flags().GetBool("push")
-			return server.Import(args[0], args[1], push)
-		},
-	}
-	importCommand.Flags().BoolVar(&pushFlag, "push", false, "push the new server artifact")
-	cmd.AddCommand(importCommand)
-
 	cmd.AddCommand(&cobra.Command{
 		Use:   "inspect",
 		Short: "Get information about a server or inspect an OCI artifact",
