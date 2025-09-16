@@ -117,7 +117,9 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware {
 			response, err := next(ctx, method, req)
 
 			if i.When == "after" {
-				message, err := json.Marshal(response)
+				message, err := json.Marshal(
+					map[string]any{"request": req,
+				                       "response": response})
 				if err != nil {
 					return nil, fmt.Errorf("marshalling response: %w", err)
 				}
