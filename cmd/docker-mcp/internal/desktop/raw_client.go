@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -56,6 +57,18 @@ func (c *RawClient) Get(ctx context.Context, endpoint string, v any) error {
 		return err
 	}
 
+	// Check HTTP status code - return error for non-2xx responses
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		// Try to parse error message from response
+		var errorMsg struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(buf, &errorMsg) == nil && errorMsg.Message != "" {
+			return fmt.Errorf("HTTP %d: %s", response.StatusCode, errorMsg.Message)
+		}
+		return fmt.Errorf("HTTP %d: %s", response.StatusCode, string(buf))
+	}
+
 	if err := json.Unmarshal(buf, &v); err != nil {
 		return err
 	}
@@ -98,6 +111,18 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
+	}
+
+	// Check HTTP status code - return error for non-2xx responses
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		// Try to parse error message from response
+		var errorMsg struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(buf, &errorMsg) == nil && errorMsg.Message != "" {
+			return fmt.Errorf("HTTP %d: %s", response.StatusCode, errorMsg.Message)
+		}
+		return fmt.Errorf("HTTP %d: %s", response.StatusCode, string(buf))
 	}
 
 	if err := json.Unmarshal(buf, &result); err != nil {

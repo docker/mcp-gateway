@@ -14,11 +14,13 @@ type topLevel struct {
 
 type Server struct {
 	Name           string   `yaml:"name,omitempty" json:"name,omitempty"`
+	Type           string   `yaml:"type" json:"type"`
 	Image          string   `yaml:"image" json:"image"`
 	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
 	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
+	OAuth          *OAuth   `yaml:"oauth,omitempty" json:"oauth,omitempty"`
 	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
 	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
@@ -44,6 +46,15 @@ type Remote struct {
 	URL       string            `yaml:"url,omitempty" json:"url,omitempty"`
 	Transport string            `yaml:"transport_type,omitempty" json:"transport_type,omitempty"`
 	Headers   map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+}
+
+type OAuth struct {
+	Providers []OAuthProvider `yaml:"providers,omitempty" json:"providers,omitempty"`
+	Scopes    []string        `yaml:"scopes,omitempty" json:"scopes,omitempty"`
+}
+
+type OAuthProvider struct {
+	Provider string `yaml:"provider" json:"provider"`
 }
 
 // POCI tools
@@ -125,4 +136,8 @@ type ServerConfig struct {
 	Spec    Server
 	Config  map[string]any
 	Secrets map[string]string
+}
+
+func (s *Server) IsRemoteOAuthServer() bool {
+	return s.Type == "remote" && s.OAuth != nil && len(s.OAuth.Providers) > 0
 }

@@ -33,5 +33,6 @@ type Options struct {
 	Static                  bool
 	Central                 bool
 	OAuthInterceptorEnabled bool
+	McpOAuthDcrEnabled      bool
 	DynamicTools            bool
 }

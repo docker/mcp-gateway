@@ -68,14 +68,14 @@ func TestList(t *testing.T) {
 func TestEnableNotFound(t *testing.T) {
 	ctx, _, docker := setup(t, withEmptyRegistryYaml(), withEmptyCatalog())
 
-	err := Enable(ctx, docker, []string{"duckduckgo"})
+	err := Enable(ctx, docker, []string{"duckduckgo"}, false)
 	require.ErrorContains(t, err, "server duckduckgo not found in catalog")
 }
 
 func TestEnable(t *testing.T) {
 	ctx, _, docker := setup(t, withEmptyRegistryYaml(), withCatalog("registry:\n  duckduckgo:\n"))
 
-	err := Enable(ctx, docker, []string{"duckduckgo"})
+	err := Enable(ctx, docker, []string{"duckduckgo"}, false)
 	require.NoError(t, err)
 
 	enabled, err := List(ctx, docker)
@@ -86,7 +86,7 @@ func TestEnable(t *testing.T) {
 func TestDisable(t *testing.T) {
 	ctx, _, docker := setup(t, withRegistryYaml("registry:\n  duckduckgo:\n    ref: \"\"\n  git:\n    ref: \"\""), withCatalog("registry:\n  git:\n  duckduckgo:\n"))
 
-	err := Disable(ctx, docker, []string{"duckduckgo"})
+	err := Disable(ctx, docker, []string{"duckduckgo"}, false)
 	require.NoError(t, err)
 
 	enabled, err := List(ctx, docker)
@@ -97,7 +97,7 @@ func TestDisable(t *testing.T) {
 func TestDisableUnknown(t *testing.T) {
 	ctx, _, docker := setup(t, withRegistryYaml("registry:\n  duckduckgo:\n    ref: \"\""), withCatalog("registry:\n  duckduckgo:\n"))
 
-	err := Disable(ctx, docker, []string{"unknown"})
+	err := Disable(ctx, docker, []string{"unknown"}, false)
 	require.NoError(t, err)
 
 	enabled, err := List(ctx, docker)
@@ -108,7 +108,7 @@ func TestDisableUnknown(t *testing.T) {
 func TestRemoveOutdatedServerOnEnable(t *testing.T) {
 	ctx, _, docker := setup(t, withRegistryYaml("registry:\n  outdated:\n    ref: \"\""), withCatalog("registry:\n  git:\n"))
 
-	err := Enable(ctx, docker, []string{"git"})
+	err := Enable(ctx, docker, []string{"git"}, false)
 	require.NoError(t, err)
 
 	enabled, err := List(ctx, docker)
@@ -119,7 +119,7 @@ func TestRemoveOutdatedServerOnEnable(t *testing.T) {
 func TestRemoveOutdatedServerOnDisable(t *testing.T) {
 	ctx, _, docker := setup(t, withRegistryYaml("registry:\n  outdated:\n    ref: \"\""), withEmptyCatalog())
 
-	err := Disable(ctx, docker, []string{"git"})
+	err := Disable(ctx, docker, []string{"git"}, false)
 	require.NoError(t, err)
 
 	enabled, err := List(ctx, docker)

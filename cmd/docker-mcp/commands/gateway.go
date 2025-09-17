@@ -71,6 +71,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			// Check if OAuth interceptor feature is enabled
 			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
 
+			// Check if MCP OAuth DCR feature is enabled
+			options.McpOAuthDcrEnabled = isMcpOAuthDcrFeatureEnabled(dockerCli)
+
 			// Check if dynamic tools feature is enabled
 			options.DynamicTools = isDynamicToolsFeatureEnabled(dockerCli)
 
@@ -263,6 +266,21 @@ func isOAuthInterceptorFeatureEnabled(dockerCli command.Cli) bool {
 	}
 
 	value, exists := configFile.Features["oauth-interceptor"]
+	if !exists {
+		return false
+	}
+
+	return value == "enabled"
+}
+
+// isMcpOAuthDcrFeatureEnabled checks if the mcp-oauth-dcr feature is enabled
+func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["mcp-oauth-dcr"]
 	if !exists {
 		return false
 	}
