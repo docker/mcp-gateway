@@ -7,9 +7,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/docker"
 )
 
 func Disable(ctx context.Context, docker docker.Client, serverNames []string) error {

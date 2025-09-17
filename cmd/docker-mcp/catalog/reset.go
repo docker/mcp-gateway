@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/config"
 )
 
 func Reset(context.Context) error {

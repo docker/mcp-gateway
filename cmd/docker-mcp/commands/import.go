@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/oci"
 )
 
 func runMcpregistryImport(ctx context.Context, serverURL string, servers *[]catalog.Server) error {

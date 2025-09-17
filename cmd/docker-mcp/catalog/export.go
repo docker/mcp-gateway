@@ -9,8 +9,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/user"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/catalog"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/user"
 )
 
 // Export exports a configured catalog to a file

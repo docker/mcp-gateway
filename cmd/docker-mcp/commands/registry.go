@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/oci"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/oci"
 )
 
 func registryCommand() *cobra.Command {

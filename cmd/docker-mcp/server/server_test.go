@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/docker"
 )
 
 func TestListVolumeNotFound(t *testing.T) {

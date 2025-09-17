@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/desktop"
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {

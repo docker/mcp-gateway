@@ -12,8 +12,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
-	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/mcp"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/docker"
+	mcpclient "github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/mcp"
 )
 
 func createDockerClient(t *testing.T) docker.Client {

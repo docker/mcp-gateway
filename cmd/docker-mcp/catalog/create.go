@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/telemetry"
 )
 
 func Create(name string) error {

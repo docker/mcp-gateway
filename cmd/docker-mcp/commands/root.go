@@ -8,8 +8,8 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/docker"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/version"
 )
 

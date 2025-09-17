@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/telemetry"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/telemetry"
 )
 
 func Ls(ctx context.Context, format Format) error {

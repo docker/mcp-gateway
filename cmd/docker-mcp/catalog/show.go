@@ -12,7 +12,7 @@ import (
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/yq"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/yq"
 )
 
 type Format string

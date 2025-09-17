@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/desktop"
 )
 
 const (

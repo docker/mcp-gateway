@@ -10,7 +10,7 @@ import (
 
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/yq"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/yq"
 )
 
 type YQ struct {

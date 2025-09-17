@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/config"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/docker"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/config"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/desktop"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/docker"
 )
 
 func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {

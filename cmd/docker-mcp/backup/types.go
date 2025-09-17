@@ -1,6 +1,6 @@
 package backup
 
-import "github.com/docker/mcp-gateway/cmd/docker-mcp/internal/desktop"
+import "github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/desktop"
 
 type Backup struct {
 	Config       string            `json:"config"`

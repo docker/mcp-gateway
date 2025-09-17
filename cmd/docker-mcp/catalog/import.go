@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/tui"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/tui"
 )
 
 func isValidURL(u string) bool {

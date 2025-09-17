@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/internal/logs"
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/pkg/logs"
 )
 
 func start(ctx context.Context, version string, gatewayArgs []string, verbose bool) (*mcp.ClientSession, error) {
