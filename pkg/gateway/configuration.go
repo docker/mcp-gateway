@@ -228,11 +228,24 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 	}
 
+	// check for docker.io self-contained servers
+	selfContainedCatalog, updatedServerNames, err := oci.SelfContainedCatalog(ctx, c.docker, serverNames)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("reading oci server: %w", err)
+	}
+	serverNames = updatedServerNames
+
+	// read local caalog files
 	mcpCatalog, err := c.readCatalog(ctx)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("reading catalog: %w", err)
 	}
+
+	// merge self-contained servers with local catalog
 	servers := mcpCatalog.Servers
+	for k, v := range selfContainedCatalog.Servers {
+		servers[k] = v
+	}
 
 	// Read servers from OCI references if any are provided
 	ociServers, err := c.readServersFromOci(ctx)

@@ -46,6 +46,10 @@ func (c *dockerClient) PullImage(ctx context.Context, name string) error {
 	})
 }
 
+func (c *dockerClient) InspectImage(ctx context.Context, name string) (image.InspectResponse, error) {
+	return c.apiClient().ImageInspect(ctx, name)
+}
+
 func (c *dockerClient) pullImage(ctx context.Context, imageName string, registryAuthFn func() string) error {
 	inspect, err := c.apiClient().ImageInspect(ctx, imageName)
 	if err != nil && !cerrdefs.IsNotFound(err) {
