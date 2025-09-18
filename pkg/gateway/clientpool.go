@@ -160,42 +160,7 @@ func (cp *clientPool) SetNetworks(networks []string) {
 }
 
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
-	args := cp.baseArgs(tool.Name)
-
-	// Attach the MCP servers to the same network as the gateway.
-	for _, network := range cp.networks {
-		args = append(args, "--network", network)
-	}
-
-	// Convert params.Arguments to map[string]any
-	arguments, ok := params.Arguments.(map[string]any)
-	if !ok {
-		arguments = make(map[string]any)
-	}
-
-	// Volumes
-	for _, mount := range eval.EvaluateList(tool.Container.Volumes, arguments) {
-		if mount == "" {
-			continue
-		}
-
-		args = append(args, "-v", mount)
-	}
-
-	// User
-	if tool.Container.User != "" {
-		userVal := fmt.Sprintf("%v", eval.Evaluate(tool.Container.User, arguments))
-		if userVal != "" {
-			args = append(args, "-u", userVal)
-		}
-	}
-
-	// Image
-	args = append(args, tool.Container.Image)
-
-	// Command
-	command := eval.EvaluateList(tool.Container.Command, arguments)
-	args = append(args, command...)
+	args := ArgsForPOCI(ctx, tool, params.Arguments, cp.Options, cp.networks)
 
 	log("  - Running container", tool.Container.Image, "with args", args)
 
@@ -219,114 +184,6 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		}},
 		IsError: false,
 	}, nil
-}
-
-func (cp *clientPool) baseArgs(name string) []string {
-	args := []string{"run"}
-
-	args = append(args, "--rm", "-i", "--init", "--security-opt", "no-new-privileges")
-	if cp.Cpus > 0 {
-		args = append(args, "--cpus", fmt.Sprintf("%d", cp.Cpus))
-	}
-	if cp.Memory != "" {
-		args = append(args, "--memory", cp.Memory)
-	}
-	args = append(args, "--pull", "never")
-
-	if os.Getenv("DOCKER_MCP_IN_DIND") == "1" {
-		args = append(args, "--privileged")
-	}
-
-	// Add a few labels to the container for identification
-	args = append(args,
-		"-l", "docker-mcp=true",
-		"-l", "docker-mcp-tool-type=mcp",
-		"-l", "docker-mcp-name="+name,
-		"-l", "docker-mcp-transport=stdio",
-	)
-
-	return args
-}
-
-func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
-	args := cp.baseArgs(serverConfig.Name)
-	var env []string
-
-	// Security options
-	if serverConfig.Spec.DisableNetwork {
-		args = append(args, "--network", "none")
-	} else {
-		// Attach the MCP servers to the same network as the gateway.
-		for _, network := range cp.networks {
-			args = append(args, "--network", network)
-		}
-	}
-	if targetConfig.NetworkName != "" {
-		args = append(args, "--network", targetConfig.NetworkName)
-	}
-	for _, link := range targetConfig.Links {
-		args = append(args, "--link", link)
-	}
-	for _, env := range targetConfig.Env {
-		args = append(args, "-e", env)
-	}
-	if targetConfig.DNS != "" {
-		args = append(args, "--dns", targetConfig.DNS)
-	}
-
-	// Secrets
-	for _, s := range serverConfig.Spec.Secrets {
-		args = append(args, "-e", s.Env)
-
-		secretValue, ok := serverConfig.Secrets[s.Name]
-		if ok {
-			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
-		} else {
-			logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
-			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
-		}
-	}
-
-	// Env
-	for _, e := range serverConfig.Spec.Env {
-		var value string
-		if strings.Contains(e.Value, "{{") && strings.Contains(e.Value, "}}") {
-			value = fmt.Sprintf("%v", eval.Evaluate(e.Value, serverConfig.Config))
-		} else {
-			value = expandEnv(e.Value, env)
-		}
-
-		if value != "" {
-			args = append(args, "-e", e.Name)
-			env = append(env, fmt.Sprintf("%s=%s", e.Name, value))
-		}
-	}
-
-	// Volumes
-	for _, mount := range eval.EvaluateList(serverConfig.Spec.Volumes, serverConfig.Config) {
-		if mount == "" {
-			continue
-		}
-
-		if readOnly != nil && *readOnly && !strings.HasSuffix(mount, ":ro") {
-			args = append(args, "-v", mount+":ro")
-		} else {
-			args = append(args, "-v", mount)
-		}
-	}
-
-	// User
-	if serverConfig.Spec.User != "" {
-		val := serverConfig.Spec.User
-		if strings.Contains(val, "{{") && strings.Contains(val, "}}") {
-			val = fmt.Sprintf("%v", eval.Evaluate(val, serverConfig.Config))
-		}
-		if val != "" {
-			args = append(args, "-u", val)
-		}
-	}
-
-	return args, env
 }
 
 func expandEnv(value string, env []string) string {
@@ -399,7 +256,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				if cg.clientConfig != nil {
 					readOnly = cg.clientConfig.readOnly
 				}
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, readOnly, targetConfig)
+				args, env := ArgsAndEnvForMCPServer(cg.serverConfig, readOnly, targetConfig, cg.cp.Options, cg.cp.networks)
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
