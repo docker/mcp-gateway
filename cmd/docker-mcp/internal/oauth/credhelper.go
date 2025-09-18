@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 
 	"github.com/docker/docker-credential-helpers/client"
@@ -29,8 +30,9 @@ func NewOAuthCredentialHelper() *CredentialHelper {
 // GetOAuthToken retrieves an OAuth token for the specified server
 // It follows this flow:
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
-// 2. Construct credential key using: [AuthorizationEndpoint]/[ProviderName]
-// 3. Retrieve token from docker-credential-desktop
+// 2. Call GetOAuthApp to trigger on-demand token refresh if needed
+// 3. Construct credential key using: [AuthorizationEndpoint]/[ProviderName]
+// 4. Retrieve token from docker-credential-desktop
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
 	// Step 1: Get DCR client info (includes stored provider name)
 	client := desktop.NewAuthClient()
@@ -39,10 +41,19 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
-	// Step 2: Construct credential key using authorization endpoint + provider name
+	// Step 2: Call GetOAuthApp to trigger on-demand token refresh if needed
+	// This ensures the token is fresh before we retrieve it
+	_, err = client.GetOAuthApp(ctx, serverName)
+	if err != nil {
+		// Log warning but continue - the token might still be retrievable
+		// This maintains backward compatibility if GetOAuthApp is not implemented
+		fmt.Fprintf(os.Stderr, "Warning: failed to check OAuth app status for %s: %v\n", serverName, err)
+	}
+
+	// Step 3: Construct credential key using authorization endpoint + provider name
 	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 
-	// Step 3: Retrieve token from docker-credential-desktop
+	// Step 4: Retrieve token from docker-credential-desktop
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
