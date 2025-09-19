@@ -36,11 +36,18 @@ grafana:
 		"grafana.api_key": "API_KEY",
 	}
 
-	args, env := argsAndEnv(t, "grafana", catalogYAML, configYAML, secrets, nil)
+	args, env := argsAndEnvForMCPServer(t, "grafana", catalogYAML, configYAML, secrets, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=grafana", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=grafana",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-e", "GRAFANA_API_KEY", "-e", "GRAFANA_URL",
 	}, args)
 	assert.Equal(t, []string{"GRAFANA_API_KEY=API_KEY", "GRAFANA_URL=TEST"}, env)
@@ -56,11 +63,18 @@ secrets:
 		"mongodb.connection_string": "HOST:PORT",
 	}
 
-	args, env := argsAndEnv(t, "mongodb", catalogYAML, "", secrets, nil)
+	args, env := argsAndEnvForMCPServer(t, "mongodb", catalogYAML, "", secrets, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=mongodb", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=mongodb",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-e", "MDB_MCP_CONNECTION_STRING",
 	}, args)
 	assert.Equal(t, []string{"MDB_MCP_CONNECTION_STRING=HOST:PORT"}, env)
@@ -80,11 +94,18 @@ env:
 		"notion.internal_integration_token": "ntn_DUMMY",
 	}
 
-	args, env := argsAndEnv(t, "notion", catalogYAML, "", secrets, nil)
+	args, env := argsAndEnvForMCPServer(t, "notion", catalogYAML, "", secrets, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=notion", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=notion",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-e", "INTERNAL_INTEGRATION_TOKEN", "-e", "OPENAPI_MCP_HEADERS",
 	}, args)
 	assert.Equal(t, []string{"INTERNAL_INTEGRATION_TOKEN=ntn_DUMMY", `OPENAPI_MCP_HEADERS={"Authorization": "Bearer ntn_DUMMY", "Notion-Version": "2022-06-28"}`}, env)
@@ -100,11 +121,18 @@ hub:
   log_path: /local/logs
 `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil, nil)
+	args, env := argsAndEnvForMCPServer(t, "hub", catalogYAML, configYAML, nil, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=hub",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-v", "/local/logs:/logs:ro",
 	}, args)
 	assert.Empty(t, env)
@@ -116,11 +144,18 @@ volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, "", nil, nil)
+	args, env := argsAndEnvForMCPServer(t, "hub", catalogYAML, "", nil, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=hub",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 	}, args)
 	assert.Empty(t, env)
 }
@@ -135,11 +170,18 @@ hub:
   log_path: /local/logs
 `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil, readOnly())
+	args, env := argsAndEnvForMCPServer(t, "hub", catalogYAML, configYAML, nil, readOnly())
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=hub",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-v", "/local/logs:/logs:ro",
 	}, args)
 	assert.Empty(t, env)
@@ -150,31 +192,37 @@ func TestApplyConfigUser(t *testing.T) {
 user: "1001:2002"
   `
 
-	args, env := argsAndEnv(t, "svc", catalogYAML, "", nil, nil)
+	args, env := argsAndEnvForMCPServer(t, "svc", catalogYAML, "", nil, nil)
 
 	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=svc", "-l", "docker-mcp-transport=stdio",
+		"run", "--rm", "-i", "--init",
+		"--security-opt", "no-new-privileges",
+		"--pull", "never",
+		"-l", "docker-mcp=true",
+		"-l", "docker-mcp-tool-type=mcp",
+		"-l", "docker-mcp-name=svc",
+		"-l", "docker-mcp-transport=stdio",
+		"--cpus", "1",
+		"--memory", "2Gb",
 		"-u", "1001:2002",
 	}, args)
 	assert.Empty(t, env)
 }
 
-func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool) ([]string, []string) {
+func argsAndEnvForMCPServer(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool) ([]string, []string) {
 	t.Helper()
 
-	clientPool := &clientPool{
-		Options: Options{
-			Cpus:   1,
-			Memory: "2Gb",
-		},
-	}
-	return clientPool.argsAndEnv(&catalog.ServerConfig{
+	serverConfig := catalog.ServerConfig{
 		Name:    name,
 		Spec:    parseSpec(t, catalogYAML),
 		Config:  parseConfig(t, configYAML),
 		Secrets: secrets,
-	}, readOnly, proxies.TargetConfig{})
+	}
+
+	return ArgsAndEnvForMCPServer(&serverConfig, readOnly, proxies.TargetConfig{}, Options{
+		Cpus:   1,
+		Memory: "2Gb",
+	}, nil)
 }
 
 func parseSpec(t *testing.T, contentYAML string) catalog.Server {
