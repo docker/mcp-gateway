@@ -35,13 +35,12 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			CatalogPath: []string{catalog.DockerCatalogURL},
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
-				Cpus:             1,
-				Memory:           "2Gb",
-				Transport:        "stdio",
-				LogCalls:         true,
-				BlockSecrets:     true,
-				VerifySignatures: true,
-				Verbose:          true,
+				Cpus:         1,
+				Memory:       "2Gb",
+				Transport:    "stdio",
+				LogCalls:     true,
+				BlockSecrets: true,
+				Verbose:      true,
 			},
 		}
 	} else {
