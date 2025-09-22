@@ -18,9 +18,7 @@ func SelfContainedCatalog(ctx context.Context, dockerClient docker.Client, serve
 	var resultServerNames []string
 
 	for _, serverName := range serverNames {
-		if strings.HasPrefix(serverName, "docker.io/") {
-			ociRef := strings.TrimPrefix(serverName, "docker.io/")
-
+		if ociRef, ok := strings.CutPrefix(serverName, "docker.io/"); ok {
 			if err := dockerClient.PullImage(ctx, ociRef); err != nil {
 				return catalog.Catalog{}, nil, fmt.Errorf("failed to pull OCI image %s: %w", ociRef, err)
 			}
