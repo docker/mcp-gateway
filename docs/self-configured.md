@@ -12,7 +12,7 @@ docker mcp gateway run --servers docker.io/namespace/repository:latest
 
 In the example above, the namespace/repository:latest is not yet published, but it is available.
 
-The image must containi the following label.
+The image must contain the following label:
 
 ```
 LABEL io.docker.server.metadata="{... server metadata ...}"
