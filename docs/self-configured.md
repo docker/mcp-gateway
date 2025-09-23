@@ -3,10 +3,10 @@
 Before publishing an MCP server image, users can still run the MCP.
 
 ```bash
-docker mcp gateway run --servers docker.io/namespace/repository:latest
+docker mcp gateway run --servers docker://namespace/repository:latest
 ```
 
-* the `docker.io/` prefix is required here but we will inspect the tag `namespace/repository:latest` at runtime.
+* the `docker://` prefix is required.
 
 ## no catalog required
 
