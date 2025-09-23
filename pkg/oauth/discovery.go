@@ -61,9 +61,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*Discover
 
 	// If not 401, OAuth is not required (Authorization is OPTIONAL per MCP spec Section 2.1)
 	if resp.StatusCode != http.StatusUnauthorized {
-		return &Discovery{
-			RequiresOAuth: false,
-		}, nil
+		return nil, fmt.Errorf("server did not return 401 - OAuth not required")
 	}
 
 	// STEP 2: Parse WWW-Authenticate header (if present)
@@ -115,8 +113,6 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*Discover
 
 	// STEP 6: Build discovery result with all available information
 	discovery := &Discovery{
-		RequiresOAuth: true,
-
 		// Use resource metadata if available, otherwise use defaults
 		ResourceURL:         defaultAuthServerURL,
 		ResourceServer:      defaultAuthServerURL,

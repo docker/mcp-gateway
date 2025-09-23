@@ -8,9 +8,6 @@ package oauth
 // - RFC 8414: OAuth 2.0 Authorization Server Metadata
 // - MCP Authorization Specification Section 4.1: Authorization Server Discovery
 type Discovery struct {
-	// Discovery result
-	RequiresOAuth bool
-
 	// From RFC 9728 - OAuth Protected Resource Metadata
 	ResourceURL         string   // The protected resource URL
 	ResourceServer      string   // Resource server identifier
