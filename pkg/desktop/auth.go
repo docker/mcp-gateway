@@ -81,6 +81,7 @@ type RegisterDCRRequest struct {
 	AuthorizationServer   string `json:"authorizationServer,omitempty"`
 	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
 	TokenEndpoint         string `json:"tokenEndpoint,omitempty"`
+	ResourceURL           string `json:"resourceUrl,omitempty"`
 }
 
 type DCRClient struct {

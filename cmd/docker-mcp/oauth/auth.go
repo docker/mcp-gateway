@@ -96,6 +96,7 @@ func performAtomicDCRAndAuthorize(ctx context.Context, serverName string, scopes
 		ProviderName:          providerName,
 		AuthorizationEndpoint: credentials.AuthorizationEndpoint,
 		TokenEndpoint:         credentials.TokenEndpoint,
+		ResourceURL:           credentials.ServerURL,
 	}
 
 	if err := client.RegisterDCRClient(ctx, serverName, dcrRequest); err != nil {
