@@ -17,6 +17,21 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  claude-code:
+    displayName: Claude Code
+    source: https://claude.ai/download
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/claude.svg
+    paths:
+      linux:
+        - $HOME/.claude.json
+      darwin:
+        - $HOME/.claude.json
+      windows:
+        - $USERPROFILE\.claude\settings.json
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON
+      del: del(.mcpServers[$NAME])
   continue:
     displayName: Continue.dev
     source: https://www.continue.dev/
@@ -124,6 +139,21 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  opencode:
+    displayName: OpenCode
+    source: https://opencode.ai/
+    icon: https://avatars.githubusercontent.com/u/66570915?s=48&v=4
+    paths:
+      linux:
+        - $HOME/.config/opencode/opencode.json
+      darwin:
+        - $HOME/.config/opencode/opencode.json
+      windows:
+        - $USERPROFILE\.config\opencode\opencode.json
+    yq:
+      list: '.mcp | to_entries | map(.value + {"name": .key})'
+      set: .mcp[$NAME] = $JSON
+      del: del(.mcp[$NAME])
   sema4:
     displayName: Sema4.ai Studio
     source: https://sema4.ai/links/docker-mcp-download
@@ -177,3 +207,12 @@ project:
       list: '.servers | to_entries | map(.value + {"name": .key})'
       set: .servers[$NAME] = $JSON+{"type":"stdio"}
       del: del(.servers[$NAME])
+  claude-code:
+    displayname: Claude Code
+    projectfile: .mcp.json
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/claude.svg
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON+{"type":"stdio"}
+      del: del(.servers[$NAME])
+
