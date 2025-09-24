@@ -26,6 +26,9 @@ docker mcp gateway run --verbose --log-calls
 
 # Run in watch mode (auto-reload on config changes)
 docker mcp gateway run --watch
+
+# Run a standalone dockerized MCP server (no catalog required)
+docker mcp gateway run --server docker.io/namespace/repository:latest
 ```
 
 ## How to connect to an MCP Client?

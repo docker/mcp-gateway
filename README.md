@@ -99,7 +99,8 @@ docker mcp gateway run
 docker mcp gateway run --port 8080 --transport streaming
 ```
 
-More about [the MCP Gateway](docs/mcp-gateway.md).
+* more about [the MCP Gateway](docs/mcp-gateway.md)
+* [running an unpublished local image](docs/self-configured.md)
 
 ### Server Management
 
