@@ -152,7 +152,12 @@ system:
         - $USERPROFILE\.config\opencode\opencode.json
     yq:
       list: '.mcp | to_entries | map(.value + {"name": .key})'
-      set: .mcp[$NAME] = $JSON
+      set: |
+        .mcp[$NAME] = {
+          "type": "local",
+          "command": [$JSON.command]+$JSON.args,
+          "enabled": true
+        }
       del: del(.mcp[$NAME])
   sema4:
     displayName: Sema4.ai Studio
