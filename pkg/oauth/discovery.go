@@ -61,21 +61,22 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*Discover
 
 	// If not 401, OAuth is not required (Authorization is OPTIONAL per MCP spec Section 2.1)
 	if resp.StatusCode != http.StatusUnauthorized {
-		return &Discovery{
-			RequiresOAuth: false,
-		}, nil
+		fmt.Printf("warning: status code is not 401: %d\n", resp.StatusCode)
 	}
 
 	// STEP 2: Parse WWW-Authenticate header (if present)
 	// MCP Spec Section 4.1: "MCP servers MUST use the HTTP header WWW-Authenticate when returning a 401 Unauthorized"
 	wwwAuth := resp.Header.Get("WWW-Authenticate")
-	if wwwAuth == "" {
-		return nil, fmt.Errorf("server returned 401 but no WWW-Authenticate header")
-	}
 
-	challenges, err := ParseWWWAuthenticate(wwwAuth)
-	if err != nil {
-		return nil, fmt.Errorf("parsing WWW-Authenticate header: %w", err)
+	var challenges []WWWAuthenticateChallenge
+	if wwwAuth != "" {
+		var err error
+		challenges, err = ParseWWWAuthenticate(wwwAuth)
+		if err != nil {
+			// WWW-Authenticate header exists but isn't parseable - log but continue
+			fmt.Printf("warning: could not parse WWW-Authenticate header: %v\n", err)
+			challenges = nil
+		}
 	}
 
 	// STEP 3: Initialize with intelligent defaults (Inspector pattern)
@@ -89,7 +90,11 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*Discover
 
 	// STEP 4: Try to get resource metadata (OPTIONAL - don't fail if missing)
 	// RFC 9728 Section 5.1: resource_metadata parameter in WWW-Authenticate
-	resourceMetadataURL := FindResourceMetadataURL(challenges)
+	resourceMetadataURL := ""
+	if challenges != nil {
+		resourceMetadataURL = FindResourceMetadataURL(challenges)
+	}
+
 	if resourceMetadataURL != "" {
 		// Resource metadata URL found - try to fetch it
 		resourceMetadata, resourceMetadataError = fetchOAuthProtectedResourceMetadata(ctx, client, resourceMetadataURL)
