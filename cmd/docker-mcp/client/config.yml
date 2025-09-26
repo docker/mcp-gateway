@@ -30,7 +30,7 @@ system:
       darwin:
         - $HOME/.claude.json
       windows:
-        - $USERPROFILE\.claude\settings.json
+        - $USERPROFILE\.claude.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
