@@ -2,11 +2,10 @@ package gateway
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -17,21 +16,12 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
-const TokenEventFilename = "token-event.json"
-
 type ServerSessionCache struct {
 	Roots []*mcp.Root
-}
-
-// TokenEvent represents a token refresh or acquisition event
-type TokenEvent struct {
-	Provider   string    `json:"provider"`
-	Timestamp  time.Time `json:"timestamp"`
-	EventType  string    `json:"event_type"` // EventTypeTokenAcquired or EventTypeTokenRefreshed
-	ServerName string    `json:"server_name"`
 }
 
 // type SubsAction int
@@ -213,6 +203,19 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
+	// Start OAuth notification monitor if DCR feature is enabled
+	if g.McpOAuthDcrEnabled {
+		log("- Starting OAuth notification monitor (mcp-oauth-dcr feature enabled)")
+		monitor := oauth.NewNotificationMonitor()
+		monitor.OnOAuthEvent = func(event oauth.Event) {
+			// Handle OAuth event in a goroutine to avoid blocking the monitor
+			go g.handleOAuthEvent(ctx, event)
+		}
+		monitor.Start(ctx)
+	} else {
+		log("- OAuth notification monitor disabled (mcp-oauth-dcr feature not enabled)")
+	}
+
 	// Central mode.
 	if g.Central {
 		log("> Initialized (in central mode) in", time.Since(start))
@@ -235,9 +238,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 					log("> Stop watching for updates")
 					return
 				case configuration := <-configurationUpdates:
-					// First, check and handle any token events
-					g.handleTokenEvent(ctx)
-
 					log("> Configuration updated, reloading...")
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
@@ -517,45 +517,32 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 	}
 }
 
-// handleTokenEvent checks for and processes OAuth token events
-func (g *Gateway) handleTokenEvent(_ context.Context) {
-	// Small delay to ensure token is fully written to credential store
-	// This handles the race condition where registry.yaml updates before token is stored
-	time.Sleep(200 * time.Millisecond)
+// handleOAuthEvent processes OAuth events from the notification monitor
+func (g *Gateway) handleOAuthEvent(_ context.Context, event oauth.Event) {
+	logf("- Processing OAuth event: %s for provider %s", event.Type, event.Provider)
 
-	tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
-
-	// Check if token event file exists
-	if _, err := os.Stat(tokenEventPath); os.IsNotExist(err) {
-		// File doesn't exist, no token event
-		return
-	}
-
-	// Read and parse token event
-	data, err := os.ReadFile(tokenEventPath)
-	if err != nil {
-		log(fmt.Sprintf("Failed to read token event file: %v", err))
-		return
-	}
-
-	// Skip if file is empty or just placeholder
-	if len(data) == 0 || string(data) == "{}" {
-		return
-	}
-
-	var event TokenEvent
-	if err := json.Unmarshal(data, &event); err != nil {
-		log(fmt.Sprintf("Failed to parse token event: %v", err))
-		return
-	}
-
-	log(fmt.Sprintf("Processing %s event for provider %s at %v",
-		event.EventType, event.Provider, event.Timestamp.Format(time.RFC3339)))
-
-	// Invalidate OAuth clients for the specified provider
+	// Always invalidate to close stale connections
 	g.clientPool.InvalidateOAuthClients(event.Provider)
 
-	// Don't delete the file - allow all MCP Gateway instances to process the event
-	// File will be overwritten on next token event or cleaned up on DD startup
-	log(fmt.Sprintf("Token event processed for %s", event.Provider))
+	// Reload for any state change that affects connectivity
+	switch event.Type {
+	case oauth.EventLoginSuccess, oauth.EventTokenRefresh, oauth.EventLogoutSuccess:
+		if slices.Contains(g.configuration.ServerNames(), event.Provider) {
+			logf("- Triggering full reload after %s", event.Type)
+			// Full reload in a goroutine to avoid blocking
+			go func() {
+				ctx := context.Background()
+				// Full reload - same as registry.yaml change (nil serverNames)
+				if err := g.reloadConfiguration(ctx, g.configuration, nil, nil); err != nil {
+					logf("! Failed to reload after OAuth %s: %v", event.Type, err)
+				} else {
+					logf("- Successfully reloaded after OAuth %s", event.Type)
+				}
+			}()
+		} else {
+			logf("- Provider %s not in enabled servers, skipping reload", event.Provider)
+		}
+	}
+
+	logf("- OAuth event processed for %s", event.Provider)
 }

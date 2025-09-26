@@ -36,6 +36,7 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
 	if err != nil {
+		logf("! Failed to get DCR client for %s: %v", serverName, err)
 		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
@@ -46,8 +47,10 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
+			logf("- OAuth token not found for key: %s", credentialKey)
 			return "", fmt.Errorf("OAuth token not found for %s (key: %s). Run 'docker mcp oauth authorize %s' to authenticate", serverName, credentialKey, serverName)
 		}
+		logf("! Failed to retrieve token from credential helper: %v", err)
 		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
