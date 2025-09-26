@@ -22,7 +22,7 @@ system:
     source: https://claude.ai/download
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/claude.svg
     installCheckPaths:
-      - $HOME/.claude.json
+      - $HOME/.claude
       - $USERPROFILE\.claude
     paths:
       linux:
