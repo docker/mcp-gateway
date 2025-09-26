@@ -21,6 +21,9 @@ system:
     displayName: Claude Code
     source: https://claude.ai/download
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/claude.svg
+    installCheckPaths:
+      - $HOME/.claude.json
+      - $USERPROFILE\.claude
     paths:
       linux:
         - $HOME/.claude.json
@@ -143,6 +146,9 @@ system:
     displayName: OpenCode
     source: https://opencode.ai/
     icon: https://avatars.githubusercontent.com/u/66570915?s=48&v=4
+    installCheckPaths:
+      - $HOME/.config/opencode
+      - $USERPROFILE\.config\opencode
     paths:
       linux:
         - $HOME/.config/opencode/opencode.json
