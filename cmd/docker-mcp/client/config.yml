@@ -219,5 +219,5 @@ project:
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"type":"stdio"}
-      del: del(.servers[$NAME])
+      del: del(.mcpServers[$NAME])
 
