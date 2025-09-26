@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
@@ -61,6 +62,14 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
+		// For OAuth DCR servers, trigger token refresh check before fetching token
+		// This ensures we have a fresh token at initialization
+		authClient := desktop.NewAuthClient()
+		if _, err := authClient.GetOAuthApp(ctx, c.config.Name); err != nil {
+			// Log but don't fail - token might not exist yet (user not authorized)
+			// We'll proceed and let the credential helper handle missing tokens
+		}
+
 		token := c.getOAuthToken(ctx)
 		if token != "" {
 			headers["Authorization"] = "Bearer " + token
