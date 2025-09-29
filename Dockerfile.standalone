@@ -1,0 +1,38 @@
+# Multi-stage build for the standalone MCP Gateway with UI
+FROM golang:1.24.5-alpine AS builder
+
+# Install dependencies
+RUN apk add --no-cache git
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the standalone gateway
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o standalone-gateway ./cmd/standalone-gateway
+
+# Final stage
+FROM alpine:latest
+
+# Install docker CLI for MCP gateway functionality
+RUN apk add --no-cache docker-cli ca-certificates
+
+# Set working directory
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=builder /app/standalone-gateway .
+
+# Expose ports
+EXPOSE 3000 8811
+
+# Run the standalone gateway
+CMD ["./standalone-gateway"]
