@@ -10,6 +10,10 @@ func Disconnect(ctx context.Context, cwd string, config Config, vendor string, g
 		if err := disconnectGordon(ctx); err != nil {
 			return err
 		}
+	} else if vendor == vendorCodex && global {
+		if err := disconnectCodex(ctx); err != nil {
+			return err
+		}
 	} else {
 		updater, err := GetUpdater(vendor, global, cwd, config)
 		if err != nil {

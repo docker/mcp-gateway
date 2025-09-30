@@ -16,6 +16,7 @@ const (
 	vendorContinueDev   = "continue"
 	vendorGordon        = "gordon"
 	vendorZed           = "zed"
+	vendorCodex         = "codex"
 )
 
 const (
@@ -179,6 +180,9 @@ func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
 	err := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")
 	if err == nil {
 		result[vendorGordon] = getGordonSetup(ctx)
+	}
+	if isCodexInstalled(ctx) {
+		result[vendorCodex] = getCodexSetup(ctx)
 	}
 	return result
 }

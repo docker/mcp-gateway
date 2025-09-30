@@ -10,6 +10,10 @@ func Connect(ctx context.Context, cwd string, config Config, vendor string, glob
 		if err := connectGordon(ctx); err != nil {
 			return err
 		}
+	} else if vendor == vendorCodex && global {
+		if err := connectCodex(ctx); err != nil {
+			return err
+		}
 	} else {
 		updater, err := GetUpdater(vendor, global, cwd, config)
 		if err != nil {
