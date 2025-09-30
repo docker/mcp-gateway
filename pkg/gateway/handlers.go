@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -13,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/contextkeys"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -48,6 +47,9 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 
 func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Store serverConfig in context for middleware access
+		ctx = context.WithValue(ctx, contextkeys.ServerConfigKey, serverConfig)
+
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Tool call received: %s from server: %s\n", req.Params.Name, serverConfig.Name)
@@ -113,14 +115,6 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 				attribute.String("mcp.client.name", req.Session.InitializeParams().ClientInfo.Name),
 			),
 		)
-
-		// Check for OAuth 401 errors on DCR servers and trigger refresh
-		if err == nil && result != nil && result.IsError && serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
-			if oauthResult := g.handleOAuth401(ctx, result, serverConfig.Name); oauthResult != nil {
-				span.SetStatus(codes.Ok, "OAuth token refresh triggered")
-				return oauthResult, nil
-			}
-		}
 
 		if err != nil {
 			// Record error in telemetry
@@ -254,57 +248,4 @@ func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, s
 		span.SetStatus(codes.Ok, "")
 		return result, nil
 	}
-}
-
-// handleOAuth401 checks if a tool result contains OAuth 401 errors and triggers token refresh
-func (g *Gateway) handleOAuth401(ctx context.Context, result *mcp.CallToolResult, serverName string) *mcp.CallToolResult {
-	// Check each content item for OAuth 401 error message
-	for _, content := range result.Content {
-		textContent, ok := content.(*mcp.TextContent)
-		if !ok {
-			continue
-		}
-
-		if isOAuth401Error(textContent.Text) {
-			// Trigger OAuth refresh
-			authClient := desktop.NewAuthClient()
-			_, err := authClient.GetOAuthApp(ctx, serverName)
-			if err != nil {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						&mcp.TextContent{
-							Text: fmt.Sprintf("OAuth token refresh failed for %s: %v", serverName, err),
-						},
-					},
-					IsError: true,
-				}
-			}
-
-			// Return user-friendly message - the notification system will handle reload
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{
-					&mcp.TextContent{
-						Text: fmt.Sprintf("OAuth token expired for %s. Token refresh has been triggered - the server will automatically reload with a fresh token. Please retry your request in a few seconds.", serverName),
-					},
-				},
-			}
-		}
-	}
-
-	return nil // No OAuth 401 detected
-}
-
-// isOAuth401Error checks if a text contains OAuth-related 401 unauthorized error messages
-func isOAuth401Error(text string) bool {
-	// Must contain 401 status code
-	if !strings.Contains(text, "401") {
-		return false
-	}
-
-	// Look for common OAuth 401 error patterns
-	return strings.Contains(text, "Unauthorized") ||
-		strings.Contains(text, "unauthorized") ||
-		strings.Contains(text, "Invalid token") ||
-		strings.Contains(text, "Token expired") ||
-		strings.Contains(text, "Access denied")
 }

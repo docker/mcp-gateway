@@ -39,12 +39,13 @@ type ServerSessionCache struct {
 
 type Gateway struct {
 	Options
-	docker        docker.Client
-	configurator  Configurator
-	configuration Configuration
-	clientPool    *clientPool
-	mcpServer     *mcp.Server
-	health        health.State
+	docker             docker.Client
+	configurator       Configurator
+	configuration      Configuration
+	clientPool         *clientPool
+	mcpServer          *mcp.Server
+	health             health.State
+	refreshCoordinator *oauth.RefreshCoordinator
 	// subsChannel  chan SubsMessage
 
 	sessionCacheMu sync.RWMutex
@@ -59,8 +60,9 @@ type Gateway struct {
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	g := &Gateway{
-		Options: config.Options,
-		docker:  docker,
+		Options:            config.Options,
+		docker:             docker,
+		refreshCoordinator: oauth.NewRefreshCoordinator(),
 		configurator: &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
@@ -177,7 +179,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 
 	// Add interceptor middleware to the server (includes telemetry)
-	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
+	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, g.refreshCoordinator, parsedInterceptors)
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
@@ -518,7 +520,7 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 }
 
 // handleOAuthEvent processes OAuth events from the notification monitor
-func (g *Gateway) handleOAuthEvent(_ context.Context, event oauth.Event) {
+func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 	logf("- Processing OAuth event: %s for provider %s", event.Type, event.Provider)
 
 	// Always invalidate to close stale connections
@@ -527,16 +529,33 @@ func (g *Gateway) handleOAuthEvent(_ context.Context, event oauth.Event) {
 	// Reload for any state change that affects connectivity
 	switch event.Type {
 	case oauth.EventLoginSuccess, oauth.EventTokenRefresh, oauth.EventLogoutSuccess:
-		if slices.Contains(g.configuration.ServerNames(), event.Provider) {
+		// Read current registry configuration to check if server is enabled
+		currentConfig, _, _, err := g.configurator.Read(ctx)
+		if err != nil {
+			logf("! Failed to read configuration for OAuth event: %v", err)
+			return
+		}
+
+		// Check if server is currently in registry
+		if slices.Contains(currentConfig.ServerNames(), event.Provider) {
 			logf("- Triggering full reload after %s", event.Type)
 			// Full reload in a goroutine to avoid blocking
 			go func() {
 				ctx := context.Background()
-				// Full reload - same as registry.yaml change (nil serverNames)
-				if err := g.reloadConfiguration(ctx, g.configuration, nil, nil); err != nil {
+				// Reload with current configuration from files
+				if err := g.reloadConfiguration(ctx, currentConfig, nil, nil); err != nil {
 					logf("! Failed to reload after OAuth %s: %v", event.Type, err)
+					// Broadcast error to waiting requests
+					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
+						Success: false,
+						Error:   fmt.Errorf("configuration reload failed: %w", err),
+					})
 				} else {
 					logf("- Successfully reloaded after OAuth %s", event.Type)
+					// Broadcast success to waiting requests
+					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
+						Success: true,
+					})
 				}
 			}()
 		} else {
