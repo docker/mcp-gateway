@@ -1,9 +1,10 @@
+
 services:
   gateway:
     image: docker/mcp-gateway:dind
     privileged: true
     ports:
-      - "8080:8080"
+      - "0.0.0.0:8080:8080"
     command:
       - --port=8080
       - --transport=sse
