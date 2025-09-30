@@ -1,0 +1,90 @@
+registry:
+    docker:
+        dateAdded: "2025-05-05T20:04:34Z"
+        description: Use the Docker CLI.
+        icon: https://avatars.githubusercontent.com/u/5429470?s=200&v=4
+        metadata:
+            category: devops
+            license: Apache License 2.0
+            owner: docker
+            tags:
+                - docker
+        prompts: 0
+        readme: http://desktop.docker.com/mcp/catalog/v2/readme/docker.md
+        ref: ""
+        resources: {}
+        source: ""
+        title: Docker
+        tools:
+            - container:
+                command:
+                    - '{{args|into}}'
+                image: docker:cli@sha256:6a73c9433f2ba4279815be1e60f5739288b939dda1e48151d8c393537802de37
+                volumes:
+                    - /var/run/docker.sock:/var/run/docker.sock
+              description: use the docker cli
+              name: docker
+              parameters:
+                properties:
+                    args:
+                        description: Arguments to pass to the Docker command
+                        items:
+                            type: string
+                        type: array
+                required:
+                    - args
+                type: object
+        toolsUrl: http://desktop.docker.com/mcp/catalog/v2/tools/docker.json
+        type: poci
+    dockerhub:
+        command:
+            - --transport=stdio
+            - --username={{dockerhub.username}}
+        config:
+            - description: Configure connection to Docker Hub
+              name: dockerhub
+              properties:
+                username:
+                    type: string
+              type: object
+        dateAdded: "2025-06-16T15:56:21Z"
+        description: Docker Hub official MCP server.
+        icon: https://avatars.githubusercontent.com/u/5429470?s=200&v=4
+        image: mcp/dockerhub@sha256:6d15361c655580c7aad72b0152daef9208b466577e794361f64904aa974f5e67
+        metadata:
+            category: devops
+            githubStars: 66
+            license: Apache License 2.0
+            owner: docker
+            pulls: 22168
+            stars: 5
+            tags:
+                - docker
+                - dockerhub
+        prompts: 0
+        readme: http://desktop.docker.com/mcp/catalog/v2/readme/dockerhub.md
+        ref: ""
+        resources: {}
+        secrets:
+            - env: HUB_PAT_TOKEN
+              example: your_hub_pat_token
+              name: dockerhub.pat_token
+        source: https://github.com/docker/hub-mcp/tree/main
+        title: Docker Hub
+        tools:
+            - name: checkRepository
+            - name: checkRepositoryTag
+            - name: createRepository
+            - name: dockerHardenedImages
+            - name: getPersonalNamespace
+            - name: getRepositoryInfo
+            - name: getRepositoryTag
+            - name: listAllNamespacesMemberOf
+            - name: listNamespaces
+            - name: listRepositoriesByNamespace
+            - name: listRepositoryTags
+            - name: search
+            - name: updateRepositoryInfo
+        toolsUrl: http://desktop.docker.com/mcp/catalog/v2/tools/dockerhub.json
+        type: server
+        upstream: https://github.com/docker/hub-mcp

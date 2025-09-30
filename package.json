@@ -1,0 +1,28 @@
+{
+  "name": "mcp-gateway",
+  "version": "1.0.0",
+  "description": "![build](https://github.com/docker/mcp-gateway/actions/workflows/ci.yml/badge.svg)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davesbits/mcp-gateway.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/davesbits/mcp-gateway/issues"
+  },
+  "homepage": "https://github.com/davesbits/mcp-gateway#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^24.6.0"
+  }
+}
