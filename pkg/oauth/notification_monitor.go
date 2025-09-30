@@ -193,6 +193,8 @@ func parseOAuthEvent(jsonData string) (Event, error) {
 
 // processOAuthEvent calls callback for relevant events and logs errors
 func (m *NotificationMonitor) processOAuthEvent(event Event) {
+	logf("← SSE event received: %s for %s", event.Type, event.Provider)
+
 	// Only log errors and unknown events - let handleOAuthEvent handle success logs
 	switch event.Type {
 	case EventLoginStart, EventCodeReceived:

@@ -12,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/contextkeys"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -47,8 +46,20 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 
 func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Store serverConfig in context for middleware access
-		ctx = context.WithValue(ctx, contextkeys.ServerConfigKey, serverConfig)
+		// Check OAuth token validity before calling the tool
+		// This ensures we have a fresh token and prevents 401 errors
+		if serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
+			if err := g.refreshCoordinator.EnsureValidToken(ctx, serverConfig.Name); err != nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{
+						&mcp.TextContent{
+							Text: fmt.Sprintf("OAuth token validation failed for %s: %v. Please run 'docker mcp oauth authorize %s' to authenticate.", serverConfig.Name, err, serverConfig.Name),
+						},
+					},
+					IsError: true,
+				}, nil
+			}
+		}
 
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {

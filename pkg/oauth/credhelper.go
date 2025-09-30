@@ -121,28 +121,31 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	}
 
 	// Parse the JSON to extract token data including expiry
+	// oauth2.Token uses "expiry" field with RFC3339 string format
 	var tokenData struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		ExpiresIn   int64  `json:"expires_in,omitempty"`   // Seconds until expiry (relative)
-		ExpiresAt   int64  `json:"expires_at,omitempty"`   // Unix timestamp (absolute)
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		RefreshToken string `json:"refresh_token,omitempty"`
+		Expiry       string `json:"expiry,omitempty"` // RFC3339 timestamp string
 	}
 	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to parse OAuth token JSON for %s: %w", serverName, err)
 	}
 
+	logf("📋 RAW TOKEN DATA for %s: expiry=%v", serverName, tokenData.Expiry)
+
 	if tokenData.AccessToken == "" {
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth access token found for %s", serverName)
 	}
 
-	// Determine expiry time
+	// Parse expiry time from RFC3339 string
 	var expiresAt time.Time
-	if tokenData.ExpiresAt > 0 {
-		// Use absolute timestamp if available
-		expiresAt = time.Unix(tokenData.ExpiresAt, 0)
-	} else if tokenData.ExpiresIn > 0 {
-		// Calculate from relative expiry
-		expiresAt = time.Now().Add(time.Duration(tokenData.ExpiresIn) * time.Second)
+	if tokenData.Expiry != "" {
+		var err error
+		expiresAt, err = time.Parse(time.RFC3339, tokenData.Expiry)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("failed to parse expiry time for %s: %w", serverName, err)
+		}
 	} else {
 		// No expiry information - assume token is valid but check immediately
 		return TokenStatus{
@@ -154,7 +157,11 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 
 	// Check if token needs refresh (expires within 60s)
 	now := time.Now()
-	needsRefresh := expiresAt.Sub(now) <= 60*time.Second
+	timeUntilExpiry := expiresAt.Sub(now)
+	needsRefresh := timeUntilExpiry <= 60*time.Second
+
+	logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
+		serverName, expiresAt.Format(time.RFC3339), timeUntilExpiry.Round(time.Second), needsRefresh)
 
 	return TokenStatus{
 		Valid:        true,

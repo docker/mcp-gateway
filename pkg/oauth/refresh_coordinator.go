@@ -60,15 +60,18 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 	// Step 1: Check token status
 	status, err := c.credHelper.GetTokenStatus(ctx, serverName)
 	if err != nil {
+		logf("! Token status check failed for %s: %v", serverName, err)
 		return fmt.Errorf("failed to check token status: %w", err)
 	}
 
 	// Token is valid and doesn't need refresh
 	if status.Valid && !status.NeedsRefresh {
+		logf("✓ Token valid for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
 		return nil
 	}
 
 	// Token needs refresh - coordinate with other concurrent requests
+	logf("⚠ Token needs refresh for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
 	state := c.getOrCreateState(serverName)
 
 	state.mu.Lock()
@@ -76,6 +79,7 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 	// Check if refresh is already in progress
 	if state.refreshInProgress {
 		// Join existing refresh - create buffered channel
+		logf("- Request joining existing refresh for %s (follower)", serverName)
 		waitCh := make(chan RefreshResult, 1)
 		state.pendingRequests = append(state.pendingRequests, waitCh)
 		state.mu.Unlock()
@@ -87,7 +91,7 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 				return nil
 			}
 			return result.Error
-		case <-time.After(3 * time.Second):
+		case <-time.After(5 * time.Second):
 			return fmt.Errorf("timeout waiting for token refresh for %s", serverName)
 		case <-ctx.Done():
 			return ctx.Err()
@@ -95,6 +99,7 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 	}
 
 	// No refresh in progress - this request becomes the leader
+	logf("- Request initiating token refresh for %s (leader)", serverName)
 	state.refreshInProgress = true
 	leaderWaitCh := make(chan RefreshResult, 1)
 	state.pendingRequests = append(state.pendingRequests, leaderWaitCh)
@@ -124,7 +129,7 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 			return nil
 		}
 		return result.Error
-	case <-time.After(3 * time.Second):
+	case <-time.After(5 * time.Second):
 		return fmt.Errorf("timeout waiting for token refresh for %s", serverName)
 	case <-ctx.Done():
 		return ctx.Err()

@@ -15,20 +15,13 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/logs"
-	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
-func Callbacks(logCalls, blockSecrets bool, oauthInterceptorEnabled bool, refreshCoordinator *oauth.RefreshCoordinator, interceptors []Interceptor) []mcp.Middleware {
+func Callbacks(logCalls, blockSecrets bool, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware {
 	var middleware []mcp.Middleware
 
 	// Add telemetry middleware (always enabled)
 	middleware = append(middleware, TelemetryMiddleware())
-
-	// Add OAuth refresh middleware for proactive token management (DCR servers only)
-	// This must come BEFORE GitHubUnauthorizedMiddleware to prevent 401 errors
-	if oauthInterceptorEnabled && refreshCoordinator != nil {
-		middleware = append(middleware, OAuthRefreshMiddleware(refreshCoordinator))
-	}
 
 	// Add GitHub unauthorized interceptor only if the feature is enabled
 	// This ensures GitHub 401 responses are handled with OAuth links when requested
