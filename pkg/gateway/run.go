@@ -588,7 +588,7 @@ func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configur
 	// - For this server: create new client (not in pool) → Initialize with fresh token
 	// - For other servers: reuse cached client (still in pool) → no Initialize
 	// - List tools from all servers and re-register them
-	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+	if err := g.reloadConfiguration(ctx, configuration, configuration.ServerNames(), nil); err != nil {
 		return fmt.Errorf("failed to reload configuration: %w", err)
 	}
 
