@@ -8,15 +8,14 @@ import sys
 import json
 import socket
 import select
-from typing import Optional
 
-class MCPNetworkBridge:
+class MCPNetworkBridge(object):
     """
     Bridges stdio (Claude Desktop) to network socket (MCP Gateway)
     Handles proper JSON-RPC framing for MCP protocol
     """
     
-    def __init__(self, host: str, port: int):
+    def __init__(self, host, port):
         """
         Initialize network bridge
         
@@ -26,9 +25,9 @@ class MCPNetworkBridge:
         """
         self.host = host
         self.port = port
-        self.socket: Optional[socket.socket] = None
+        self.socket = None
         
-    def connect(self) -> bool:
+    def connect(self):
         """
         Connect to gateway server
         
@@ -40,7 +39,7 @@ class MCPNetworkBridge:
             self.socket.connect((self.host, self.port))
             return True
         except Exception as e:
-            print(f"Connection failed: {e}", file=sys.stderr)
+            print("Connection failed: {}".format(e), file=sys.stderr)
             return False
     
     def forward_stdio_to_socket(self):
@@ -60,7 +59,7 @@ class MCPNetworkBridge:
                     break
                 
         except Exception as e:
-            print(f"Error forwarding to socket: {e}", file=sys.stderr)
+            print("Error forwarding to socket: {}".format(e), file=sys.stderr)
     
     def forward_socket_to_stdio(self):
         """Forward data from socket to stdout"""
@@ -79,7 +78,7 @@ class MCPNetworkBridge:
                 sys.stdout.buffer.flush()
                 
         except Exception as e:
-            print(f"Error forwarding to stdio: {e}", file=sys.stderr)
+            print("Error forwarding to stdio: {}".format(e), file=sys.stderr)
     
     def run(self):
         """Run bidirectional forwarding"""
