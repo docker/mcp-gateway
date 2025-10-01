@@ -47,7 +47,6 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Check OAuth token validity before calling the tool
-		// This ensures we have a fresh token and prevents 401 errors
 		if serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
 			if err := g.refreshCoordinator.EnsureValidToken(ctx, serverConfig.Name); err != nil {
 				return &mcp.CallToolResult{

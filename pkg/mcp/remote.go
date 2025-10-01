@@ -61,9 +61,6 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
-		// Just get the token - don't call GetOAuthApp() which triggers refresh
-		// Token refresh should be handled by the middleware, not during initialization
-		// Calling GetOAuthApp() here creates infinite loop: refresh → SSE → reload → Initialize() → refresh...
 		token := c.getOAuthToken(ctx)
 		if token != "" {
 			headers["Authorization"] = "Bearer " + token

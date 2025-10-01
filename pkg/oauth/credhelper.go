@@ -27,6 +27,13 @@ func NewOAuthCredentialHelper() *CredentialHelper {
 	}
 }
 
+// TokenStatus represents the validity status of an OAuth token
+type TokenStatus struct {
+	Valid        bool      // Token exists and is valid
+	ExpiresAt    time.Time // Token expiration time
+	NeedsRefresh bool      // Token expires within 60s
+}
+
 // GetOAuthToken retrieves an OAuth token for the specified server
 // It follows this flow:
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
@@ -81,27 +88,20 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	return tokenData.AccessToken, nil
 }
 
-// TokenStatus represents the validity status of an OAuth token
-type TokenStatus struct {
-	Valid        bool      // Token exists and is valid
-	ExpiresAt    time.Time // Token expiration time
-	NeedsRefresh bool      // Token expires within 60s
-}
-
 // GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
 // Returns TokenStatus with validity and expiry information
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
-	// Step 1: Get DCR client info (includes stored provider name)
+	// Get DCR client info
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
 	if err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
-	// Step 2: Construct credential key using authorization endpoint + provider name
+	// Construct credential key using authorization endpoint + provider name
 	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 
-	// Step 3: Retrieve token from docker-credential-desktop
+	// Retrieve token from docker-credential-desktop
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
@@ -114,14 +114,12 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	// The secret is base64-encoded JSON, decode it first
 	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
 	if err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
 	}
 
 	// Parse the JSON to extract token data including expiry
-	// oauth2.Token uses "expiry" field with RFC3339 string format
 	var tokenData struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -131,8 +129,6 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to parse OAuth token JSON for %s: %w", serverName, err)
 	}
-
-	logf("📋 RAW TOKEN DATA for %s: expiry=%v", serverName, tokenData.Expiry)
 
 	if tokenData.AccessToken == "" {
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth access token found for %s", serverName)

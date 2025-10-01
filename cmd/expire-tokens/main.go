@@ -15,6 +15,7 @@ import (
 
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
+
 	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
@@ -74,7 +75,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var tokenData map[string]interface{}
+	var tokenData map[string]any
 	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to parse token JSON: %v\n", err)
 		os.Exit(1)
@@ -91,8 +92,8 @@ func main() {
 	// oauth2.Token uses "expiry" field with RFC3339 format, not "expires_at" with unix timestamp
 	expiryTime := time.Now().Add(time.Duration(expirySeconds) * time.Second)
 	tokenData["expiry"] = expiryTime.Format(time.RFC3339)
-	delete(tokenData, "expires_at")  // Remove if exists (wrong field name)
-	delete(tokenData, "expires_in")  // Remove relative expiry to avoid confusion
+	delete(tokenData, "expires_at") // Remove if exists (wrong field name)
+	delete(tokenData, "expires_in") // Remove relative expiry to avoid confusion
 
 	fmt.Fprintf(os.Stderr, "\n📝 Preparing to write token:\n")
 	fmt.Fprintf(os.Stderr, "   Key: %s\n", credentialKey)
@@ -122,7 +123,6 @@ func main() {
 		Username:  dcrClient.ProviderName,
 		Secret:    newTokenSecret,
 	})
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Store failed: %v\n", err)
 		os.Exit(1)
@@ -144,7 +144,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var verifyData map[string]interface{}
+	var verifyData map[string]any
 	if err := json.Unmarshal(verifyJSON, &verifyData); err != nil {
 		fmt.Fprintf(os.Stderr, "❌ Verification failed - couldn't parse JSON: %v\n", err)
 		os.Exit(1)

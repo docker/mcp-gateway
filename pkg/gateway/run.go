@@ -205,22 +205,17 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
-	// Start OAuth notification monitor if DCR feature is enabled
 	if g.McpOAuthDcrEnabled {
-		log("- Starting OAuth notification monitor (mcp-oauth-dcr feature enabled)")
+		// Start OAuth notification monitor to receive token refresh events from Docker Desktop
+		log("- Starting OAuth notification monitor")
 		monitor := oauth.NewNotificationMonitor()
 		monitor.OnOAuthEvent = func(event oauth.Event) {
 			// Handle OAuth event in a goroutine to avoid blocking the monitor
 			go g.handleOAuthEvent(ctx, event)
 		}
 		monitor.Start(ctx)
-	} else {
-		log("- OAuth notification monitor disabled (mcp-oauth-dcr feature not enabled)")
-	}
 
-	// Check OAuth tokens on startup and refresh if needed
-	// This ensures tools are available even if tokens expired since last run
-	if g.McpOAuthDcrEnabled {
+		// Check OAuth tokens on startup and refresh if needed
 		log("- Checking OAuth tokens on startup...")
 		for _, serverName := range configuration.ServerNames() {
 			serverConfig, _, found := configuration.Find(serverName)
@@ -228,7 +223,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 				continue
 			}
 
-			// Check token validity and refresh if needed (async, non-blocking)
 			// EnsureValidToken will:
 			// - Return immediately if token is valid
 			// - Trigger GetOAuthApp → DD refresh → SSE event → reloadSingleServer if expired
@@ -545,7 +539,6 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 	logf("- Processing OAuth event: %s for provider %s", event.Type, event.Provider)
 
-	// Reload for any state change that affects connectivity
 	switch event.Type {
 	case oauth.EventLoginSuccess, oauth.EventTokenRefresh, oauth.EventLogoutSuccess:
 		// Read current registry configuration to check if server is enabled
@@ -561,7 +554,6 @@ func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 			// Reload in a goroutine to avoid blocking the SSE monitor
 			go func() {
 				ctx := context.Background()
-				// Reload only the affected server (reloadSingleServer will invalidate and reconnect)
 				if err := g.reloadSingleServer(ctx, currentConfig, event.Provider); err != nil {
 					logf("! Failed to reload server after OAuth %s: %v", event.Type, err)
 					// Broadcast error to waiting requests
@@ -586,25 +578,20 @@ func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 }
 
 // reloadSingleServer refreshes the connection for a single OAuth server after token changes.
-// It invalidates the specific server's client connection, then performs a full capability reload.
-// Only the invalidated server will reconnect (others reuse their pooled connections).
 func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configuration, serverName string) error {
 	logf("- Reloading OAuth server: %s", serverName)
 
-	// Step 1: Close old client connection with stale token (removes from pool)
-	// This ensures the next AcquireClient will create a fresh connection
+	// Close old client connection with stale token (removes from pool)
 	g.clientPool.InvalidateOAuthClients(serverName)
 
-	// Step 2: Perform full reload which will:
+	// Perform full reload which will:
 	// - For this server: create new client (not in pool) → Initialize with fresh token
 	// - For other servers: reuse cached client (still in pool) → no Initialize
 	// - List tools from all servers and re-register them
-	// Note: This has small overhead of ListTools RPC on cached connections,
-	// but ensures all tools are properly tracked and registered
 	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 		return fmt.Errorf("failed to reload configuration: %w", err)
 	}
 
-	logf("✓ OAuth server %s reconnected and tools registered", serverName)
+	logf("- OAuth server %s reconnected and tools registered", serverName)
 	return nil
 }
