@@ -52,7 +52,7 @@ func findGitProjectRoot(dir string) string {
 func GetSupportedMCPClients(cfg Config) []string {
 	tmp := map[string]struct{}{
 		vendorGordon: {},
-		vendorCodex: {},
+		vendorCodex:  {},
 	}
 	for k := range cfg.System {
 		tmp[k] = struct{}{}
