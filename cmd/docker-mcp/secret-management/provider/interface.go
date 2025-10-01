@@ -24,6 +24,9 @@ type SecretProvider interface {
 	
 	// ProviderName returns a human-readable name for this provider.
 	ProviderName() string
+	
+	// SupportsSecureMount indica se o provider pode montar sem expor valores
+	SupportsSecureMount() bool
 }
 
 // StoredSecret represents a secret stored in a provider.
@@ -150,6 +153,16 @@ func (c *ChainProvider) IsAvailable(ctx context.Context) bool {
 // ProviderName returns the name of the chain provider.
 func (c *ChainProvider) ProviderName() string {
 	return "chain"
+}
+
+// SupportsSecureMount retorna true se pelo menos um provider suporta secure mount
+func (c *ChainProvider) SupportsSecureMount() bool {
+	for _, provider := range c.providers {
+		if provider.SupportsSecureMount() {
+			return true
+		}
+	}
+	return false
 }
 
 // GetDefaultProvider returns the default secret provider chain.

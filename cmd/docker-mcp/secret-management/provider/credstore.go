@@ -89,6 +89,11 @@ func (c *CredStoreProvider) ProviderName() string {
 	return "credstore"
 }
 
+// SupportsSecureMount retorna false - Credstore precisa expor valores
+func (c *CredStoreProvider) SupportsSecureMount() bool {
+	return false
+}
+
 // getSecretKey returns the key used to store secrets in the credential store.
 func getSecretKey(secretName string) string {
 	return "sm_" + secretName

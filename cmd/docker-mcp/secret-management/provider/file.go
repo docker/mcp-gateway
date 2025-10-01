@@ -146,6 +146,11 @@ func (f *FileProvider) ProviderName() string {
 	return "file"
 }
 
+// SupportsSecureMount retorna false - File provider precisa expor valores
+func (f *FileProvider) SupportsSecureMount() bool {
+	return false
+}
+
 // ensureSecretsDir creates the secrets directory if it doesn't exist.
 func (f *FileProvider) ensureSecretsDir() error {
 	return os.MkdirAll(f.secretsDir, 0700)
