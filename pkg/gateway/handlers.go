@@ -52,7 +52,7 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{
 						&mcp.TextContent{
-							Text: fmt.Sprintf("OAuth token validation failed for %s: %v. Please run 'docker mcp oauth authorize %s' to authenticate.", serverConfig.Name, err, serverConfig.Name),
+							Text: fmt.Sprintf("OAuth token validation failed for %s: %v", serverConfig.Name, err),
 						},
 					},
 					IsError: true,

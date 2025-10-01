@@ -206,11 +206,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 
 	if g.McpOAuthDcrEnabled {
-		// Start OAuth notification monitor to receive token refresh events from Docker Desktop
+		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
 		log("- Starting OAuth notification monitor")
 		monitor := oauth.NewNotificationMonitor()
 		monitor.OnOAuthEvent = func(event oauth.Event) {
-			// Handle OAuth event in a goroutine to avoid blocking the monitor
 			go g.handleOAuthEvent(ctx, event)
 		}
 		monitor.Start(ctx)
@@ -223,12 +222,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 				continue
 			}
 
-			// EnsureValidToken will:
-			// - Return immediately if token is valid
-			// - Trigger GetOAuthApp → DD refresh → SSE event → reloadSingleServer if expired
+			// EnsureValidToken will trigger GetOAuthApp → DD refresh → SSE event → reload if expired
 			go func(name string) {
 				if err := g.refreshCoordinator.EnsureValidToken(context.Background(), name); err != nil {
-					logf("! Startup token check failed for %s: %v", name, err)
+					logf("> Startup token check failed for %s: %v", name, err)
 				}
 			}(serverName)
 		}
@@ -544,25 +541,25 @@ func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 		// Read current registry configuration to check if server is enabled
 		currentConfig, _, _, err := g.configurator.Read(ctx)
 		if err != nil {
-			logf("! Failed to read configuration for OAuth event: %v", err)
+			logf("> Failed to read configuration for OAuth event: %v", err)
 			return
 		}
 
 		// Check if server is currently in registry
 		if slices.Contains(currentConfig.ServerNames(), event.Provider) {
-			logf("- Reloading single server after %s", event.Type)
-			// Reload in a goroutine to avoid blocking the SSE monitor
+			logf("> Reloading single server after %s", event.Type)
+
 			go func() {
 				ctx := context.Background()
 				if err := g.reloadSingleServer(ctx, currentConfig, event.Provider); err != nil {
-					logf("! Failed to reload server after OAuth %s: %v", event.Type, err)
+					logf("> Failed to reload server after OAuth %s: %v", event.Type, err)
 					// Broadcast error to waiting requests
 					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
 						Success: false,
 						Error:   fmt.Errorf("server reload failed: %w", err),
 					})
 				} else {
-					logf("✓ Server reloaded successfully after OAuth %s", event.Type)
+					logf("> Server reloaded successfully after OAuth %s", event.Type)
 					// Broadcast success to waiting requests
 					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
 						Success: true,
@@ -570,16 +567,16 @@ func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
 				}
 			}()
 		} else {
-			logf("- Provider %s not in enabled servers, skipping reload", event.Provider)
+			logf("> Provider %s not in enabled servers, skipping reload", event.Provider)
 		}
 	}
 
-	logf("- OAuth event processed for %s", event.Provider)
+	logf("> OAuth event processed for %s", event.Provider)
 }
 
 // reloadSingleServer refreshes the connection for a single OAuth server after token changes.
 func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configuration, serverName string) error {
-	logf("- Reloading OAuth server: %s", serverName)
+	logf("> Reloading OAuth server: %s", serverName)
 
 	// Close old client connection with stale token (removes from pool)
 	g.clientPool.InvalidateOAuthClients(serverName)
@@ -592,6 +589,6 @@ func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configur
 		return fmt.Errorf("failed to reload configuration: %w", err)
 	}
 
-	logf("- OAuth server %s reconnected and tools registered", serverName)
+	logf("> OAuth server %s reconnected and tools registered", serverName)
 	return nil
 }

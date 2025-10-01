@@ -41,7 +41,7 @@ func TestExtractProviderFromMessage(t *testing.T) {
 			message:  "Successfully logged out of slack-remote",
 			expected: "slack-remote",
 		},
-		// Error event has different format - uses 'during' pattern which we don't extract
+		// Note: Error event has different format - uses 'during' pattern which we don't extract
 		// This is OK because error events don't trigger server reloads
 		{
 			name:     "error event",

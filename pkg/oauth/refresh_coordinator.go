@@ -57,21 +57,21 @@ func (c *RefreshCoordinator) getOrCreateState(serverName string) *RefreshState {
 // EnsureValidToken checks token validity and coordinates refresh if needed
 // Returns nil if token is valid or successfully refreshed, error otherwise
 func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName string) error {
-	// Step 1: Check token status
+	// Check token status
 	status, err := c.credHelper.GetTokenStatus(ctx, serverName)
 	if err != nil {
-		logf("! Token status check failed for %s: %v", serverName, err)
+		logf("- Token status check failed for %s: %v", serverName, err)
 		return fmt.Errorf("failed to check token status: %w", err)
 	}
 
 	// Token is valid and doesn't need refresh
 	if status.Valid && !status.NeedsRefresh {
-		logf("✓ Token valid for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
+		logf("- Token valid for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
 		return nil
 	}
 
 	// Token needs refresh - coordinate with other concurrent requests
-	logf("⚠ Token needs refresh for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
+	logf("- Token needs refresh for %s (expires: %s)", serverName, status.ExpiresAt.Format(time.RFC3339))
 	state := c.getOrCreateState(serverName)
 
 	state.mu.Lock()
@@ -118,8 +118,6 @@ func (c *RefreshCoordinator) EnsureValidToken(ctx context.Context, serverName st
 			return
 		}
 		// Success will be broadcast by handleOAuthEvent after reload completes
-		// GetOAuthApp returns at T+803ms, but reloadSingleServer completes at T+850ms
-		// We must wait for the reload to complete before tool execution proceeds
 	}()
 
 	// Leader also waits for result
@@ -159,8 +157,8 @@ func (c *RefreshCoordinator) BroadcastResult(serverName string, result RefreshRe
 	}
 
 	if result.Success {
-		logf("✓ OAuth token refresh successful for %s (%d requests completed)", serverName, len(waiters))
+		logf("- OAuth token refresh successful for %s (%d requests completed)", serverName, len(waiters))
 	} else {
-		logf("! OAuth token refresh failed for %s: %v", serverName, result.Error)
+		logf("- OAuth token refresh failed for %s: %v", serverName, result.Error)
 	}
 }

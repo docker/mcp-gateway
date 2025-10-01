@@ -29,9 +29,9 @@ func NewOAuthCredentialHelper() *CredentialHelper {
 
 // TokenStatus represents the validity status of an OAuth token
 type TokenStatus struct {
-	Valid        bool      // Token exists and is valid
-	ExpiresAt    time.Time // Token expiration time
-	NeedsRefresh bool      // Token expires within 60s
+	Valid        bool
+	ExpiresAt    time.Time
+	NeedsRefresh bool
 }
 
 // GetOAuthToken retrieves an OAuth token for the specified server
@@ -44,7 +44,7 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
 	if err != nil {
-		logf("! Failed to get DCR client for %s: %v", serverName, err)
+		logf("- Failed to get DCR client for %s: %v", serverName, err)
 		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
@@ -58,7 +58,7 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 			logf("- OAuth token not found for key: %s", credentialKey)
 			return "", fmt.Errorf("OAuth token not found for %s (key: %s). Run 'docker mcp oauth authorize %s' to authenticate", serverName, credentialKey, serverName)
 		}
-		logf("! Failed to retrieve token from credential helper: %v", err)
+		logf("- Failed to retrieve token from credential helper: %v", err)
 		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
@@ -89,7 +89,6 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 }
 
 // GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
-// Returns TokenStatus with validity and expiry information
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
 	// Get DCR client info
 	client := desktop.NewAuthClient()
@@ -124,7 +123,7 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
 		RefreshToken string `json:"refresh_token,omitempty"`
-		Expiry       string `json:"expiry,omitempty"` // RFC3339 timestamp string
+		Expiry       string `json:"expiry,omitempty"`
 	}
 	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to parse OAuth token JSON for %s: %w", serverName, err)
@@ -147,7 +146,7 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		return TokenStatus{
 			Valid:        true,
 			ExpiresAt:    time.Time{},
-			NeedsRefresh: true, // No expiry info, trigger proactive check
+			NeedsRefresh: true,
 		}, nil
 	}
 

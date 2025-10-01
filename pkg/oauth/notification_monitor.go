@@ -37,7 +37,7 @@ type Event struct {
 type NotificationMonitor struct {
 	url          string
 	client       *http.Client
-	OnOAuthEvent func(event Event) // Callback for OAuth events
+	OnOAuthEvent func(event Event)
 }
 
 // NewNotificationMonitor creates a new notification monitor
@@ -46,7 +46,6 @@ func NewNotificationMonitor() *NotificationMonitor {
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				// Use the same dialing approach as desktop.ClientBackend
 				dialer := net.Dialer{}
 				return dialer.DialContext(ctx, "unix", desktop.Paths().BackendSocket)
 			},
@@ -90,7 +89,7 @@ func (m *NotificationMonitor) connect(ctx context.Context) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url, nil)
 	if err != nil {
-		logf("! Failed to create OAuth notification request: %v", err)
+		logf("- Failed to create OAuth notification request: %v", err)
 		return
 	}
 
@@ -100,13 +99,13 @@ func (m *NotificationMonitor) connect(ctx context.Context) {
 
 	resp, err := m.client.Do(req)
 	if err != nil {
-		logf("! Failed to connect to OAuth notifications: %v", err)
+		logf("- Failed to connect to OAuth notifications: %v", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logf("! OAuth notification stream unexpected status: %d %s", resp.StatusCode, resp.Status)
+		logf("- OAuth notification stream unexpected status: %d %s", resp.StatusCode, resp.Status)
 		return
 	}
 
@@ -137,7 +136,7 @@ func (m *NotificationMonitor) connect(ctx context.Context) {
 
 			oauthEvent, err := parseOAuthEvent(jsonData)
 			if err != nil {
-				logf("! Failed to parse OAuth event: %v", err)
+				logf("- Failed to parse OAuth event: %v", err)
 				continue
 			}
 
@@ -146,7 +145,7 @@ func (m *NotificationMonitor) connect(ctx context.Context) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		logf("! OAuth notification connection error: %v", err)
+		logf("- OAuth notification connection error: %v", err)
 	} else {
 		log("- OAuth notification stream closed")
 	}
@@ -193,7 +192,7 @@ func parseOAuthEvent(jsonData string) (Event, error) {
 
 // processOAuthEvent calls callback for relevant events and logs errors
 func (m *NotificationMonitor) processOAuthEvent(event Event) {
-	logf("← SSE event received: %s for %s", event.Type, event.Provider)
+	logf("- SSE event received: %s for %s", event.Type, event.Provider)
 
 	// Only log errors and unknown events - let handleOAuthEvent handle success logs
 	switch event.Type {
@@ -206,12 +205,12 @@ func (m *NotificationMonitor) processOAuthEvent(event Event) {
 		}
 	case EventError:
 		if event.Error != "" {
-			logf("! OAuth error for %s: %s", event.Provider, event.Error)
+			logf("- OAuth error for %s: %s", event.Provider, event.Error)
 		} else {
-			logf("! OAuth error for %s (no details)", event.Provider)
+			logf("- OAuth error for %s (no details)", event.Provider)
 		}
 	default:
-		logf("! Unknown OAuth event type: %s for %s", event.Type, event.Provider)
+		logf("- Unknown OAuth event type: %s for %s", event.Type, event.Provider)
 	}
 }
 
