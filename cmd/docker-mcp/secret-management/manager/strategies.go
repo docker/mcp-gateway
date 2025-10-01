@@ -8,13 +8,13 @@ import (
 	"github.com/docker/docker/api/types/mount"
 )
 
-// DesktopLabelStrategy - Usa labels x-secret do Docker Desktop
+// DesktopLabelStrategy - Uses Docker Desktop x-secret labels
 type DesktopLabelStrategy struct {
 	SecretName string
 	MountPath  string
 }
 
-// Apply adiciona a label x-secret ao container
+// Apply adds the x-secret label to the container
 func (d *DesktopLabelStrategy) Apply(containerConfig *container.Config, hostConfig *container.HostConfig) error {
 	if containerConfig.Labels == nil {
 		containerConfig.Labels = make(map[string]string)
@@ -23,16 +23,16 @@ func (d *DesktopLabelStrategy) Apply(containerConfig *container.Config, hostConf
 	return nil
 }
 
-// Type retorna o tipo de estratégia
+// Type returns the strategy type
 func (d *DesktopLabelStrategy) Type() string {
 	return "desktop-label"
 }
 
-// SwarmSecretStrategy - Usa Docker Swarm Secrets
-// Nota: Esta estratégia armazena informações sobre o secret mas a montagem
-// real acontece através de Docker Services, não containers standalone.
-// Para uso no gateway, devemos criar services ao invés de containers quando
-// usando Swarm secrets.
+// SwarmSecretStrategy - Uses Docker Swarm Secrets
+// Note: This strategy stores information about the secret but the actual mount
+// happens through Docker Services, not standalone containers.
+// For gateway usage, we should create services instead of containers when
+// using Swarm secrets.
 type SwarmSecretStrategy struct {
 	SecretID   string
 	SecretName string
@@ -40,46 +40,46 @@ type SwarmSecretStrategy struct {
 	Mode       os.FileMode
 }
 
-// Apply configura labels para indicar que este container precisa de secrets
-// A montagem real do Swarm secret acontece via Docker Service API
+// Apply configures labels to indicate that this container needs secrets
+// The actual Swarm secret mount happens via Docker Service API
 func (s *SwarmSecretStrategy) Apply(containerConfig *container.Config, hostConfig *container.HostConfig) error {
 	if containerConfig.Labels == nil {
 		containerConfig.Labels = make(map[string]string)
 	}
-	
-	// Adiciona metadata sobre o secret necessário
-	// O gateway precisará usar isto para criar um Service ao invés de container standalone
+
+	// Add metadata about the required secret
+	// The gateway will need to use this to create a Service instead of a standalone container
 	containerConfig.Labels[fmt.Sprintf("com.docker.mcp.secret.%s.id", s.SecretName)] = s.SecretID
 	containerConfig.Labels[fmt.Sprintf("com.docker.mcp.secret.%s.path", s.SecretName)] = s.TargetPath
-	
+
 	return nil
 }
 
-// Type retorna o tipo de estratégia
+// Type returns the strategy type
 func (s *SwarmSecretStrategy) Type() string {
 	return "swarm"
 }
 
-// GetSecretInfo retorna informações sobre o secret para uso em service spec
+// GetSecretInfo returns information about the secret for use in service spec
 func (s *SwarmSecretStrategy) GetSecretInfo() (secretID, secretName, targetPath string, mode os.FileMode) {
 	return s.SecretID, s.SecretName, s.TargetPath, s.Mode
 }
 
-// TmpfsMountStrategy - Monta secret via tmpfs (fallback inseguro)
+// TmpfsMountStrategy - Mounts secret via tmpfs (insecure fallback)
 type TmpfsMountStrategy struct {
 	SecretName  string
-	SecretValue string // Apenas para fallback
+	SecretValue string // Only for fallback
 	MountPath   string
 }
 
-// Apply cria um tmpfs mount para o secret
+// Apply creates a tmpfs mount for the secret
 func (t *TmpfsMountStrategy) Apply(containerConfig *container.Config, hostConfig *container.HostConfig) error {
-	// Cria tmpfs mount para /run/secrets
+	// Create tmpfs mount for /run/secrets
 	if hostConfig.Mounts == nil {
 		hostConfig.Mounts = []mount.Mount{}
 	}
 
-	// Verifica se já existe mount para /run/secrets
+	// Check if mount already exists for /run/secrets
 	hasSecretsMount := false
 	for _, m := range hostConfig.Mounts {
 		if m.Target == "/run/secrets" {
@@ -99,23 +99,23 @@ func (t *TmpfsMountStrategy) Apply(containerConfig *container.Config, hostConfig
 		})
 	}
 
-	// Adiciona label para indicar que o valor precisa ser escrito
+	// Add label to indicate that the value needs to be written
 	if containerConfig.Labels == nil {
 		containerConfig.Labels = make(map[string]string)
 	}
 	containerConfig.Labels[fmt.Sprintf("com.docker.mcp.secret.tmpfs.%s", t.SecretName)] = "pending"
 
-	// Nota: O valor será escrito via docker exec após o container iniciar
-	// Isso é implementado no gateway quando necessário
+	// Note: The value will be written via docker exec after container starts
+	// This is implemented in the gateway when needed
 	return nil
 }
 
-// Type retorna o tipo de estratégia
+// Type returns the strategy type
 func (t *TmpfsMountStrategy) Type() string {
 	return "tmpfs"
 }
 
-// GetSecretValue retorna o valor do secret para escrita posterior
+// GetSecretValue returns the secret value for later writing
 func (t *TmpfsMountStrategy) GetSecretValue() string {
 	return t.SecretValue
 }

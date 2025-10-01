@@ -17,7 +17,7 @@ type secretManager struct {
 	env       *EnvironmentCapabilities
 }
 
-// NewSecretManager cria um novo gerenciador de secrets
+// NewSecretManager creates a new secrets manager
 func NewSecretManager(
 	ctx context.Context,
 	mode SecretMode,
@@ -32,10 +32,10 @@ func NewSecretManager(
 	// Log environment detection
 	logEnvironmentDetection(env)
 
-	// Inicializa providers na ordem de prioridade
+	// Initialize providers in priority order
 	providers := []provider.SecretProvider{}
 
-	// 1. SwarmProvider (se disponível)
+	// 1. SwarmProvider (if available)
 	if env.HasSwarmMode {
 		swarmProvider, err := provider.NewSwarmProvider(dockerClient)
 		if err == nil && swarmProvider.IsAvailable(ctx) {
@@ -44,7 +44,7 @@ func NewSecretManager(
 		}
 	}
 
-	// 2. DesktopProvider (se disponível)
+	// 2. DesktopProvider (if available)
 	if env.HasDockerDesktop {
 		desktopProvider := provider.NewDesktopProvider()
 		if desktopProvider.IsAvailable(ctx) {
@@ -53,7 +53,7 @@ func NewSecretManager(
 		}
 	}
 
-	// 3. CredStoreProvider (se disponível)
+	// 3. CredStoreProvider (if available)
 	if env.HasCredentialHelper {
 		credProvider := provider.NewCredStoreProvider()
 		if credProvider.IsAvailable(ctx) {
@@ -62,7 +62,7 @@ func NewSecretManager(
 		}
 	}
 
-	// 4. FileProvider (sempre disponível como fallback)
+	// 4. FileProvider (always available as fallback)
 	fileProvider := provider.NewFileProvider()
 	providers = append(providers, fileProvider)
 	log.Printf("[SecretManager] FileProvider added (fallback)")
@@ -80,19 +80,19 @@ func NewSecretManager(
 }
 
 func (m *secretManager) GetSecretReference(ctx context.Context, name string) (*SecretReference, error) {
-	// Tenta cada provider que suporta secure mount
+	// Try each provider that supports secure mount
 	for _, p := range m.providers {
 		if !p.SupportsSecureMount() {
 			continue
 		}
 
-		// Verifica se o secret existe
+		// Check if secret exists
 		_, err := p.GetSecret(ctx, name)
 		if err != nil {
 			continue
 		}
 
-		// Cria estratégia de montagem apropriada
+		// Create appropriate mount strategy
 		strategy, err := m.getMountStrategy(ctx, p, name)
 		if err != nil {
 			continue
@@ -107,7 +107,7 @@ func (m *secretManager) GetSecretReference(ctx context.Context, name string) (*S
 		}, nil
 	}
 
-	// Fallback para modo value se configurado
+	// Fallback to value mode if configured
 	if m.mode == HybridMode || m.mode == ValueMode {
 		return m.getFallbackReference(ctx, name)
 	}
@@ -143,14 +143,14 @@ func (m *secretManager) getMountStrategy(ctx context.Context, p provider.SecretP
 }
 
 func (m *secretManager) GetSecretValue(ctx context.Context, name string) (string, error) {
-	// Apenas permitido em ValueMode
+	// Only allowed in ValueMode
 	if m.mode == ReferenceModeOnly {
 		return "", fmt.Errorf("GetSecretValue not allowed in reference-only mode")
 	}
 
 	log.Printf("[SecretManager] Reading secret value '%s' (mode: %s)", name, m.mode)
 
-	// Tenta cada provider
+	// Try each provider
 	for _, p := range m.providers {
 		if !p.IsAvailable(ctx) {
 			continue
@@ -167,7 +167,7 @@ func (m *secretManager) GetSecretValue(ctx context.Context, name string) (string
 }
 
 func (m *secretManager) SetSecret(ctx context.Context, name, value string) error {
-	// Usa o primeiro provider disponível
+	// Use the first available provider
 	if len(m.providers) == 0 {
 		return fmt.Errorf("no secret providers available")
 	}
@@ -185,7 +185,7 @@ func (m *secretManager) SetSecret(ctx context.Context, name, value string) error
 }
 
 func (m *secretManager) DeleteSecret(ctx context.Context, name string) error {
-	// Tenta deletar de todos os providers
+	// Try to delete from all providers
 	deleted := false
 	var lastErr error
 
@@ -211,7 +211,7 @@ func (m *secretManager) DeleteSecret(ctx context.Context, name string) error {
 }
 
 func (m *secretManager) ListSecrets(ctx context.Context) ([]provider.StoredSecret, error) {
-	// Agrega secrets de todos os providers
+	// Aggregate secrets from all providers
 	allSecrets := []provider.StoredSecret{}
 	seen := make(map[string]bool)
 
@@ -246,8 +246,8 @@ func (m *secretManager) DetectEnvironment(ctx context.Context) (*EnvironmentCapa
 }
 
 func (m *secretManager) getFallbackReference(ctx context.Context, name string) (*SecretReference, error) {
-	// Para providers que não suportam secure mount,
-	// cria uma estratégia tmpfs
+	// For providers that don't support secure mount,
+	// create a tmpfs strategy
 	value, err := m.GetSecretValue(ctx, name)
 	if err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func (m *secretManager) getFallbackReference(ctx context.Context, name string) (
 	}, nil
 }
 
-// logEnvironmentDetection loga as capacidades detectadas
+// logEnvironmentDetection logs detected capabilities
 func logEnvironmentDetection(env *EnvironmentCapabilities) {
 	if os.Getenv("MCP_SECRET_DEBUG") != "" {
 		log.Printf("[SecretManager] Environment detected:")

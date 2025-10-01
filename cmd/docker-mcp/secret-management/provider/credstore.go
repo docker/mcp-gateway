@@ -89,7 +89,7 @@ func (c *CredStoreProvider) ProviderName() string {
 	return "credstore"
 }
 
-// SupportsSecureMount retorna false - Credstore precisa expor valores
+// SupportsSecureMount returns false - Credstore needs to expose values
 func (c *CredStoreProvider) SupportsSecureMount() bool {
 	return false
 }

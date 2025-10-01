@@ -24,8 +24,8 @@ type SecretProvider interface {
 	
 	// ProviderName returns a human-readable name for this provider.
 	ProviderName() string
-	
-	// SupportsSecureMount indica se o provider pode montar sem expor valores
+
+	// SupportsSecureMount indicates whether the provider can mount without exposing values
 	SupportsSecureMount() bool
 }
 
@@ -155,7 +155,7 @@ func (c *ChainProvider) ProviderName() string {
 	return "chain"
 }
 
-// SupportsSecureMount retorna true se pelo menos um provider suporta secure mount
+// SupportsSecureMount returns true if at least one provider supports secure mount
 func (c *ChainProvider) SupportsSecureMount() bool {
 	for _, provider := range c.providers {
 		if provider.SupportsSecureMount() {

@@ -83,7 +83,7 @@ func (d *DesktopProvider) ProviderName() string {
 	return "docker-desktop"
 }
 
-// SupportsSecureMount retorna true - Desktop suporta montagem segura via labels
+// SupportsSecureMount returns true - Desktop supports secure mount via labels
 func (d *DesktopProvider) SupportsSecureMount() bool {
 	return true
 }

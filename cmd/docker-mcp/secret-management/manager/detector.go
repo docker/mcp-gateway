@@ -10,47 +10,47 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
-// EnvironmentDetector detecta capacidades do ambiente Docker
+// EnvironmentDetector detects Docker environment capabilities
 type EnvironmentDetector struct {
 	dockerClient *client.Client
 }
 
-// NewEnvironmentDetector cria um novo detector de ambiente
+// NewEnvironmentDetector creates a new environment detector
 func NewEnvironmentDetector(dockerClient *client.Client) *EnvironmentDetector {
 	return &EnvironmentDetector{dockerClient: dockerClient}
 }
 
-// Detect identifica as capacidades do ambiente
+// Detect identifies environment capabilities
 func (d *EnvironmentDetector) Detect(ctx context.Context) (*EnvironmentCapabilities, error) {
 	caps := &EnvironmentCapabilities{}
 
-	// Detecta Docker Desktop
+	// Detect Docker Desktop
 	caps.HasDockerDesktop = d.detectDockerDesktop(ctx)
 
-	// Detecta Swarm Mode
+	// Detect Swarm Mode
 	caps.HasSwarmMode = d.detectSwarmMode(ctx)
 
-	// Detecta credential helper
+	// Detect credential helper
 	caps.HasCredentialHelper = d.detectCredentialHelper()
 
-	// Determina se suporta montagem segura
+	// Determine if secure mount is supported
 	caps.SupportsSecureMount = caps.HasDockerDesktop || caps.HasSwarmMode
 
-	// Recomenda estratégia
+	// Recommend strategy
 	caps.RecommendedStrategy = d.recommendStrategy(caps)
 
 	return caps, nil
 }
 
-// detectDockerDesktop verifica se Docker Desktop está disponível
+// detectDockerDesktop checks if Docker Desktop is available
 func (d *EnvironmentDetector) detectDockerDesktop(ctx context.Context) bool {
-	// Verifica se JFS socket existe
+	// Check if JFS socket exists
 	paths := desktop.Paths()
 	_, err := os.Stat(paths.JFSSocket)
 	return err == nil
 }
 
-// detectSwarmMode verifica se Swarm está ativo
+// detectSwarmMode checks if Swarm is active
 func (d *EnvironmentDetector) detectSwarmMode(ctx context.Context) bool {
 	if d.dockerClient == nil {
 		return false
@@ -64,14 +64,14 @@ func (d *EnvironmentDetector) detectSwarmMode(ctx context.Context) bool {
 	return info.Swarm.LocalNodeState == swarm.LocalNodeStateActive
 }
 
-// detectCredentialHelper verifica se docker-credential-pass está disponível
+// detectCredentialHelper checks if docker-credential-pass is available
 func (d *EnvironmentDetector) detectCredentialHelper() bool {
-	// Verifica se docker-credential-pass está no PATH
+	// Check if docker-credential-pass is in PATH
 	_, err := exec.LookPath("docker-credential-pass")
 	return err == nil
 }
 
-// recommendStrategy recomenda a melhor estratégia baseado nas capacidades
+// recommendStrategy recommends the best strategy based on capabilities
 func (d *EnvironmentDetector) recommendStrategy(caps *EnvironmentCapabilities) string {
 	switch {
 	case caps.HasDockerDesktop:

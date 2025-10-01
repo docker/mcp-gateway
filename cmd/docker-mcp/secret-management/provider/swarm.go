@@ -10,12 +10,12 @@ import (
 	"github.com/docker/docker/client"
 )
 
-// SwarmProvider implementa SecretProvider usando Docker Swarm Secrets
+// SwarmProvider implements SecretProvider using Docker Swarm Secrets
 type SwarmProvider struct {
 	client *client.Client
 }
 
-// NewSwarmProvider cria um novo SwarmProvider
+// NewSwarmProvider creates a new SwarmProvider
 func NewSwarmProvider(dockerClient *client.Client) (*SwarmProvider, error) {
 	if dockerClient == nil {
 		return nil, fmt.Errorf("docker client cannot be nil")
@@ -23,7 +23,7 @@ func NewSwarmProvider(dockerClient *client.Client) (*SwarmProvider, error) {
 	return &SwarmProvider{client: dockerClient}, nil
 }
 
-// IsAvailable verifica se Swarm está ativo
+// IsAvailable checks if Swarm is active
 func (s *SwarmProvider) IsAvailable(ctx context.Context) bool {
 	info, err := s.client.Info(ctx)
 	if err != nil {
@@ -32,10 +32,10 @@ func (s *SwarmProvider) IsAvailable(ctx context.Context) bool {
 	return info.Swarm.LocalNodeState == swarm.LocalNodeStateActive
 }
 
-// GetSecret retorna valor do secret (limitação: Swarm não expõe valores por segurança)
+// GetSecret returns the secret value (limitation: Swarm doesn't expose values for security)
 func (s *SwarmProvider) GetSecret(ctx context.Context, name string) (string, error) {
-	// Nota: Docker Swarm não expõe valores de secrets por design de segurança
-	// Este método apenas confirma que o secret existe
+	// Note: Docker Swarm doesn't expose secret values by security design
+	// This method only confirms that the secret exists
 	secrets, err := s.client.SecretList(ctx, types.SecretListOptions{
 		Filters: filters.NewArgs(filters.Arg("name", name)),
 	})
@@ -47,14 +47,14 @@ func (s *SwarmProvider) GetSecret(ctx context.Context, name string) (string, err
 		return "", &SecretNotFoundError{Name: name, Provider: "swarm"}
 	}
 
-	// Swarm não retorna valores - apenas confirma existência
-	// O valor real será montado pelo Docker Engine no container
+	// Swarm doesn't return values - only confirms existence
+	// The actual value will be mounted by Docker Engine in the container
 	return "", nil
 }
 
-// SetSecret cria um novo Docker Swarm Secret
+// SetSecret creates a new Docker Swarm Secret
 func (s *SwarmProvider) SetSecret(ctx context.Context, name, value string) error {
-	// Verifica se já existe
+	// Check if it already exists
 	existing, err := s.client.SecretList(ctx, types.SecretListOptions{
 		Filters: filters.NewArgs(filters.Arg("name", name)),
 	})
@@ -62,9 +62,9 @@ func (s *SwarmProvider) SetSecret(ctx context.Context, name, value string) error
 		return fmt.Errorf("checking existing secret: %w", err)
 	}
 
-	// Se já existe, precisamos remover e recriar (secrets são imutáveis no Swarm)
+	// If it already exists, we need to remove and recreate (secrets are immutable in Swarm)
 	if len(existing) > 0 {
-		// Nota: Em produção, você pode querer versionar secrets ao invés de deletar
+		// Note: In production, you may want to version secrets instead of deleting
 		if err := s.client.SecretRemove(ctx, existing[0].ID); err != nil {
 			return fmt.Errorf("removing existing secret: %w", err)
 		}
@@ -89,7 +89,7 @@ func (s *SwarmProvider) SetSecret(ctx context.Context, name, value string) error
 	return nil
 }
 
-// DeleteSecret remove um Swarm Secret
+// DeleteSecret removes a Swarm Secret
 func (s *SwarmProvider) DeleteSecret(ctx context.Context, name string) error {
 	secrets, err := s.client.SecretList(ctx, types.SecretListOptions{
 		Filters: filters.NewArgs(filters.Arg("name", name)),
@@ -105,7 +105,7 @@ func (s *SwarmProvider) DeleteSecret(ctx context.Context, name string) error {
 	return s.client.SecretRemove(ctx, secrets[0].ID)
 }
 
-// ListSecrets lista todos os Swarm Secrets gerenciados pelo MCP
+// ListSecrets lists all Swarm Secrets managed by MCP
 func (s *SwarmProvider) ListSecrets(ctx context.Context) ([]StoredSecret, error) {
 	secrets, err := s.client.SecretList(ctx, types.SecretListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", "com.docker.mcp.managed=true")),
@@ -125,17 +125,17 @@ func (s *SwarmProvider) ListSecrets(ctx context.Context) ([]StoredSecret, error)
 	return result, nil
 }
 
-// SupportsSecureMount retorna true - Swarm suporta montagem segura
+// SupportsSecureMount returns true - Swarm supports secure mounting
 func (s *SwarmProvider) SupportsSecureMount() bool {
 	return true
 }
 
-// ProviderName retorna o nome do provider
+// ProviderName returns the provider name
 func (s *SwarmProvider) ProviderName() string {
 	return "swarm"
 }
 
-// GetSecretID retorna o ID do secret para uso em mount strategies
+// GetSecretID returns the secret ID for use in mount strategies
 func (s *SwarmProvider) GetSecretID(ctx context.Context, name string) (string, error) {
 	secrets, err := s.client.SecretList(ctx, types.SecretListOptions{
 		Filters: filters.NewArgs(filters.Arg("name", name)),

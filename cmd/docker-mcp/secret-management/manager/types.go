@@ -7,37 +7,37 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/provider"
 )
 
-// SecretMode define como os secrets são tratados
+// SecretMode defines how secrets are handled
 type SecretMode string
 
 const (
-	// ReferenceModeOnly - Gateway nunca conhece valores (produção)
+	// ReferenceModeOnly - Gateway never knows values (production)
 	ReferenceModeOnly SecretMode = "reference"
 
-	// ValueMode - Gateway pode ler valores (desenvolvimento/migração)
+	// ValueMode - Gateway can read values (development/migration)
 	ValueMode SecretMode = "value"
 
-	// HybridMode - Tenta reference, fallback para value
+	// HybridMode - Tries reference, falls back to value
 	HybridMode SecretMode = "hybrid"
 )
 
-// SecretReference representa uma referência a um secret (não o valor)
+// SecretReference represents a reference to a secret (not the value)
 type SecretReference struct {
 	Name          string
 	Provider      string
 	MountStrategy MountStrategy
 }
 
-// MountStrategy define como montar o secret no container
+// MountStrategy defines how to mount the secret in the container
 type MountStrategy interface {
-	// Apply configura o container para receber o secret
+	// Apply configures the container to receive the secret
 	Apply(containerConfig *container.Config, hostConfig *container.HostConfig) error
 
-	// Type retorna o tipo de estratégia
+	// Type returns the strategy type
 	Type() string
 }
 
-// EnvironmentCapabilities descreve o que o ambiente suporta
+// EnvironmentCapabilities describes what the environment supports
 type EnvironmentCapabilities struct {
 	HasDockerDesktop     bool
 	HasSwarmMode         bool
@@ -46,26 +46,26 @@ type EnvironmentCapabilities struct {
 	RecommendedStrategy  string
 }
 
-// SecretManager orquestra o gerenciamento de secrets
+// SecretManager orchestrates secret management
 type SecretManager interface {
-	// GetSecretReference obtém referência para montar secret
+	// GetSecretReference gets a reference to mount the secret
 	GetSecretReference(ctx context.Context, name string) (*SecretReference, error)
 
-	// GetSecretValue obtém valor real (apenas em ValueMode)
+	// GetSecretValue gets the actual value (only in ValueMode)
 	GetSecretValue(ctx context.Context, name string) (string, error)
 
-	// SetSecret armazena um secret
+	// SetSecret stores a secret
 	SetSecret(ctx context.Context, name, value string) error
 
-	// DeleteSecret remove um secret
+	// DeleteSecret removes a secret
 	DeleteSecret(ctx context.Context, name string) error
 
-	// ListSecrets lista secrets disponíveis
+	// ListSecrets lists available secrets
 	ListSecrets(ctx context.Context) ([]provider.StoredSecret, error)
 
-	// GetMode retorna o modo de operação atual
+	// GetMode returns the current operation mode
 	GetMode() SecretMode
 
-	// DetectEnvironment identifica capacidades do ambiente
+	// DetectEnvironment identifies environment capabilities
 	DetectEnvironment(ctx context.Context) (*EnvironmentCapabilities, error)
 }

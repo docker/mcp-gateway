@@ -9,28 +9,28 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
-// Diagnose detecta e exibe informações sobre o ambiente de secrets
+// Diagnose detects and displays information about the secrets environment
 func Diagnose(ctx context.Context, dockerClient docker.Client) error {
-	// Cria um client Docker API para o manager
+	// Create a Docker API client for the manager
 	apiClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
 	defer apiClient.Close()
 
-	// Cria um SecretManager para detectar o ambiente
+	// Create a SecretManager to detect the environment
 	mgr, err := manager.NewSecretManager(ctx, manager.ReferenceModeOnly, apiClient)
 	if err != nil {
 		return fmt.Errorf("failed to create secret manager: %w", err)
 	}
 
-	// Obtém capacidades do ambiente
+	// Get environment capabilities
 	env, err := mgr.DetectEnvironment(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to detect environment: %w", err)
 	}
 
-	// Exibe resultados
+	// Display results
 	fmt.Println("Secret Environment Diagnostics:")
 	fmt.Println("================================")
 	fmt.Printf("Docker Desktop:       %s\n", formatBool(env.HasDockerDesktop))
@@ -40,7 +40,7 @@ func Diagnose(ctx context.Context, dockerClient docker.Client) error {
 	fmt.Printf("Recommended Strategy: %s\n", env.RecommendedStrategy)
 	fmt.Println()
 
-	// Exibe recomendações baseadas no ambiente
+	// Display recommendations based on environment
 	fmt.Println("Recommendations:")
 	fmt.Println("----------------")
 
@@ -60,7 +60,7 @@ func Diagnose(ctx context.Context, dockerClient docker.Client) error {
 
 	fmt.Println()
 
-	// Exibe instruções específicas
+	// Display specific instructions
 	switch env.RecommendedStrategy {
 	case "swarm":
 		fmt.Println("Using: Docker Swarm Secrets")

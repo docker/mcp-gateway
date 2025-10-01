@@ -146,7 +146,7 @@ func (f *FileProvider) ProviderName() string {
 	return "file"
 }
 
-// SupportsSecureMount retorna false - File provider precisa expor valores
+// SupportsSecureMount returns false - File provider needs to expose values
 func (f *FileProvider) SupportsSecureMount() bool {
 	return false
 }
