@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pelletier/go-toml/v2"
 
@@ -144,10 +145,17 @@ func connectCodex(_ context.Context) error {
 		config["mcp_servers"] = mcpServers
 	}
 
+	// Determine command and args based on platform
+	command := "docker"
+	if runtime.GOOS == "windows" {
+		command = "docker.exe"
+	}
+	args := []string{"mcp", "gateway", "run"}
+
 	// Add DOCKER_MCP entry
 	mcpServers[DockerMCPCatalog] = MCPServerConfig{
-		Command: "docker",
-		Args:    []string{"mcp", "gateway", "run"},
+		Command: command,
+		Args:    args,
 	}
 
 	return writeCodexConfig(config)
