@@ -159,20 +159,23 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					continue
 				}
 
-				mcpTool := mcp.Tool{
-					Name:        tool.Name,
-					Description: tool.Description,
-					InputSchema: &jsonschema.Schema{},
-				}
+				// Create schema with proper type
+				schema := &jsonschema.Schema{}
 				// TODO: Properly convert tool.Parameters to jsonschema.Schema
 				// For now, we'll create a simple schema structure
 				if len(tool.Parameters.Properties) == 0 {
-					mcpTool.InputSchema.Type = "object"
+					schema.Type = "object"
 				} else {
-					mcpTool.InputSchema.Type = tool.Parameters.Type
+					schema.Type = tool.Parameters.Type
 					// Note: tool.Parameters.Properties.ToMap() returns map[string]any
 					// but we need map[string]*jsonschema.Schema
 					// This is a complex conversion that needs proper implementation
+				}
+
+				mcpTool := mcp.Tool{
+					Name:        tool.Name,
+					Description: tool.Description,
+					InputSchema: schema,
 				}
 
 				capabilities.Tools = append(capabilities.Tools, ToolRegistration{

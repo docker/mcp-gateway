@@ -36,13 +36,13 @@ const (
 	latestProtocolVersion   = protocolVersion20250618
 	protocolVersion20250618 = "2025-06-18"
 	protocolVersion20250326 = "2025-03-26"
-	protocolVersion20251105 = "2024-11-05"
+	protocolVersion20241105 = "2024-11-05"
 )
 
 var supportedProtocolVersions = []string{
 	protocolVersion20250618,
 	protocolVersion20250326,
-	protocolVersion20251105,
+	protocolVersion20241105,
 }
 
 // negotiatedVersion returns the effective protocol version to use, given a
@@ -114,7 +114,7 @@ func orZero[T any, P *U, U any](p P) T {
 	return any(p).(T)
 }
 
-func HandleNotify(ctx context.Context, method string, req Request) error {
+func handleNotify(ctx context.Context, method string, req Request) error {
 	mh := req.GetSession().sendingMethodHandler()
 	_, err := mh(ctx, method, req)
 	return err
@@ -331,13 +331,11 @@ func clientSessionMethod[P Params, R Result](f func(*ClientSession, context.Cont
 
 // Error codes
 const (
-	// TODO: should these be unexported?
-
-	CodeResourceNotFound = -32002
+	codeResourceNotFound = -32002
 	// The error code if the method exists and was called properly, but the peer does not support it.
-	CodeUnsupportedMethod = -31001
+	codeUnsupportedMethod = -31001
 	// The error code for invalid parameters
-	CodeInvalidParams = -32602
+	codeInvalidParams = -32602
 )
 
 // notifySessions calls Notify on all the sessions.
@@ -346,12 +344,15 @@ func notifySessions[S Session, P Params](sessions []S, method string, params P) 
 	if sessions == nil {
 		return
 	}
-	// TODO: make this timeout configurable, or call Notify asynchronously.
+	// TODO: make this timeout configurable, or call handleNotify asynchronously.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// TODO: there's a potential spec violation here, when the feature list
+	// changes before the session (client or server) is initialized.
 	for _, s := range sessions {
 		req := newRequest(s, params)
-		if err := HandleNotify(ctx, method, req); err != nil {
+		if err := handleNotify(ctx, method, req); err != nil {
 			// TODO(jba): surface this error better
 			log.Printf("calling %s: %v", method, err)
 		}
@@ -450,13 +451,13 @@ func clientRequestFor[P Params](s *ClientSession, p P) *ClientRequest[P] {
 
 // Params is a parameter (input) type for an MCP call or notification.
 type Params interface {
-	// isParams discourages implementation of Params outside of this package.
-	isParams()
-
 	// GetMeta returns metadata from a value.
 	GetMeta() map[string]any
 	// SetMeta sets the metadata on a value.
 	SetMeta(map[string]any)
+
+	// isParams discourages implementation of Params outside of this package.
+	isParams()
 }
 
 // RequestParams is a parameter (input) type for an MCP request.

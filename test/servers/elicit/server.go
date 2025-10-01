@@ -64,14 +64,15 @@ func server() {
 			log.Printf("Received arguments: %T = %+v", req.Params.Arguments, req.Params.Arguments)
 
 			var args map[string]any
-			switch v := req.Params.Arguments.(type) {
-			case map[string]any:
-				args = v
-			case json.RawMessage:
-				if err := json.Unmarshal(v, &args); err != nil {
+			if len(req.Params.Arguments) > 0 {
+				if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
 					return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("failed to unmarshal arguments: %v", err)}}}, nil
 				}
-			default:
+			} else {
+				args = make(map[string]any)
+			}
+
+			if args == nil {
 				return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("arguments must be an object, got %T: %+v", req.Params.Arguments, req.Params.Arguments)}}}, nil
 			}
 

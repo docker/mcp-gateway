@@ -93,16 +93,6 @@ func (*StdioTransport) Connect(context.Context) (Connection, error) {
 	return newIOConn(rwc{os.Stdin, os.Stdout}), nil
 }
 
-// NewStdioTransport constructs a transport that communicates over
-// stdin/stdout.
-//
-// Deprecated: use a StdioTransport literal.
-//
-//go:fix inline
-func NewStdioTransport() *StdioTransport {
-	return &StdioTransport{}
-}
-
 // An InMemoryTransport is a [Transport] that communicates over an in-memory
 // network connection, using newline-delimited JSON.
 type InMemoryTransport struct {
@@ -114,8 +104,12 @@ func (t *InMemoryTransport) Connect(context.Context) (Connection, error) {
 	return newIOConn(t.rwc), nil
 }
 
-// NewInMemoryTransports returns two [InMemoryTransports] that connect to each
-// other.
+// NewInMemoryTransports returns two [InMemoryTransport] objects that connect
+// to each other.
+//
+// The resulting transports are symmetrical: use either to connect to a server,
+// and then the other to connect to a client. Servers must be connected before
+// clients, as the client initializes the MCP session during connection.
 func NewInMemoryTransports() (*InMemoryTransport, *InMemoryTransport) {
 	c1, c2 := net.Pipe()
 	return &InMemoryTransport{c1}, &InMemoryTransport{c2}
@@ -194,7 +188,7 @@ func call(ctx context.Context, conn *jsonrpc2.Connection, method string, params 
 	err := call.Await(ctx, result)
 	switch {
 	case errors.Is(err, jsonrpc2.ErrClientClosing), errors.Is(err, jsonrpc2.ErrServerClosing):
-		return fmt.Errorf("calling %q: %w", method, ErrConnectionClosed)
+		return fmt.Errorf("%w: calling %q: %v", ErrConnectionClosed, method, err)
 	case ctx.Err() != nil:
 		// Notify the peer of cancellation.
 		err := conn.Notify(xcontext.Detach(ctx), notificationCancelled, &CancelledParams{
@@ -215,16 +209,6 @@ type LoggingTransport struct {
 	Writer    io.Writer
 }
 
-// NewLoggingTransport creates a new LoggingTransport that delegates to the
-// provided transport, writing RPC logs to the provided io.Writer.
-//
-// Deprecated: use a LoggingTransport literal.
-//
-//go:fix inline
-func NewLoggingTransport(delegate Transport, w io.Writer) *LoggingTransport {
-	return &LoggingTransport{Transport: delegate, Writer: w}
-}
-
 // Connect connects the underlying transport, returning a [Connection] that writes
 // logs to the configured destination.
 func (t *LoggingTransport) Connect(ctx context.Context) (Connection, error) {
@@ -232,12 +216,14 @@ func (t *LoggingTransport) Connect(ctx context.Context) (Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &loggingConn{delegate, t.Writer}, nil
+	return &loggingConn{delegate: delegate, w: t.Writer}, nil
 }
 
 type loggingConn struct {
 	delegate Connection
-	w        io.Writer
+
+	mu sync.Mutex
+	w  io.Writer
 }
 
 func (c *loggingConn) SessionID() string { return c.delegate.SessionID() }
@@ -245,15 +231,21 @@ func (c *loggingConn) SessionID() string { return c.delegate.SessionID() }
 // Read is a stream middleware that logs incoming messages.
 func (s *loggingConn) Read(ctx context.Context) (jsonrpc.Message, error) {
 	msg, err := s.delegate.Read(ctx)
+
 	if err != nil {
-		fmt.Fprintf(s.w, "read error: %v", err)
+		s.mu.Lock()
+		fmt.Fprintf(s.w, "read error: %v\n", err)
+		s.mu.Unlock()
 	} else {
 		data, err := jsonrpc2.EncodeMessage(msg)
+		s.mu.Lock()
 		if err != nil {
 			fmt.Fprintf(s.w, "LoggingTransport: failed to marshal: %v", err)
 		}
 		fmt.Fprintf(s.w, "read: %s\n", string(data))
+		s.mu.Unlock()
 	}
+
 	return msg, err
 }
 
@@ -261,13 +253,17 @@ func (s *loggingConn) Read(ctx context.Context) (jsonrpc.Message, error) {
 func (s *loggingConn) Write(ctx context.Context, msg jsonrpc.Message) error {
 	err := s.delegate.Write(ctx, msg)
 	if err != nil {
-		fmt.Fprintf(s.w, "write error: %v", err)
+		s.mu.Lock()
+		fmt.Fprintf(s.w, "write error: %v\n", err)
+		s.mu.Unlock()
 	} else {
 		data, err := jsonrpc2.EncodeMessage(msg)
+		s.mu.Lock()
 		if err != nil {
 			fmt.Fprintf(s.w, "LoggingTransport: failed to marshal: %v", err)
 		}
 		fmt.Fprintf(s.w, "write: %s\n", string(data))
+		s.mu.Unlock()
 	}
 	return err
 }
@@ -303,6 +299,8 @@ func (r rwc) Close() error {
 //
 // See [msgBatch] for more discussion of message batching.
 type ioConn struct {
+	protocolVersion string // negotiated version, set during session initialization.
+
 	writeMu sync.Mutex         // guards Write, which must be concurrency safe.
 	rwc     io.ReadWriteCloser // the underlying stream
 
@@ -379,6 +377,17 @@ func newIOConn(rwc io.ReadWriteCloser) *ioConn {
 }
 
 func (c *ioConn) SessionID() string { return "" }
+
+func (c *ioConn) sessionUpdated(state ServerSessionState) {
+	protocolVersion := ""
+	if state.InitializeParams != nil {
+		protocolVersion = state.InitializeParams.ProtocolVersion
+	}
+	if protocolVersion == "" {
+		protocolVersion = protocolVersion20250326
+	}
+	c.protocolVersion = negotiatedVersion(protocolVersion)
+}
 
 // addBatch records a msgBatch for an incoming batch payload.
 // It returns an error if batch is malformed, containing previously seen IDs.
@@ -478,6 +487,10 @@ func (t *ioConn) Read(ctx context.Context) (jsonrpc.Message, error) {
 	if err != nil {
 		return nil, err
 	}
+	if batch && t.protocolVersion >= protocolVersion20250618 {
+		return nil, fmt.Errorf("JSON-RPC batching is not supported in %s and later (request version: %s)", protocolVersion20250618, t.protocolVersion)
+	}
+
 	t.queue = msgs[1:]
 
 	if batch {

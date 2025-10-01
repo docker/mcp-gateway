@@ -14,7 +14,6 @@ import (
 	"iter"
 	"maps"
 	"net/url"
-	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -28,6 +27,7 @@ import (
 	"github.com/yosida95/uritemplate/v3"
 )
 
+// DefaultPageSize is the default for [ServerOptions.PageSize].
 const DefaultPageSize = 1000
 
 // A Server is an instance of an MCP server.
@@ -84,6 +84,16 @@ type ServerOptions struct {
 	// If true, advertises the tools capability during initialization,
 	// even if no tools have been registered.
 	HasTools bool
+
+	// GetSessionID provides the next session ID to use for an incoming request.
+	// If nil, a default randomly generated ID will be used.
+	//
+	// Session IDs should be globally unique across the scope of the server,
+	// which may span multiple processes in the case of distributed servers.
+	//
+	// As a special case, if GetSessionID returns the empty string, the
+	// Mcp-Session-Id header will not be set.
+	GetSessionID func() string
 }
 
 // NewServer creates a new MCP server. The resulting server has no features:
@@ -115,6 +125,11 @@ func NewServer(impl *Implementation, options *ServerOptions) *Server {
 	if opts.UnsubscribeHandler != nil && opts.SubscribeHandler == nil {
 		panic("UnsubscribeHandler requires SubscribeHandler")
 	}
+
+	if opts.GetSessionID == nil {
+		opts.GetSessionID = randText
+	}
+
 	return &Server{
 		impl:                    impl,
 		opts:                    opts,
@@ -150,15 +165,23 @@ func (s *Server) RemovePrompts(names ...string) {
 //
 // The tool's input schema must be non-nil and have the type "object". For a tool
 // that takes no input, or one where any input is valid, set [Tool.InputSchema] to
-// &jsonschema.Schema{Type: "object"}.
+// `{"type": "object"}`, using your preferred library or `json.RawMessage`.
 //
-// If present, the output schema must also have type "object".
+// If present, [Tool.OutputSchema] must also have type "object".
 //
 // When the handler is invoked as part of a CallTool request, req.Params.Arguments
-// will be a json.RawMessage. Unmarshaling the arguments and validating them against the
-// input schema are the handler author's responsibility.
+// will be a json.RawMessage.
 //
-// Most users should use the top-level function [AddTool].
+// Unmarshaling the arguments and validating them against the input schema are the
+// caller's responsibility.
+//
+// Validating the result against the output schema, if any, is the caller's responsibility.
+//
+// Setting the result's Content, StructuredContent and IsError fields are the caller's
+// responsibility.
+//
+// Most users should use the top-level function [AddTool], which handles all these
+// responsibilities.
 func (s *Server) AddTool(t *Tool, h ToolHandler) {
 	if t.InputSchema == nil {
 		// This prevents the tool author from forgetting to write a schema where
@@ -167,11 +190,29 @@ func (s *Server) AddTool(t *Tool, h ToolHandler) {
 		// discovered until runtime, when the LLM sent bad data.
 		panic(fmt.Errorf("AddTool %q: missing input schema", t.Name))
 	}
-	if t.InputSchema.Type != "object" {
+	if s, ok := t.InputSchema.(*jsonschema.Schema); ok && s.Type != "object" {
 		panic(fmt.Errorf(`AddTool %q: input schema must have type "object"`, t.Name))
+	} else {
+		var m map[string]any
+		if err := remarshal(t.InputSchema, &m); err != nil {
+			panic(fmt.Errorf("AddTool %q: can't marshal input schema to a JSON object: %v", t.Name, err))
+		}
+		if typ := m["type"]; typ != "object" {
+			panic(fmt.Errorf(`AddTool %q: input schema must have type "object" (got %v)`, t.Name, typ))
+		}
 	}
-	if t.OutputSchema != nil && t.OutputSchema.Type != "object" {
-		panic(fmt.Errorf(`AddTool %q: output schema must have type "object"`, t.Name))
+	if t.OutputSchema != nil {
+		if s, ok := t.OutputSchema.(*jsonschema.Schema); ok && s.Type != "object" {
+			panic(fmt.Errorf(`AddTool %q: output schema must have type "object"`, t.Name))
+		} else {
+			var m map[string]any
+			if err := remarshal(t.OutputSchema, &m); err != nil {
+				panic(fmt.Errorf("AddTool %q: can't marshal output schema to a JSON object: %v", t.Name, err))
+			}
+			if typ := m["type"]; typ != "object" {
+				panic(fmt.Errorf(`AddTool %q: output schema must have type "object" (got %v)`, t.Name, typ))
+			}
+		}
 	}
 	st := &serverTool{tool: t, handler: h}
 	// Assume there was a change, since add replaces existing tools.
@@ -182,27 +223,6 @@ func (s *Server) AddTool(t *Tool, h ToolHandler) {
 		func() bool { s.tools.add(st); return true })
 }
 
-// ToolFor returns a shallow copy of t and a [ToolHandler] that wraps h.
-//
-// If the tool's input schema is nil, it is set to the schema inferred from the In
-// type parameter, using [jsonschema.For]. The In type parameter must be a map
-// or a struct, so that its inferred JSON Schema has type "object".
-//
-// For tools that don't return structured output, Out should be 'any'.
-// Otherwise, if the tool's output schema is nil the output schema is set to
-// the schema inferred from Out, which must be a map or a struct.
-//
-// Most users will call [AddTool]. Use [ToolFor] if you wish to modify the
-// tool's schemas or wrap the ToolHandler before calling [Server.AddTool].
-func ToolFor[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHandler) {
-	tt, hh, err := toolForErr(t, h)
-	if err != nil {
-		panic(fmt.Sprintf("ToolFor: tool %q: %v", t.Name, err))
-	}
-	return tt, hh
-}
-
-// TODO(v0.3.0): test
 func toolForErr[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHandler, error) {
 	tt := *t
 
@@ -225,7 +245,7 @@ func toolForErr[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHan
 		elemZero       any // only non-nil if Out is a pointer type
 		outputResolved *jsonschema.Resolved
 	)
-	if reflect.TypeFor[Out]() != reflect.TypeFor[any]() {
+	if t.OutputSchema != nil || reflect.TypeFor[Out]() != reflect.TypeFor[any]() {
 		var err error
 		elemZero, err = setSchema[Out](&tt.OutputSchema, &outputResolved)
 		if err != nil {
@@ -234,12 +254,23 @@ func toolForErr[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHan
 	}
 
 	th := func(ctx context.Context, req *CallToolRequest) (*CallToolResult, error) {
+		var input json.RawMessage
+		if req.Params.Arguments != nil {
+			input = req.Params.Arguments
+		}
+		// Validate input and apply defaults.
+		var err error
+		input, err = applySchema(input, inputResolved)
+		if err != nil {
+			// TODO(#450): should this be considered a tool error? (and similar below)
+			return nil, fmt.Errorf("%w: validating \"arguments\": %v", jsonrpc2.ErrInvalidParams, err)
+		}
+
 		// Unmarshal and validate args.
-		rawArgs := req.Params.Arguments.(json.RawMessage)
 		var in In
-		if rawArgs != nil {
-			if err := unmarshalSchema(rawArgs, inputResolved, &in); err != nil {
-				return nil, err
+		if input != nil {
+			if err := json.Unmarshal(input, &in); err != nil {
+				return nil, fmt.Errorf("%w: %v", jsonrpc2.ErrInvalidParams, err)
 			}
 		}
 
@@ -255,35 +286,52 @@ func toolForErr[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHan
 				return nil, wireErr
 			}
 			// For regular errors, embed them in the tool result as per MCP spec
-			return &CallToolResult{
-				Content: []Content{&TextContent{Text: err.Error()}},
-				IsError: true,
-			}, nil
+			var errRes CallToolResult
+			errRes.setError(err)
+			return &errRes, nil
 		}
 
-		// TODO(v0.3.0): Validate out.
-		_ = outputResolved
-
-		// TODO: return the serialized JSON in a TextContent block, as per spec?
-		// https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
-		// But people may use res.Content for other things.
 		if res == nil {
 			res = &CallToolResult{}
 		}
-		if res.Content == nil {
-			res.Content = []Content{} // avoid returning 'null'
-		}
-		res.StructuredContent = out
+
+		// Marshal the output and put the RawMessage in the StructuredContent field.
+		var outval any = out
 		if elemZero != nil {
 			// Avoid typed nil, which will serialize as JSON null.
-			// Instead, use the zero value of the non-zero
+			// Instead, use the zero value of the unpointered type.
 			var z Out
 			if any(out) == any(z) { // zero is only non-nil if Out is a pointer type
-				res.StructuredContent = elemZero
+				outval = elemZero
+			}
+		}
+		if outval != nil {
+			outbytes, err := json.Marshal(outval)
+			if err != nil {
+				return nil, fmt.Errorf("marshaling output: %w", err)
+			}
+			outJSON := json.RawMessage(outbytes)
+			// Validate the output JSON, and apply defaults.
+			//
+			// We validate against the JSON, rather than the output value, as
+			// some types may have custom JSON marshalling (issue #447).
+			outJSON, err = applySchema(outJSON, outputResolved)
+			if err != nil {
+				return nil, fmt.Errorf("validating tool output: %w", err)
+			}
+			res.StructuredContent = outJSON // avoid a second marshal over the wire
+
+			// If the Content field isn't being used, return the serialized JSON in a
+			// TextContent block, as the spec suggests:
+			// https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content.
+			if res.Content == nil {
+				res.Content = []Content{&TextContent{
+					Text: string(outJSON),
+				}}
 			}
 		}
 		return res, nil
-	}
+	} // end of handler
 
 	return &tt, th, nil
 }
@@ -302,36 +350,56 @@ func toolForErr[In, Out any](t *Tool, h ToolHandlerFor[In, Out]) (*Tool, ToolHan
 //
 // TODO(rfindley): we really shouldn't ever return 'null' results. Maybe we
 // should have a jsonschema.Zero(schema) helper?
-func setSchema[T any](sfield **jsonschema.Schema, rfield **jsonschema.Resolved) (zero any, err error) {
-	rt := reflect.TypeFor[T]()
+func setSchema[T any](sfield *any, rfield **jsonschema.Resolved) (zero any, err error) {
+	var internalSchema *jsonschema.Schema
 	if *sfield == nil {
+		rt := reflect.TypeFor[T]()
 		if rt.Kind() == reflect.Pointer {
 			rt = rt.Elem()
 			zero = reflect.Zero(rt).Interface()
 		}
 		// TODO: we should be able to pass nil opts here.
-		*sfield, err = jsonschema.ForType(rt, &jsonschema.ForOptions{})
+		internalSchema, err = jsonschema.ForType(rt, &jsonschema.ForOptions{})
+		if err == nil {
+			*sfield = internalSchema
+		}
+	} else {
+		if err := remarshal(*sfield, &internalSchema); err != nil {
+			return zero, err
+		}
 	}
 	if err != nil {
 		return zero, err
 	}
-	*rfield, err = (*sfield).Resolve(&jsonschema.ResolveOptions{ValidateDefaults: true})
+	*rfield, err = internalSchema.Resolve(&jsonschema.ResolveOptions{ValidateDefaults: true})
 	return zero, err
 }
 
 // AddTool adds a tool and typed tool handler to the server.
 //
 // If the tool's input schema is nil, it is set to the schema inferred from the
-// In type parameter, using [jsonschema.For]. The In type parameter must be a
-// map or a struct, so that its inferred JSON Schema has type "object".
+// In type parameter. Types are inferred from Go types, and property
+// descriptions are read from the 'jsonschema' struct tag. Internally, the SDK
+// uses the github.com/google/jsonschema-go package for inference and
+// validation. The In type argument must be a map or a struct, so that its
+// inferred JSON Schema has type "object", as required by the spec. As a
+// special case, if the In type is 'any', the tool's input schema is set to an
+// empty object schema value.
 //
-// For tools that don't return structured output, Out should be 'any'.
-// Otherwise, if the tool's output schema is nil the output schema is set to
-// the schema inferred from Out, which must be a map or a struct.
+// If the tool's output schema is nil, and the Out type is not 'any', the
+// output schema is set to the schema inferred from the Out type argument,
+// which must also be a map or struct. If the Out type is 'any', the output
+// schema is omitted.
 //
-// It is a convenience for s.AddTool(ToolFor(t, h)).
+// Unlike [Server.AddTool], AddTool does a lot automatically, and forces
+// tools to conform to the MCP spec. See [ToolHandlerFor] for a detailed
+// description of this automatic behavior.
 func AddTool[In, Out any](s *Server, t *Tool, h ToolHandlerFor[In, Out]) {
-	s.AddTool(ToolFor(t, h))
+	tt, hh, err := toolForErr(t, h)
+	if err != nil {
+		panic(fmt.Sprintf("AddTool: tool %q: %v", t.Name, err))
+	}
+	s.AddTool(tt, hh)
 }
 
 // RemoveTools removes the tools with the given names.
@@ -346,15 +414,8 @@ func (s *Server) RemoveTools(names ...string) {
 func (s *Server) AddResource(r *Resource, h ResourceHandler) {
 	s.changeAndNotify(notificationResourceListChanged, &ResourceListChangedParams{},
 		func() bool {
-			u, err := url.Parse(r.URI)
-			if err != nil {
-				//panic(err) // url.Parse includes the URI in the error
-				fmt.Fprintf(os.Stderr, "invalid resource URI %q: %v\n", r.URI, err)
-			} else {
-				if !u.IsAbs() {
-					//panic(fmt.Errorf("URI %s needs a scheme", r.URI))
-					fmt.Fprintf(os.Stderr, "invalid resource URI %q: %v\n", r.URI, err)
-				}
+			if _, err := url.Parse(r.URI); err != nil {
+				panic(err) // url.Parse includes the URI in the error
 			}
 			s.resources.add(&serverResource{r, h})
 			return true
@@ -377,17 +438,6 @@ func (s *Server) AddResourceTemplate(t *ResourceTemplate, h ResourceHandler) {
 			_, err := uritemplate.New(t.URITemplate)
 			if err != nil {
 				panic(fmt.Errorf("URI template %q is invalid: %w", t.URITemplate, err))
-			}
-			// Ensure the URI template has a valid scheme
-			u, err := url.Parse(t.URITemplate)
-			if err != nil {
-				//panic(err) // url.Parse includes the URI in the error
-				fmt.Fprintf(os.Stderr, "invalid resource template uri %q: %v\n", t.URITemplate, err)
-			} else {
-				if !u.IsAbs() {
-					//panic(fmt.Errorf("URI template %q needs a scheme", t.URITemplate))
-					fmt.Fprintf(os.Stderr, "invalid resource template uri %q: %v\n", t.URITemplate, err)
-				}
 			}
 			s.resourceTemplates.add(&serverResourceTemplate{t, h})
 			return true
@@ -426,7 +476,7 @@ func (s *Server) capabilities() *ServerCapabilities {
 	return caps
 }
 
-func (s *Server) complete(ctx context.Context, req *CompleteRequest) (Result, error) {
+func (s *Server) complete(ctx context.Context, req *CompleteRequest) (*CompleteResult, error) {
 	if s.opts.CompletionHandler == nil {
 		return nil, jsonrpc2.ErrMethodNotFound
 	}
@@ -448,6 +498,9 @@ func (s *Server) changeAndNotify(notification string, params Params, change func
 }
 
 // Sessions returns an iterator that yields the current set of server sessions.
+//
+// There is no guarantee that the iterator observes sessions that are added or
+// removed during iteration.
 func (s *Server) Sessions() iter.Seq[*ServerSession] {
 	s.mu.Lock()
 	clients := slices.Clone(s.sessions)
@@ -476,7 +529,7 @@ func (s *Server) getPrompt(ctx context.Context, req *GetPromptRequest) (*GetProm
 	if !ok {
 		// Return a proper JSON-RPC error with the correct error code
 		return nil, &jsonrpc2.WireError{
-			Code:    CodeInvalidParams,
+			Code:    codeInvalidParams,
 			Message: fmt.Sprintf("unknown prompt %q", req.Params.Name),
 		}
 	}
@@ -503,13 +556,17 @@ func (s *Server) callTool(ctx context.Context, req *CallToolRequest) (*CallToolR
 	s.mu.Unlock()
 	if !ok {
 		return nil, &jsonrpc2.WireError{
-			Code:    CodeInvalidParams,
+			Code:    codeInvalidParams,
 			Message: fmt.Sprintf("unknown tool %q", req.Params.Name),
 		}
 	}
-	// TODO: if handler returns nil content, it will serialize as null.
-	// Add a test and fix.
-	return st.handler(ctx, req)
+	res, err := st.handler(ctx, req)
+	if err == nil && res != nil && res.Content == nil {
+		res2 := *res
+		res2.Content = []Content{} // avoid "null"
+		res = &res2
+	}
+	return res, err
 }
 
 func (s *Server) listResources(_ context.Context, req *ListResourcesRequest) (*ListResourcesResult, error) {
@@ -816,7 +873,7 @@ func (ss *ServerSession) callProgressNotificationHandler(ctx context.Context, p 
 // This is typically used to report on the status of a long-running request
 // that was initiated by the client.
 func (ss *ServerSession) NotifyProgress(ctx context.Context, params *ProgressNotificationParams) error {
-	return HandleNotify(ctx, notificationProgress, newServerRequest(ss, orZero[Params](params)))
+	return handleNotify(ctx, notificationProgress, newServerRequest(ss, orZero[Params](params)))
 }
 
 func newServerRequest[P Params](ss *ServerSession, params P) *ServerRequest[P] {
@@ -851,6 +908,33 @@ func (ss *ServerSession) updateState(mut func(*ServerSessionState)) {
 	}
 }
 
+// hasInitialized reports whether the server has received the initialized
+// notification.
+//
+// TODO(findleyr): use this to prevent change notifications.
+func (ss *ServerSession) hasInitialized() bool {
+	ss.mu.Lock()
+	defer ss.mu.Unlock()
+	return ss.state.InitializedParams != nil
+}
+
+// checkInitialized returns a formatted error if the server has not yet
+// received the initialized notification.
+func (ss *ServerSession) checkInitialized(method string) error {
+	if !ss.hasInitialized() {
+		// TODO(rfindley): enable this check.
+		// Right now is is flaky, because server tests don't await the initialized notification.
+		// Perhaps requests should simply block until they have received the initialized notification
+
+		// if strings.HasPrefix(method, "notifications/") {
+		// 	return fmt.Errorf("must not send %q before %q is received", method, notificationInitialized)
+		// } else {
+		// 	return fmt.Errorf("cannot call %q before %q is received", method, notificationInitialized)
+		// }
+	}
+	return nil
+}
+
 func (ss *ServerSession) ID() string {
 	if c, ok := ss.mcpConn.(hasSessionID); ok {
 		return c.SessionID()
@@ -866,11 +950,17 @@ func (ss *ServerSession) Ping(ctx context.Context, params *PingParams) error {
 
 // ListRoots lists the client roots.
 func (ss *ServerSession) ListRoots(ctx context.Context, params *ListRootsParams) (*ListRootsResult, error) {
+	if err := ss.checkInitialized(methodListRoots); err != nil {
+		return nil, err
+	}
 	return handleSend[*ListRootsResult](ctx, methodListRoots, newServerRequest(ss, orZero[Params](params)))
 }
 
 // CreateMessage sends a sampling request to the client.
 func (ss *ServerSession) CreateMessage(ctx context.Context, params *CreateMessageParams) (*CreateMessageResult, error) {
+	if err := ss.checkInitialized(methodCreateMessage); err != nil {
+		return nil, err
+	}
 	if params == nil {
 		params = &CreateMessageParams{Messages: []*SamplingMessage{}}
 	}
@@ -884,6 +974,9 @@ func (ss *ServerSession) CreateMessage(ctx context.Context, params *CreateMessag
 
 // Elicit sends an elicitation request to the client asking for user input.
 func (ss *ServerSession) Elicit(ctx context.Context, params *ElicitParams) (*ElicitResult, error) {
+	if err := ss.checkInitialized(methodElicit); err != nil {
+		return nil, err
+	}
 	return handleSend[*ElicitResult](ctx, methodElicit, newServerRequest(ss, orZero[Params](params)))
 }
 
@@ -903,7 +996,7 @@ func (ss *ServerSession) Log(ctx context.Context, params *LoggingMessageParams) 
 	if compareLevels(params.Level, logLevel) < 0 {
 		return nil
 	}
-	return HandleNotify(ctx, notificationLoggingMessage, newServerRequest(ss, orZero[Params](params)))
+	return handleNotify(ctx, notificationLoggingMessage, newServerRequest(ss, orZero[Params](params)))
 }
 
 // AddSendingMiddleware wraps the current sending method handler using the provided
@@ -985,7 +1078,7 @@ func (ss *ServerSession) getConn() *jsonrpc2.Connection { return ss.conn }
 // handle invokes the method described by the given JSON RPC request.
 func (ss *ServerSession) handle(ctx context.Context, req *jsonrpc.Request) (any, error) {
 	ss.mu.Lock()
-	initialized := ss.state.InitializedParams != nil
+	initialized := ss.state.InitializeParams != nil
 	ss.mu.Unlock()
 
 	// From the spec:

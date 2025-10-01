@@ -2,8 +2,6 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-//go:generate ../internal/readme/build.sh
-
 // The mcp package provides an SDK for writing model context protocol clients
 // and servers.
 //
@@ -82,9 +80,9 @@
 // validated. As a special case, if the output type is 'any', no output schema
 // is generated.
 //
-//	func double(_ context.Context, _ *mcp.CallToolRequest, in In) (*mcp.CallToolResponse, Out, error) {
+//	func double(_ context.Context, _ *mcp.CallToolRequest, in In) (*mcp.CallToolResult, Out, error) {
 //		return nil, Out{Answer: 2*in.Number}, nil
 //	}
 //	...
-//	mcp.AddTool(&mcp.Tool{Name: "double", Description: "double a number"}, double)
+//	mcp.AddTool(server, &mcp.Tool{Name: "double"}, double)
 package mcp
