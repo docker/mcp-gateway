@@ -22,8 +22,13 @@ func getCodexSetup(ctx context.Context) MCPClientCfg {
 			ConfigName:  vendorCodex,
 			Err:         nil,
 		},
-		IsInstalled:   true,
+		IsInstalled:   isCodexInstalled(ctx),
 		IsOsSupported: true,
+	}
+
+	// If Codex is not installed, return early
+	if !result.IsInstalled {
+		return result
 	}
 
 	// Check if docker mcp gateway is configured in codex

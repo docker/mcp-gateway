@@ -181,8 +181,6 @@ func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
 	if err == nil {
 		result[vendorGordon] = getGordonSetup(ctx)
 	}
-	if isCodexInstalled(ctx) {
-		result[vendorCodex] = getCodexSetup(ctx)
-	}
+	result[vendorCodex] = getCodexSetup(ctx)
 	return result
 }
