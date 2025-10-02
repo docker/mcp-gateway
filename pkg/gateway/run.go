@@ -214,7 +214,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		monitor.Start(ctx)
 
 		// Start single background refresh loop for all OAuth servers
-		// Loop automatically picks up dynamically added servers (via mcp-add, registry edits, etc.)
 		log("- Starting OAuth token refresh loop...")
 		go func() {
 			ticker := time.NewTicker(1 * time.Minute)
@@ -581,9 +580,8 @@ func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configur
 }
 
 // checkAllOAuthTokens checks token status for all OAuth servers in current configuration
-// This is called by the background refresh loop to proactively keep tokens fresh
 func (g *Gateway) checkAllOAuthTokens(ctx context.Context) {
-	// Read fresh configuration to pick up dynamic changes (mcp-add, registry edits, etc.)
+	// Read fresh configuration to pick up changes
 	configuration, _, _, err := g.configurator.Read(ctx)
 	if err != nil {
 		logf("> Failed to read configuration for token check: %v", err)

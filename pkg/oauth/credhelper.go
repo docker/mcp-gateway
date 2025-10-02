@@ -151,7 +151,6 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	}
 
 	// Check if token needs refresh (expires within 5 minutes)
-	// This matches Docker Desktop's internal threshold for proactive refresh
 	now := time.Now()
 	timeUntilExpiry := expiresAt.Sub(now)
 	needsRefresh := timeUntilExpiry <= 5*time.Minute

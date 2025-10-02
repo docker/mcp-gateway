@@ -10,7 +10,6 @@ import (
 )
 
 // RefreshCoordinator manages OAuth token refresh for multiple providers
-// It runs background loops that proactively keep tokens fresh
 type RefreshCoordinator struct {
 	mu         sync.RWMutex
 	refreshing map[string]bool // serverName → is refresh currently in progress?
