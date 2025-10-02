@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Update(ctx context.Context, args []string) error {
+func Update(ctx context.Context, args []string, mcpOAuthDcrEnabled bool) error {
 	cfg, err := ReadConfig()
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func Update(ctx context.Context, args []string) error {
 		if !ok {
 			continue
 		}
-		if err := updateCatalog(ctx, name, catalog); err != nil {
+		if err := updateCatalog(ctx, name, catalog, mcpOAuthDcrEnabled); err != nil {
 			errs = append(errs, err)
 		}
 		fmt.Println("updated:", name)
@@ -47,16 +47,16 @@ func getAllCatalogNames(cfg Config) []string {
 	return names
 }
 
-func updateCatalog(ctx context.Context, name string, catalog Catalog) error {
+func updateCatalog(ctx context.Context, name string, catalog Catalog, mcpOAuthDcrEnabled bool) error {
 	url := catalog.URL
 
 	var (
 		catalogContent []byte
 		err            error
 	)
-	// For the docker catalog, use the default URL if none is set
-	if name == DockerCatalogName && (url == "" || !isValidURL(url)) {
-		url = DockerCatalogURL
+	// For the docker catalog, always use the appropriate URL based on feature flag
+	if name == DockerCatalogName {
+		url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
 	}
 
 	if isValidURL(url) {

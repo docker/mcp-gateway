@@ -70,7 +70,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 
 	dockerClient := docker.NewClient(dockerCli)
 
-	cmd.AddCommand(catalogCommand())
+	cmd.AddCommand(catalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(cwd))
 	cmd.AddCommand(configCommand(dockerClient))
 	cmd.AddCommand(featureCommand(dockerCli))

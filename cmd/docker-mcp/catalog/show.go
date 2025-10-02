@@ -52,7 +52,7 @@ func SupportedFormats() string {
 	return strings.Join(quoted, ", ")
 }
 
-func Show(ctx context.Context, name string, format Format) error {
+func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bool) error {
 	cfg, err := ReadConfigWithDefaultCatalog(ctx)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func Show(ctx context.Context, name string, format Format) error {
 		}
 	}
 	if needsUpdate {
-		if err := updateCatalog(ctx, name, catalog); err != nil {
+		if err := updateCatalog(ctx, name, catalog, mcpOAuthDcrEnabled); err != nil {
 			return err
 		}
 	}
