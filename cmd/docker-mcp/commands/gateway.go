@@ -31,8 +31,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var enableAllServers bool
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
+		// Note: The catalog URL will be updated after checking the feature flag in RunE
 		options = gateway.Config{
-			CatalogPath: []string{catalog.DockerCatalogURL},
+			CatalogPath: []string{catalog.DockerCatalogURLV2}, // Default to v2, will be updated based on flag
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
 				Cpus:         1,
@@ -76,6 +77,11 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			// Check if dynamic tools feature is enabled
 			options.DynamicTools = isDynamicToolsFeatureEnabled(dockerCli)
 
+			// Update catalog URL based on mcp-oauth-dcr flag if using default Docker catalog URL
+			if len(options.CatalogPath) == 1 && (options.CatalogPath[0] == catalog.DockerCatalogURLV2 || options.CatalogPath[0] == catalog.DockerCatalogURLV3) {
+				options.CatalogPath[0] = catalog.GetDockerCatalogURL(options.McpOAuthDcrEnabled)
+			}
+
 			if options.Static {
 				options.Watch = false
 			}
@@ -98,7 +104,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 
 			// Only add configured catalogs if defaultPaths is not a single Docker catalog entry
 			var configuredPaths []string
-			if len(defaultPaths) == 1 && (defaultPaths[0] == catalog.DockerCatalogURL || defaultPaths[0] == catalog.DockerCatalogFilename) {
+			if len(defaultPaths) == 1 && (defaultPaths[0] == catalog.DockerCatalogURL || defaultPaths[0] == catalog.DockerCatalogURLV2 || defaultPaths[0] == catalog.DockerCatalogURLV3 || defaultPaths[0] == catalog.DockerCatalogFilename) {
 				configuredPaths = getConfiguredCatalogPaths()
 			}
 			catalogPaths := buildUniqueCatalogPaths(defaultPaths, configuredPaths, additionalCatalogs)
