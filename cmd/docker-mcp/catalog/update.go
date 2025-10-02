@@ -55,6 +55,7 @@ func updateCatalog(ctx context.Context, name string, catalog Catalog, mcpOAuthDc
 		err            error
 	)
 	// For the docker catalog, always use the appropriate URL based on feature flag
+	// to ensure it matches the current state regardless of what's stored in config
 	if name == DockerCatalogName {
 		url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
 	}

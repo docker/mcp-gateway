@@ -104,7 +104,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 
 			// Only add configured catalogs if defaultPaths is not a single Docker catalog entry
 			var configuredPaths []string
-			if len(defaultPaths) == 1 && (defaultPaths[0] == catalog.DockerCatalogURL || defaultPaths[0] == catalog.DockerCatalogURLV2 || defaultPaths[0] == catalog.DockerCatalogURLV3 || defaultPaths[0] == catalog.DockerCatalogFilename) {
+			if len(defaultPaths) == 1 && (defaultPaths[0] == catalog.DockerCatalogURLV2 || defaultPaths[0] == catalog.DockerCatalogURLV3 || defaultPaths[0] == catalog.DockerCatalogFilename) {
 				configuredPaths = getConfiguredCatalogPaths()
 			}
 			catalogPaths := buildUniqueCatalogPaths(defaultPaths, configuredPaths, additionalCatalogs)

@@ -9,11 +9,10 @@ import (
 )
 
 const (
-	DockerCatalogName       = "docker-mcp"
-	DockerCatalogURLV2      = "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml"
-	DockerCatalogURLV3      = "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml"
-	DockerCatalogURL        = DockerCatalogURLV2 // Default to v2
-	DockerCatalogFilename   = "docker-mcp.yaml"
+	DockerCatalogName     = "docker-mcp"
+	DockerCatalogURLV2    = "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml"
+	DockerCatalogURLV3    = "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml"
+	DockerCatalogFilename = "docker-mcp.yaml"
 
 	// Docker server names for bootstrap command
 	DockerHubServerName = "dockerhub"
@@ -21,7 +20,7 @@ const (
 )
 
 var aliasToURL = map[string]string{
-	DockerCatalogName: DockerCatalogURL,
+	DockerCatalogName: DockerCatalogURLV2, // Default to v2 for backwards compatibility
 }
 
 // GetDockerCatalogURL returns the appropriate Docker catalog URL based on the mcp-oauth-dcr flag

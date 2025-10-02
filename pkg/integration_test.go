@@ -146,7 +146,7 @@ func TestIntegrationDryRunEmpty(t *testing.T) {
 
 func TestIntegrationDryRunFetch(t *testing.T) {
 	thisIsAnIntegrationTest(t)
-	out := runDockerMCP(t, "gateway", "run", "--dry-run", "--servers=fetch", "--catalog="+catalog.DockerCatalogURL)
+	out := runDockerMCP(t, "gateway", "run", "--dry-run", "--servers=fetch", "--catalog="+catalog.DockerCatalogURLV2)
 	assert.Contains(t, out, "fetch: (1 tools)")
 	assert.Contains(t, out, "Initialized in")
 }
@@ -178,7 +178,7 @@ func TestIntegrationCallToolDuckDuckDb(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 	gatewayArgs := []string{
 		"--servers=duckduckgo",
-		"--catalog=" + catalog.DockerCatalogURL,
+		"--catalog=" + catalog.DockerCatalogURLV2,
 	}
 
 	out := runDockerMCP(t, "tools", "call", "--gateway-arg="+strings.Join(gatewayArgs, ","), "search", "query=Docker")
