@@ -55,21 +55,24 @@ func updateCatalog(ctx context.Context, name string, catalog Catalog, mcpOAuthDc
 		catalogContent []byte
 		err            error
 	)
-	// For the docker catalog, override URL based on feature flag if:
+	// For the docker catalog, override URL to match the feature flag state if:
 	// 1. No URL is set, OR
-	// 2. The URL is an official catalog URL (v2 or v3, prod or stage) that doesn't match the feature flag
-	// This allows truly custom URLs to be preserved while switching between v2/v3.
+	// 2. The URL is an official v2/v3 catalog URL (prod or staging) that doesn't match the feature flag
+	// This preserves truly custom URLs while ensuring official catalogs switch between v2/v3.
 	if name == DockerCatalogName {
-		expectedURL := GetDockerCatalogURL(mcpOAuthDcrEnabled)
-		// Check if URL is a v2 or v3 catalog URL (matches the pattern)
-		isV2Catalog := strings.Contains(url, "/catalog/v2/catalog.yaml")
-		isV3Catalog := strings.Contains(url, "/catalog/v3/catalog.yaml")
-		isOfficialCatalogURL := isV2Catalog || isV3Catalog
+		if url == "" {
+			url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
+		} else {
+			isV2URL := strings.Contains(url, "/catalog/v2/catalog.yaml")
+			isV3URL := strings.Contains(url, "/catalog/v3/catalog.yaml")
 
-		// Override if: no URL set, OR URL is official catalog but wrong version for feature flag
-		shouldOverride := url == "" || (isOfficialCatalogURL && ((mcpOAuthDcrEnabled && isV2Catalog) || (!mcpOAuthDcrEnabled && isV3Catalog)))
-		if shouldOverride {
-			url = expectedURL
+			// Only override if it's an official catalog URL with the wrong version
+			needsV3 := mcpOAuthDcrEnabled && isV2URL
+			needsV2 := !mcpOAuthDcrEnabled && isV3URL
+
+			if needsV3 || needsV2 {
+				url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
+			}
 		}
 	}
 
