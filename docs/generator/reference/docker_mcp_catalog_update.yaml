@@ -6,7 +6,12 @@ long: |-
 usage: docker mcp catalog update [name]
 pname: docker mcp catalog
 plink: docker_mcp_catalog.yaml
-examples: "  # Update all catalogs\n  docker mcp catalog update\n  \n  # Update specific catalog\n  docker mcp catalog update team-servers"
+examples: |4-
+      # Update all catalogs
+      docker mcp catalog update
+
+      # Update specific catalog
+      docker mcp catalog update team-servers
 deprecated: false
 hidden: false
 experimental: false
