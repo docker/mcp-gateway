@@ -48,7 +48,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	c.client = mcp.NewClient(&mcp.Implementation{
 		Name:    "docker-mcp-gateway",
 		Version: "1.0.0",
-	}, notifications(ss, server, refresher))
+	}, notifications(c.name, ss, server, refresher))
 
 	c.client.AddRoots(c.roots...)
 
