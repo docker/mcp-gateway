@@ -46,20 +46,6 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 
 func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Check OAuth token validity before calling the tool
-		if serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
-			if err := g.refreshCoordinator.EnsureValidToken(ctx, serverConfig.Name); err != nil {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						&mcp.TextContent{
-							Text: fmt.Sprintf("OAuth token validation failed for %s: %v", serverConfig.Name, err),
-						},
-					},
-					IsError: true,
-				}, nil
-			}
-		}
-
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Tool call received: %s from server: %s\n", req.Params.Name, serverConfig.Name)

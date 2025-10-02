@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -214,21 +213,27 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 		monitor.Start(ctx)
 
-		// Check OAuth tokens on startup and refresh if needed
-		log("- Checking OAuth tokens on startup...")
-		for _, serverName := range configuration.ServerNames() {
-			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil || serverConfig.Spec.OAuth == nil {
-				continue
-			}
+		// Start single background refresh loop for all OAuth servers
+		// Loop automatically picks up dynamically added servers (via mcp-add, registry edits, etc.)
+		log("- Starting OAuth token refresh loop...")
+		go func() {
+			ticker := time.NewTicker(1 * time.Minute)
+			defer ticker.Stop()
 
-			// EnsureValidToken will trigger GetOAuthApp → DD refresh → SSE event → reload if expired
-			go func(name string) {
-				if err := g.refreshCoordinator.EnsureValidToken(context.Background(), name); err != nil {
-					logf("> Startup token check failed for %s: %v", name, err)
+			// Check immediately on startup
+			g.checkAllOAuthTokens(ctx)
+
+			// Then check every minute
+			for {
+				select {
+				case <-ticker.C:
+					g.checkAllOAuthTokens(ctx)
+				case <-ctx.Done():
+					log("- Stopped OAuth token refresh loop")
+					return
 				}
-			}(serverName)
-		}
+			}
+		}()
 	}
 
 	// Central mode.
@@ -534,44 +539,26 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 
 // handleOAuthEvent processes OAuth events from the notification monitor
 func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
-	logf("- Processing OAuth event: %s for provider %s", event.Type, event.Provider)
-
 	switch event.Type {
 	case oauth.EventLoginSuccess, oauth.EventTokenRefresh, oauth.EventLogoutSuccess:
-		// Read current registry configuration to check if server is enabled
+		// Read current registry configuration
 		currentConfig, _, _, err := g.configurator.Read(ctx)
 		if err != nil {
 			logf("> Failed to read configuration for OAuth event: %v", err)
 			return
 		}
 
-		// Check if server is currently in registry
-		if slices.Contains(currentConfig.ServerNames(), event.Provider) {
-			logf("> Reloading single server after %s", event.Type)
-
-			go func() {
-				ctx := context.Background()
-				if err := g.reloadSingleServer(ctx, currentConfig, event.Provider); err != nil {
-					logf("> Failed to reload server after OAuth %s: %v", event.Type, err)
-					// Broadcast error to waiting requests
-					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
-						Success: false,
-						Error:   fmt.Errorf("server reload failed: %w", err),
-					})
-				} else {
-					logf("> Server reloaded successfully after OAuth %s", event.Type)
-					// Broadcast success to waiting requests
-					g.refreshCoordinator.BroadcastResult(event.Provider, oauth.RefreshResult{
-						Success: true,
-					})
-				}
-			}()
-		} else {
-			logf("> Provider %s not in enabled servers, skipping reload", event.Provider)
-		}
+		// Reload server - handles disabled servers gracefully
+		go func() {
+			ctx := context.Background()
+			if err := g.reloadSingleServer(ctx, currentConfig, event.Provider); err != nil {
+				logf("> Failed to reload server after OAuth %s: %v", event.Type, err)
+			}
+			// Mark refresh complete regardless of success/failure
+			// This allows background loop to retry on next tick if it failed
+			g.refreshCoordinator.MarkRefreshComplete(event.Provider)
+		}()
 	}
-
-	logf("> OAuth event processed for %s", event.Provider)
 }
 
 // reloadSingleServer refreshes the connection for a single OAuth server after token changes.
@@ -591,4 +578,28 @@ func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configur
 
 	logf("> OAuth server %s reconnected and tools registered", serverName)
 	return nil
+}
+
+// checkAllOAuthTokens checks token status for all OAuth servers in current configuration
+// This is called by the background refresh loop to proactively keep tokens fresh
+func (g *Gateway) checkAllOAuthTokens(ctx context.Context) {
+	// Read fresh configuration to pick up dynamic changes (mcp-add, registry edits, etc.)
+	configuration, _, _, err := g.configurator.Read(ctx)
+	if err != nil {
+		logf("> Failed to read configuration for token check: %v", err)
+		return
+	}
+
+	// Check each OAuth server's token
+	for _, serverName := range configuration.ServerNames() {
+		serverConfig, _, found := configuration.Find(serverName)
+		if !found || serverConfig == nil || serverConfig.Spec.OAuth == nil {
+			continue
+		}
+
+		// Check token status and trigger refresh if needed (non-blocking)
+		if err := g.refreshCoordinator.EnsureValidToken(ctx, serverName); err != nil {
+			logf("> Token check failed for %s: %v", serverName, err)
+		}
+	}
 }
