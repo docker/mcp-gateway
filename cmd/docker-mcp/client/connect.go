@@ -6,7 +6,14 @@ import (
 )
 
 func Connect(ctx context.Context, cwd string, config Config, vendor string, global, quiet bool) error {
-	if vendor == vendorGordon && global {
+	if vendor == vendorCodex {
+		if !global {
+			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
+		}
+		if err := connectCodex(ctx); err != nil {
+			return err
+		}
+	} else if vendor == vendorGordon && global {
 		if err := connectGordon(ctx); err != nil {
 			return err
 		}
