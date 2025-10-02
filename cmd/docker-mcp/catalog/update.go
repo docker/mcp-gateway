@@ -56,11 +56,11 @@ func updateCatalog(ctx context.Context, name string, catalog Catalog, mcpOAuthDc
 		err            error
 	)
 	// For the docker catalog, override URL to match the feature flag state if:
-	// 1. No URL is set, OR
+	// 1. No URL is set or invalid, OR
 	// 2. The URL is an official v2/v3 catalog URL (prod or staging) that doesn't match the feature flag
 	// This preserves truly custom URLs while ensuring official catalogs switch between v2/v3.
 	if name == DockerCatalogName {
-		if url == "" {
+		if url == "" || !isValidURL(url) {
 			url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
 		} else {
 			isV2URL := strings.Contains(url, "/catalog/v2/catalog.yaml")
