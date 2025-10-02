@@ -65,7 +65,7 @@ services:
 + Starts an MCP Gateway for other services to use. Think AI Agents.
 + Work independently from Docker Desktop's MCP Toolkit. It can run anywhere there's a Docker engine.
 + Defines the list of enabled servers from the gateway's command line, with `--server`
-+ Uses the online Docker MCP Catalog hosted at http://desktop.docker.com/mcp/catalog (v2 by default, v3 when `mcp-oauth-dcr` feature is enabled).
++ Uses the online Docker MCP Catalog (v2: http://desktop.docker.com/mcp/catalog/v2/catalog.yaml by default, v3: http://desktop.docker.com/mcp/catalog/v3/catalog.yaml when `mcp-oauth-dcr` feature is enabled).
 
 ### How to run
 
