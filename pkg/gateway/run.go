@@ -47,6 +47,14 @@ type TokenEvent struct {
 // ss     *mcp.ServerSession
 // }
 
+// ServerCapabilities tracks the capabilities registered for a specific server
+type ServerCapabilities struct {
+	ToolNames            []string
+	PromptNames          []string
+	ResourceURIs         []string
+	ResourceTemplateURIs []string
+}
+
 type Gateway struct {
 	Options
 	docker        docker.Client
@@ -60,11 +68,9 @@ type Gateway struct {
 	sessionCacheMu sync.RWMutex
 	sessionCache   map[*mcp.ServerSession]*ServerSessionCache
 
-	// Track registered capabilities for cleanup during reload
-	registeredToolNames            []string
-	registeredPromptNames          []string
-	registeredResourceURIs         []string
-	registeredResourceTemplateURIs []string
+	// Track registered capabilities per server for proper reload handling
+	capabilitiesMu     sync.RWMutex
+	serverCapabilities map[string]*ServerCapabilities
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
@@ -85,7 +91,8 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			docker:             docker,
 		},
-		sessionCache: make(map[*mcp.ServerSession]*ServerSessionCache),
+		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
+		serverCapabilities: make(map[string]*ServerCapabilities),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 	return g
@@ -300,33 +307,43 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
 	// Update capabilities
-	// Clear existing capabilities and register new ones
-	// Note: The new SDK doesn't have bulk set methods, so we register individually
+	// Clear existing capabilities per server and register new ones
 
-	// Clear all existing capabilities by tracking them in the Gateway struct
-	if g.registeredToolNames != nil {
-		g.mcpServer.RemoveTools(g.registeredToolNames...)
-	}
-	if g.registeredPromptNames != nil {
-		g.mcpServer.RemovePrompts(g.registeredPromptNames...)
-	}
-	if g.registeredResourceURIs != nil {
-		g.mcpServer.RemoveResources(g.registeredResourceURIs...)
-	}
-	if g.registeredResourceTemplateURIs != nil {
-		g.mcpServer.RemoveResourceTemplates(g.registeredResourceTemplateURIs...)
+	// Lock for reading/writing capability tracking
+	g.capabilitiesMu.Lock()
+	defer g.capabilitiesMu.Unlock()
+
+	// Clear all existing capabilities from tracked servers
+	for _, oldCaps := range g.serverCapabilities {
+		if len(oldCaps.ToolNames) > 0 {
+			g.mcpServer.RemoveTools(oldCaps.ToolNames...)
+		}
+		if len(oldCaps.PromptNames) > 0 {
+			g.mcpServer.RemovePrompts(oldCaps.PromptNames...)
+		}
+		if len(oldCaps.ResourceURIs) > 0 {
+			g.mcpServer.RemoveResources(oldCaps.ResourceURIs...)
+		}
+		if len(oldCaps.ResourceTemplateURIs) > 0 {
+			g.mcpServer.RemoveResourceTemplates(oldCaps.ResourceTemplateURIs...)
+		}
 	}
 
-	// Reset tracking slices
-	g.registeredToolNames = nil
-	g.registeredPromptNames = nil
-	g.registeredResourceURIs = nil
-	g.registeredResourceTemplateURIs = nil
+	// Clear the tracking map - we'll rebuild it
+	g.serverCapabilities = make(map[string]*ServerCapabilities)
 
-	// Add new capabilities and track them
+	// Add new capabilities and track them per server
 	for _, tool := range capabilities.Tools {
 		g.mcpServer.AddTool(tool.Tool, tool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, tool.Tool.Name)
+
+		// Track by server
+		if g.serverCapabilities[tool.ServerName] == nil {
+			g.serverCapabilities[tool.ServerName] = &ServerCapabilities{}
+		}
+		g.serverCapabilities[tool.ServerName].ToolNames = append(
+			g.serverCapabilities[tool.ServerName].ToolNames,
+			tool.Tool.Name,
+		)
 	}
 
 	// Add internal tools when dynamic-tools feature is enabled
@@ -336,27 +353,22 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		// Add mcp-find tool
 		mcpFindTool := g.createMcpFindTool(configuration)
 		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, mcpFindTool.Tool.Name)
 
 		// Add mcp-add tool
 		mcpAddTool := g.createMcpAddTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpAddTool.Tool, mcpAddTool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, mcpAddTool.Tool.Name)
 
 		// Add mcp-remove tool
 		mcpRemoveTool := g.createMcpRemoveTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpRemoveTool.Tool, mcpRemoveTool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, mcpRemoveTool.Tool.Name)
 
 		// Add mcp-registry-import tool
 		mcpRegistryImportTool := g.createMcpRegistryImportTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpRegistryImportTool.Tool, mcpRegistryImportTool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, mcpRegistryImportTool.Tool.Name)
 
 		// Add mcp-config-set tool
 		mcpConfigSetTool := g.createMcpConfigSetTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
-		g.registeredToolNames = append(g.registeredToolNames, mcpConfigSetTool.Tool.Name)
 
 		log("  > mcp-find: tool for finding MCP servers in the catalog")
 		log("  > mcp-add: tool for adding MCP servers to the registry")
@@ -367,12 +379,28 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 
 	for _, prompt := range capabilities.Prompts {
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
-		g.registeredPromptNames = append(g.registeredPromptNames, prompt.Prompt.Name)
+
+		// Track by server
+		if g.serverCapabilities[prompt.ServerName] == nil {
+			g.serverCapabilities[prompt.ServerName] = &ServerCapabilities{}
+		}
+		g.serverCapabilities[prompt.ServerName].PromptNames = append(
+			g.serverCapabilities[prompt.ServerName].PromptNames,
+			prompt.Prompt.Name,
+		)
 	}
 
 	for _, resource := range capabilities.Resources {
 		g.mcpServer.AddResource(resource.Resource, resource.Handler)
-		g.registeredResourceURIs = append(g.registeredResourceURIs, resource.Resource.URI)
+
+		// Track by server
+		if g.serverCapabilities[resource.ServerName] == nil {
+			g.serverCapabilities[resource.ServerName] = &ServerCapabilities{}
+		}
+		g.serverCapabilities[resource.ServerName].ResourceURIs = append(
+			g.serverCapabilities[resource.ServerName].ResourceURIs,
+			resource.Resource.URI,
+		)
 	}
 
 	// Resource templates are handled as regular resources in the new SDK
@@ -385,7 +413,15 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 			MIMEType:    template.ResourceTemplate.MIMEType,
 		}
 		g.mcpServer.AddResourceTemplate(resource, template.Handler)
-		g.registeredResourceTemplateURIs = append(g.registeredResourceTemplateURIs, resource.URITemplate)
+
+		// Track by server
+		if g.serverCapabilities[template.ServerName] == nil {
+			g.serverCapabilities[template.ServerName] = &ServerCapabilities{}
+		}
+		g.serverCapabilities[template.ServerName].ResourceTemplateURIs = append(
+			g.serverCapabilities[template.ServerName].ResourceTemplateURIs,
+			resource.URITemplate,
+		)
 	}
 
 	g.health.SetHealthy()
@@ -393,30 +429,160 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	return nil
 }
 
-// RefreshCapabilities implements the CapabilityRefresher interface
-// This method updates the server's capabilities by reloading the configuration
-func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error {
-	// Get current configuration
-	configuration, _, _, err := g.configurator.Read(ctx)
-	// hold on to current serverNames
-	configuration.serverNames = g.configuration.serverNames
-	// reset on Gateway
-	g.configuration = configuration
-	if err != nil {
-		return fmt.Errorf("failed to read configuration: %w", err)
+// stringSliceToSet converts a slice to a map for efficient lookup
+func stringSliceToSet(slice []string) map[string]bool {
+	set := make(map[string]bool, len(slice))
+	for _, s := range slice {
+		set[s] = true
+	}
+	return set
+}
+
+// diffStringSlices returns items that are in 'newer' but not in 'older' (additions),
+// and items that are in 'older' but not in 'newer' (removals)
+func diffStringSlices(older, newer []string) (additions, removals []string) {
+	oldSet := stringSliceToSet(older)
+	newSet := stringSliceToSet(newer)
+
+	for s := range newSet {
+		if !oldSet[s] {
+			additions = append(additions, s)
+		}
 	}
 
+	for s := range oldSet {
+		if !newSet[s] {
+			removals = append(removals, s)
+		}
+	}
+
+	return additions, removals
+}
+
+func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName string, clientConfig *clientConfig) error {
+	// Find the server configuration in current config
+	serverConfig, _, found := g.configuration.Find(serverName)
+	if !found || serverConfig == nil {
+		return fmt.Errorf("server %s not found in configuration", serverName)
+	}
+
+	// Get current capabilities from the server (this reflects the server's current state after it notified us of changes)
+	capabilities, err := g.listCapabilities(ctx, g.configuration, []string{serverName}, clientConfig)
+	if err != nil {
+		return fmt.Errorf("failed to list capabilities for %s: %w", serverName, err)
+	}
+
+	// Lock for reading/writing capability tracking
+	g.capabilitiesMu.Lock()
+	defer g.capabilitiesMu.Unlock()
+
+	// Get old capabilities for this server
+	oldCaps := g.serverCapabilities[serverName]
+	if oldCaps == nil {
+		oldCaps = &ServerCapabilities{}
+	}
+
+	// Build new capability name/URI lists
+	newCaps := &ServerCapabilities{
+		ToolNames:            make([]string, 0, len(capabilities.Tools)),
+		PromptNames:          make([]string, 0, len(capabilities.Prompts)),
+		ResourceURIs:         make([]string, 0, len(capabilities.Resources)),
+		ResourceTemplateURIs: make([]string, 0, len(capabilities.ResourceTemplates)),
+	}
+
+	for _, tool := range capabilities.Tools {
+		newCaps.ToolNames = append(newCaps.ToolNames, tool.Tool.Name)
+	}
+	for _, prompt := range capabilities.Prompts {
+		newCaps.PromptNames = append(newCaps.PromptNames, prompt.Prompt.Name)
+	}
+	for _, resource := range capabilities.Resources {
+		newCaps.ResourceURIs = append(newCaps.ResourceURIs, resource.Resource.URI)
+	}
+	for _, template := range capabilities.ResourceTemplates {
+		newCaps.ResourceTemplateURIs = append(newCaps.ResourceTemplateURIs, template.ResourceTemplate.URITemplate)
+	}
+
+	// Determine what changed
+	addedTools, removedTools := diffStringSlices(oldCaps.ToolNames, newCaps.ToolNames)
+	addedPrompts, removedPrompts := diffStringSlices(oldCaps.PromptNames, newCaps.PromptNames)
+	addedResources, removedResources := diffStringSlices(oldCaps.ResourceURIs, newCaps.ResourceURIs)
+	addedTemplates, removedTemplates := diffStringSlices(oldCaps.ResourceTemplateURIs, newCaps.ResourceTemplateURIs)
+
+	// Remove old capabilities that are no longer present
+	if len(removedTools) > 0 {
+		g.mcpServer.RemoveTools(removedTools...)
+		log("  - Removed", len(removedTools), "tools for", serverName)
+	}
+
+	if len(removedPrompts) > 0 {
+		g.mcpServer.RemovePrompts(removedPrompts...)
+		log("  - Removed", len(removedPrompts), "prompts for", serverName)
+	}
+
+	if len(removedResources) > 0 {
+		g.mcpServer.RemoveResources(removedResources...)
+		log("  - Removed", len(removedResources), "resources for", serverName)
+	}
+
+	if len(removedTemplates) > 0 {
+		g.mcpServer.RemoveResourceTemplates(removedTemplates...)
+		log("  - Removed", len(removedTemplates), "resource templates for", serverName)
+	}
+
+	// Add/update all capabilities from this server
+	for _, tool := range capabilities.Tools {
+		g.mcpServer.AddTool(tool.Tool, tool.Handler)
+	}
+	if len(addedTools) > 0 {
+		log("  - Added/updated", len(addedTools), "tools for", serverName)
+	}
+
+	for _, prompt := range capabilities.Prompts {
+		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
+	}
+	if len(addedPrompts) > 0 {
+		log("  - Added/updated", len(addedPrompts), "prompts for", serverName)
+	}
+
+	for _, resource := range capabilities.Resources {
+		g.mcpServer.AddResource(resource.Resource, resource.Handler)
+	}
+	if len(addedResources) > 0 {
+		log("  - Added/updated", len(addedResources), "resources for", serverName)
+	}
+
+	for _, template := range capabilities.ResourceTemplates {
+		resourceTemplate := &mcp.ResourceTemplate{
+			URITemplate: template.ResourceTemplate.URITemplate,
+			Name:        template.ResourceTemplate.Name,
+			Description: template.ResourceTemplate.Description,
+			MIMEType:    template.ResourceTemplate.MIMEType,
+		}
+		g.mcpServer.AddResourceTemplate(resourceTemplate, template.Handler)
+	}
+	if len(addedTemplates) > 0 {
+		log("  - Added/updated", len(addedTemplates), "resource templates for", serverName)
+	}
+
+	// Update tracking with new capabilities
+	g.serverCapabilities[serverName] = newCaps
+
+	return nil
+}
+
+// RefreshCapabilities implements the CapabilityRefresher interface
+// This method updates the server's capabilities by reloading the configuration
+func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession, serverName string) error {
 	// Create a clientConfig to reuse the existing session for the server that triggered the notification
 	clientConfig := &clientConfig{
 		serverSession: serverSession,
 		server:        server,
 	}
 
-	// Refresh all servers, but the clientPool will reuse the existing session for the one that matches
-	serverNames := configuration.ServerNames()
-	log("- RefreshCapabilities called for session, refreshing servers:", strings.Join(serverNames, ", "))
+	log("- RefreshCapabilities called for session, refreshing servers:", serverName)
 
-	err = g.reloadConfiguration(ctx, configuration, serverNames, clientConfig)
+	err := g.reloadServerConfiguration(ctx, serverName, clientConfig)
 	if err != nil {
 		log("! Failed to refresh capabilities:", err)
 	} else {

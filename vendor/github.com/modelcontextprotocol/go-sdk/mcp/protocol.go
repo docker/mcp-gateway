@@ -13,12 +13,10 @@ package mcp
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/google/jsonschema-go/jsonschema"
 )
 
 // Optional annotations for the client. The client can use annotations to inform
-// how objects are used or displayed
+// how objects are used or displayed.
 type Annotations struct {
 	// Describes who the intended customer of this object or data is.
 	//
@@ -40,54 +38,96 @@ type Annotations struct {
 	Priority float64 `json:"priority,omitempty"`
 }
 
+// CallToolParams is used by clients to call a tool.
 type CallToolParams struct {
+	// Meta is reserved by the protocol to allow clients and servers to
+	// attach additional metadata to their responses.
+	Meta `json:"_meta,omitempty"`
+	// Name is the name of the tool to call.
+	Name string `json:"name"`
+	// Arguments holds the tool arguments. It can hold any value that can be
+	// marshaled to JSON.
+	Arguments any `json:"arguments,omitempty"`
+}
+
+// CallToolParamsRaw is passed to tool handlers on the server. Its arguments
+// are not yet unmarshaled (hence "raw"), so that the handlers can perform
+// unmarshaling themselves.
+type CallToolParamsRaw struct {
 	// This property is reserved by the protocol to allow clients and servers to
 	// attach additional metadata to their responses.
-	Meta      `json:"_meta,omitempty"`
-	Name      string `json:"name"`
-	Arguments any    `json:"arguments,omitempty"`
+	Meta `json:"_meta,omitempty"`
+	// Name is the name of the tool being called.
+	Name string `json:"name"`
+	// Arguments is the raw arguments received over the wire from the client. It
+	// is the responsibility of the tool handler to unmarshal and validate the
+	// Arguments (see [AddTool]).
+	Arguments json.RawMessage `json:"arguments,omitempty"`
 }
 
-// When unmarshalling CallToolParams on the server side, we need to delay unmarshaling of the arguments.
-func (c *CallToolParams) UnmarshalJSON(data []byte) error {
-	var raw struct {
-		Meta         `json:"_meta,omitempty"`
-		Name         string          `json:"name"`
-		RawArguments json.RawMessage `json:"arguments,omitempty"`
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	c.Meta = raw.Meta
-	c.Name = raw.Name
-	c.Arguments = raw.RawArguments
-	return nil
-}
-
-// The server's response to a tool call.
+// A CallToolResult is the server's response to a tool call.
+//
+// The [ToolHandler] and [ToolHandlerFor] handler functions return this result,
+// though [ToolHandlerFor] populates much of it automatically as documented at
+// each field.
 type CallToolResult struct {
 	// This property is reserved by the protocol to allow clients and servers to
 	// attach additional metadata to their responses.
 	Meta `json:"_meta,omitempty"`
+
 	// A list of content objects that represent the unstructured result of the tool
 	// call.
+	//
+	// When using a [ToolHandlerFor] with structured output, if Content is unset
+	// it will be populated with JSON text content corresponding to the
+	// structured output value.
 	Content []Content `json:"content"`
-	// An optional JSON object that represents the structured result of the tool
-	// call.
+
+	// StructuredContent is an optional value that represents the structured
+	// result of the tool call. It must marshal to a JSON object.
+	//
+	// When using a [ToolHandlerFor] with structured output, you should not
+	// populate this field. It will be automatically populated with the typed Out
+	// value.
 	StructuredContent any `json:"structuredContent,omitempty"`
-	// Whether the tool call ended in an error.
+
+	// IsError reports whether the tool call ended in an error.
 	//
 	// If not set, this is assumed to be false (the call was successful).
 	//
-	// Any errors that originate from the tool should be reported inside the result
-	// object, with isError set to true, not as an MCP protocol-level error
-	// response. Otherwise, the LLM would not be able to see that an error occurred
-	// and self-correct.
+	// Any errors that originate from the tool should be reported inside the
+	// Content field, with IsError set to true, not as an MCP protocol-level
+	// error response. Otherwise, the LLM would not be able to see that an error
+	// occurred and self-correct.
 	//
 	// However, any errors in finding the tool, an error indicating that the
 	// server does not support tool calls, or any other exceptional conditions,
 	// should be reported as an MCP error response.
+	//
+	// When using a [ToolHandlerFor], this field is automatically set when the
+	// tool handler returns an error, and the error string is included as text in
+	// the Content field.
 	IsError bool `json:"isError,omitempty"`
+
+	// The error passed to setError, if any.
+	// It is not marshaled, and therefore it is only visible on the server.
+	// Its only use is in server sending middleware, where it can be accessed
+	// with getError.
+	err error
+}
+
+// TODO(#64): consider exposing setError (and getError), by adding an error
+// field on CallToolResult.
+func (r *CallToolResult) setError(err error) {
+	r.Content = []Content{&TextContent{Text: err.Error()}}
+	r.IsError = true
+	r.err = err
+}
+
+// getError returns the error set with setError, or nil if none.
+// This function always returns nil on clients.
+func (r *CallToolResult) getError() error {
+	return r.err
 }
 
 func (*CallToolResult) isResult() {}
@@ -114,6 +154,10 @@ func (x *CallToolResult) UnmarshalJSON(data []byte) error {
 func (x *CallToolParams) isParams()              {}
 func (x *CallToolParams) GetProgressToken() any  { return getProgressToken(x) }
 func (x *CallToolParams) SetProgressToken(t any) { setProgressToken(x, t) }
+
+func (x *CallToolParamsRaw) isParams()              {}
+func (x *CallToolParamsRaw) GetProgressToken() any  { return getProgressToken(x) }
+func (x *CallToolParamsRaw) SetProgressToken(t any) { setProgressToken(x, t) }
 
 type CancelledParams struct {
 	// This property is reserved by the protocol to allow clients and servers to
@@ -599,15 +643,16 @@ type ProgressNotificationParams struct {
 	// This property is reserved by the protocol to allow clients and servers to
 	// attach additional metadata to their responses.
 	Meta `json:"_meta,omitempty"`
+	// The progress token which was given in the initial request, used to associate
+	// this notification with the request that is proceeding.
+	ProgressToken any `json:"progressToken"`
 	// An optional message describing the current progress.
 	Message string `json:"message,omitempty"`
 	// The progress thus far. This should increase every time progress is made, even
 	// if the total is unknown.
 	Progress float64 `json:"progress"`
-	// The progress token which was given in the initial request, used to associate
-	// this notification with the request that is proceeding.
-	ProgressToken any `json:"progressToken"`
 	// Total number of items to process (or total progress required), if known.
+	// Zero means unknown.
 	Total float64 `json:"total,omitempty"`
 }
 
@@ -866,14 +911,38 @@ type Tool struct {
 	// This can be used by clients to improve the LLM's understanding of available
 	// tools. It can be thought of like a "hint" to the model.
 	Description string `json:"description,omitempty"`
-	// A JSON Schema object defining the expected parameters for the tool.
-	InputSchema *jsonschema.Schema `json:"inputSchema"`
+	// InputSchema holds a JSON Schema object defining the expected parameters
+	// for the tool.
+	//
+	// From the server, this field may be set to any value that JSON-marshals to
+	// valid JSON schema (including json.RawMessage). However, for tools added
+	// using [AddTool], which automatically validates inputs and outputs, the
+	// schema must be in a draft the SDK understands. Currently, the SDK uses
+	// github.com/google/jsonschema-go for inference and validation, which only
+	// supports the 2020-12 draft of JSON schema. To do your own validation, use
+	// [Server.AddTool].
+	//
+	// From the client, this field will hold the default JSON marshaling of the
+	// server's input schema (a map[string]any).
+	InputSchema any `json:"inputSchema"`
 	// Intended for programmatic or logical use, but used as a display name in past
 	// specs or fallback (if title isn't present).
 	Name string `json:"name"`
-	// An optional JSON Schema object defining the structure of the tool's output
-	// returned in the structuredContent field of a CallToolResult.
-	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty"`
+	// OutputSchema holds an optional JSON Schema object defining the structure
+	// of the tool's output returned in the StructuredContent field of a
+	// CallToolResult.
+	//
+	// From the server, this field may be set to any value that JSON-marshals to
+	// valid JSON schema (including json.RawMessage). However, for tools added
+	// using [AddTool], which automatically validates inputs and outputs, the
+	// schema must be in a draft the SDK understands. Currently, the SDK uses
+	// github.com/google/jsonschema-go for inference and validation, which only
+	// supports the 2020-12 draft of JSON schema. To do your own validation, use
+	// [Server.AddTool].
+	//
+	// From the client, this field will hold the default JSON marshaling of the
+	// server's output schema (a map[string]any).
+	OutputSchema any `json:"outputSchema,omitempty"`
 	// Intended for UI and end-user contexts — optimized to be human-readable and
 	// easily understood, even by those unfamiliar with domain-specific terminology.
 	// If not provided, Annotations.Title should be used for display if present,
@@ -975,9 +1044,18 @@ type ElicitParams struct {
 	Meta `json:"_meta,omitempty"`
 	// The message to present to the user.
 	Message string `json:"message"`
-	// A restricted subset of JSON Schema.
+	// A JSON schema object defining the requested elicitation schema.
+	//
+	// From the server, this field may be set to any value that can JSON-marshal
+	// to valid JSON schema (including json.RawMessage for raw schema values).
+	// Internally, the SDK uses github.com/google/jsonschema-go for validation,
+	// which only supports the 2020-12 draft of the JSON schema spec.
+	//
+	// From the client, this field will use the default JSON marshaling (a
+	// map[string]any).
+	//
 	// Only top-level properties are allowed, without nesting.
-	RequestedSchema *jsonschema.Schema `json:"requestedSchema"`
+	RequestedSchema any `json:"requestedSchema"`
 }
 
 func (x *ElicitParams) isParams() {}

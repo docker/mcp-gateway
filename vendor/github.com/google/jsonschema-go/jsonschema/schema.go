@@ -1,4 +1,4 @@
-// Copyright 2025 The Go MCP SDK Authors. All rights reserved.
+// Copyright 2025 The JSON Schema Go Project Authors. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
@@ -20,8 +20,8 @@ import (
 // A Schema is a JSON schema object.
 // It corresponds to the 2020-12 draft, as described in https://json-schema.org/draft/2020-12,
 // specifically:
-// - https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-01
-// - https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-01
+//   - https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-01
+//   - https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-01
 //
 // A Schema value may have non-zero values for more than one field:
 // all relevant non-zero fields are used for validation.
@@ -152,7 +152,7 @@ func (s *Schema) String() string {
 
 // CloneSchemas returns a copy of s.
 // The copy is shallow except for sub-schemas, which are themelves copied with CloneSchemas.
-// This allows both s and s.CloneSchemas() to appear as sub-schemas in the same parent.
+// This allows both s and s.CloneSchemas() to appear as sub-schemas of the same parent.
 func (s *Schema) CloneSchemas() *Schema {
 	if s == nil {
 		return nil

@@ -17,10 +17,10 @@ type Client interface {
 
 // CapabilityRefresher interface allows the notification handlers to refresh server capabilities
 type CapabilityRefresher interface {
-	RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession) error
+	RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession, serverName string) error
 }
 
-func notifications(serverSession *mcp.ServerSession, server *mcp.Server, refresher CapabilityRefresher) *mcp.ClientOptions {
+func notifications(serverName string, serverSession *mcp.ServerSession, server *mcp.Server, refresher CapabilityRefresher) *mcp.ClientOptions {
 	return &mcp.ClientOptions{
 		ResourceUpdatedHandler: func(ctx context.Context, req *mcp.ResourceUpdatedNotificationRequest) {
 			if server != nil {
@@ -33,17 +33,17 @@ func notifications(serverSession *mcp.ServerSession, server *mcp.Server, refresh
 		},
 		ToolListChangedHandler: func(ctx context.Context, _ *mcp.ToolListChangedRequest) {
 			if refresher != nil && server != nil && serverSession != nil {
-				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession, serverName)
 			}
 		},
 		ResourceListChangedHandler: func(ctx context.Context, _ *mcp.ResourceListChangedRequest) {
 			if refresher != nil && server != nil && serverSession != nil {
-				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession, serverName)
 			}
 		},
 		PromptListChangedHandler: func(ctx context.Context, _ *mcp.PromptListChangedRequest) {
 			if refresher != nil && server != nil && serverSession != nil {
-				_ = refresher.RefreshCapabilities(ctx, server, serverSession)
+				_ = refresher.RefreshCapabilities(ctx, server, serverSession, serverName)
 			}
 		},
 		ProgressNotificationHandler: func(ctx context.Context, req *mcp.ProgressNotificationClientRequest) {

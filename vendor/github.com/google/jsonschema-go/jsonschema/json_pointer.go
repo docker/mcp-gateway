@@ -1,4 +1,4 @@
-// Copyright 2025 The Go MCP SDK Authors. All rights reserved.
+// Copyright 2025 The JSON Schema Go Project Authors. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 

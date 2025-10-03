@@ -55,11 +55,15 @@ func NewClient(impl *Implementation, opts *ClientOptions) *Client {
 
 // ClientOptions configures the behavior of the client.
 type ClientOptions struct {
-	// Handler for sampling.
-	// Called when a server calls CreateMessage.
+	// CreateMessageHandler handles incoming requests for sampling/createMessage.
+	//
+	// Setting CreateMessageHandler to a non-nil value causes the client to
+	// advertise the sampling capability.
 	CreateMessageHandler func(context.Context, *CreateMessageRequest) (*CreateMessageResult, error)
-	// Handler for elicitation.
-	// Called when a server requests user input via Elicit.
+	// ElicitationHandler handles incoming requests for elicitation/create.
+	//
+	// Setting ElicitationHandler to a non-nil value causes the client to
+	// advertise the elicitation capability.
 	ElicitationHandler func(context.Context, *ElicitRequest) (*ElicitResult, error)
 	// Handlers for notifications from the server.
 	ToolListChangedHandler      func(context.Context, *ToolListChangedRequest)
@@ -123,7 +127,7 @@ func (c *Client) capabilities() *ClientCapabilities {
 }
 
 // Connect begins an MCP session by connecting to a server over the given
-// transport, and initializing the session.
+// transport. The resulting session is initialized, and ready to use.
 //
 // Typically, it is the responsibility of the client to close the connection
 // when it is no longer needed. However, if the connection is closed by the
@@ -154,7 +158,7 @@ func (c *Client) Connect(ctx context.Context, t Transport, _ *ClientSessionOptio
 		hc.sessionUpdated(cs.state)
 	}
 	req2 := &initializedClientRequest{Session: cs, Params: &InitializedParams{}}
-	if err := HandleNotify(ctx, notificationInitialized, req2); err != nil {
+	if err := handleNotify(ctx, notificationInitialized, req2); err != nil {
 		_ = cs.Close()
 		return nil, err
 	}
@@ -279,7 +283,7 @@ func (c *Client) listRoots(_ context.Context, req *ListRootsRequest) (*ListRoots
 func (c *Client) createMessage(ctx context.Context, req *CreateMessageRequest) (*CreateMessageResult, error) {
 	if c.opts.CreateMessageHandler == nil {
 		// TODO: wrap or annotate this error? Pick a standard code?
-		return nil, jsonrpc2.NewError(CodeUnsupportedMethod, "client does not support CreateMessage")
+		return nil, jsonrpc2.NewError(codeUnsupportedMethod, "client does not support CreateMessage")
 	}
 	return c.opts.CreateMessageHandler(ctx, req)
 }
@@ -287,12 +291,13 @@ func (c *Client) createMessage(ctx context.Context, req *CreateMessageRequest) (
 func (c *Client) elicit(ctx context.Context, req *ElicitRequest) (*ElicitResult, error) {
 	if c.opts.ElicitationHandler == nil {
 		// TODO: wrap or annotate this error? Pick a standard code?
-		return nil, jsonrpc2.NewError(CodeUnsupportedMethod, "client does not support elicitation")
+		return nil, jsonrpc2.NewError(codeUnsupportedMethod, "client does not support elicitation")
 	}
 
 	// Validate that the requested schema only contains top-level properties without nesting
-	if err := validateElicitSchema(req.Params.RequestedSchema); err != nil {
-		return nil, jsonrpc2.NewError(CodeInvalidParams, err.Error())
+	schema, err := validateElicitSchema(req.Params.RequestedSchema)
+	if err != nil {
+		return nil, jsonrpc2.NewError(codeInvalidParams, err.Error())
 	}
 
 	res, err := c.opts.ElicitationHandler(ctx, req)
@@ -301,14 +306,17 @@ func (c *Client) elicit(ctx context.Context, req *ElicitRequest) (*ElicitResult,
 	}
 
 	// Validate elicitation result content against requested schema
-	if req.Params.RequestedSchema != nil && res.Content != nil {
-		resolved, err := req.Params.RequestedSchema.Resolve(nil)
+	if schema != nil && res.Content != nil {
+		// TODO: is this the correct behavior if validation fails?
+		// It isn't the *server's* params that are invalid, so why would we return
+		// this code to the server?
+		resolved, err := schema.Resolve(nil)
 		if err != nil {
-			return nil, jsonrpc2.NewError(CodeInvalidParams, fmt.Sprintf("failed to resolve requested schema: %v", err))
+			return nil, jsonrpc2.NewError(codeInvalidParams, fmt.Sprintf("failed to resolve requested schema: %v", err))
 		}
 
 		if err := resolved.Validate(res.Content); err != nil {
-			return nil, jsonrpc2.NewError(CodeInvalidParams, fmt.Sprintf("elicitation result content does not match requested schema: %v", err))
+			return nil, jsonrpc2.NewError(codeInvalidParams, fmt.Sprintf("elicitation result content does not match requested schema: %v", err))
 		}
 	}
 
@@ -317,14 +325,19 @@ func (c *Client) elicit(ctx context.Context, req *ElicitRequest) (*ElicitResult,
 
 // validateElicitSchema validates that the schema conforms to MCP elicitation schema requirements.
 // Per the MCP specification, elicitation schemas are limited to flat objects with primitive properties only.
-func validateElicitSchema(schema *jsonschema.Schema) error {
-	if schema == nil {
-		return nil // nil schema is allowed
+func validateElicitSchema(wireSchema any) (*jsonschema.Schema, error) {
+	if wireSchema == nil {
+		return nil, nil // nil schema is allowed
+	}
+
+	var schema *jsonschema.Schema
+	if err := remarshal(wireSchema, &schema); err != nil {
+		return nil, err
 	}
 
 	// The root schema must be of type "object" if specified
 	if schema.Type != "" && schema.Type != "object" {
-		return fmt.Errorf("elicit schema must be of type 'object', got %q", schema.Type)
+		return nil, fmt.Errorf("elicit schema must be of type 'object', got %q", schema.Type)
 	}
 
 	// Check if the schema has properties
@@ -335,12 +348,12 @@ func validateElicitSchema(schema *jsonschema.Schema) error {
 			}
 
 			if err := validateElicitProperty(propName, propSchema); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
-	return nil
+	return schema, nil
 }
 
 // validateElicitProperty validates a single property in an elicitation schema.
@@ -376,7 +389,7 @@ func validateElicitStringProperty(propName string, propSchema *jsonschema.Schema
 		if propSchema.Extra != nil {
 			if enumNamesRaw, exists := propSchema.Extra["enumNames"]; exists {
 				// Type check enumNames - should be a slice
-				if enumNamesSlice, ok := enumNamesRaw.([]interface{}); ok {
+				if enumNamesSlice, ok := enumNamesRaw.([]any); ok {
 					if len(enumNamesSlice) != len(propSchema.Enum) {
 						return fmt.Errorf("elicit schema property %q has %d enum values but %d enumNames, they must match", propName, len(propSchema.Enum), len(enumNamesSlice))
 					}
@@ -564,8 +577,9 @@ func (cs *ClientSession) ListTools(ctx context.Context, params *ListToolsParams)
 	return handleSend[*ListToolsResult](ctx, methodListTools, newClientRequest(cs, orZero[Params](params)))
 }
 
-// CallTool calls the tool with the given name and arguments.
-// The arguments can be any value that marshals into a JSON object.
+// CallTool calls the tool with the given parameters.
+//
+// The params.Arguments can be any value that marshals into a JSON object.
 func (cs *ClientSession) CallTool(ctx context.Context, params *CallToolParams) (*CallToolResult, error) {
 	if params == nil {
 		params = new(CallToolParams)
@@ -660,9 +674,9 @@ func (cs *ClientSession) callProgressNotificationHandler(ctx context.Context, pa
 // NotifyProgress sends a progress notification from the client to the server
 // associated with this session.
 // This can be used if the client is performing a long-running task that was
-// initiated by the server
+// initiated by the server.
 func (cs *ClientSession) NotifyProgress(ctx context.Context, params *ProgressNotificationParams) error {
-	return HandleNotify(ctx, notificationProgress, newClientRequest(cs, orZero[Params](params)))
+	return handleNotify(ctx, notificationProgress, newClientRequest(cs, orZero[Params](params)))
 }
 
 // Tools provides an iterator for all tools available on the server,
@@ -693,7 +707,7 @@ func (cs *ClientSession) Resources(ctx context.Context, params *ListResourcesPar
 
 // ResourceTemplates provides an iterator for all resource templates available on the server,
 // automatically fetching pages and managing cursors.
-// The `params` argument can set the initial cursor.
+// The params argument can set the initial cursor.
 // Iteration stops at the first encountered error, which will be yielded.
 func (cs *ClientSession) ResourceTemplates(ctx context.Context, params *ListResourceTemplatesParams) iter.Seq2[*ResourceTemplate, error] {
 	if params == nil {

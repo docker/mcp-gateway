@@ -24,7 +24,7 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 	mux.Handle("/", redirectHandler("/sse"))
 	sseHandler := mcp.NewSSEHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
-	})
+	}, nil)
 	mux.Handle("/sse", sseHandler)
 	httpServer := &http.Server{
 		Handler: mux,
