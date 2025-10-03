@@ -250,7 +250,7 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 		serverName := strings.TrimSpace(params.Name)
 
 		// Check if server exists in catalog
-		_, _, found := configuration.Find(serverName)
+		serverConfig, _, found := configuration.Find(serverName)
 		if !found {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
@@ -287,6 +287,11 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 		updatedServerNames := configuration.serverNames
 		if err := g.reloadConfiguration(ctx, configuration, updatedServerNames, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
+		}
+
+		// Start OAuth provider if this is an OAuth server
+		if g.McpOAuthDcrEnabled && serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
+			g.startProvider(ctx, serverName)
 		}
 
 		return &mcp.CallToolResult{
@@ -351,6 +356,11 @@ func (g *Gateway) createMcpRemoveTool(_ Configuration, clientConfig *clientConfi
 
 		// Update the current configuration state
 		g.configuration.serverNames = updatedServerNames
+
+		// Stop OAuth provider if this is an OAuth server
+		if g.McpOAuthDcrEnabled {
+			g.stopProvider(serverName)
+		}
 
 		if err := g.reloadConfiguration(ctx, g.configuration, updatedServerNames, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -104,11 +103,6 @@ type FileBasedConfiguration struct {
 	McpOAuthDcrEnabled bool
 
 	docker docker.Client
-}
-
-// isDCRFeatureEnabled checks if the mcp-oauth-dcr feature is enabled
-func (c *FileBasedConfiguration) isDCRFeatureEnabled() bool {
-	return c.McpOAuthDcrEnabled
 }
 
 func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
@@ -212,19 +206,6 @@ func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan 
 		if err := watcher.Add(path); err != nil && !os.IsNotExist(err) {
 			return Configuration{}, nil, nil, err
 		}
-	}
-
-	// Add token event file to watcher only if DCR feature is enabled
-	if c.isDCRFeatureEnabled() {
-		tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
-		if err := watcher.Add(tokenEventPath); err != nil && !os.IsNotExist(err) {
-			log(fmt.Sprintf("DCR: Warning - Could not watch token event file %s: %v", tokenEventPath, err))
-			// Don't fail configuration loading if token event file can't be watched
-		} else {
-			log(fmt.Sprintf("DCR: Watching token event file: %s", tokenEventPath))
-		}
-	} else {
-		log("DCR: Token event file watching disabled (mcp-oauth-dcr feature inactive)")
 	}
 
 	return configuration, updates, watcher.Close, nil

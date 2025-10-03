@@ -52,6 +52,17 @@ func (c *Tools) ListOAuthApps(ctx context.Context) ([]OAuthApp, error) {
 	return result, err
 }
 
+func (c *Tools) GetOAuthApp(ctx context.Context, app string) (*OAuthApp, error) {
+	AvoidResourceSaverMode(ctx)
+
+	var result OAuthApp
+	err := c.rawClient.Get(ctx, fmt.Sprintf("/apps/%v", app), &result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAutoOpen bool) (AuthResponse, error) {
 	AvoidResourceSaverMode(ctx)
 
