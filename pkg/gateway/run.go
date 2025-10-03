@@ -769,8 +769,19 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 		if !exists {
 			logf("- Creating provider for %s after login", event.Provider)
 			g.startProvider(context.Background(), event.Provider)
-		} else {
-			// Provider already running - send event (might trigger reload)
+		}
+
+		// Always send event to trigger reload (connects server and lists tools)
+		// Wait briefly if we just created the provider
+		if !exists {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		g.providersMu.RLock()
+		provider, exists = g.oauthProviders[event.Provider]
+		g.providersMu.RUnlock()
+
+		if exists {
 			provider.SendEvent(event)
 		}
 
