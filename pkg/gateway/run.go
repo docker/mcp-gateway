@@ -591,23 +591,14 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	provider, exists := g.oauthProviders[event.Provider]
 	g.providersMu.RUnlock()
 
-	if !exists {
-		// Provider doesn't exist - might have been stopped due to Authorized=false
-		// Restart it since an SSE event indicates user likely just authorized
-		logf("- Provider %s not running, restarting (user likely authorized)", event.Provider)
-		g.startProvider(context.Background(), event.Provider)
-
-		// Wait briefly for provider to start
-		time.Sleep(100 * time.Millisecond)
-
-		g.providersMu.RLock()
-		provider, exists = g.oauthProviders[event.Provider]
-		g.providersMu.RUnlock()
-	}
-
 	if exists {
 		provider.SendEvent(event)
 	}
+	// If provider doesn't exist, drop event
+	// This can happen if:
+	// 1. Server was disabled/removed
+	// 2. Another gateway instance triggered the refresh
+	// 3. Provider stopped due to Authorized=false (user must mcp-add after authorizing)
 }
 
 // syncProviders adds new and removes old OAuth providers based on configuration
