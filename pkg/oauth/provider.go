@@ -54,7 +54,9 @@ func (p *Provider) Run(ctx context.Context) {
 				authClient := desktop.NewAuthClient()
 				app, err := authClient.GetOAuthApp(context.Background(), p.name)
 				if err != nil {
+					// Refresh failed - stop provider
 					logf("- GetOAuthApp failed for %s: %v", p.name, err)
+					p.Stop()
 					return
 				}
 
@@ -110,13 +112,13 @@ func (p *Provider) Run(ctx context.Context) {
 				// Time to check/refresh - loop back
 
 			case event := <-p.eventChan:
-				// Unsolicited SSE event (login-success, logout, etc.)
+				// Event arrived while waiting - reload and recalculate timer
 				timer.Stop()
 				logf("- Provider %s received event: %s", p.name, event.Type)
 				if err := p.reloadFn(ctx, p.name); err != nil {
 					logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
 				}
-				// Loop back - might need refresh now
+				// Loop back to recalculate timer based on current token state
 
 			case <-p.stopChan:
 				// Server disabled/removed - shutdown gracefully

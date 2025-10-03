@@ -259,11 +259,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 				case configuration := <-configurationUpdates:
 					log("> Configuration updated, reloading...")
 
-					// Sync OAuth providers (add new, remove old)
-					if g.McpOAuthDcrEnabled {
-						g.syncProviders(ctx, configuration)
-					}
-
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						logf("> Unable to pull and verify images: %s", err)
 						continue
@@ -714,7 +709,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 
 	// Create reload function for this provider
 	reloadFn := func(ctx context.Context, name string) error {
-		// Read current configuration
+		// Read fresh configuration to handle dynamically added servers
 		config, _, _, err := g.configurator.Read(ctx)
 		if err != nil {
 			return err
@@ -725,7 +720,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 		// Close old client connection with stale token
 		g.clientPool.InvalidateOAuthClients(name)
 
-		// Reload configuration with all servers
+		// Reload all servers (only the invalidated one actually reconnects)
 		if err := g.reloadConfiguration(ctx, config, config.ServerNames(), nil); err != nil {
 			return err
 		}
@@ -737,7 +732,18 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 	// Create and start provider
 	provider := oauth.NewProvider(serverName, reloadFn)
 	g.oauthProviders[serverName] = provider
-	go provider.Run(ctx)
+
+	// Wrapper goroutine handles cleanup after provider exits
+	go func() {
+		provider.Run(ctx) // Blocks until provider stops
+
+		// Provider exited - remove from map
+		g.providersMu.Lock()
+		delete(g.oauthProviders, serverName)
+		g.providersMu.Unlock()
+
+		logf("- Removed provider %s from map after exit", serverName)
+	}()
 }
 
 // stopProvider stops an OAuth provider goroutine for a server
@@ -757,43 +763,32 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	provider, exists := g.oauthProviders[event.Provider]
 	g.providersMu.RUnlock()
 
-	if exists {
-		provider.SendEvent(event)
-	}
-	// If provider doesn't exist, drop event
-	// This can happen if:
-	// 1. Server was disabled/removed
-	// 2. Another gateway instance triggered the refresh
-	// 3. Provider stopped due to Authorized=false (user must mcp-add after authorizing)
-}
-
-// syncProviders adds new and removes old OAuth providers based on configuration
-func (g *Gateway) syncProviders(ctx context.Context, config Configuration) {
-	// Identify OAuth servers in new config
-	newOAuthServers := make(map[string]bool)
-	for _, serverName := range config.ServerNames() {
-		serverConfig, _, found := config.Find(serverName)
-		if found && serverConfig != nil && serverConfig.Spec.OAuth != nil {
-			newOAuthServers[serverName] = true
+	switch event.Type {
+	case oauth.EventLoginSuccess:
+		// User just authorized - ensure provider exists
+		if !exists {
+			logf("- Creating provider for %s after login", event.Provider)
+			g.startProvider(context.Background(), event.Provider)
+		} else {
+			// Provider already running - send event (might trigger reload)
+			provider.SendEvent(event)
 		}
-	}
 
-	// Start providers for new servers
-	for serverName := range newOAuthServers {
-		g.startProvider(ctx, serverName)
-	}
-
-	// Stop providers for removed servers
-	g.providersMu.RLock()
-	existingProviders := make([]string, 0, len(g.oauthProviders))
-	for name := range g.oauthProviders {
-		existingProviders = append(existingProviders, name)
-	}
-	g.providersMu.RUnlock()
-
-	for _, serverName := range existingProviders {
-		if !newOAuthServers[serverName] {
-			g.stopProvider(serverName)
+	case oauth.EventTokenRefresh:
+		// Token refreshed - route to provider if exists
+		if exists {
+			provider.SendEvent(event)
 		}
+		// If doesn't exist, drop (another gateway or disabled server)
+
+	case oauth.EventLogoutSuccess:
+		// User logged out - stop provider if exists
+		if exists {
+			logf("- Stopping provider for %s after logout", event.Provider)
+			g.stopProvider(event.Provider)
+		}
+
+	default:
+		// Other events (login-start, code-received, error) - ignore
 	}
 }
