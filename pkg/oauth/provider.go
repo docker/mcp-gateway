@@ -7,14 +7,18 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
+const maxRefreshRetries = 3 // Max attempts to refresh when DD doesn't update expiry
+
 // Provider manages OAuth token lifecycle for a single MCP server
 // Each provider runs in its own goroutine with dynamic timing based on token expiry
 type Provider struct {
-	name       string
-	stopChan   chan struct{}
-	eventChan  chan Event
-	credHelper *CredentialHelper
-	reloadFn   func(ctx context.Context, serverName string) error
+	name              string
+	lastRefreshExpiry time.Time // Last expiry we attempted to refresh (workaround for DD bug)
+	refreshRetryCount int       // Number of retries for same expiry
+	stopChan          chan struct{}
+	eventChan         chan Event
+	credHelper        *CredentialHelper
+	reloadFn          func(ctx context.Context, serverName string) error
 }
 
 // NewProvider creates a new OAuth provider
@@ -46,9 +50,38 @@ func (p *Provider) Run(ctx context.Context) {
 		}
 
 		if status.NeedsRefresh {
+			// Check if we already tried to refresh this exact expiry (DD bug workaround)
+			if !p.lastRefreshExpiry.IsZero() && status.ExpiresAt.Equal(p.lastRefreshExpiry) {
+				// Token expiry unchanged after refresh - DD didn't persist new expiry
+				p.refreshRetryCount++
+
+				if p.refreshRetryCount >= maxRefreshRetries {
+					// Tried max times, expiry never changed - give up
+					logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
+					logf("! This is a Docker Desktop bug - provider stopping")
+					logf("! Provider will recreate on next EventTokenRefresh or EventLoginSuccess")
+					return
+				}
+
+				// Retry with exponential backoff (2min, 4min, 6min)
+				backoff := time.Duration(p.refreshRetryCount) * 2 * time.Minute
+				logf("! Token expiry unchanged for %s, retry %d/%d in %v", p.name, p.refreshRetryCount, maxRefreshRetries, backoff)
+				time.Sleep(backoff)
+				continue
+			}
+
+			// Expiry different from last refresh (or first refresh) - reset retry count
+			if p.refreshRetryCount > 0 {
+				logf("- Token expiry updated for %s, resetting retry count", p.name)
+				p.refreshRetryCount = 0
+			}
+
 			// Token expired or expiring soon - trigger refresh and wait for SSE event
 			logf("- Token needs refresh for %s (expires: %s)", p.name, status.ExpiresAt.Format(time.RFC3339))
 			logf("- Triggering token refresh for %s", p.name)
+
+			// Track this expiry to detect DD bug on next iteration
+			p.lastRefreshExpiry = status.ExpiresAt
 
 			go func() {
 				authClient := desktop.NewAuthClient()
