@@ -38,13 +38,14 @@ type ServerSessionCache struct {
 
 type Gateway struct {
 	Options
-	docker             docker.Client
-	configurator       Configurator
-	configuration      Configuration
-	clientPool         *clientPool
-	mcpServer          *mcp.Server
-	health             health.State
-	refreshCoordinator *oauth.RefreshCoordinator
+	docker         docker.Client
+	configurator   Configurator
+	configuration  Configuration
+	clientPool     *clientPool
+	mcpServer      *mcp.Server
+	health         health.State
+	oauthProviders map[string]*oauth.Provider
+	providersMu    sync.RWMutex
 	// subsChannel  chan SubsMessage
 
 	sessionCacheMu sync.RWMutex
@@ -59,9 +60,9 @@ type Gateway struct {
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	g := &Gateway{
-		Options:            config.Options,
-		docker:             docker,
-		refreshCoordinator: oauth.NewRefreshCoordinator(),
+		Options:        config.Options,
+		docker:         docker,
+		oauthProviders: make(map[string]*oauth.Provider),
 		configurator: &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
@@ -209,30 +210,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log("- Starting OAuth notification monitor")
 		monitor := oauth.NewNotificationMonitor()
 		monitor.OnOAuthEvent = func(event oauth.Event) {
-			go g.handleOAuthEvent(ctx, event)
+			// Route event to specific provider
+			g.routeEventToProvider(event)
 		}
 		monitor.Start(ctx)
 
-		// Start single background refresh loop for all OAuth servers
-		log("- Starting OAuth token refresh loop...")
-		go func() {
-			ticker := time.NewTicker(1 * time.Minute)
-			defer ticker.Stop()
-
-			// Check immediately on startup
-			g.checkAllOAuthTokens(ctx)
-
-			// Then check every minute
-			for {
-				select {
-				case <-ticker.C:
-					g.checkAllOAuthTokens(ctx)
-				case <-ctx.Done():
-					log("- Stopped OAuth token refresh loop")
-					return
-				}
+		// Start OAuth provider for each OAuth server
+		// Each provider runs in its own goroutine with dynamic timing based on token expiry
+		log("- Starting OAuth provider loops...")
+		for _, serverName := range configuration.ServerNames() {
+			serverConfig, _, found := configuration.Find(serverName)
+			if !found || serverConfig == nil || serverConfig.Spec.OAuth == nil {
+				continue
 			}
-		}()
+
+			g.startProvider(ctx, serverName)
+		}
 	}
 
 	// Central mode.
@@ -258,6 +251,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 					return
 				case configuration := <-configurationUpdates:
 					log("> Configuration updated, reloading...")
+
+					// Sync OAuth providers (add new, remove old)
+					if g.McpOAuthDcrEnabled {
+						g.syncProviders(ctx, configuration)
+					}
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						logf("> Unable to pull and verify images: %s", err)
@@ -536,68 +534,109 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 	}
 }
 
-// handleOAuthEvent processes OAuth events from the notification monitor
-func (g *Gateway) handleOAuthEvent(ctx context.Context, event oauth.Event) {
-	switch event.Type {
-	case oauth.EventLoginSuccess, oauth.EventTokenRefresh, oauth.EventLogoutSuccess:
-		// Read current registry configuration
-		currentConfig, _, _, err := g.configurator.Read(ctx)
-		if err != nil {
-			logf("> Failed to read configuration for OAuth event: %v", err)
-			return
-		}
+// OAuth Provider Management Methods
 
-		// Reload server - handles disabled servers gracefully
-		go func() {
-			ctx := context.Background()
-			if err := g.reloadSingleServer(ctx, currentConfig, event.Provider); err != nil {
-				logf("> Failed to reload server after OAuth %s: %v", event.Type, err)
-			}
-			// Mark refresh complete regardless of success/failure
-			// This allows background loop to retry on next tick if it failed
-			g.refreshCoordinator.MarkRefreshComplete(event.Provider)
-		}()
-	}
-}
+// startProvider creates and starts an OAuth provider goroutine for a server
+func (g *Gateway) startProvider(ctx context.Context, serverName string) {
+	g.providersMu.Lock()
+	defer g.providersMu.Unlock()
 
-// reloadSingleServer refreshes the connection for a single OAuth server after token changes.
-func (g *Gateway) reloadSingleServer(ctx context.Context, configuration Configuration, serverName string) error {
-	logf("> Reloading OAuth server: %s", serverName)
-
-	// Close old client connection with stale token (removes from pool)
-	g.clientPool.InvalidateOAuthClients(serverName)
-
-	// Perform full reload which will:
-	// - For this server: create new client (not in pool) → Initialize with fresh token
-	// - For other servers: reuse cached client (still in pool) → no Initialize
-	// - List tools from all servers and re-register them
-	if err := g.reloadConfiguration(ctx, configuration, configuration.ServerNames(), nil); err != nil {
-		return fmt.Errorf("failed to reload configuration: %w", err)
-	}
-
-	logf("> OAuth server %s reconnected and tools registered", serverName)
-	return nil
-}
-
-// checkAllOAuthTokens checks token status for all OAuth servers in current configuration
-func (g *Gateway) checkAllOAuthTokens(ctx context.Context) {
-	// Read fresh configuration to pick up changes
-	configuration, _, _, err := g.configurator.Read(ctx)
-	if err != nil {
-		logf("> Failed to read configuration for token check: %v", err)
+	// Check if provider already running
+	if _, exists := g.oauthProviders[serverName]; exists {
 		return
 	}
 
-	// Check each OAuth server's token
-	for _, serverName := range configuration.ServerNames() {
-		serverConfig, _, found := configuration.Find(serverName)
-		if !found || serverConfig == nil || serverConfig.Spec.OAuth == nil {
-			continue
+	// Create reload function for this provider
+	reloadFn := func(ctx context.Context, name string) error {
+		// Read current configuration
+		config, _, _, err := g.configurator.Read(ctx)
+		if err != nil {
+			return err
 		}
 
-		// Check token status and trigger refresh if needed (non-blocking)
-		if err := g.refreshCoordinator.EnsureValidToken(ctx, serverName); err != nil {
-			logf("> Token check failed for %s: %v", serverName, err)
+		logf("> Reloading OAuth server: %s", name)
+
+		// Close old client connection with stale token
+		g.clientPool.InvalidateOAuthClients(name)
+
+		// Reload configuration with all servers
+		if err := g.reloadConfiguration(ctx, config, config.ServerNames(), nil); err != nil {
+			return err
+		}
+
+		logf("> OAuth server %s reconnected and tools registered", name)
+		return nil
+	}
+
+	// Create and start provider
+	provider := oauth.NewProvider(serverName, reloadFn)
+	g.oauthProviders[serverName] = provider
+	go provider.Run(ctx)
+}
+
+// stopProvider stops an OAuth provider goroutine for a server
+func (g *Gateway) stopProvider(serverName string) {
+	g.providersMu.Lock()
+	defer g.providersMu.Unlock()
+
+	if provider, exists := g.oauthProviders[serverName]; exists {
+		provider.Stop()
+		delete(g.oauthProviders, serverName)
+	}
+}
+
+// routeEventToProvider routes SSE events to the appropriate provider
+func (g *Gateway) routeEventToProvider(event oauth.Event) {
+	g.providersMu.RLock()
+	provider, exists := g.oauthProviders[event.Provider]
+	g.providersMu.RUnlock()
+
+	if !exists {
+		// Provider doesn't exist - might have been stopped due to Authorized=false
+		// Restart it since an SSE event indicates user likely just authorized
+		logf("- Provider %s not running, restarting (user likely authorized)", event.Provider)
+		g.startProvider(context.Background(), event.Provider)
+
+		// Wait briefly for provider to start
+		time.Sleep(100 * time.Millisecond)
+
+		g.providersMu.RLock()
+		provider, exists = g.oauthProviders[event.Provider]
+		g.providersMu.RUnlock()
+	}
+
+	if exists {
+		provider.SendEvent(event)
+	}
+}
+
+// syncProviders adds new and removes old OAuth providers based on configuration
+func (g *Gateway) syncProviders(ctx context.Context, config Configuration) {
+	// Identify OAuth servers in new config
+	newOAuthServers := make(map[string]bool)
+	for _, serverName := range config.ServerNames() {
+		serverConfig, _, found := config.Find(serverName)
+		if found && serverConfig != nil && serverConfig.Spec.OAuth != nil {
+			newOAuthServers[serverName] = true
+		}
+	}
+
+	// Start providers for new servers
+	for serverName := range newOAuthServers {
+		g.startProvider(ctx, serverName)
+	}
+
+	// Stop providers for removed servers
+	g.providersMu.RLock()
+	existingProviders := make([]string, 0, len(g.oauthProviders))
+	for name := range g.oauthProviders {
+		existingProviders = append(existingProviders, name)
+	}
+	g.providersMu.RUnlock()
+
+	for _, serverName := range existingProviders {
+		if !newOAuthServers[serverName] {
+			g.stopProvider(serverName)
 		}
 	}
 }
