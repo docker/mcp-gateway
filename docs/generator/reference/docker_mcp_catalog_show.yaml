@@ -16,7 +16,12 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
-examples: "  # Show Docker's official catalog\n  docker mcp catalog show\n  \n  # Show a specific catalog in JSON format\n  docker mcp catalog show my-catalog --format=json"
+examples: |4-
+      # Show Docker's official catalog
+      docker mcp catalog show
+
+      # Show a specific catalog in JSON format
+      docker mcp catalog show my-catalog --format=json
 deprecated: false
 hidden: false
 experimental: false

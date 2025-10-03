@@ -23,21 +23,25 @@ type Capabilities struct {
 }
 
 type ToolRegistration struct {
-	Tool    *mcp.Tool
-	Handler mcp.ToolHandler
+	ServerName string
+	Tool       *mcp.Tool
+	Handler    mcp.ToolHandler
 }
 
 type PromptRegistration struct {
-	Prompt  *mcp.Prompt
-	Handler mcp.PromptHandler
+	ServerName string
+	Prompt     *mcp.Prompt
+	Handler    mcp.PromptHandler
 }
 
 type ResourceRegistration struct {
-	Resource *mcp.Resource
-	Handler  mcp.ResourceHandler
+	ServerName string
+	Resource   *mcp.Resource
+	Handler    mcp.ResourceHandler
 }
 
 type ResourceTemplateRegistration struct {
+	ServerName       string
 	ResourceTemplate mcp.ResourceTemplate
 	Handler          mcp.ResourceHandler
 }
@@ -81,8 +85,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 							continue
 						}
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
-							Tool:    tool,
-							Handler: g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
+							ServerName: serverConfig.Name,
+							Tool:       tool,
+							Handler:    g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
 						})
 					}
 				}
@@ -94,8 +99,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 					for _, prompt := range prompts.Prompts {
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
-							Prompt:  prompt,
-							Handler: g.mcpServerPromptHandler(serverConfig, g.mcpServer),
+							ServerName: serverConfig.Name,
+							Prompt:     prompt,
+							Handler:    g.mcpServerPromptHandler(serverConfig, g.mcpServer),
 						})
 					}
 				}
@@ -107,8 +113,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 					for _, resource := range resources.Resources {
 						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
-							Resource: resource,
-							Handler:  g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							ServerName: serverConfig.Name,
+							Resource:   resource,
+							Handler:    g.mcpServerResourceHandler(serverConfig, g.mcpServer),
 						})
 					}
 				}
@@ -120,6 +127,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 					for _, resourceTemplate := range resourceTemplates.ResourceTemplates {
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
+							ServerName:       serverConfig.Name,
 							ResourceTemplate: *resourceTemplate,
 							Handler:          g.mcpServerResourceHandler(serverConfig, g.mcpServer),
 						})
@@ -159,20 +167,23 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					continue
 				}
 
-				mcpTool := mcp.Tool{
-					Name:        tool.Name,
-					Description: tool.Description,
-					InputSchema: &jsonschema.Schema{},
-				}
+				// Create schema with proper type
+				schema := &jsonschema.Schema{}
 				// TODO: Properly convert tool.Parameters to jsonschema.Schema
 				// For now, we'll create a simple schema structure
 				if len(tool.Parameters.Properties) == 0 {
-					mcpTool.InputSchema.Type = "object"
+					schema.Type = "object"
 				} else {
-					mcpTool.InputSchema.Type = tool.Parameters.Type
+					schema.Type = tool.Parameters.Type
 					// Note: tool.Parameters.Properties.ToMap() returns map[string]any
 					// but we need map[string]*jsonschema.Schema
 					// This is a complex conversion that needs proper implementation
+				}
+
+				mcpTool := mcp.Tool{
+					Name:        tool.Name,
+					Description: tool.Description,
+					InputSchema: schema,
 				}
 
 				capabilities.Tools = append(capabilities.Tools, ToolRegistration{

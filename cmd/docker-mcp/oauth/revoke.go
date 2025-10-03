@@ -9,29 +9,25 @@ import (
 
 func Revoke(ctx context.Context, app string) error {
 	client := desktop.NewAuthClient()
-	// Check if this is a DCR provider by trying to get DCR client directly
+
+	// Check if this is a DCR provider
 	dcrClient, err := client.GetDCRClient(ctx, app)
 	if err == nil && dcrClient.State != "" {
-		// This is a DCR provider (registered or unregistered) - revoke OAuth access only (preserve DCR client for re-auth)
-		return revokeRemoteMCPServer(ctx, app)
+		// Handle UNREGISTERED providers - they don't have tokens yet
+		if dcrClient.State == "unregistered" {
+			return fmt.Errorf("provider %s is not authenticated yet - nothing to revoke", app)
+		}
+
+		// REGISTERED DCR provider - revoke tokens but preserve DCR client for re-auth
+		fmt.Printf("Revoking OAuth access for %s...\n", app)
+		if err := client.DeleteOAuthApp(ctx, app); err != nil {
+			return fmt.Errorf("failed to revoke OAuth access for %s: %w", app, err)
+		}
+		fmt.Printf("OAuth access revoked for %s\n", app)
+		fmt.Printf("Note: DCR client registration preserved. Run 'docker mcp oauth authorize %s' to re-authenticate\n", app)
+		return nil
 	}
 
-	// Traditional OAuth provider revoke (built-in providers)
+	// Built-in OAuth provider - just revoke tokens
 	return client.DeleteOAuthApp(ctx, app)
-}
-
-func revokeRemoteMCPServer(ctx context.Context, serverName string) error {
-	client := desktop.NewAuthClient()
-
-	fmt.Printf("Revoking OAuth access for %s...\n", serverName)
-
-	// Revoke OAuth tokens only - DCR client remains for future authorization
-	if err := client.DeleteOAuthApp(ctx, serverName); err != nil {
-		return fmt.Errorf("failed to revoke OAuth access for %s: %w", serverName, err)
-	}
-
-	fmt.Printf("OAuth access revoked for %s\n", serverName)
-	fmt.Printf("Note: DCR client registration preserved for future re-authorization\n")
-
-	return nil
 }

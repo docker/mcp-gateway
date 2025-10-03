@@ -227,13 +227,22 @@ func TestBuildUniqueCatalogPaths(t *testing.T) {
 }
 
 func TestConditionalConfiguredCatalogPaths(t *testing.T) {
-	t.Run("excludes configured catalogs when single Docker catalog URL", func(t *testing.T) {
-		// Test the logic for when defaultPaths contains only DockerCatalogURL
+	t.Run("excludes configured catalogs when single Docker catalog URL v2", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains only DockerCatalogURLV2
 		defaultPaths := []string{"https://desktop.docker.com/mcp/catalog/v2/catalog.yaml"}
 
 		// This should match the condition and return empty configuredPaths
-		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
-		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog URL")
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog URL v2")
+	})
+
+	t.Run("excludes configured catalogs when single Docker catalog URL v3", func(t *testing.T) {
+		// Test the logic for when defaultPaths contains only DockerCatalogURLV3
+		defaultPaths := []string{"https://desktop.docker.com/mcp/catalog/v3/catalog.yaml"}
+
+		// This should match the condition and return empty configuredPaths
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog URL v3")
 	})
 
 	t.Run("excludes configured catalogs when single Docker catalog filename", func(t *testing.T) {
@@ -241,7 +250,7 @@ func TestConditionalConfiguredCatalogPaths(t *testing.T) {
 		defaultPaths := []string{"docker-mcp.yaml"}
 
 		// This should match the condition and return empty configuredPaths
-		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
 		assert.True(t, shouldExclude, "should exclude configured catalogs when single Docker catalog filename")
 	})
 
@@ -250,7 +259,7 @@ func TestConditionalConfiguredCatalogPaths(t *testing.T) {
 		defaultPaths := []string{"docker-mcp.yaml", "other-catalog.yaml"}
 
 		// This should NOT match the condition and allow configuredPaths
-		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
 		assert.False(t, shouldExclude, "should include configured catalogs when multiple paths")
 	})
 
@@ -259,7 +268,7 @@ func TestConditionalConfiguredCatalogPaths(t *testing.T) {
 		defaultPaths := []string{"custom-catalog.yaml"}
 
 		// This should NOT match the condition and allow configuredPaths
-		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
+		shouldExclude := len(defaultPaths) == 1 && (defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v2/catalog.yaml" || defaultPaths[0] == "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml" || defaultPaths[0] == "docker-mcp.yaml")
 		assert.False(t, shouldExclude, "should include configured catalogs when single non-Docker catalog")
 	})
 }

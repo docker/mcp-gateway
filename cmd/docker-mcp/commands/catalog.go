@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
@@ -12,7 +13,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/yq"
 )
 
-func catalogCommand() *cobra.Command {
+func catalogCommand(dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "catalog",
 		Aliases: []string{"catalogs"},
@@ -24,8 +25,8 @@ func catalogCommand() *cobra.Command {
 	cmd.AddCommand(exportCatalogCommand())
 	cmd.AddCommand(lsCatalogCommand())
 	cmd.AddCommand(rmCatalogCommand())
-	cmd.AddCommand(updateCatalogCommand())
-	cmd.AddCommand(showCatalogCommand())
+	cmd.AddCommand(updateCatalogCommand(dockerCli))
+	cmd.AddCommand(showCatalogCommand(dockerCli))
 	cmd.AddCommand(forkCatalogCommand())
 	cmd.AddCommand(createCatalogCommand())
 	cmd.AddCommand(initCatalogCommand())
@@ -123,7 +124,7 @@ The Docker official catalog cannot be removed.`,
 	}
 }
 
-func updateCatalogCommand() *cobra.Command {
+func updateCatalogCommand(dockerCli command.Cli) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update [name]",
 		Short: "Update catalog(s) from remote sources",
@@ -132,16 +133,17 @@ If no name is provided, updates all catalogs that have remote sources.`,
 		Args: cobra.MaximumNArgs(1),
 		Example: `  # Update all catalogs
   docker mcp catalog update
-  
+
   # Update specific catalog
   docker mcp catalog update team-servers`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return catalog.Update(cmd.Context(), args)
+			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+			return catalog.Update(cmd.Context(), args, mcpOAuthDcrEnabled)
 		},
 	}
 }
 
-func showCatalogCommand() *cobra.Command {
+func showCatalogCommand(dockerCli command.Cli) *cobra.Command {
 	var opts struct {
 		Format catalog.Format
 	}
@@ -153,7 +155,7 @@ If no name is provided, shows the Docker official catalog.`,
 		Args: cobra.MaximumNArgs(1),
 		Example: `  # Show Docker's official catalog
   docker mcp catalog show
-  
+
   # Show a specific catalog in JSON format
   docker mcp catalog show my-catalog --format=json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -162,7 +164,8 @@ If no name is provided, shows the Docker official catalog.`,
 				name = args[0]
 			}
 
-			return catalog.Show(cmd.Context(), name, opts.Format)
+			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+			return catalog.Show(cmd.Context(), name, opts.Format, mcpOAuthDcrEnabled)
 		},
 	}
 	flags := cmd.Flags()

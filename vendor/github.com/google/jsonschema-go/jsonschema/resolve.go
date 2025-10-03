@@ -1,4 +1,4 @@
-// Copyright 2025 The Go MCP SDK Authors. All rights reserved.
+// Copyright 2025 The JSON Schema Go Project Authors. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
@@ -114,8 +114,8 @@ type ResolveOptions struct {
 	Loader Loader
 	// ValidateDefaults determines whether to validate values of "default" keywords
 	// against their schemas.
-	// The [JSON Schema specification] does not require this, but it is
-	// recommended if defaults will be used.
+	// The [JSON Schema specification] does not require this, but it is recommended
+	// if defaults will be used.
 	//
 	// [JSON Schema specification]: https://json-schema.org/understanding-json-schema/reference/annotations
 	ValidateDefaults bool

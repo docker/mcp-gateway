@@ -16,6 +16,7 @@ const (
 	vendorContinueDev   = "continue"
 	vendorGordon        = "gordon"
 	vendorZed           = "zed"
+	vendorCodex         = "codex"
 )
 
 const (
@@ -180,5 +181,6 @@ func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
 	if err == nil {
 		result[vendorGordon] = getGordonSetup(ctx)
 	}
+	result[vendorCodex] = getCodexSetup(ctx)
 	return result
 }

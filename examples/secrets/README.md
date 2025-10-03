@@ -5,7 +5,7 @@ This is a simple example of running the MCP Gateway with Docker Compose:
 + Doesn't rely on the MCP Toolkit UI. Can run anywhere, even if Docker Desktop is not available.
 + Defines the list of enabled servers from the gateway's command line, with `--server`
 + Defines secrets in an `.env` file.
-+ Uses the online Docker MCP Catalog hosted on http://desktop.docker.com/mcp/catalog/v2/catalog.yaml.
++ Uses the online Docker MCP Catalog (v2: http://desktop.docker.com/mcp/catalog/v2/catalog.yaml by default, v3: http://desktop.docker.com/mcp/catalog/v3/catalog.yaml when `mcp-oauth-dcr` feature is enabled).
 
 ## How to run
 

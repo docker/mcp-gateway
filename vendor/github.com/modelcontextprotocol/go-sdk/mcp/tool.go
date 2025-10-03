@@ -5,7 +5,6 @@
 package mcp
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,12 +13,46 @@ import (
 )
 
 // A ToolHandler handles a call to tools/call.
-// [CallToolParams.Arguments] will contain a map[string]any that has been validated
-// against the input schema.
+//
+// This is a low-level API, for use with [Server.AddTool]. It does not do any
+// pre- or post-processing of the request or result: the params contain raw
+// arguments, no input validation is performed, and the result is returned to
+// the user as-is, without any validation of the output.
+//
+// Most users will write a [ToolHandlerFor] and install it with the generic
+// [AddTool] function.
+//
+// If ToolHandler returns an error, it is treated as a protocol error. By
+// contrast, [ToolHandlerFor] automatically populates [CallToolResult.IsError]
+// and [CallToolResult.Content] accordingly.
 type ToolHandler func(context.Context, *CallToolRequest) (*CallToolResult, error)
 
 // A ToolHandlerFor handles a call to tools/call with typed arguments and results.
-type ToolHandlerFor[In, Out any] func(context.Context, *CallToolRequest, In) (*CallToolResult, Out, error)
+//
+// Use [AddTool] to add a ToolHandlerFor to a server.
+//
+// Unlike [ToolHandler], [ToolHandlerFor] provides significant functionality
+// out of the box, and enforces that the tool conforms to the MCP spec:
+//   - The In type provides a default input schema for the tool, though it may
+//     be overridden in [AddTool].
+//   - The input value is automatically unmarshaled from req.Params.Arguments.
+//   - The input value is automatically validated against its input schema.
+//     Invalid input is rejected before getting to the handler.
+//   - If the Out type is not the empty interface [any], it provides the
+//     default output schema for the tool (which again may be overridden in
+//     [AddTool]).
+//   - The Out value is used to populate result.StructuredOutput.
+//   - If [CallToolResult.Content] is unset, it is populated with the JSON
+//     content of the output.
+//   - An error result is treated as a tool error, rather than a protocol
+//     error, and is therefore packed into CallToolResult.Content, with
+//     [IsError] set.
+//
+// For these reasons, most users can ignore the [CallToolRequest] argument and
+// [CallToolResult] return values entirely. In fact, it is permissible to
+// return a nil CallToolResult, if you only care about returning a output value
+// or error. The effective result will be populated as described above.
+type ToolHandlerFor[In, Out any] func(_ context.Context, request *CallToolRequest, input In) (result *CallToolResult, output Out, _ error)
 
 // A serverTool is a tool definition that is bound to a tool handler.
 type serverTool struct {
@@ -27,38 +60,44 @@ type serverTool struct {
 	handler ToolHandler
 }
 
-// unmarshalSchema unmarshals data into v and validates the result according to
-// the given resolved schema.
-func unmarshalSchema(data json.RawMessage, resolved *jsonschema.Resolved, v any) error {
+// applySchema validates whether data is valid JSON according to the provided
+// schema, after applying schema defaults.
+//
+// Returns the JSON value augmented with defaults.
+func applySchema(data json.RawMessage, resolved *jsonschema.Resolved) (json.RawMessage, error) {
 	// TODO: use reflection to create the struct type to unmarshal into.
 	// Separate validation from assignment.
 
-	// Disallow unknown fields.
-	// Otherwise, if the tool was built with a struct, the client could send extra
-	// fields and json.Unmarshal would ignore them, so the schema would never get
-	// a chance to declare the extra args invalid.
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(v); err != nil {
-		return fmt.Errorf("unmarshaling: %w", err)
-	}
-	// TODO: test with nil args.
+	// Use default JSON marshalling for validation.
+	//
+	// This avoids inconsistent representation due to custom marshallers, such as
+	// time.Time (issue #449).
+	//
+	// Additionally, unmarshalling into a map ensures that the resulting JSON is
+	// at least {}, even if data is empty. For example, arguments is technically
+	// an optional property of callToolParams, and we still want to apply the
+	// defaults in this case.
+	//
+	// TODO(rfindley): in which cases can resolved be nil?
 	if resolved != nil {
-		if err := resolved.ApplyDefaults(v); err != nil {
-			return fmt.Errorf("applying defaults from \n\t%s\nto\n\t%s:\n%w", schemaJSON(resolved.Schema()), data, err)
+		v := make(map[string]any)
+		if len(data) > 0 {
+			if err := json.Unmarshal(data, &v); err != nil {
+				return nil, fmt.Errorf("unmarshaling arguments: %w", err)
+			}
 		}
-		if err := resolved.Validate(v); err != nil {
-			return fmt.Errorf("validating\n\t%s\nagainst\n\t %s:\n %w", data, schemaJSON(resolved.Schema()), err)
+		if err := resolved.ApplyDefaults(&v); err != nil {
+			return nil, fmt.Errorf("applying schema defaults:\n%w", err)
+		}
+		if err := resolved.Validate(&v); err != nil {
+			return nil, err
+		}
+		// We must re-marshal with the default values applied.
+		var err error
+		data, err = json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling with defaults: %v", err)
 		}
 	}
-	return nil
-}
-
-// schemaJSON returns the JSON value for s as a string, or a string indicating an error.
-func schemaJSON(s *jsonschema.Schema) string {
-	m, err := json.Marshal(s)
-	if err != nil {
-		return fmt.Sprintf("<!%s>", err)
-	}
-	return string(m)
+	return data, nil
 }

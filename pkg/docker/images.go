@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -81,7 +82,8 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName string, registry
 
 	response, err := c.apiClient().ImagePull(ctx, imageName, pullOptions)
 	if err != nil {
-		return fmt.Errorf("pulling docker image %s: %w", imageName, err)
+		fmt.Fprintf(os.Stderr, "  - warning: pulling docker image %s: %v", imageName, err)
+		return nil
 	}
 
 	if _, err := io.Copy(io.Discard, response); err != nil {
