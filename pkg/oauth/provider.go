@@ -44,106 +44,111 @@ func (p *Provider) Run(ctx context.Context) {
 		// Check current token status
 		status, err := p.credHelper.GetTokenStatus(ctx, p.name)
 		if err != nil {
-			// Unable to get token status - stop provider
-			// This means either never authorized or credential helper broken
 			logf("! Unable to get token status for %s: %v", p.name, err)
 			logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)
 			return
 		}
 
+		// Calculate wait duration and whether to trigger refresh
+		var waitDuration time.Duration
+		var shouldTriggerRefresh bool
+
 		if status.NeedsRefresh {
-			// Check if token expiry hasn't changed since last refresh
-			if !p.lastRefreshExpiry.IsZero() && status.ExpiresAt.Equal(p.lastRefreshExpiry) {
+			// Token needs refresh - check if expiry unchanged from last attempt
+			expiryUnchanged := !p.lastRefreshExpiry.IsZero() && status.ExpiresAt.Equal(p.lastRefreshExpiry)
+
+			if expiryUnchanged {
+				// Expiry unchanged - increment retry count
 				p.refreshRetryCount++
-
-				if p.refreshRetryCount >= maxRefreshRetries {
-					// Tried max times, expiry never changed - give up
-					logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
-					return
+			} else {
+				// Expiry changed or first attempt for this expiry - reset count
+				if p.refreshRetryCount > 0 {
+					logf("- Token expiry updated for %s, resetting refresh count", p.name)
 				}
-
-				// Wait before retrying with exponential backoff: 30s, 1min, 2min, 4min, 8min...
-				backoff := time.Duration(30*(1<<(p.refreshRetryCount-1))) * time.Second
-				logf("! Token expiry unchanged for %s, retry %d/%d after %v", p.name, p.refreshRetryCount, maxRefreshRetries, backoff)
-				time.Sleep(backoff)
-				// Fall through to trigger refresh again
+				p.refreshRetryCount = 1
 			}
 
-			// Expiry different from last refresh (or first refresh) - reset retry count
-			if p.refreshRetryCount > 0 && !status.ExpiresAt.Equal(p.lastRefreshExpiry) {
-				logf("- Token expiry updated for %s, resetting retry count", p.name)
-				p.refreshRetryCount = 0
+			// Check if exceeded max attempts
+			if p.refreshRetryCount > maxRefreshRetries {
+				logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
+				logf("! This is due to golang.org/x/oauth2 TokenSource caching")
+				return
 			}
 
-			// Token expired or expiring soon - trigger refresh
-			logf("- Triggering Token refresh for %s (expires: %s)", p.name, status.ExpiresAt.Format(time.RFC3339))
+			// Exponential backoff for all refresh attempts: 30s, 1min, 2min, 4min, 8min...
+			waitDuration = time.Duration(30*(1<<(p.refreshRetryCount-1))) * time.Second
+			logf("- Triggering token refresh for %s, attempt %d/%d, waiting %v",
+				p.name, p.refreshRetryCount, maxRefreshRetries, waitDuration)
 
-			// Track this expiry to detect unchanged expiry on next iteration
 			p.lastRefreshExpiry = status.ExpiresAt
+			shouldTriggerRefresh = true
 
+		} else {
+			// Token valid - wait until 10s before expiry
+			timeUntilExpiry := time.Until(status.ExpiresAt)
+			waitDuration = max(0, timeUntilExpiry-10*time.Second)
+
+			logf("- Token valid for %s, next check in %v", p.name, waitDuration.Round(time.Second))
+			shouldTriggerRefresh = false
+		}
+
+		// Trigger refresh if needed (before waiting)
+		if shouldTriggerRefresh {
 			go func() {
 				authClient := desktop.NewAuthClient()
 				app, err := authClient.GetOAuthApp(context.Background(), p.name)
 				if err != nil {
-					// Refresh failed
 					logf("! GetOAuthApp failed for %s: %v", p.name, err)
 					return
 				}
 
 				if !app.Authorized {
-					// Not authorized
 					logf("! GetOAuthApp returned Authorized=false for %s", p.name)
 					return
 				}
-				// Authorized: SSE event will be handled in next iteration
+				// Authorized: SSE event will be handled below
 			}()
+		}
 
-			// Brief sleep to let GetOAuthApp start, then loop back
-			// SSE event will arrive asynchronously and trigger reload in next iteration
-			time.Sleep(2 * time.Second)
+		// Common wait pattern - interruptible by SSE events
+		if waitDuration > 0 {
+			timer := time.NewTimer(waitDuration)
 
-		} else {
-			// Token valid - park until next refresh needed
-			timeUntilExpiry := time.Until(status.ExpiresAt)
-			timeUntilRefresh := timeUntilExpiry - 10*time.Second
-
-			// Ensure non-negative duration
-			if timeUntilRefresh < 0 {
-				timeUntilRefresh = 0 // Check immediately
-			}
-
-			timer := time.NewTimer(timeUntilRefresh)
-			logf("- Token valid for %s, next check in %v", p.name, timeUntilRefresh.Round(time.Second))
-
-			// Park waiting for timer or SSE event
 			select {
 			case <-timer.C:
-				// Time to check/refresh - loop back
+				// Wait complete - loop back to check token
 
 			case event := <-p.eventChan:
-				// SSE event arrived while waiting - reload
+				// SSE event arrived - handle it
 				timer.Stop()
 				logf("- Provider %s received event: %s", p.name, event.Type)
+
 				if err := p.reloadFn(ctx, p.name); err != nil {
 					logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
 				}
-				// Loop back to recalculate timer
+
+				// Reset refresh state on successful event
+				if event.Type == EventLoginSuccess || event.Type == EventTokenRefresh {
+					p.refreshRetryCount = 0
+					p.lastRefreshExpiry = time.Time{}
+				}
+				// Loop back to check fresh token
 
 			case <-p.stopChan:
-				// Server disabled/removed - shutdown gracefully
 				timer.Stop()
 				return
 
 			case <-ctx.Done():
-				// Gateway shutdown
 				timer.Stop()
 				return
 			}
 		}
+		// If waitDuration = 0, loops back immediately
 	}
 }
 
 // Stop signals the provider to shutdown gracefully
+// Safe to call multiple times - stopChan only closed once
 func (p *Provider) Stop() {
 	p.stopOnce.Do(func() {
 		close(p.stopChan)
