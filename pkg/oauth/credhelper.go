@@ -150,10 +150,11 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		}, nil
 	}
 
-	// Check if token needs refresh (expires within 5 minutes)
+	// Check if token needs refresh (expires within 10 seconds)
+	// Otherwise attempting to refresh earlier will return cached token
 	now := time.Now()
 	timeUntilExpiry := expiresAt.Sub(now)
-	needsRefresh := timeUntilExpiry <= 5*time.Minute
+	needsRefresh := timeUntilExpiry <= 10*time.Second
 
 	logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
 		serverName, expiresAt.Format(time.RFC3339), timeUntilExpiry.Round(time.Second), needsRefresh)
