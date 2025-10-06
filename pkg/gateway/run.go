@@ -266,7 +266,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
-						// TODO: set g.configuration?
 						g.configuration = configuration
 						continue
 					}
@@ -426,18 +425,12 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 
 	// Create reload function for this provider
 	reloadFn := func(ctx context.Context, name string) error {
-		// Read fresh configuration to handle dynamically added servers
-		// config, _, _, err := g.configurator.Read(ctx)
-		// if err != nil {
-		// 	return err
-		// }
-
 		logf("> Reloading OAuth server: %s", name)
 
 		// Close old client connection with stale token
 		g.clientPool.InvalidateOAuthClients(name)
 
-		// Reload all servers (only the invalidated one actually reconnects)
+		// Reload server configuration
 		if err := g.reloadServerConfiguration(ctx, name, nil); err != nil {
 			return err
 		}
