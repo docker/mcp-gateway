@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
@@ -289,8 +290,14 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
-		// Start OAuth provider if this is an OAuth server
-		if g.McpOAuthDcrEnabled && serverConfig.Spec.OAuth != nil && len(serverConfig.Spec.OAuth.Providers) > 0 {
+		// Register DCR client and start OAuth provider if this is a remote OAuth server
+		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
+			// Register DCR client with DD so user can authorize
+			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			}
+
+			// Start provider
 			g.startProvider(ctx, serverName)
 		}
 

@@ -227,7 +227,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log("- Starting OAuth provider loops...")
 		for _, serverName := range configuration.ServerNames() {
 			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil || serverConfig.Spec.OAuth == nil {
+			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
 				continue
 			}
 
@@ -266,6 +266,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
+						// TODO: set g.configuration?
+						g.configuration = configuration
 						continue
 					}
 				}
@@ -710,10 +712,10 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 	// Create reload function for this provider
 	reloadFn := func(ctx context.Context, name string) error {
 		// Read fresh configuration to handle dynamically added servers
-		config, _, _, err := g.configurator.Read(ctx)
-		if err != nil {
-			return err
-		}
+		// config, _, _, err := g.configurator.Read(ctx)
+		// if err != nil {
+		// 	return err
+		// }
 
 		logf("> Reloading OAuth server: %s", name)
 
@@ -721,7 +723,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 		g.clientPool.InvalidateOAuthClients(name)
 
 		// Reload all servers (only the invalidated one actually reconnects)
-		if err := g.reloadConfiguration(ctx, config, config.ServerNames(), nil); err != nil {
+		if err := g.reloadServerConfiguration(ctx, name, nil); err != nil {
 			return err
 		}
 

@@ -71,7 +71,6 @@ func (p *Provider) Run(ctx context.Context) {
 			// Check if exceeded max attempts
 			if p.refreshRetryCount > maxRefreshRetries {
 				logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
-				logf("! This is due to golang.org/x/oauth2 TokenSource caching")
 				return
 			}
 
