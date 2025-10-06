@@ -46,6 +46,42 @@ type ResourceTemplateRegistration struct {
 	Handler          mcp.ResourceHandler
 }
 
+func (caps *Capabilities) getToolByName(toolName string) (ToolRegistration, error) {
+	for _, tool := range caps.Tools {
+		if tool.Tool.Name == toolName {
+			return tool, nil
+		}
+	}
+	return ToolRegistration{}, fmt.Errorf("unable to find tool")
+}
+
+func (caps *Capabilities) getPromptByName(promptName string) (PromptRegistration, error) {
+	for _, prompt := range caps.Prompts {
+		if prompt.Prompt.Name == promptName {
+			return prompt, nil
+		}
+	}
+	return PromptRegistration{}, fmt.Errorf("unable to find prompt")
+}
+
+func (caps *Capabilities) getResourceByURI(resourceURI string) (ResourceRegistration, error) {
+	for _, resource := range caps.Resources {
+		if resource.Resource.URI == resourceURI {
+			return resource, nil
+		}
+	}
+	return ResourceRegistration{}, fmt.Errorf("unable to find resource")
+}
+
+func (caps *Capabilities) getResourceTemplateByURITemplate(resource string) (ResourceTemplateRegistration, error) {
+	for _, template := range caps.ResourceTemplates {
+		if template.ResourceTemplate.URITemplate == resource {
+			return template, nil
+		}
+	}
+	return ResourceTemplateRegistration{}, fmt.Errorf("unable to find resource template")
+}
+
 func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
 	var (
 		lock            sync.Mutex
@@ -222,17 +258,17 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	}, nil
 }
 
-func (c *Capabilities) ToolNames() []string {
+func (caps *Capabilities) ToolNames() []string {
 	var names []string
-	for _, tool := range c.Tools {
+	for _, tool := range caps.Tools {
 		names = append(names, tool.Tool.Name)
 	}
 	return names
 }
 
-func (c *Capabilities) PromptNames() []string {
+func (caps *Capabilities) PromptNames() []string {
 	var names []string
-	for _, prompt := range c.Prompts {
+	for _, prompt := range caps.Prompts {
 		names = append(names, prompt.Prompt.Name)
 	}
 	return names

@@ -208,7 +208,7 @@ type ServerMatch struct {
 }
 
 // mcpAddTool implements a tool for adding new servers to the registry
-func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *clientConfig) *ToolRegistration {
+func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-add",
 		Description: "Add a new MCP server to the session. The server must exist in the catalog.",
@@ -250,7 +250,7 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 		serverName := strings.TrimSpace(params.Name)
 
 		// Check if server exists in catalog
-		_, _, found := configuration.Find(serverName)
+		_, _, found := g.configuration.Find(serverName)
 		if !found {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
@@ -261,31 +261,29 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 
 		// Append the new server to the current serverNames if not already present
 		found = false
-		for _, existing := range configuration.serverNames {
+		for _, existing := range g.configuration.serverNames {
 			if existing == serverName {
 				found = true
 				break
 			}
 		}
 		if !found {
-			configuration.serverNames = append(configuration.serverNames, serverName)
+			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
 		// Fetch updated secrets for the new server list
 		if g.configurator != nil {
 			if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-				updatedSecrets, err := fbc.readDockerDesktopSecrets(ctx, configuration.servers, configuration.serverNames)
+				updatedSecrets, err := fbc.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
 				if err == nil {
-					configuration.secrets = updatedSecrets
+					g.configuration.secrets = updatedSecrets
 				} else {
 					log("Warning: Failed to update secrets:", err)
 				}
 			}
 		}
 
-		// Update the current configuration state
-		updatedServerNames := configuration.serverNames
-		if err := g.reloadConfiguration(ctx, configuration, updatedServerNames, clientConfig); err != nil {
+		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
@@ -303,7 +301,7 @@ func (g *Gateway) createMcpAddTool(configuration Configuration, clientConfig *cl
 }
 
 // mcpRemoveTool implements a tool for removing servers from the registry
-func (g *Gateway) createMcpRemoveTool(_ Configuration, clientConfig *clientConfig) *ToolRegistration {
+func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-remove",
 		Description: "Remove an MCP server from the registry and reload the configuration. This will disable the server.",
@@ -352,8 +350,8 @@ func (g *Gateway) createMcpRemoveTool(_ Configuration, clientConfig *clientConfi
 		// Update the current configuration state
 		g.configuration.serverNames = updatedServerNames
 
-		if err := g.reloadConfiguration(ctx, g.configuration, updatedServerNames, clientConfig); err != nil {
-			return nil, fmt.Errorf("failed to reload configuration: %w", err)
+		if err := g.removeServerConfiguration(ctx, serverName); err != nil {
+			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
 		}
 
 		return &mcp.CallToolResult{
@@ -558,7 +556,7 @@ type configValue struct {
 }
 
 // mcpConfigSetTool implements a tool for setting configuration values for MCP servers
-func (g *Gateway) createMcpConfigSetTool(configuration Configuration, clientConfig *clientConfig) *ToolRegistration {
+func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-config-set",
 		Description: "Set configuration values for MCP servers. Creates or updates server configuration with the specified key-value pairs.",
@@ -610,22 +608,22 @@ func (g *Gateway) createMcpConfigSetTool(configuration Configuration, clientConf
 		configKey := strings.TrimSpace(params.Key)
 
 		// Check if server exists in catalog (optional check - we can configure servers that don't exist yet)
-		_, _, serverExists := configuration.Find(serverName)
+		_, _, serverExists := g.configuration.Find(serverName)
 
 		// Initialize the server's config map if it doesn't exist
-		if configuration.config[serverName] == nil {
-			configuration.config[serverName] = make(map[string]any)
+		if g.configuration.config[serverName] == nil {
+			g.configuration.config[serverName] = make(map[string]any)
 		}
 
 		// Set the configuration value
-		oldValue := configuration.config[serverName][configKey]
-		configuration.config[serverName][configKey] = params.Value
+		oldValue := g.configuration.config[serverName][configKey]
+		g.configuration.config[serverName][configKey] = params.Value
 
 		// Log the configuration change
 		log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
 
 		// Reload configuration with current server list to apply changes
-		if err := g.reloadConfiguration(ctx, configuration, configuration.serverNames, clientConfig); err != nil {
+		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
