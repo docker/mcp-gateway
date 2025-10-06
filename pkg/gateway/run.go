@@ -2,11 +2,9 @@ package gateway
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -17,21 +15,12 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
-const TokenEventFilename = "token-event.json"
-
 type ServerSessionCache struct {
 	Roots []*mcp.Root
-}
-
-// TokenEvent represents a token refresh or acquisition event
-type TokenEvent struct {
-	Provider   string    `json:"provider"`
-	Timestamp  time.Time `json:"timestamp"`
-	EventType  string    `json:"event_type"` // EventTypeTokenAcquired or EventTypeTokenRefreshed
-	ServerName string    `json:"server_name"`
 }
 
 // type SubsAction int
@@ -57,12 +46,14 @@ type ServerCapabilities struct {
 
 type Gateway struct {
 	Options
-	docker        docker.Client
-	configurator  Configurator
-	configuration Configuration
-	clientPool    *clientPool
-	mcpServer     *mcp.Server
-	health        health.State
+	docker         docker.Client
+	configurator   Configurator
+	configuration  Configuration
+	clientPool     *clientPool
+	mcpServer      *mcp.Server
+	health         health.State
+	oauthProviders map[string]*oauth.Provider
+	providersMu    sync.RWMutex
 	// subsChannel  chan SubsMessage
 
 	sessionCacheMu sync.RWMutex
@@ -75,8 +66,9 @@ type Gateway struct {
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	g := &Gateway{
-		Options: config.Options,
-		docker:  docker,
+		Options:        config.Options,
+		docker:         docker,
+		oauthProviders: make(map[string]*oauth.Provider),
 		configurator: &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
@@ -220,6 +212,29 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
+	if g.McpOAuthDcrEnabled {
+		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
+		log("- Starting OAuth notification monitor")
+		monitor := oauth.NewNotificationMonitor()
+		monitor.OnOAuthEvent = func(event oauth.Event) {
+			// Route event to specific provider
+			g.routeEventToProvider(event)
+		}
+		monitor.Start(ctx)
+
+		// Start OAuth provider for each OAuth server
+		// Each provider runs in its own goroutine with dynamic timing based on token expiry
+		log("- Starting OAuth provider loops...")
+		for _, serverName := range configuration.ServerNames() {
+			serverConfig, _, found := configuration.Find(serverName)
+			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
+				continue
+			}
+
+			g.startProvider(ctx, serverName)
+		}
+	}
+
 	// Central mode.
 	if g.Central {
 		log("> Initialized (in central mode) in", time.Since(start))
@@ -242,9 +257,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 					log("> Stop watching for updates")
 					return
 				case configuration := <-configurationUpdates:
-					// First, check and handle any token events
-					g.handleTokenEvent(ctx)
-
 					log("> Configuration updated, reloading...")
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
@@ -254,6 +266,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
 						logf("> Unable to list capabilities: %s", err)
+						g.configuration = configuration
 						continue
 					}
 				}
@@ -398,45 +411,105 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 	}
 }
 
-// handleTokenEvent checks for and processes OAuth token events
-func (g *Gateway) handleTokenEvent(_ context.Context) {
-	// Small delay to ensure token is fully written to credential store
-	// This handles the race condition where registry.yaml updates before token is stored
-	time.Sleep(200 * time.Millisecond)
+// OAuth Provider Management Methods
 
-	tokenEventPath := filepath.Join(os.Getenv("HOME"), ".docker", "mcp", TokenEventFilename)
+// startProvider creates and starts an OAuth provider goroutine for a server
+func (g *Gateway) startProvider(ctx context.Context, serverName string) {
+	g.providersMu.Lock()
+	defer g.providersMu.Unlock()
 
-	// Check if token event file exists
-	if _, err := os.Stat(tokenEventPath); os.IsNotExist(err) {
-		// File doesn't exist, no token event
+	// Check if provider already running
+	if _, exists := g.oauthProviders[serverName]; exists {
 		return
 	}
 
-	// Read and parse token event
-	data, err := os.ReadFile(tokenEventPath)
-	if err != nil {
-		log(fmt.Sprintf("Failed to read token event file: %v", err))
-		return
+	// Create reload function for this provider
+	reloadFn := func(ctx context.Context, name string) error {
+		logf("> Reloading OAuth server: %s", name)
+
+		// Close old client connection with stale token
+		g.clientPool.InvalidateOAuthClients(name)
+
+		// Reload server configuration
+		if err := g.reloadServerConfiguration(ctx, name, nil); err != nil {
+			return err
+		}
+
+		logf("> OAuth server %s reconnected and tools registered", name)
+		return nil
 	}
 
-	// Skip if file is empty or just placeholder
-	if len(data) == 0 || string(data) == "{}" {
-		return
+	// Create and start provider
+	provider := oauth.NewProvider(serverName, reloadFn)
+	g.oauthProviders[serverName] = provider
+
+	// Wrapper goroutine handles cleanup after provider exits
+	go func() {
+		provider.Run(ctx) // Blocks until provider stops
+
+		// Provider exited - remove from map
+		g.providersMu.Lock()
+		delete(g.oauthProviders, serverName)
+		g.providersMu.Unlock()
+
+		logf("- Removed provider %s from map after exit", serverName)
+	}()
+}
+
+// stopProvider stops an OAuth provider goroutine for a server
+func (g *Gateway) stopProvider(serverName string) {
+	g.providersMu.Lock()
+	defer g.providersMu.Unlock()
+
+	if provider, exists := g.oauthProviders[serverName]; exists {
+		provider.Stop()
+		delete(g.oauthProviders, serverName)
 	}
+}
 
-	var event TokenEvent
-	if err := json.Unmarshal(data, &event); err != nil {
-		log(fmt.Sprintf("Failed to parse token event: %v", err))
-		return
+// routeEventToProvider routes SSE events to the appropriate provider
+func (g *Gateway) routeEventToProvider(event oauth.Event) {
+	g.providersMu.RLock()
+	provider, exists := g.oauthProviders[event.Provider]
+	g.providersMu.RUnlock()
+
+	switch event.Type {
+	case oauth.EventLoginSuccess:
+		// User just authorized - ensure provider exists
+		if !exists {
+			logf("- Creating provider for %s after login", event.Provider)
+			g.startProvider(context.Background(), event.Provider)
+		}
+
+		// Always send event to trigger reload (connects server and lists tools)
+		// Wait briefly if we just created the provider
+		if !exists {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		g.providersMu.RLock()
+		provider, exists = g.oauthProviders[event.Provider]
+		g.providersMu.RUnlock()
+
+		if exists {
+			provider.SendEvent(event)
+		}
+
+	case oauth.EventTokenRefresh:
+		// Token refreshed - route to provider if exists
+		if exists {
+			provider.SendEvent(event)
+		}
+		// If doesn't exist, drop (another gateway or disabled server)
+
+	case oauth.EventLogoutSuccess:
+		// User logged out - stop provider if exists
+		if exists {
+			logf("- Stopping provider for %s after logout", event.Provider)
+			g.stopProvider(event.Provider)
+		}
+
+	default:
+		// Other events (login-start, code-received, error) - ignore
 	}
-
-	log(fmt.Sprintf("Processing %s event for provider %s at %v",
-		event.EventType, event.Provider, event.Timestamp.Format(time.RFC3339)))
-
-	// Invalidate OAuth clients for the specified provider
-	g.clientPool.InvalidateOAuthClients(event.Provider)
-
-	// Don't delete the file - allow all MCP Gateway instances to process the event
-	// File will be overwritten on next token event or cleaned up on DD startup
-	log(fmt.Sprintf("Token event processed for %s", event.Provider))
 }

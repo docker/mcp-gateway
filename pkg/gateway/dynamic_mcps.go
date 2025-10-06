@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
@@ -287,6 +288,17 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
+		// Register DCR client and start OAuth provider if this is a remote OAuth server
+		if g.McpOAuthDcrEnabled {
+			// Register DCR client with DD so user can authorize
+			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			}
+
+			// Start provider
+			g.startProvider(ctx, serverName)
+		}
+
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
 				Text: fmt.Sprintf("Successfully added server '%s'. Assume that it is fully configured and ready to use.", serverName),
@@ -349,6 +361,11 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 
 		// Update the current configuration state
 		g.configuration.serverNames = updatedServerNames
+
+		// Stop OAuth provider if this is an OAuth server
+		if g.McpOAuthDcrEnabled {
+			g.stopProvider(serverName)
+		}
 
 		if err := g.removeServerConfiguration(ctx, serverName); err != nil {
 			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
