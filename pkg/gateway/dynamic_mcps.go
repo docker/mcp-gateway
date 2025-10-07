@@ -252,7 +252,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		serverName := strings.TrimSpace(params.Name)
 
 		// Check if server exists in catalog
-		_, _, found := g.configuration.Find(serverName)
+		serverConfig, _, found := g.configuration.Find(serverName)
 		if !found {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
@@ -290,7 +290,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		}
 
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
-		if g.McpOAuthDcrEnabled {
+		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
 			// Register DCR client with DD so user can authorize
 			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
