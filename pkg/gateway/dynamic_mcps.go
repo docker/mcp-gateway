@@ -18,6 +18,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/contextkeys"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
@@ -251,7 +253,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		serverName := strings.TrimSpace(params.Name)
 
 		// Check if server exists in catalog
-		_, _, found := g.configuration.Find(serverName)
+		serverConfig, _, found := g.configuration.Find(serverName)
 		if !found {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
@@ -289,7 +291,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		}
 
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
-		if g.McpOAuthDcrEnabled {
+		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
 			// Register DCR client with DD so user can authorize
 			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
@@ -297,6 +299,68 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 
 			// Start provider
 			g.startProvider(ctx, serverName)
+
+			// Check if current serverSession supports elicitations
+			if req.Session.InitializeParams().Capabilities != nil && req.Session.InitializeParams().Capabilities.Elicitation != nil {
+				// Elicit a response from the client asking whether to open a browser for authorization
+				elicitResult, err := req.Session.Elicit(ctx, &mcp.ElicitParams{
+					Message: fmt.Sprintf("Would you like to open a browser to authorize the '%s' server?", serverName),
+					RequestedSchema: &jsonschema.Schema{
+						Type: "object",
+						Properties: map[string]*jsonschema.Schema{
+							"authorize": {
+								Type:        "boolean",
+								Description: "Whether to open the browser for authorization",
+							},
+						},
+						Required: []string{"authorize"},
+					},
+				})
+				if err != nil {
+					logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
+				} else if elicitResult.Action == "accept" && elicitResult.Content != nil {
+					// Check if user authorized
+					if authorize, ok := elicitResult.Content["authorize"].(bool); ok && authorize {
+						// User agreed to authorize, call the OAuth authorize function
+						client := desktop.NewAuthClient()
+						authResponse, err := client.PostOAuthApp(ctx, serverName, "", false)
+						if err != nil {
+							logf("Warning: Failed to start OAuth flow for %s: %v", serverName, err)
+						} else if authResponse.BrowserURL != "" {
+							logf("Opening browser for authentication: %s", authResponse.BrowserURL)
+						} else {
+							logf("Warning: OAuth provider for %s does not exist", serverName)
+						}
+					}
+				}
+
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName),
+					}},
+				}, nil
+			}
+
+			// Client doesn't support elicitations, get the login link and include it in the response
+			client := desktop.NewAuthClient()
+			// Set context flag to enable disableAutoOpen parameter
+			ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
+			authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
+			if err != nil {
+				logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
+			} else if authResponse.BrowserURL != "" {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please open the following URL in your browser:\n\n%s", serverName, authResponse.BrowserURL),
+					}},
+				}, nil
+			}
+
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName),
+				}},
+			}, nil
 		}
 
 		return &mcp.CallToolResult{
