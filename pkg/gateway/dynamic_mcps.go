@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/contextkeys"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -340,9 +341,24 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 				}, nil
 			}
 
+			// Client doesn't support elicitations, get the login link and include it in the response
+			client := desktop.NewAuthClient()
+			// Set context flag to enable disableAutoOpen parameter
+			ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
+			authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
+			if err != nil {
+				logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
+			} else if authResponse.BrowserURL != "" {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please open the following URL in your browser:\n\n%s", serverName, authResponse.BrowserURL),
+					}},
+				}, nil
+			}
+
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with docker mcp oauth authorize %s", serverName, serverName),
+					Text: fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName),
 				}},
 			}, nil
 		}
