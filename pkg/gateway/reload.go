@@ -95,11 +95,16 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 
+		// Add codemode
+		codeModeTool := g.createCodeModeTool(clientConfig)
+		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
+
 		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
 		log.Log("  > mcp-add: tool for adding MCP servers to the registry")
 		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
 		log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
 		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+		log.Log("  > code-mode: write code that calls other MCPs directly")
 	}
 
 	for _, prompt := range capabilities.Prompts {
