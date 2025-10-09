@@ -287,6 +287,21 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}
 		}
 
+		// Check if all required secrets are set
+		var missingSecrets []string
+		for _, secret := range serverConfig.Spec.Secrets {
+			if value, exists := g.configuration.secrets[secret.Name]; !exists || value == "" {
+				missingSecrets = append(missingSecrets, secret.Name)
+			}
+		}
+
+		// If secrets are missing, return a Resource response with instructions
+		if len(missingSecrets) > 0 {
+
+			// Build JavaScript to create buttons for each missing secret
+			return secretInput(missingSecrets, serverName), nil
+		}
+
 		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
@@ -730,6 +745,26 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-config-set", handler),
+	}
+}
+
+// mcpCatalogTool implements a tool for viewing information about the currently attached catalog
+func (g *Gateway) createMcpCatalogTool() *ToolRegistration {
+	tool := &mcp.Tool{
+		Name:        "mcp-catalog",
+		Description: "Summarize information about the currently attached catalog, including available servers and their configurations.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+		},
+	}
+
+	handler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return dockerHubLink(), nil
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-catalog", handler),
 	}
 }
 
