@@ -261,7 +261,7 @@ func TestGlobalDisableNetwork(t *testing.T) {
 command:
   - --transport=stdio
 `
-	
+
 	// Test that global DisableNetwork=true adds --network none
 	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, true)
 
@@ -277,7 +277,7 @@ command:
   - --transport=stdio
 disableNetwork: false
 `
-	
+
 	// Test that global DisableNetwork=true overrides server setting
 	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, true)
 
@@ -293,7 +293,7 @@ command:
   - --transport=stdio
 disableNetwork: true
 `
-	
+
 	// Test that server DisableNetwork=true works when global is false
 	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, false)
 
@@ -309,7 +309,7 @@ command:
   - --transport=stdio
 disableNetwork: false
 `
-	
+
 	// Test that when both global and server DisableNetwork are false, networks are enabled
 	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, false)
 
