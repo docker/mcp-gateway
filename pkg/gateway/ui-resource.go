@@ -7,7 +7,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func intentButton(missingSecrets []string, serverName string) *mcp.CallToolResult {
+//nolint:unused
+func _intentButton(missingSecrets []string, serverName string) *mcp.CallToolResult {
 	var scriptContent strings.Builder
 	scriptContent.WriteString(fmt.Sprintf("// Configure secrets for server '%s'\n", serverName))
 	for _, secretName := range missingSecrets {
@@ -305,7 +306,8 @@ async function submitSecrets() {
 	}
 }
 
-func dockerHubLink() *mcp.CallToolResult {
+//nolint:unused
+func _dockerHubLink() *mcp.CallToolResult {
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.EmbeddedResource{
@@ -318,4 +320,3 @@ func dockerHubLink() *mcp.CallToolResult {
 		},
 	}
 }
-

@@ -93,6 +93,10 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 
+		// Add codemode
+		codeModeTool := g.createCodeModeTool(clientConfig)
+		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
+
 		log("  > mcp-find: tool for finding MCP servers in the catalog")
 		log("  > mcp-add: tool for adding MCP servers to the registry")
 		log("  > mcp-remove: tool for removing MCP servers from the registry")
