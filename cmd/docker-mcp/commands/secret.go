@@ -33,6 +33,7 @@ func secretCommand(docker docker.Client) *cobra.Command {
 	cmd.AddCommand(listSecretCommand())
 	cmd.AddCommand(setSecretCommand())
 	cmd.AddCommand(exportSecretCommand(docker))
+	cmd.AddCommand(diagnoseSecretCommand(docker))
 	return cmd
 }
 
@@ -131,4 +132,18 @@ func exportSecretCommand(docker docker.Client) *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func diagnoseSecretCommand(docker docker.Client) *cobra.Command {
+cmd := &cobra.Command{
+Use:   "diagnose",
+Short: "Diagnose secret environment and capabilities",
+Long: `Detect and display information about available secret storage backends.
+This command helps understand which secret providers are available and
+recommends the best strategy for your environment.`,
+RunE: func(cmd *cobra.Command, args []string) error {
+return secret.Diagnose(cmd.Context(), docker)
+},
+}
+return cmd
 }
