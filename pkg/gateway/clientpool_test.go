@@ -263,7 +263,7 @@ command:
 `
 
 	// Test that global DisableNetwork=true adds --network none
-	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, true)
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, true)
 
 	assert.Contains(t, args, "--network")
 	assert.Contains(t, args, "none")
@@ -279,7 +279,7 @@ disableNetwork: false
 `
 
 	// Test that global DisableNetwork=true overrides server setting
-	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, true)
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, true)
 
 	assert.Contains(t, args, "--network")
 	assert.Contains(t, args, "none")
@@ -295,7 +295,7 @@ disableNetwork: true
 `
 
 	// Test that server DisableNetwork=true works when global is false
-	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, false)
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, false)
 
 	assert.Contains(t, args, "--network")
 	assert.Contains(t, args, "none")
@@ -311,7 +311,7 @@ disableNetwork: false
 `
 
 	// Test that when both global and server DisableNetwork are false, networks are enabled
-	args, env := argsAndEnvWithGlobalDisableNetwork(t, "test-server", catalogYAML, "", nil, nil, false)
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, false)
 
 	// Should not contain --network none
 	networkNoneFound := false
@@ -325,7 +325,7 @@ disableNetwork: false
 	assert.Empty(t, env)
 }
 
-func argsAndEnvWithGlobalDisableNetwork(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool, globalDisableNetwork bool) ([]string, []string) {
+func argsAndEnvWithGlobalDisableNetwork(t *testing.T, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool, globalDisableNetwork bool) ([]string, []string) {
 	t.Helper()
 
 	clientPool := &clientPool{
@@ -336,7 +336,7 @@ func argsAndEnvWithGlobalDisableNetwork(t *testing.T, name, catalogYAML, configY
 		},
 	}
 	return clientPool.argsAndEnv(&catalog.ServerConfig{
-		Name:    name,
+		Name:    "test-server",
 		Spec:    parseSpec(t, catalogYAML),
 		Config:  parseConfig(t, configYAML),
 		Secrets: secrets,
