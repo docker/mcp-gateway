@@ -29,7 +29,16 @@ import (
 func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-find",
+		Title:       "Search MCP Catalog",
 		Description: "Find MCP servers in the current catalog by name or description. Returns matching servers with their details.",
+		Meta: mcp.Meta{
+			"openai/outputTemplate":             toolManagerResourceURI,
+			"openai/widgetAccessible":           true,
+			"openai/toolInvocation/invoking":    "Searching the MCP catalog…",
+			"openai/toolInvocation/invoked":     "Search complete.",
+			"openai/toolInvocation/failed":      "Catalog search failed.",
+			"openai/toolInvocation/description": "Searches the MCP catalog and renders results in the Tool Manager UI.",
+		},
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -44,6 +53,7 @@ func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistrati
 			},
 			Required: []string{"query"},
 		},
+		OutputSchema: toolManagerOutputSchema,
 	}
 
 	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -148,53 +158,43 @@ func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistrati
 			}
 		}
 
+		totalMatches := len(matches)
+
 		// Limit results
 		if len(matches) > params.Limit {
 			matches = matches[:params.Limit]
 		}
 
-		// Format results
-		var results []map[string]any
+		activeServers := g.activeServerNames()
+		serverSummaries := make([]toolManagerServer, 0, len(matches))
 		for _, match := range matches {
-			serverInfo := map[string]any{
-				"name": match.Name,
-			}
+			summary := summarizeServer(match.Name, match.Server)
+			summary.IsActive = slices.Contains(activeServers, match.Name)
+			serverSummaries = append(serverSummaries, summary)
+		}
 
-			if match.Server.Description != "" {
-				serverInfo["description"] = match.Server.Description
-			}
-
-			if len(match.Server.Secrets) > 0 {
-				var secrets []string
-				for _, secret := range match.Server.Secrets {
-					secrets = append(secrets, secret.Name)
+		message := fmt.Sprintf("Found %d server(s) matching %q.", totalMatches, params.Query)
+		if len(serverSummaries) > 0 {
+			var topNames []string
+			for idx, server := range serverSummaries {
+				if idx >= 5 {
+					break
 				}
-				serverInfo["required_secrets"] = secrets
+				topNames = append(topNames, server.Name)
 			}
-
-			if len(match.Server.Config) > 0 {
-				serverInfo["config_schema"] = match.Server.Config
+			if len(topNames) > 0 {
+				message = fmt.Sprintf("%s Top matches: %s.", message, strings.Join(topNames, ", "))
 			}
-
-			serverInfo["long_lived"] = match.Server.LongLived
-
-			results = append(results, serverInfo)
 		}
 
-		response := map[string]any{
-			"query":         params.Query,
-			"total_matches": len(results),
-			"servers":       results,
-		}
+		payload := newToolManagerPayload("mcp-find", "success", message)
+		payload.Query = params.Query
+		payload.Limit = params.Limit
+		payload.TotalMatches = totalMatches
+		payload.Results = serverSummaries
+		payload.LastAction = newToolManagerAction("find", "success", message, "")
 
-		responseBytes, err := json.Marshal(response)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal response: %w", err)
-		}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
-		}, nil
+		return g.buildToolManagerResult(payload, message), nil
 	}
 
 	return &ToolRegistration{
@@ -214,7 +214,16 @@ type ServerMatch struct {
 func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-add",
+		Title:       "Add MCP Server",
 		Description: "Add a new MCP server to the session. The server must exist in the catalog.",
+		Meta: mcp.Meta{
+			"openai/outputTemplate":             toolManagerResourceURI,
+			"openai/widgetAccessible":           true,
+			"openai/toolInvocation/invoking":    "Adding the server to your session…",
+			"openai/toolInvocation/invoked":     "Server added.",
+			"openai/toolInvocation/failed":      "Failed to add the server.",
+			"openai/toolInvocation/description": "Enables an MCP server from the catalog and reloads configuration.",
+		},
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -225,10 +234,10 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			},
 			Required: []string{"name"},
 		},
+		OutputSchema: toolManagerOutputSchema,
 	}
 
 	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Parse parameters
 		var params struct {
 			Name string `json:"name"`
 		}
@@ -252,36 +261,42 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 
 		serverName := strings.TrimSpace(params.Name)
 
-		// Check if server exists in catalog
+		payload := newToolManagerPayload("mcp-add", "info", "")
+		payload.Server = &toolManagerServer{Name: serverName}
+
 		serverConfig, _, found := g.configuration.Find(serverName)
 		if !found {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Error: Server '%s' not found in catalog. Use mcp-find to search for available servers.", serverName),
-				}},
-			}, nil
+			message := fmt.Sprintf("Error: Server '%s' not found in catalog. Use mcp-find to search for available servers.", serverName)
+			payload.Status = "error"
+			payload.Message = message
+			payload.Error = message
+			payload.LastAction = newToolManagerAction("add", "error", message, serverName)
+			return g.buildToolManagerResult(payload, message), nil
 		}
 
-		// Append the new server to the current serverNames if not already present
-		found = false
-		for _, existing := range g.configuration.serverNames {
-			if existing == serverName {
-				found = true
+		serverSummary := summarizeServer(serverName, serverConfig.Spec)
+		serverSummary.IsActive = true
+		payload.Server = &serverSummary
+		payload.Results = []toolManagerServer{serverSummary}
+
+		existing := false
+		for _, name := range g.configuration.serverNames {
+			if name == serverName {
+				existing = true
 				break
 			}
 		}
-		if !found {
+		if !existing {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
-		// Fetch updated secrets for the new server list
 		if g.configurator != nil {
 			if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-				updatedSecrets, err := fbc.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-				if err == nil {
+				updatedSecrets, secretsErr := fbc.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
+				if secretsErr == nil {
 					g.configuration.secrets = updatedSecrets
 				} else {
-					log("Warning: Failed to update secrets:", err)
+					log("Warning: Failed to update secrets:", secretsErr)
 				}
 			}
 		}
@@ -290,20 +305,22 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
-		// Register DCR client and start OAuth provider if this is a remote OAuth server
+		respond := func(status, message string) (*mcp.CallToolResult, error) {
+			payload.Status = status
+			payload.Message = message
+			payload.LastAction = newToolManagerAction("add", status, message, serverName)
+			return g.buildToolManagerResult(payload, message), nil
+		}
+
 		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
-			// Register DCR client with DD so user can authorize
 			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
 			}
 
-			// Start provider
 			g.startProvider(ctx, serverName)
 
-			// Check if current serverSession supports elicitations
 			if req.Session.InitializeParams().Capabilities != nil && req.Session.InitializeParams().Capabilities.Elicitation != nil {
-				// Elicit a response from the client asking whether to open a browser for authorization
-				elicitResult, err := req.Session.Elicit(ctx, &mcp.ElicitParams{
+				elicitResult, elicitErr := req.Session.Elicit(ctx, &mcp.ElicitParams{
 					Message: fmt.Sprintf("Would you like to open a browser to authorize the '%s' server?", serverName),
 					RequestedSchema: &jsonschema.Schema{
 						Type: "object",
@@ -316,16 +333,14 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 						Required: []string{"authorize"},
 					},
 				})
-				if err != nil {
-					logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
+				if elicitErr != nil {
+					logf("Warning: Failed to elicit authorization response for %s: %v", serverName, elicitErr)
 				} else if elicitResult.Action == "accept" && elicitResult.Content != nil {
-					// Check if user authorized
 					if authorize, ok := elicitResult.Content["authorize"].(bool); ok && authorize {
-						// User agreed to authorize, call the OAuth authorize function
 						client := desktop.NewAuthClient()
-						authResponse, err := client.PostOAuthApp(ctx, serverName, "", false)
-						if err != nil {
-							logf("Warning: Failed to start OAuth flow for %s: %v", serverName, err)
+						authResponse, authErr := client.PostOAuthApp(ctx, serverName, "", false)
+						if authErr != nil {
+							logf("Warning: Failed to start OAuth flow for %s: %v", serverName, authErr)
 						} else if authResponse.BrowserURL != "" {
 							logf("Opening browser for authentication: %s", authResponse.BrowserURL)
 						} else {
@@ -334,40 +349,22 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 					}
 				}
 
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{&mcp.TextContent{
-						Text: fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName),
-					}},
-				}, nil
+				return respond("success", fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName))
 			}
 
-			// Client doesn't support elicitations, get the login link and include it in the response
 			client := desktop.NewAuthClient()
-			// Set context flag to enable disableAutoOpen parameter
 			ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
-			authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
-			if err != nil {
-				logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
+			authResponse, authErr := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
+			if authErr != nil {
+				logf("Warning: Failed to get OAuth URL for %s: %v", serverName, authErr)
 			} else if authResponse.BrowserURL != "" {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{&mcp.TextContent{
-						Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please open the following URL in your browser:\n\n%s", serverName, authResponse.BrowserURL),
-					}},
-				}, nil
+				return respond("success", fmt.Sprintf("Successfully added server '%s'. To authorize this server, please open the following URL in your browser:\n\n%s", serverName, authResponse.BrowserURL))
 			}
 
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName),
-				}},
-			}, nil
+			return respond("success", fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName))
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. Assume that it is fully configured and ready to use.", serverName),
-			}},
-		}, nil
+		return respond("success", fmt.Sprintf("Successfully added server '%s'. Assume that it is fully configured and ready to use.", serverName))
 	}
 
 	return &ToolRegistration{
@@ -380,7 +377,16 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-remove",
+		Title:       "Remove MCP Server",
 		Description: "Remove an MCP server from the registry and reload the configuration. This will disable the server.",
+		Meta: mcp.Meta{
+			"openai/outputTemplate":             toolManagerResourceURI,
+			"openai/widgetAccessible":           true,
+			"openai/toolInvocation/invoking":    "Removing the server from your session…",
+			"openai/toolInvocation/invoked":     "Server removed.",
+			"openai/toolInvocation/failed":      "Failed to remove the server.",
+			"openai/toolInvocation/description": "Disables an MCP server and reloads configuration.",
+		},
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -391,6 +397,7 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 			},
 			Required: []string{"name"},
 		},
+		OutputSchema: toolManagerOutputSchema,
 	}
 
 	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -418,15 +425,15 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 
 		serverName := strings.TrimSpace(params.Name)
 
-		// Remove the server from the current serverNames
+		payload := newToolManagerPayload("mcp-remove", "info", "")
+		payload.Server = &toolManagerServer{Name: serverName}
+
 		updatedServerNames := slices.DeleteFunc(slices.Clone(g.configuration.serverNames), func(name string) bool {
 			return name == serverName
 		})
-
-		// Update the current configuration state
+		wasActive := len(updatedServerNames) != len(g.configuration.serverNames)
 		g.configuration.serverNames = updatedServerNames
 
-		// Stop OAuth provider if this is an OAuth server
 		if g.McpOAuthDcrEnabled {
 			g.stopProvider(serverName)
 		}
@@ -435,11 +442,28 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully removed server '%s'.", serverName),
-			}},
-		}, nil
+		if serverDetails, ok := g.configuration.servers[serverName]; ok {
+			serverSummary := summarizeServer(serverName, serverDetails)
+			serverSummary.IsActive = false
+			payload.Server = &serverSummary
+			payload.Results = []toolManagerServer{serverSummary}
+		}
+
+		var status string
+		var message string
+		if wasActive {
+			status = "success"
+			message = fmt.Sprintf("Successfully removed server '%s'.", serverName)
+		} else {
+			status = "info"
+			message = fmt.Sprintf("Server '%s' was not active. No changes were required.", serverName)
+		}
+
+		payload.Status = status
+		payload.Message = message
+		payload.LastAction = newToolManagerAction("remove", status, message, serverName)
+
+		return g.buildToolManagerResult(payload, message), nil
 	}
 
 	return &ToolRegistration{
