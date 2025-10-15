@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/signatures"
 )
 
@@ -15,11 +16,11 @@ func (g *Gateway) pullAndVerify(ctx context.Context, configuration Configuration
 		return nil
 	}
 
-	log("- Using images:")
+	log.Log("- Using images:")
 
 	var verifiableImages []string
 	for _, image := range dockerImages {
-		log("  - " + image)
+		log.Log("  - " + image)
 		if strings.HasPrefix(image, "mcp/") {
 			verifiableImages = append(verifiableImages, image)
 		}
@@ -43,7 +44,7 @@ func (g *Gateway) pullImages(ctx context.Context, images []string) error {
 		return fmt.Errorf("pulling docker images: %w", err)
 	}
 
-	log("> Images pulled in", time.Since(start))
+	log.Log("> Images pulled in", time.Since(start))
 	return nil
 }
 
@@ -53,13 +54,13 @@ func (g *Gateway) verifyImages(ctx context.Context, images []string) error {
 	}
 
 	start := time.Now()
-	log("- Verifying images", imageBaseNames(images))
+	log.Log("- Verifying images", imageBaseNames(images))
 
 	if err := signatures.Verify(ctx, images); err != nil {
 		return fmt.Errorf("verifying docker images: %w", err)
 	}
 
-	log("> Images verified in", time.Since(start))
+	log.Log("> Images verified in", time.Since(start))
 	return nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 )
 
@@ -37,7 +38,7 @@ func runL7Proxy(ctx context.Context, cli docker.Client, target *TargetConfig, ex
 	})...)
 	target.Env = append(target.Env, "http_proxy="+proxyName+":8080", "https_proxy="+proxyName+":8080")
 
-	logf("    - Starting l7 proxy %s for %s", proxyName, allowedHosts)
+	log.Logf("    - Starting l7 proxy %s for %s", proxyName, allowedHosts)
 
 	err := cli.StartContainer(ctx, proxyName,
 		container.Config{

@@ -20,6 +20,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/contextkeys"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
@@ -281,7 +282,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 				if err == nil {
 					g.configuration.secrets = updatedSecrets
 				} else {
-					log("Warning: Failed to update secrets:", err)
+					log.Log("Warning: Failed to update secrets:", err)
 				}
 			}
 		}
@@ -294,7 +295,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
 			// Register DCR client with DD so user can authorize
 			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-				logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+				log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
 			}
 
 			// Start provider
@@ -317,7 +318,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 					},
 				})
 				if err != nil {
-					logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
+					log.Logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
 				} else if elicitResult.Action == "accept" && elicitResult.Content != nil {
 					// Check if user authorized
 					if authorize, ok := elicitResult.Content["authorize"].(bool); ok && authorize {
@@ -325,11 +326,11 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 						client := desktop.NewAuthClient()
 						authResponse, err := client.PostOAuthApp(ctx, serverName, "", false)
 						if err != nil {
-							logf("Warning: Failed to start OAuth flow for %s: %v", serverName, err)
+							log.Logf("Warning: Failed to start OAuth flow for %s: %v", serverName, err)
 						} else if authResponse.BrowserURL != "" {
-							logf("Opening browser for authentication: %s", authResponse.BrowserURL)
+							log.Logf("Opening browser for authentication: %s", authResponse.BrowserURL)
 						} else {
-							logf("Warning: OAuth provider for %s does not exist", serverName)
+							log.Logf("Warning: OAuth provider for %s does not exist", serverName)
 						}
 					}
 				}
@@ -347,7 +348,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
 			authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
 			if err != nil {
-				logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
+				log.Logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
 			} else if authResponse.BrowserURL != "" {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
@@ -522,7 +523,7 @@ func (g *Gateway) createMcpRegistryImportTool(configuration Configuration, _ *cl
 
 		for serverName, server := range servers {
 			if _, exists := configuration.servers[serverName]; exists {
-				log(fmt.Sprintf("Warning: server '%s' from URL %s overwrites existing server", serverName, registryURL))
+				log.Log(fmt.Sprintf("Warning: server '%s' from URL %s overwrites existing server", serverName, registryURL))
 			}
 			configuration.servers[serverName] = server
 			importedServerNames = append(importedServerNames, serverName)
@@ -586,7 +587,7 @@ func (g *Gateway) createMcpRegistryImportTool(configuration Configuration, _ *cl
 func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[string]catalog.Server, error) {
 	servers := make(map[string]catalog.Server)
 
-	log(fmt.Sprintf("  - Reading servers from URL: %s", url))
+	log.Log(fmt.Sprintf("  - Reading servers from URL: %s", url))
 
 	// Create HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -623,7 +624,7 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 
 		serverName := serverDetail.Name
 		servers[serverName] = server
-		log(fmt.Sprintf("  - Added server '%s' from URL %s", serverName, url))
+		log.Log(fmt.Sprintf("  - Added server '%s' from URL %s", serverName, url))
 		return servers, nil
 	}
 
@@ -701,7 +702,7 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 		g.configuration.config[serverName][configKey] = params.Value
 
 		// Log the configuration change
-		log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
+		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
 
 		// Reload configuration with current server list to apply changes
 		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {

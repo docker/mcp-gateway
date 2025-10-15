@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 const maxRefreshRetries = 7 // Max attempts to refresh when expiry hasn't changed
@@ -37,15 +38,15 @@ func NewProvider(name string, reloadFn func(context.Context, string) error) *Pro
 // Run starts the provider's background loop
 // Loop dynamically adjusts timing based on token expiry
 func (p *Provider) Run(ctx context.Context) {
-	logf("- Started OAuth provider loop for %s", p.name)
-	defer logf("- Stopped OAuth provider loop for %s", p.name)
+	log.Logf("- Started OAuth provider loop for %s", p.name)
+	defer log.Logf("- Stopped OAuth provider loop for %s", p.name)
 
 	for {
 		// Check current token status
 		status, err := p.credHelper.GetTokenStatus(ctx, p.name)
 		if err != nil {
-			logf("! Unable to get token status for %s: %v", p.name, err)
-			logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)
+			log.Logf("! Unable to get token status for %s: %v", p.name, err)
+			log.Logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)
 			return
 		}
 
@@ -63,20 +64,20 @@ func (p *Provider) Run(ctx context.Context) {
 			} else {
 				// Expiry changed or first attempt for this expiry - reset count
 				if p.refreshRetryCount > 0 {
-					logf("- Token expiry updated for %s, resetting refresh count", p.name)
+					log.Logf("- Token expiry updated for %s, resetting refresh count", p.name)
 				}
 				p.refreshRetryCount = 1
 			}
 
 			// Check if exceeded max attempts
 			if p.refreshRetryCount > maxRefreshRetries {
-				logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
+				log.Logf("! Token expiry unchanged after %d refresh attempts for %s", maxRefreshRetries, p.name)
 				return
 			}
 
 			// Exponential backoff for all refresh attempts: 30s, 1min, 2min, 4min, 8min...
 			waitDuration = time.Duration(30*(1<<(p.refreshRetryCount-1))) * time.Second
-			logf("- Triggering token refresh for %s, attempt %d/%d, waiting %v",
+			log.Logf("- Triggering token refresh for %s, attempt %d/%d, waiting %v",
 				p.name, p.refreshRetryCount, maxRefreshRetries, waitDuration)
 
 			p.lastRefreshExpiry = status.ExpiresAt
@@ -87,7 +88,7 @@ func (p *Provider) Run(ctx context.Context) {
 			timeUntilExpiry := time.Until(status.ExpiresAt)
 			waitDuration = max(0, timeUntilExpiry-10*time.Second)
 
-			logf("- Token valid for %s, next check in %v", p.name, waitDuration.Round(time.Second))
+			log.Logf("- Token valid for %s, next check in %v", p.name, waitDuration.Round(time.Second))
 			shouldTriggerRefresh = false
 		}
 
@@ -97,12 +98,12 @@ func (p *Provider) Run(ctx context.Context) {
 				authClient := desktop.NewAuthClient()
 				app, err := authClient.GetOAuthApp(context.Background(), p.name)
 				if err != nil {
-					logf("! GetOAuthApp failed for %s: %v", p.name, err)
+					log.Logf("! GetOAuthApp failed for %s: %v", p.name, err)
 					return
 				}
 
 				if !app.Authorized {
-					logf("! GetOAuthApp returned Authorized=false for %s", p.name)
+					log.Logf("! GetOAuthApp returned Authorized=false for %s", p.name)
 					return
 				}
 				// Authorized: SSE event will be handled below
@@ -120,10 +121,10 @@ func (p *Provider) Run(ctx context.Context) {
 			case event := <-p.eventChan:
 				// SSE event arrived - handle it
 				timer.Stop()
-				logf("- Provider %s received event: %s", p.name, event.Type)
+				log.Logf("- Provider %s received event: %s", p.name, event.Type)
 
 				if err := p.reloadFn(ctx, p.name); err != nil {
-					logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
+					log.Logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
 				}
 
 				// Reset refresh state on successful event

@@ -7,6 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/secretsscan"
 )
 
@@ -28,14 +29,14 @@ func BlockSecretsMiddleware() mcp.Middleware {
 			}
 
 			if toolName != "" {
-				logf("  - Scanning tool call arguments for secrets...\n")
+				log.Logf("  - Scanning tool call arguments for secrets...\n")
 
 				argumentsStr := argumentsToString(arguments)
 				if secretsscan.ContainsSecrets(argumentsStr) {
 					return nil, fmt.Errorf("a secret is being passed to tool %s", toolName)
 				}
 
-				logf("  > No secret found in arguments.\n")
+				log.Logf("  > No secret found in arguments.\n")
 			}
 
 			result, err := next(ctx, method, req)
@@ -45,7 +46,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 
 			// Check response for secrets
 			if result != nil {
-				logf("  - Scanning tool call response for secrets...\n")
+				log.Logf("  - Scanning tool call response for secrets...\n")
 
 				var contents string
 
@@ -65,7 +66,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 					return nil, fmt.Errorf("a secret is being returned by the %s tool", toolName)
 				}
 
-				logf("  > No secret found in response.\n")
+				log.Logf("  > No secret found in response.\n")
 			}
 
 			return result, nil

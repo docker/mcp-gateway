@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
@@ -79,7 +81,6 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
-			Central:            config.Central,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			docker:             docker,
 		},
@@ -93,6 +94,19 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
+
+	// Set up log file redirection if specified
+	if g.LogFilePath != "" {
+		logFile, err := os.OpenFile(g.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return fmt.Errorf("failed to open log file %s: %w", g.LogFilePath, err)
+		}
+		defer logFile.Close()
+
+		// Create a multi-writer that writes to both stderr and the log file
+		multiWriter := io.MultiWriter(os.Stderr, logFile)
+		log.SetLogWriter(multiWriter)
+	}
 
 	// Record gateway start
 	transportMode := "stdio"
@@ -149,7 +163,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("parsing interceptors: %w", err)
 		}
-		log("- Interceptors enabled:", strings.Join(g.Interceptors, ", "))
+		log.Log("- Interceptors enabled:", strings.Join(g.Interceptors, ", "))
 	}
 
 	g.mcpServer = mcp.NewServer(&mcp.Implementation{
@@ -157,28 +171,28 @@ func (g *Gateway) Run(ctx context.Context) error {
 		Version: "2.0.1",
 	}, &mcp.ServerOptions{
 		SubscribeHandler: func(_ context.Context, req *mcp.SubscribeRequest) error {
-			log("- Client subscribed to URI:", req.Params.URI)
+			log.Log("- Client subscribed to URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in SubscribeHandler because it already
 			// keeps track of the mapping between ServerSession and subscribed resources in the Server
 			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: subscribe , ss: ss}
 			return nil
 		},
 		UnsubscribeHandler: func(_ context.Context, req *mcp.UnsubscribeRequest) error {
-			log("- Client unsubscribed from URI:", req.Params.URI)
+			log.Log("- Client unsubscribed from URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in UnsubscribeHandler because it already
 			// keeps track of the mapping ServerSession and subscribed resources in the Server
 			// g.subsChannel <- SubsMessage{uri: req.Params.URI, action: unsubscribe , ss: ss}
 			return nil
 		},
 		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
-			log("- Client roots list changed")
+			log.Log("- Client roots list changed")
 			// We can't get the ServerSession from the request anymore, so we'll need to handle this differently
 			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
 		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
-			log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -214,7 +228,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	if g.McpOAuthDcrEnabled {
 		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
-		log("- Starting OAuth notification monitor")
+		log.Log("- Starting OAuth notification monitor")
 		monitor := oauth.NewNotificationMonitor()
 		monitor.OnOAuthEvent = func(event oauth.Event) {
 			// Route event to specific provider
@@ -224,7 +238,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 		// Start OAuth provider for each OAuth server
 		// Each provider runs in its own goroutine with dynamic timing based on token expiry
-		log("- Starting OAuth provider loops...")
+		log.Log("- Starting OAuth provider loops...")
 		for _, serverName := range configuration.ServerNames() {
 			serverConfig, _, found := configuration.Find(serverName)
 			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
@@ -235,37 +249,25 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 	}
 
-	// Central mode.
-	if g.Central {
-		log("> Initialized (in central mode) in", time.Since(start))
-		if g.DryRun {
-			log("Dry run mode enabled, not starting the server.")
-			return nil
-		}
-
-		log("> Start streaming server on port", g.Port)
-		return g.startCentralStreamingServer(ctx, ln, configuration)
-	}
-
 	// Optionally watch for configuration updates.
 	if configurationUpdates != nil {
-		log("- Watching for configuration updates...")
+		log.Log("- Watching for configuration updates...")
 		go func() {
 			for {
 				select {
 				case <-ctx.Done():
-					log("> Stop watching for updates")
+					log.Log("> Stop watching for updates")
 					return
 				case configuration := <-configurationUpdates:
-					log("> Configuration updated, reloading...")
+					log.Log("> Configuration updated, reloading...")
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
-						logf("> Unable to pull and verify images: %s", err)
+						log.Logf("> Unable to pull and verify images: %s", err)
 						continue
 					}
 
 					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
-						logf("> Unable to list capabilities: %s", err)
+						log.Logf("> Unable to list capabilities: %s", err)
 						g.configuration = configuration
 						continue
 					}
@@ -274,24 +276,24 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}()
 	}
 
-	log("> Initialized in", time.Since(start))
+	log.Log("> Initialized in", time.Since(start))
 	if g.DryRun {
-		log("Dry run mode enabled, not starting the server.")
+		log.Log("Dry run mode enabled, not starting the server.")
 		return nil
 	}
 
 	// Start the server
 	switch strings.ToLower(g.Transport) {
 	case "stdio":
-		log("> Start stdio server")
+		log.Log("> Start stdio server")
 		return g.startStdioServer(ctx, os.Stdin, os.Stdout)
 
 	case "sse":
-		log("> Start sse server on port", g.Port)
+		log.Log("> Start sse server on port", g.Port)
 		return g.startSseServer(ctx, ln)
 
 	case "http", "streamable", "streaming", "streamable-http":
-		log("> Start streaming server on port", g.Port)
+		log.Log("> Start streaming server on port", g.Port)
 		return g.startStreamingServer(ctx, ln)
 
 	default:
@@ -308,13 +310,13 @@ func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, s
 		server:        server,
 	}
 
-	log("- RefreshCapabilities called for session, refreshing servers:", serverName)
+	log.Log("- RefreshCapabilities called for session, refreshing servers:", serverName)
 
 	err := g.reloadServerConfiguration(ctx, serverName, clientConfig)
 	if err != nil {
-		log("! Failed to refresh capabilities:", err)
+		log.Log("! Failed to refresh capabilities:", err)
 	} else {
-		log("- RefreshCapabilities completed successfully")
+		log.Log("- RefreshCapabilities completed successfully")
 	}
 	return err
 }
@@ -349,12 +351,12 @@ func (g *Gateway) ListRoots(ctx context.Context, ss *mcp.ServerSession) {
 	}
 
 	if err != nil {
-		log("- Client does not support roots or error listing roots:", err)
+		log.Log("- Client does not support roots or error listing roots:", err)
 		cache.Roots = nil
 	} else {
-		log("- Client supports roots, found", len(rootsResult.Roots), "roots")
+		log.Log("- Client supports roots, found", len(rootsResult.Roots), "roots")
 		for _, root := range rootsResult.Roots {
-			log("  - Root:", root.URI)
+			log.Log("  - Root:", root.URI)
 		}
 		cache.Roots = rootsResult.Roots
 	}
@@ -425,7 +427,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 
 	// Create reload function for this provider
 	reloadFn := func(ctx context.Context, name string) error {
-		logf("> Reloading OAuth server: %s", name)
+		log.Logf("> Reloading OAuth server: %s", name)
 
 		// Close old client connection with stale token
 		g.clientPool.InvalidateOAuthClients(name)
@@ -435,7 +437,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 			return err
 		}
 
-		logf("> OAuth server %s reconnected and tools registered", name)
+		log.Logf("> OAuth server %s reconnected and tools registered", name)
 		return nil
 	}
 
@@ -452,7 +454,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 		delete(g.oauthProviders, serverName)
 		g.providersMu.Unlock()
 
-		logf("- Removed provider %s from map after exit", serverName)
+		log.Logf("- Removed provider %s from map after exit", serverName)
 	}()
 }
 
@@ -477,7 +479,7 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	case oauth.EventLoginSuccess:
 		// User just authorized - ensure provider exists
 		if !exists {
-			logf("- Creating provider for %s after login", event.Provider)
+			log.Logf("- Creating provider for %s after login", event.Provider)
 			g.startProvider(context.Background(), event.Provider)
 		}
 
@@ -505,7 +507,7 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	case oauth.EventLogoutSuccess:
 		// User logged out - stop provider if exists
 		if exists {
-			logf("- Stopping provider for %s after logout", event.Provider)
+			log.Logf("- Stopping provider for %s after logout", event.Provider)
 			g.stopProvider(event.Provider)
 		}
 
