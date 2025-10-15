@@ -81,7 +81,6 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
-			Central:            config.Central,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			docker:             docker,
 		},
@@ -248,18 +247,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 			g.startProvider(ctx, serverName)
 		}
-	}
-
-	// Central mode.
-	if g.Central {
-		log.Log("> Initialized (in central mode) in", time.Since(start))
-		if g.DryRun {
-			log.Log("Dry run mode enabled, not starting the server.")
-			return nil
-		}
-
-		log.Log("> Start streaming server on port", g.Port)
-		return g.startCentralStreamingServer(ctx, ln, configuration)
 	}
 
 	// Optionally watch for configuration updates.

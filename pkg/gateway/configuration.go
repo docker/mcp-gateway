@@ -100,7 +100,6 @@ type FileBasedConfiguration struct {
 	OciRef             []string         // OCI references to fetch server definitions from
 	MCPRegistryServers []catalog.Server // Servers fetched from MCP registries
 	Watch              bool
-	Central            bool
 	McpOAuthDcrEnabled bool
 
 	docker docker.Client
@@ -217,17 +216,15 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	log.Log("- Reading configuration...")
 
 	var serverNames []string
-	if !c.Central {
-		if len(c.ServerNames) > 0 {
-			serverNames = c.ServerNames
-		} else {
-			registryConfig, err := c.readRegistry(ctx)
-			if err != nil {
-				return Configuration{}, fmt.Errorf("reading registry: %w", err)
-			}
-
-			serverNames = registryConfig.ServerNames()
+	if len(c.ServerNames) > 0 {
+		serverNames = c.ServerNames
+	} else {
+		registryConfig, err := c.readRegistry(ctx)
+		if err != nil {
+			return Configuration{}, fmt.Errorf("reading registry: %w", err)
 		}
+
+		serverNames = registryConfig.ServerNames()
 	}
 
 	// check for docker.io self-contained servers
@@ -317,7 +314,6 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 	}
 
-	// TODO(dga): Do we expect every server to have a config, in Central mode?
 	serversConfig, err := c.readConfig(ctx)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("reading config: %w", err)
@@ -328,7 +324,6 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading tools: %w", err)
 	}
 
-	// TODO(dga): How do we know which secrets to read, in Central mode?
 	var secrets map[string]string
 	if c.SecretsPath == "docker-desktop" {
 		secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
