@@ -73,25 +73,33 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	if g.DynamicTools {
 		log("- Adding internal tools (dynamic-tools feature enabled)")
 
+		dynamicCaps := g.ensureDynamicCapabilities()
+		g.registerToolManagerResource()
+
 		// Add mcp-find tool
 		mcpFindTool := g.createMcpFindTool(configuration)
 		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
+		dynamicCaps.ToolNames = append(dynamicCaps.ToolNames, mcpFindTool.Tool.Name)
 
 		// Add mcp-add tool
 		mcpAddTool := g.createMcpAddTool(clientConfig)
 		g.mcpServer.AddTool(mcpAddTool.Tool, mcpAddTool.Handler)
+		dynamicCaps.ToolNames = append(dynamicCaps.ToolNames, mcpAddTool.Tool.Name)
 
 		// Add mcp-remove tool
 		mcpRemoveTool := g.createMcpRemoveTool()
 		g.mcpServer.AddTool(mcpRemoveTool.Tool, mcpRemoveTool.Handler)
+		dynamicCaps.ToolNames = append(dynamicCaps.ToolNames, mcpRemoveTool.Tool.Name)
 
 		// Add mcp-registry-import tool
 		mcpRegistryImportTool := g.createMcpRegistryImportTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpRegistryImportTool.Tool, mcpRegistryImportTool.Handler)
+		dynamicCaps.ToolNames = append(dynamicCaps.ToolNames, mcpRegistryImportTool.Tool.Name)
 
 		// Add mcp-config-set tool
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
+		dynamicCaps.ToolNames = append(dynamicCaps.ToolNames, mcpConfigSetTool.Tool.Name)
 
 		log("  > mcp-find: tool for finding MCP servers in the catalog")
 		log("  > mcp-add: tool for adding MCP servers to the registry")

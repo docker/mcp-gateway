@@ -158,6 +158,24 @@ When servers are added dynamically, the system automatically:
 
 The `mcp-add` tool ensures server name uniqueness by:
 - Checking existing server names before adding
+
+## ChatGPT Tool Manager UI
+
+When the `dynamic-tools` feature flag is enabled, the gateway now publishes an interactive ChatGPT widget that orchestrates `mcp-find`, `mcp-add`, and `mcp-remove`. The component:
+
+- Renders catalog search results with descriptions, required secrets, and server metadata.
+- Shows the current set of enabled servers and highlights whether each result is active.
+- Initiates tool calls directly from the UI to add or remove servers and reflects the outcome in real time.
+
+The widget bundle lives in `ui/tool-manager/` and is embedded into the gateway at build time. To make changes:
+
+```bash
+cd ui/tool-manager
+npm install        # first time only
+npm run build      # rebuilds the bundle and copies it to pkg/gateway/ui/embedded/
+```
+
+Running `npm run build` updates both `ui/tool-manager/dist/tool-manager.js` (for development) and the embedded asset at `pkg/gateway/ui/embedded/tool-manager.js`. Re-start the gateway after rebuilding so the new UI is served to ChatGPT.
 - Only appending new servers if not already present
 - Maintaining the original order of servers
 
