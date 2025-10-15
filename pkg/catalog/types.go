@@ -17,8 +17,9 @@ type Server struct {
 	Type           string   `yaml:"type" json:"type"`
 	Image          string   `yaml:"image" json:"image"`
 	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
+	Title          string   `yaml:"title,omitempty" json:"title,omitempty"`
 	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
-	Remote         Remote   `yaml:"remote,omitempty" json:"remote,omitempty"`
+	Remote         Remote   `yaml:"remote" json:"remote"`
 	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
 	OAuth          *OAuth   `yaml:"oauth,omitempty" json:"oauth,omitempty"`
 	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
