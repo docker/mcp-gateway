@@ -76,16 +76,6 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
-    - option: central
-      value_type: bool
-      default_value: "false"
-      description: In central mode, clients tell us which servers to enable
-      deprecated: false
-      hidden: true
-      experimental: false
-      experimentalcli: false
-      kubernetes: false
-      swarm: false
     - option: config
       value_type: stringSlice
       default_value: '[config.yaml]'
