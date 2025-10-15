@@ -149,6 +149,15 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: log
+      value_type: string
+      description: Path to log file for stderr output (relative or absolute)
+      deprecated: false
+      hidden: true
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: log-calls
       value_type: bool
       default_value: "true"
@@ -278,7 +287,7 @@ options:
       default_value: stdio
       description: stdio, sse or streaming (default is stdio)
       deprecated: false
-      hidden: false
+      hidden: true
       experimental: false
       experimentalcli: false
       kubernetes: false

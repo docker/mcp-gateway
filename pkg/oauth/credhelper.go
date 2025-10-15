@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker-credential-helpers/credentials"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // CredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
@@ -44,7 +45,7 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
 	if err != nil {
-		logf("- Failed to get DCR client for %s: %v", serverName, err)
+		log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
 		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
@@ -55,10 +56,10 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
-			logf("- OAuth token not found for key: %s", credentialKey)
+			log.Logf("- OAuth token not found for key: %s", credentialKey)
 			return "", fmt.Errorf("OAuth token not found for %s (key: %s). Run 'docker mcp oauth authorize %s' to authenticate", serverName, credentialKey, serverName)
 		}
-		logf("- Failed to retrieve token from credential helper: %v", err)
+		log.Logf("- Failed to retrieve token from credential helper: %v", err)
 		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
@@ -156,7 +157,7 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	timeUntilExpiry := expiresAt.Sub(now)
 	needsRefresh := timeUntilExpiry <= 10*time.Second
 
-	logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
+	log.Logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
 		serverName, expiresAt.Format(time.RFC3339), timeUntilExpiry.Round(time.Second), needsRefresh)
 
 	return TokenStatus{

@@ -12,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -95,14 +96,14 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 		switch {
 		case !found:
-			log("  - MCP server not found:", serverName)
+			log.Log("  - MCP server not found:", serverName)
 
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
 				client, err := g.clientPool.AcquireClient(ctx, serverConfig, clientConfig)
 				if err != nil {
-					logf("  > Can't start %s: %s", serverConfig.Name, err)
+					log.Logf("  > Can't start %s: %s", serverConfig.Name, err)
 					return nil
 				}
 				defer g.clientPool.ReleaseClient(client)
@@ -111,7 +112,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 				tools, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
 				if err != nil {
-					logf("  > Can't list tools %s: %s", serverConfig.Name, err)
+					log.Logf("  > Can't list tools %s: %s", serverConfig.Name, err)
 				} else {
 					// Record the number of tools discovered from this server
 					telemetry.RecordToolList(ctx, serverConfig.Name, len(tools.Tools))
@@ -170,21 +171,21 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					}
 				}
 
-				var log string
+				var logMsg string
 				if len(capabilities.Tools) > 0 {
-					log += fmt.Sprintf(" (%d tools)", len(capabilities.Tools))
+					logMsg += fmt.Sprintf(" (%d tools)", len(capabilities.Tools))
 				}
 				if len(capabilities.Prompts) > 0 {
-					log += fmt.Sprintf(" (%d prompts)", len(capabilities.Prompts))
+					logMsg += fmt.Sprintf(" (%d prompts)", len(capabilities.Prompts))
 				}
 				if len(capabilities.Resources) > 0 {
-					log += fmt.Sprintf(" (%d resources)", len(capabilities.Resources))
+					logMsg += fmt.Sprintf(" (%d resources)", len(capabilities.Resources))
 				}
 				if len(capabilities.ResourceTemplates) > 0 {
-					log += fmt.Sprintf(" (%d resourceTemplates)", len(capabilities.ResourceTemplates))
+					logMsg += fmt.Sprintf(" (%d resourceTemplates)", len(capabilities.ResourceTemplates))
 				}
-				if log != "" {
-					logf("  > %s:%s", serverConfig.Name, log)
+				if logMsg != "" {
+					log.Logf("  > %s:%s", serverConfig.Name, logMsg)
 				}
 
 				lock.Lock()

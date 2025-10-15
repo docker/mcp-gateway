@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 func LogCallsMiddleware() mcp.Middleware {
@@ -28,9 +30,9 @@ func LogCallsMiddleware() mcp.Middleware {
 			}
 
 			if toolName != "" {
-				logf("  - Calling tool %s with arguments: %s\n", toolName, argumentsToString(arguments))
+				log.Logf("  - Calling tool %s with arguments: %s\n", toolName, argumentsToString(arguments))
 			} else {
-				logf("  - Calling tool (unknown) with method: %s\n", method)
+				log.Logf("  - Calling tool (unknown) with method: %s\n", method)
 			}
 
 			result, err := next(ctx, method, req)
@@ -38,7 +40,7 @@ func LogCallsMiddleware() mcp.Middleware {
 				return result, err
 			}
 
-			logf("  > Calling tool %s took: %s\n", toolName, time.Since(start))
+			log.Logf("  > Calling tool %s took: %s\n", toolName, time.Since(start))
 
 			return result, nil
 		}

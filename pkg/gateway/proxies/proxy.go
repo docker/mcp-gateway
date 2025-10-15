@@ -11,10 +11,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/sliceutil"
-
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/sliceutil"
 )
 
 // TargetConfig represents the config that should be set on a target container
@@ -34,7 +34,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 		return TargetConfig{}, nil, nil
 	}
 
-	logf("  - Running proxy sidecars for hosts %+v\n", proxies)
+	log.Logf("  - Running proxy sidecars for hosts %+v\n", proxies)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -51,7 +51,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 	defer func() {
 		if retErr != nil && !keepCtrs {
 			if err := cli.RemoveNetwork(ctx, target.NetworkName); err != nil {
-				logf("failed to remove network %s: %v", target.NetworkName, err)
+				log.Logf("failed to remove network %s: %v", target.NetworkName, err)
 			}
 		}
 	}()
@@ -66,7 +66,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 	defer func() {
 		if retErr != nil && !keepCtrs {
 			if err := cli.RemoveNetwork(ctx, extNwName); err != nil {
-				logf("failed to remove network %s: %v", extNwName, err)
+				log.Logf("failed to remove network %s: %v", extNwName, err)
 			}
 		}
 	}()
@@ -89,7 +89,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 		if retErr != nil && !keepCtrs {
 			for _, name := range proxyNames {
 				if err := cli.RemoveContainer(ctx, name, true); err != nil {
-					logf("failed to remove proxy container %s: %v", name, err)
+					log.Logf("failed to remove proxy container %s: %v", name, err)
 				}
 			}
 		}
@@ -143,7 +143,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 }
 
 func shutdownProxies(ctx context.Context, cli docker.Client, proxyNames []string) error {
-	logf("    > Shutting down proxies (%s)", strings.Join(proxyNames, ", "))
+	log.Logf("    > Shutting down proxies (%s)", strings.Join(proxyNames, ", "))
 
 	var errs []error
 	for _, name := range proxyNames {
@@ -156,7 +156,7 @@ func shutdownProxies(ctx context.Context, cli docker.Client, proxyNames []string
 }
 
 func removeProxies(ctx context.Context, cli docker.Client, nwNames []string, proxyNames []string) error {
-	logf("    > Removing proxies (%s) and networks (%s)", strings.Join(proxyNames, ", "), strings.Join(nwNames, ", "))
+	log.Logf("    > Removing proxies (%s) and networks (%s)", strings.Join(proxyNames, ", "), strings.Join(nwNames, ", "))
 
 	var errs []error
 	for _, name := range proxyNames {

@@ -32,7 +32,6 @@ Run the gateway
 | `--static`                  | `bool`        |                     | Enable static mode (aka pre-started servers)                                                                                                  |
 | `--tools`                   | `stringSlice` |                     | List of tools to enable                                                                                                                       |
 | `--tools-config`            | `stringSlice` | `[tools.yaml]`      | Paths to the tools files (absolute or relative to ~/.docker/mcp/)                                                                             |
-| `--transport`               | `string`      | `stdio`             | stdio, sse or streaming (default is stdio)                                                                                                    |
 | `--verbose`                 | `bool`        |                     | Verbose output                                                                                                                                |
 | `--verify-signatures`       | `bool`        |                     | Verify signatures of the server images                                                                                                        |
 | `--watch`                   | `bool`        | `true`              | Watch for changes and reconfigure the gateway                                                                                                 |

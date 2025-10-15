@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/health"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 func (g *Gateway) startStdioServer(ctx context.Context, _ io.Reader, _ io.Writer) error {
@@ -65,7 +66,7 @@ func (g *Gateway) startCentralStreamingServer(ctx context.Context, ln net.Listen
 	mux.HandleFunc("/mcp", func(w http.ResponseWriter, r *http.Request) {
 		serverNames := r.Header.Get("x-mcp-servers")
 		if len(serverNames) == 0 {
-			log("No server names provided in the request header 'x-mcp-servers'")
+			log.Log("No server names provided in the request header 'x-mcp-servers'")
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = io.WriteString(w, "No server names provided in the request header 'x-mcp-servers'")
 			return

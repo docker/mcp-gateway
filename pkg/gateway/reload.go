@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -15,19 +16,19 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		serverNames = configuration.ServerNames()
 	}
 	if len(serverNames) == 0 {
-		log("- No server is enabled")
+		log.Log("- No server is enabled")
 	} else {
-		log("- Those servers are enabled:", strings.Join(serverNames, ", "))
+		log.Log("- Those servers are enabled:", strings.Join(serverNames, ", "))
 	}
 
 	// List all the available tools.
 	startList := time.Now()
-	log("- Listing MCP tools...")
+	log.Log("- Listing MCP tools...")
 	capabilities, err := g.listCapabilities(ctx, configuration, serverNames, clientConfig)
 	if err != nil {
 		return fmt.Errorf("listing resources: %w", err)
 	}
-	log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
+	log.Log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
 	// Update capabilities
 	// Clear existing capabilities per server and register new ones
@@ -71,7 +72,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 
 	// Add internal tools when dynamic-tools feature is enabled
 	if g.DynamicTools {
-		log("- Adding internal tools (dynamic-tools feature enabled)")
+		log.Log("- Adding internal tools (dynamic-tools feature enabled)")
 
 		// Add mcp-find tool
 		mcpFindTool := g.createMcpFindTool(configuration)
@@ -93,11 +94,11 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 
-		log("  > mcp-find: tool for finding MCP servers in the catalog")
-		log("  > mcp-add: tool for adding MCP servers to the registry")
-		log("  > mcp-remove: tool for removing MCP servers from the registry")
-		log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
-		log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
+		log.Log("  > mcp-add: tool for adding MCP servers to the registry")
+		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
+		log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
+		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
 	}
 
 	for _, prompt := range capabilities.Prompts {
@@ -235,22 +236,22 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)
-		log("  - Removed", len(removedTools), "tools for", serverName)
+		log.Log("  - Removed", len(removedTools), "tools for", serverName)
 	}
 
 	if len(removedPrompts) > 0 {
 		g.mcpServer.RemovePrompts(removedPrompts...)
-		log("  - Removed", len(removedPrompts), "prompts for", serverName)
+		log.Log("  - Removed", len(removedPrompts), "prompts for", serverName)
 	}
 
 	if len(removedResources) > 0 {
 		g.mcpServer.RemoveResources(removedResources...)
-		log("  - Removed", len(removedResources), "resources for", serverName)
+		log.Log("  - Removed", len(removedResources), "resources for", serverName)
 	}
 
 	if len(removedTemplates) > 0 {
 		g.mcpServer.RemoveResourceTemplates(removedTemplates...)
-		log("  - Removed", len(removedTemplates), "resource templates for", serverName)
+		log.Log("  - Removed", len(removedTemplates), "resource templates for", serverName)
 	}
 
 	// Add/update all capabilities from this server
@@ -260,7 +261,7 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 		}
 	}
 	if len(addedTools) > 0 {
-		log("  - Added/updated", len(addedTools), "tools for", serverName)
+		log.Log("  - Added/updated", len(addedTools), "tools for", serverName)
 	}
 
 	for _, prompt := range addedPrompts {
@@ -269,7 +270,7 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 		}
 	}
 	if len(addedPrompts) > 0 {
-		log("  - Added/updated", len(addedPrompts), "prompts for", serverName)
+		log.Log("  - Added/updated", len(addedPrompts), "prompts for", serverName)
 	}
 
 	for _, resource := range addedResources {
@@ -278,7 +279,7 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 		}
 	}
 	if len(addedResources) > 0 {
-		log("  - Added/updated", len(addedResources), "resources for", serverName)
+		log.Log("  - Added/updated", len(addedResources), "resources for", serverName)
 	}
 
 	for _, template := range addedTemplates {
@@ -287,7 +288,7 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 		}
 	}
 	if len(addedTemplates) > 0 {
-		log("  - Added/updated", len(addedTemplates), "resource templates for", serverName)
+		log.Log("  - Added/updated", len(addedTemplates), "resource templates for", serverName)
 	}
 
 	// Update tracking with new capabilities
@@ -316,22 +317,22 @@ func (g *Gateway) removeServerConfiguration(_ context.Context, serverName string
 	// Remove old capabilities that are no longer present
 	if len(oldCaps.ToolNames) > 0 {
 		g.mcpServer.RemoveTools(oldCaps.ToolNames...)
-		log("  - Removed", len(oldCaps.ToolNames), "tools for", serverName)
+		log.Log("  - Removed", len(oldCaps.ToolNames), "tools for", serverName)
 	}
 
 	if len(oldCaps.PromptNames) > 0 {
 		g.mcpServer.RemovePrompts(oldCaps.PromptNames...)
-		log("  - Removed", len(oldCaps.PromptNames), "prompts for", serverName)
+		log.Log("  - Removed", len(oldCaps.PromptNames), "prompts for", serverName)
 	}
 
 	if len(oldCaps.ResourceURIs) > 0 {
 		g.mcpServer.RemoveResources(oldCaps.ResourceURIs...)
-		log("  - Removed", len(oldCaps.ResourceURIs), "resources for", serverName)
+		log.Log("  - Removed", len(oldCaps.ResourceURIs), "resources for", serverName)
 	}
 
 	if len(oldCaps.ResourceTemplateURIs) > 0 {
 		g.mcpServer.RemoveResourceTemplates(oldCaps.ResourceTemplateURIs...)
-		log("  - Removed", len(oldCaps.ResourceTemplateURIs), "resource templates for", serverName)
+		log.Log("  - Removed", len(oldCaps.ResourceTemplateURIs), "resource templates for", serverName)
 	}
 
 	// Update tracking with new capabilities
