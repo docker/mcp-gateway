@@ -98,7 +98,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
-		logFile, err := os.OpenFile(g.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		logFile, err := os.OpenFile(g.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 		if err != nil {
 			return fmt.Errorf("failed to open log file %s: %w", g.LogFilePath, err)
 		}

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
 	"golang.org/x/sync/errgroup"
 
-	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"

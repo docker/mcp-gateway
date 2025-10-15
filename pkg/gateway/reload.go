@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
