@@ -116,25 +116,25 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 		return fmt.Errorf("failed to unmarshal catalog data: %w", err)
 	}
 	keys := getSortedKeys(registry.Registry)
-	
+
 	termWidth := getTerminalWidth()
 	wrapWidth := termWidth - 10
 	if wrapWidth < 40 {
 		wrapWidth = 40
 	}
-	
+
 	serverCount := len(keys)
 	headerLineWidth := termWidth - 4
 	if headerLineWidth > 78 {
 		headerLineWidth = 78
 	}
-	
+
 	fmt.Println()
 	fmt.Printf("  \033[1mMCP Server Directory\033[0m\n")
 	fmt.Printf("  %d servers available\n", serverCount)
 	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
 	fmt.Println()
-	
+
 	for i, k := range keys {
 		val, ok := registry.Registry[k]
 		if !ok {
@@ -143,17 +143,17 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 		fmt.Printf("  \033[1m%s\033[0m\n", k)
 		wrappedDesc := wrapText(strings.TrimSpace(val.Description), wrapWidth, "    ")
 		fmt.Println(wrappedDesc)
-		
+
 		if i < len(keys)-1 {
 			fmt.Println()
 		}
 	}
-	
+
 	fmt.Println()
 	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
 	fmt.Printf("  %d servers total\n", serverCount)
 	fmt.Println()
-	
+
 	return nil
 }
 
