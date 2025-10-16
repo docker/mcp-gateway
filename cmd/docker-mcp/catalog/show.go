@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
+	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/yq"
@@ -115,13 +116,44 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 		return fmt.Errorf("failed to unmarshal catalog data: %w", err)
 	}
 	keys := getSortedKeys(registry.Registry)
-	for _, k := range keys {
+	
+	termWidth := getTerminalWidth()
+	wrapWidth := termWidth - 10
+	if wrapWidth < 40 {
+		wrapWidth = 40
+	}
+	
+	serverCount := len(keys)
+	headerLineWidth := termWidth - 4
+	if headerLineWidth > 78 {
+		headerLineWidth = 78
+	}
+	
+	fmt.Println()
+	fmt.Printf("  \033[1mMCP Server Directory\033[0m\n")
+	fmt.Printf("  %d servers available\n", serverCount)
+	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
+	fmt.Println()
+	
+	for i, k := range keys {
 		val, ok := registry.Registry[k]
 		if !ok {
 			continue
 		}
-		fmt.Printf("%s: %s\n", k, strings.TrimSpace(val.Description))
+		fmt.Printf("  \033[1m%s\033[0m\n", k)
+		wrappedDesc := wrapText(strings.TrimSpace(val.Description), wrapWidth, "    ")
+		fmt.Println(wrappedDesc)
+		
+		if i < len(keys)-1 {
+			fmt.Println()
+		}
 	}
+	
+	fmt.Println()
+	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
+	fmt.Printf("  %d servers total\n", serverCount)
+	fmt.Println()
+	
 	return nil
 }
 
@@ -136,4 +168,34 @@ func getSortedKeys(m map[string]Tile) []string {
 
 func isURL(fileOrURL string) bool {
 	return strings.HasPrefix(fileOrURL, "http://") || strings.HasPrefix(fileOrURL, "https://")
+}
+
+func getTerminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return 80
+	}
+	return width
+}
+
+func wrapText(text string, width int, indent string) string {
+	words := strings.Fields(text)
+	if len(words) == 0 {
+		return ""
+	}
+
+	var lines []string
+	currentLine := words[0]
+
+	for _, word := range words[1:] {
+		if len(currentLine)+1+len(word) > width {
+			lines = append(lines, indent+currentLine)
+			currentLine = word
+		} else {
+			currentLine += " " + word
+		}
+	}
+	lines = append(lines, indent+currentLine)
+
+	return strings.Join(lines, "\n")
 }
