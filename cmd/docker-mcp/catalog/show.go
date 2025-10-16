@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
-	"golang.org/x/term"
+	"github.com/moby/term"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/yq"
@@ -171,11 +171,12 @@ func isURL(fileOrURL string) bool {
 }
 
 func getTerminalWidth() int {
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	fd, _ := term.GetFdInfo(os.Stdout)
+	ws, err := term.GetWinsize(fd)
 	if err != nil {
 		return 80
 	}
-	return width
+	return int(ws.Width)
 }
 
 func wrapText(text string, width int, indent string) string {
