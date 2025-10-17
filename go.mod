@@ -11,6 +11,7 @@ require (
 	github.com/docker/cli-docs-tool v0.10.0
 	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
+	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/jsonschema-go v0.3.0
@@ -33,6 +34,12 @@ require (
 	golang.org/x/sync v0.15.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/dlclark/regexp2 v1.11.4 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 )
 
 require (
@@ -116,7 +123,7 @@ require (
 	github.com/onsi/gomega v1.37.0 // indirect
 	github.com/open-policy-agent/opa v1.5.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

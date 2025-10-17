@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/codemode"
 	"github.com/docker/mcp-gateway/pkg/contextkeys"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -211,6 +212,164 @@ type ServerMatch struct {
 	Score  int
 }
 
+func (g *Gateway) createCodeModeTool(_ *clientConfig) *ToolRegistration {
+	tool := &mcp.Tool{
+		Name:        "code-mode",
+		Description: "Create a JavaScript-enabled tool that combines multiple MCP server tools. This allows you to write scripts that call multiple tools and combine their results.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"servers": {
+					Type:        "array",
+					Description: "List of MCP server names whose tools should be available in the JavaScript environment",
+					Items: &jsonschema.Schema{
+						Type: "string",
+					},
+				},
+				"name": {
+					Type:        "string",
+					Description: "Name for the new code-mode tool (will be prefixed with 'code-mode-')",
+				},
+			},
+			Required: []string{"servers", "name"},
+		},
+	}
+	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Parse parameters
+		var params struct {
+			Servers []string `json:"servers"`
+			Name    string   `json:"name"`
+		}
+
+		if req.Params.Arguments == nil {
+			return nil, fmt.Errorf("missing arguments")
+		}
+
+		paramsBytes, err := json.Marshal(req.Params.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
+		if err := json.Unmarshal(paramsBytes, &params); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+
+		if len(params.Servers) == 0 {
+			return nil, fmt.Errorf("servers parameter is required and must not be empty")
+		}
+
+		if params.Name == "" {
+			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		// Validate that all requested servers exist
+		for _, serverName := range params.Servers {
+			if _, _, found := g.configuration.Find(serverName); !found {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Server '%s' not found in configuration. Use mcp-find to search for available servers.", serverName),
+					}},
+				}, nil
+			}
+		}
+
+		// Create a tool set adapter for each server
+		var toolSets []codemode.ToolSet
+		for _, serverName := range params.Servers {
+			serverConfig, _, _ := g.configuration.Find(serverName)
+			toolSets = append(toolSets, &serverToolSetAdapter{
+				gateway:      g,
+				serverName:   serverName,
+				serverConfig: serverConfig,
+				session:      req.Session,
+			})
+		}
+
+		// Wrap the tool sets with codemode
+		wrappedToolSet := codemode.Wrap(toolSets)
+
+		// Get the generated tool from the wrapped toolset
+		tools, err := wrappedToolSet.Tools(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create code-mode tools: %w", err)
+		}
+
+		// Use the first tool (the JavaScript execution tool with all servers' tools available)
+		if len(tools) == 0 {
+			return nil, fmt.Errorf("no tools generated from wrapped toolset")
+		}
+
+		customTool := tools[0]
+		toolName := fmt.Sprintf("code-mode-%s", params.Name)
+
+		// Customize the tool name and description
+		customTool.Tool.Name = toolName
+
+		// Add the tool to the gateway's MCP server
+		g.mcpServer.AddTool(customTool.Tool, customTool.Handler)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: fmt.Sprintf("Successfully created code-mode tool '%s' with access to servers: %s",
+					toolName, strings.Join(params.Servers, ", ")),
+			}},
+		}, nil
+	}
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("code-mode", handler),
+	}
+}
+
+// serverToolSetAdapter adapts a gateway server to the codemode.ToolSet interface
+type serverToolSetAdapter struct {
+	gateway      *Gateway
+	serverName   string
+	serverConfig *catalog.ServerConfig
+	session      *mcp.ServerSession
+}
+
+func (a *serverToolSetAdapter) Tools(ctx context.Context) ([]*codemode.ToolWithHandler, error) {
+	// Get a client for this server
+	clientConfig := &clientConfig{
+		serverSession: a.session,
+		server:        a.gateway.mcpServer,
+	}
+
+	client, err := a.gateway.clientPool.AcquireClient(ctx, a.serverConfig, clientConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire client for server %s: %w", a.serverName, err)
+	}
+
+	// List tools from the server
+	listResult, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tools from server %s: %w", a.serverName, err)
+	}
+
+	// Convert MCP tools to ToolWithHandler
+	var result []*codemode.ToolWithHandler
+	for _, tool := range listResult.Tools {
+		// Create a handler that calls the tool on the remote server
+		handler := func(tool *mcp.Tool) mcp.ToolHandler {
+			return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				// Forward the tool call to the actual server
+				return client.Session().CallTool(ctx, &mcp.CallToolParams{
+					Name:      tool.Name,
+					Arguments: req.Params.Arguments,
+				})
+			}
+		}(tool)
+
+		result = append(result, &codemode.ToolWithHandler{
+			Tool:    tool,
+			Handler: handler,
+		})
+	}
+
+	return result, nil
+}
+
 // mcpAddTool implements a tool for adding new servers to the registry
 func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
@@ -287,12 +446,28 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}
 		}
 
+		// Check if all required secrets are set
+		var missingSecrets []string
+		if serverConfig != nil {
+			for _, secret := range serverConfig.Spec.Secrets {
+				if value, exists := g.configuration.secrets[secret.Name]; !exists || value == "" {
+					missingSecrets = append(missingSecrets, secret.Name)
+				}
+			}
+		}
+
+		// If secrets are missing, return a Resource response with instructions
+		if len(missingSecrets) > 0 {
+			// Build JavaScript to create buttons for each missing secret
+			return secretInput(missingSecrets, serverName), nil
+		}
+
 		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
-		if g.McpOAuthDcrEnabled && serverConfig.Spec.IsRemoteOAuthServer() {
+		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
 			// Register DCR client with DD so user can authorize
 			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 				log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
@@ -730,6 +905,26 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-config-set", handler),
+	}
+}
+
+//nolint:unused // mcpCatalogTool implements a tool for viewing information about the currently attached catalog
+func (g *Gateway) _createMcpCatalogTool() *ToolRegistration {
+	tool := &mcp.Tool{
+		Name:        "mcp-catalog",
+		Description: "Summarize information about the currently attached catalog, including available servers and their configurations.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+		},
+	}
+
+	handler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return _dockerHubLink(), nil
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-catalog", handler),
 	}
 }
 
