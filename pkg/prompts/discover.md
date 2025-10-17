@@ -1,7 +1,6 @@
 ---
 description: Discover relevant MCP servers for your current project - 5
 argument-hint: "[project-path]"
-allowed-tools: ["Task", "Read", "Glob", Bash(docker mcp:*)]
 ---
 
 # Discover Relevant MCP Servers
@@ -12,21 +11,21 @@ Analyze your project and get personalized MCP server recommendations based on yo
 
 ## Prerequisites Check
 
-Check if mcp-find tool is available (indicates dynamic-tools feature is enabled).
+Check if the mcp-find and mcp-add tools are available (indicates dynamic-tools feature is enabled).
 
 If NOT available:
 ```
 ⚠️ This command requires dynamic-tools enabled.
 
 Enable it: docker mcp feature enable dynamic-tools
-Then restart Claude Code.
+Then restart.
 ```
 
 ---
 
 ## Project Detection
 
-Use Glob to check for project files:
+Search for project files:
 - package.json, requirements.txt, go.mod, Cargo.toml, etc.
 - README.md
 - .git directory
@@ -41,13 +40,11 @@ Analyzing to find relevant MCP servers...
 
 ---
 
-## Launch Agents in Parallel
+## Analyze Project
 
-Launch 3 specialized agents simultaneously for faster results:
+Analyze the project to determine what MCPs might be relevant. 
 
 ```
-Use Task tool to launch ALL 3 agents in parallel:
-
 1. mcp-discover-packages
    → Analyzes package.json dependencies
    → Calls mcp-find for each package
@@ -60,16 +57,13 @@ Use Task tool to launch ALL 3 agents in parallel:
    → Determines always-suggest servers
    → github-official (if .git), playwright (if web app), context7 (always)
 
-All run simultaneously → faster results (~10-15 seconds)
 ```
-
-Wait for all 3 agents to complete...
 
 ---
 
 ## Merge Agent Results
 
-Receive data from all 3 agents:
+Look at the data from having analyzed the project.
 
 **packages_agent.matched_servers**: Servers matching package.json dependencies
 **readme_agent.matched_servers**: Servers from README mentions
@@ -164,19 +158,7 @@ Based on selection:
 
 ## Enable Servers
 
-If user approved, enable each selected server using Bash (command has Bash access, agents don't):
-We must use: `docker mcp server enable` we should NOT use mcp-add due to tool issues
-
-```bash
-For each selected server:
-  docker mcp server enable <server-name>
-
-Example:
-  docker mcp server enable neon
-  docker mcp server enable redis
-  docker mcp server enable playwright
-  docker mcp server enable github-official
-```
+If user approved, add each server to the session and work with the user to configure them.
 
 Show progress as each completes:
 ```
@@ -192,21 +174,10 @@ Enabling github-official... ✓
 
 Show final summary:
 - How many servers enabled
-- Restart notice (IMPORTANT!)
+- Let the user know if the agent needs to be restarted.
 - Which secrets need configuration
 - Next steps
 
 ```
-✓ Enabled X servers (permanently)
-
-⚠️ IMPORTANT: Restart Claude Code to activate these servers
-
-Steps:
-1. Exit Claude Code (Ctrl+C or /exit)
-2. Restart: claude
-3. Your new tools will be available!
-
-After restart:
-- Verify: /docker-mcp-toolkit:gateway-status
-- Configure secrets if needed
+✓ Enabled X servers
 ```
