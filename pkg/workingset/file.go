@@ -38,5 +38,5 @@ const (
 
 // Secret represents a secret configuration in a working set
 type Secret struct {
-	Provider string `yaml:"provider" json:"provider"`
+	Provider SecretProvider `yaml:"provider" json:"provider"`
 }
