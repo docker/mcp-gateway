@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"strings"
 )
 
 const (
@@ -22,7 +21,7 @@ func generateAuthToken() (string, error) {
 	token := make([]byte, tokenLength)
 	charsetLen := big.NewInt(int64(len(tokenCharset)))
 
-	for i := 0; i < tokenLength; i++ {
+	for i := range tokenLength {
 		num, err := rand.Int(rand.Reader, charsetLen)
 		if err != nil {
 			return "", fmt.Errorf("failed to generate random token: %w", err)
@@ -106,13 +105,4 @@ func formatBasicAuthCredentials(authToken string) string {
 	credentials := fmt.Sprintf("user:%s", authToken)
 	encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
 	return fmt.Sprintf("Authorization: Basic %s", encoded)
-}
-
-// parseAuthHeader parses an Authorization header value
-func parseAuthHeader(header string) (scheme, value string) {
-	parts := strings.SplitN(header, " ", 2)
-	if len(parts) != 2 {
-		return "", ""
-	}
-	return strings.ToLower(parts[0]), parts[1]
 }

@@ -64,7 +64,11 @@ func TestSSEServerAuthentication(t *testing.T) {
 
 	// Test 1: Health endpoint should be accessible without auth
 	t.Run("HealthEndpointNoAuth", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/health", port))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/health", port), nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("health check failed: %v", err)
 		}
@@ -77,7 +81,11 @@ func TestSSEServerAuthentication(t *testing.T) {
 
 	// Test 2: SSE endpoint should reject requests without auth
 	t.Run("SSEEndpointNoAuth", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/sse", port))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -91,7 +99,11 @@ func TestSSEServerAuthentication(t *testing.T) {
 	// Test 3: SSE endpoint should accept valid query parameter auth
 	t.Run("SSEEndpointQueryParamAuth", func(t *testing.T) {
 		url := fmt.Sprintf("http://127.0.0.1:%d/sse?MCP_GATEWAY_AUTH_TOKEN=%s", port, token)
-		resp, err := http.Get(url)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -107,7 +119,11 @@ func TestSSEServerAuthentication(t *testing.T) {
 	// Test 4: SSE endpoint should reject invalid query parameter auth
 	t.Run("SSEEndpointInvalidQueryParam", func(t *testing.T) {
 		url := fmt.Sprintf("http://127.0.0.1:%d/sse?MCP_GATEWAY_AUTH_TOKEN=invalid", port)
-		resp, err := http.Get(url)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -121,7 +137,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 	// Test 5: SSE endpoint should accept valid basic auth
 	t.Run("SSEEndpointBasicAuth", func(t *testing.T) {
 		client := &http.Client{}
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}
@@ -142,7 +158,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 	// Test 6: SSE endpoint should reject invalid basic auth
 	t.Run("SSEEndpointInvalidBasicAuth", func(t *testing.T) {
 		client := &http.Client{}
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}
@@ -220,7 +236,11 @@ func TestStreamingServerAuthentication(t *testing.T) {
 
 	// Test 1: Health endpoint should be accessible without auth
 	t.Run("HealthEndpointNoAuth", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/health", port))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/health", port), nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("health check failed: %v", err)
 		}
@@ -233,7 +253,11 @@ func TestStreamingServerAuthentication(t *testing.T) {
 
 	// Test 2: MCP endpoint should reject requests without auth
 	t.Run("MCPEndpointNoAuth", func(t *testing.T) {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/mcp", port))
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/mcp", port), nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -247,7 +271,11 @@ func TestStreamingServerAuthentication(t *testing.T) {
 	// Test 3: MCP endpoint should accept valid query parameter auth
 	t.Run("MCPEndpointQueryParamAuth", func(t *testing.T) {
 		url := fmt.Sprintf("http://127.0.0.1:%d/mcp?MCP_GATEWAY_AUTH_TOKEN=%s", port, token)
-		resp, err := http.Get(url)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
@@ -263,7 +291,7 @@ func TestStreamingServerAuthentication(t *testing.T) {
 	// Test 4: MCP endpoint should accept valid basic auth
 	t.Run("MCPEndpointBasicAuth", func(t *testing.T) {
 		client := &http.Client{}
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:%d/mcp", port), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/mcp", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}

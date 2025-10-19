@@ -83,14 +83,14 @@ func TestGetOrGenerateAuthToken_EmptyEnvironment(t *testing.T) {
 
 func TestAuthenticationMiddleware_HealthEndpoint(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("healthy"))
+		_, _ = w.Write([]byte("healthy"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -102,14 +102,14 @@ func TestAuthenticationMiddleware_HealthEndpoint(t *testing.T) {
 
 func TestAuthenticationMiddleware_QueryParamAuth_Valid(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/sse?MCP_GATEWAY_AUTH_TOKEN=test-token-123", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sse?MCP_GATEWAY_AUTH_TOKEN=test-token-123", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -121,14 +121,14 @@ func TestAuthenticationMiddleware_QueryParamAuth_Valid(t *testing.T) {
 
 func TestAuthenticationMiddleware_QueryParamAuth_Invalid(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/sse?MCP_GATEWAY_AUTH_TOKEN=wrong-token", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sse?MCP_GATEWAY_AUTH_TOKEN=wrong-token", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -140,14 +140,14 @@ func TestAuthenticationMiddleware_QueryParamAuth_Invalid(t *testing.T) {
 
 func TestAuthenticationMiddleware_BasicAuth_Valid(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/sse", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
 	// Set basic auth with any username and the token as password
 	req.SetBasicAuth("user", authToken)
 	w := httptest.NewRecorder()
@@ -161,14 +161,14 @@ func TestAuthenticationMiddleware_BasicAuth_Valid(t *testing.T) {
 
 func TestAuthenticationMiddleware_BasicAuth_Invalid(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/sse", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
 	req.SetBasicAuth("user", "wrong-password")
 	w := httptest.NewRecorder()
 
@@ -181,14 +181,14 @@ func TestAuthenticationMiddleware_BasicAuth_Invalid(t *testing.T) {
 
 func TestAuthenticationMiddleware_NoAuth(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest("GET", "/sse", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -205,9 +205,9 @@ func TestAuthenticationMiddleware_NoAuth(t *testing.T) {
 
 func TestAuthenticationMiddleware_BasicAuth_UsernameIgnored(t *testing.T) {
 	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("success"))
+		_, _ = w.Write([]byte("success"))
 	})
 
 	middleware := authenticationMiddleware(authToken, handler)
@@ -215,7 +215,7 @@ func TestAuthenticationMiddleware_BasicAuth_UsernameIgnored(t *testing.T) {
 	// Test with different usernames - all should work
 	usernames := []string{"user", "admin", "anything", ""}
 	for _, username := range usernames {
-		req := httptest.NewRequest("GET", "/sse", nil)
+		req := httptest.NewRequest(http.MethodGet, "/sse", nil)
 		req.SetBasicAuth(username, authToken)
 		w := httptest.NewRecorder()
 
