@@ -24,8 +24,15 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 		return g.mcpServer
 	}, nil)
 	mux.Handle("/sse", sseHandler)
+
+	// Wrap with authentication middleware
+	var handler http.Handler = mux
+	if g.authToken != "" {
+		handler = authenticationMiddleware(g.authToken, mux)
+	}
+
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler: handler,
 	}
 	go func() {
 		<-ctx.Done()
@@ -42,8 +49,15 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 		return g.mcpServer
 	}, nil)
 	mux.Handle("/mcp", streamHandler)
+
+	// Wrap with authentication middleware
+	var handler http.Handler = mux
+	if g.authToken != "" {
+		handler = authenticationMiddleware(g.authToken, mux)
+	}
+
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler: handler,
 	}
 
 	go func() {
