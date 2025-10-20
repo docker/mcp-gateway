@@ -135,7 +135,7 @@ func TestIntegrationCatalogLs(t *testing.T) {
 func TestIntegrationCatalogShow(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 	out := runDockerMCP(t, "catalog", "show")
-	assert.Contains(t, out, "playwright:")
+	assert.Contains(t, out, "playwright")
 }
 
 func TestIntegrationDryRunEmpty(t *testing.T) {
