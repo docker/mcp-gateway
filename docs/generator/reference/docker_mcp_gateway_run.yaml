@@ -277,7 +277,7 @@ options:
       default_value: stdio
       description: stdio, sse or streaming (default is stdio)
       deprecated: false
-      hidden: true
+      hidden: false
       experimental: false
       experimentalcli: false
       kubernetes: false

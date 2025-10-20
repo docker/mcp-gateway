@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -138,7 +137,7 @@ func TestAuthenticationMiddleware_QueryParamAuth_Invalid(t *testing.T) {
 	}
 }
 
-func TestAuthenticationMiddleware_BasicAuth_Valid(t *testing.T) {
+func TestAuthenticationMiddleware_BearerAuth_Valid(t *testing.T) {
 	authToken := "test-token-123"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -148,18 +147,18 @@ func TestAuthenticationMiddleware_BasicAuth_Valid(t *testing.T) {
 	middleware := authenticationMiddleware(authToken, handler)
 
 	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
-	// Set basic auth with any username and the token as password
-	req.SetBasicAuth("user", authToken)
+	// Set Bearer token in Authorization header
+	req.Header.Set("Authorization", "Bearer "+authToken)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d with valid basic auth, got %d", http.StatusOK, w.Code)
+		t.Errorf("expected status %d with valid bearer auth, got %d", http.StatusOK, w.Code)
 	}
 }
 
-func TestAuthenticationMiddleware_BasicAuth_Invalid(t *testing.T) {
+func TestAuthenticationMiddleware_BearerAuth_Invalid(t *testing.T) {
 	authToken := "test-token-123"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -169,13 +168,13 @@ func TestAuthenticationMiddleware_BasicAuth_Invalid(t *testing.T) {
 	middleware := authenticationMiddleware(authToken, handler)
 
 	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
-	req.SetBasicAuth("user", "wrong-password")
+	req.Header.Set("Authorization", "Bearer wrong-token")
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected status %d with invalid basic auth, got %d", http.StatusUnauthorized, w.Code)
+		t.Errorf("expected status %d with invalid bearer auth, got %d", http.StatusUnauthorized, w.Code)
 	}
 }
 
@@ -203,7 +202,7 @@ func TestAuthenticationMiddleware_NoAuth(t *testing.T) {
 	}
 }
 
-func TestAuthenticationMiddleware_BasicAuth_UsernameIgnored(t *testing.T) {
+func TestAuthenticationMiddleware_BearerAuth_MalformedHeader(t *testing.T) {
 	authToken := "test-token-123"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -212,17 +211,24 @@ func TestAuthenticationMiddleware_BasicAuth_UsernameIgnored(t *testing.T) {
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	// Test with different usernames - all should work
-	usernames := []string{"user", "admin", "anything", ""}
-	for _, username := range usernames {
+	// Test with malformed Authorization headers - all should fail
+	malformedHeaders := []string{
+		"bearer " + authToken,  // lowercase bearer
+		"Basic " + authToken,   // wrong auth type
+		"Bearer",               // missing token
+		authToken,              // missing Bearer prefix
+		"Bearer  " + authToken, // extra space
+	}
+
+	for _, header := range malformedHeaders {
 		req := httptest.NewRequest(http.MethodGet, "/sse", nil)
-		req.SetBasicAuth(username, authToken)
+		req.Header.Set("Authorization", header)
 		w := httptest.NewRecorder()
 
 		middleware.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status %d with username %q, got %d", http.StatusOK, username, w.Code)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("expected status %d with malformed header %q, got %d", http.StatusUnauthorized, header, w.Code)
 		}
 	}
 }
@@ -247,23 +253,17 @@ func TestFormatGatewayURL(t *testing.T) {
 	}
 }
 
-func TestFormatBasicAuthCredentials(t *testing.T) {
+func TestFormatBearerToken(t *testing.T) {
 	authToken := "test-token-123"
-	result := formatBasicAuthCredentials(authToken)
+	result := formatBearerToken(authToken)
 
-	if !strings.HasPrefix(result, "Authorization: Basic ") {
-		t.Errorf("expected result to start with 'Authorization: Basic ', got %q", result)
+	expected := "Authorization: Bearer " + authToken
+	if result != expected {
+		t.Errorf("expected %q, got %q", expected, result)
 	}
 
-	// Decode and verify the base64 encoded credentials
-	encoded := strings.TrimPrefix(result, "Authorization: Basic ")
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		t.Fatalf("failed to decode base64: %v", err)
-	}
-
-	expected := "user:" + authToken
-	if string(decoded) != expected {
-		t.Errorf("expected decoded credentials to be %q, got %q", expected, string(decoded))
+	// Verify it has the correct prefix
+	if !strings.HasPrefix(result, "Authorization: Bearer ") {
+		t.Errorf("expected result to start with 'Authorization: Bearer ', got %q", result)
 	}
 }

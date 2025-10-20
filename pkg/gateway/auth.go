@@ -3,7 +3,6 @@ package gateway
 import (
 	"crypto/rand"
 	"crypto/subtle"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -48,7 +47,7 @@ func getOrGenerateAuthToken() (string, bool, error) {
 }
 
 // authenticationMiddleware creates an HTTP middleware that validates requests using either:
-// 1. Basic authentication (username can be anything, password must match the auth token)
+// 1. Bearer token in the Authorization header
 // 2. Query parameter MCP_GATEWAY_AUTH_TOKEN that matches the auth token
 //
 // The /health endpoint is excluded from authentication.
@@ -70,21 +69,25 @@ func authenticationMiddleware(authToken string, next http.Handler) http.Handler 
 			}
 		}
 
-		// Check for basic authentication if query param auth failed
+		// Check for Bearer token in Authorization header if query param auth failed
 		if !authenticated {
-			username, password, hasBasicAuth := r.BasicAuth()
-			if hasBasicAuth {
-				// Username can be anything, only password needs to match
-				_ = username // Explicitly ignore username
-				if subtle.ConstantTimeCompare([]byte(password), []byte(authToken)) == 1 {
-					authenticated = true
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				// Extract Bearer token from "Bearer <token>" format
+				const bearerPrefix = "Bearer "
+				if len(authHeader) > len(bearerPrefix) && authHeader[:len(bearerPrefix)] == bearerPrefix {
+					bearerToken := authHeader[len(bearerPrefix):]
+					// Use constant-time comparison to prevent timing attacks
+					if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(authToken)) == 1 {
+						authenticated = true
+					}
 				}
 			}
 		}
 
 		if !authenticated {
 			// Return 401 Unauthorized with WWW-Authenticate header
-			w.Header().Set("WWW-Authenticate", `Basic realm="MCP Gateway"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="MCP Gateway"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -99,10 +102,7 @@ func formatGatewayURL(port int, endpoint string, authToken string) string {
 	return fmt.Sprintf("http://localhost:%d%s?MCP_GATEWAY_AUTH_TOKEN=%s", port, endpoint, authToken)
 }
 
-// formatBasicAuthCredentials formats the basic auth credentials for display
-func formatBasicAuthCredentials(authToken string) string {
-	// Encode as "username:password" in base64 for convenience
-	credentials := fmt.Sprintf("user:%s", authToken)
-	encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
-	return fmt.Sprintf("Authorization: Basic %s", encoded)
+// formatBearerToken formats the Bearer token for display in the Authorization header
+func formatBearerToken(authToken string) string {
+	return fmt.Sprintf("Authorization: Bearer %s", authToken)
 }

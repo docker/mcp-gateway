@@ -310,10 +310,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		url := formatGatewayURL(g.Port, endpoint, g.authToken)
 		if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL (with auto-generated auth token): %s", url)
-			log.Logf("> Or use Basic Auth with any username and password: %s", g.authToken)
+			log.Logf("> Or use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
 			log.Logf("> Gateway URL (using MCP_GATEWAY_AUTH_TOKEN from environment): %s", url)
-			log.Logf("> Or use Basic Auth with any username and the token as password")
+			log.Logf("> Or use Bearer token in Authorization header")
 		}
 		return g.startSseServer(ctx, ln)
 
@@ -323,10 +323,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		url := formatGatewayURL(g.Port, endpoint, g.authToken)
 		if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL (with auto-generated auth token): %s", url)
-			log.Logf("> Or use Basic Auth with any username and password: %s", g.authToken)
+			log.Logf("> Or use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
 			log.Logf("> Gateway URL (using MCP_GATEWAY_AUTH_TOKEN from environment): %s", url)
-			log.Logf("> Or use Basic Auth with any username and the token as password")
+			log.Logf("> Or use Bearer token in Authorization header")
 		}
 		return g.startStreamingServer(ctx, ln)
 

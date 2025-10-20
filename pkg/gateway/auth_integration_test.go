@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -134,14 +133,14 @@ func TestSSEServerAuthentication(t *testing.T) {
 		}
 	})
 
-	// Test 5: SSE endpoint should accept valid basic auth
-	t.Run("SSEEndpointBasicAuth", func(t *testing.T) {
+	// Test 5: SSE endpoint should accept valid bearer auth
+	t.Run("SSEEndpointBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}
-		req.SetBasicAuth("user", token)
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -151,18 +150,18 @@ func TestSSEServerAuthentication(t *testing.T) {
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
-			t.Errorf("expected successful response for /sse with valid basic auth, got %d: %s", resp.StatusCode, string(body))
+			t.Errorf("expected successful response for /sse with valid bearer auth, got %d: %s", resp.StatusCode, string(body))
 		}
 	})
 
-	// Test 6: SSE endpoint should reject invalid basic auth
-	t.Run("SSEEndpointInvalidBasicAuth", func(t *testing.T) {
+	// Test 6: SSE endpoint should reject invalid bearer auth
+	t.Run("SSEEndpointInvalidBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}
-		req.SetBasicAuth("user", "wrong-password")
+		req.Header.Set("Authorization", "Bearer wrong-token")
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -171,7 +170,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("expected status 401 for /sse with invalid basic auth, got %d", resp.StatusCode)
+			t.Errorf("expected status 401 for /sse with invalid bearer auth, got %d", resp.StatusCode)
 		}
 	})
 
@@ -288,14 +287,14 @@ func TestStreamingServerAuthentication(t *testing.T) {
 		}
 	})
 
-	// Test 4: MCP endpoint should accept valid basic auth
-	t.Run("MCPEndpointBasicAuth", func(t *testing.T) {
+	// Test 4: MCP endpoint should accept valid bearer auth
+	t.Run("MCPEndpointBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/mcp", port), nil)
 		if err != nil {
 			t.Fatalf("failed to create request: %v", err)
 		}
-		req.SetBasicAuth("anyuser", token)
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -304,7 +303,7 @@ func TestStreamingServerAuthentication(t *testing.T) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusUnauthorized {
-			t.Errorf("expected non-401 status for /mcp with valid basic auth, got %d", resp.StatusCode)
+			t.Errorf("expected non-401 status for /mcp with valid bearer auth, got %d", resp.StatusCode)
 		}
 	})
 
@@ -359,30 +358,30 @@ func TestFormatGatewayURLWithToken(t *testing.T) {
 	}
 }
 
-// TestFormatBasicAuthCredentialsEncoding tests that basic auth credentials are properly base64 encoded
-func TestFormatBasicAuthCredentialsEncoding(t *testing.T) {
+// TestFormatBearerTokenEncoding tests that bearer token is properly formatted
+func TestFormatBearerTokenEncoding(t *testing.T) {
 	token := "test-token-abc123"
-	credentials := formatBasicAuthCredentials(token)
+	authHeader := formatBearerToken(token)
 
-	// Should start with "Authorization: Basic "
-	if !strings.HasPrefix(credentials, "Authorization: Basic ") {
-		t.Errorf("credentials should start with 'Authorization: Basic ', got %q", credentials)
+	// Should start with "Authorization: Bearer "
+	if !strings.HasPrefix(authHeader, "Authorization: Bearer ") {
+		t.Errorf("auth header should start with 'Authorization: Bearer ', got %q", authHeader)
 	}
 
-	// Extract and decode the base64 part
-	parts := strings.SplitN(credentials, " ", 3)
+	// Extract the token part
+	parts := strings.SplitN(authHeader, " ", 3)
 	if len(parts) != 3 {
-		t.Fatalf("expected 3 parts in credentials, got %d", len(parts))
+		t.Fatalf("expected 3 parts in auth header, got %d", len(parts))
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(parts[2])
-	if err != nil {
-		t.Fatalf("failed to decode base64: %v", err)
+	// The third part should be the token
+	if parts[2] != token {
+		t.Errorf("expected token %q, got %q", token, parts[2])
 	}
 
-	// Should be in format "user:token"
-	expected := fmt.Sprintf("user:%s", token)
-	if string(decoded) != expected {
-		t.Errorf("expected decoded credentials %q, got %q", expected, string(decoded))
+	// Verify the complete format
+	expected := fmt.Sprintf("Authorization: Bearer %s", token)
+	if authHeader != expected {
+		t.Errorf("expected auth header %q, got %q", expected, authHeader)
 	}
 }
