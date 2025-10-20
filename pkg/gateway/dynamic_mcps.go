@@ -497,13 +497,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		}
 
 		// Append the new server to the current serverNames if not already present
-		found = false
-		for _, existing := range g.configuration.serverNames {
-			if existing == serverName {
-				found = true
-				break
-			}
-		}
+		found = slices.Contains(g.configuration.serverNames, serverName)
 		if !found {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}

@@ -110,7 +110,7 @@ func (caps *Capabilities) getResourceTemplateByURITemplate(resource string) (Res
 	return ResourceTemplateRegistration{}, fmt.Errorf("unable to find resource template")
 }
 
-func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
+func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
 	var (
 		lock            sync.Mutex
 		allCapabilities []Capabilities
@@ -119,7 +119,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	errs, ctx := errgroup.WithContext(ctx)
 	errs.SetLimit(runtime.NumCPU())
 	for _, serverName := range serverNames {
-		serverConfig, toolGroup, found := configuration.Find(serverName)
+		serverConfig, toolGroup, found := g.configuration.Find(serverName)
 
 		switch {
 		case !found:
@@ -148,7 +148,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 					prefix := g.getToolNamePrefix(serverConfig)
 
 					for _, tool := range tools.Tools {
-						if !isToolEnabled(configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
+						if !isToolEnabled(g.configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
 							continue
 						}
 
@@ -159,7 +159,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							ServerName: serverConfig.Name,
 							Tool:       &prefixedTool,
-							Handler:    g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
+							Handler:    g.mcpServerToolHandler(serverConfig.Name, g.mcpServer, tool.Annotations),
 						})
 					}
 				}
@@ -173,7 +173,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							ServerName: serverConfig.Name,
 							Prompt:     prompt,
-							Handler:    g.mcpServerPromptHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerPromptHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -187,7 +187,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
 							ServerName: serverConfig.Name,
 							Resource:   resource,
-							Handler:    g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -201,7 +201,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
 							ServerName:       serverConfig.Name,
 							ResourceTemplate: *resourceTemplate,
-							Handler:          g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:          g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -241,7 +241,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 			}
 
 			for _, tool := range *toolGroup {
-				if !isToolEnabled(configuration, serverName, "", tool.Name, g.ToolNames) {
+				if !isToolEnabled(g.configuration, serverName, "", tool.Name, g.ToolNames) {
 					continue
 				}
 
