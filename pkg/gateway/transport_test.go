@@ -56,16 +56,6 @@ func TestIsAllowedOrigin(t *testing.T) {
 	}
 }
 
-// TestOriginSecurityHandler verifies that the Origin header validation prevents DNS rebinding attacks
-// as required by the MCP specification:
-// https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
-//
-// Attack Scenario:
-//  1. Developer runs: docker mcp gateway run --transport streaming --port 8080
-//  2. Developer visits malicious website (https://evil.com)
-//  3. JavaScript on evil.com tries: fetch('http://0.0.0.0:8080/mcp', {...})
-//  4. Browser automatically adds: Origin: https://evil.com
-//  5. Our validation MUST block this request
 func TestOriginSecurityHandler(t *testing.T) {
 	// Create a simple handler that always succeeds if reached
 	successHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

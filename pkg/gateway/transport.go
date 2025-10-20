@@ -24,7 +24,6 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 	sseHandler := mcp.NewSSEHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
-	// Wrap with Origin validation to prevent DNS rebinding
 	mux.Handle("/sse", originSecurityHandler(sseHandler))
 
 	// Wrap entire mux with authentication middleware (excludes /health)
@@ -50,7 +49,6 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
-	// Wrap with Origin validation to prevent DNS rebinding
 	mux.Handle("/mcp", originSecurityHandler(streamHandler))
 
 	// Wrap entire mux with authentication middleware (excludes /health)
@@ -107,8 +105,6 @@ func isAllowedOrigin(origin string) bool {
 }
 
 // originSecurityHandler validates Origin header to prevent DNS rebinding attacks.
-// This implements the security requirement from the MCP specification:
-// https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
 func originSecurityHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
