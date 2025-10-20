@@ -83,6 +83,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
 	cmd.AddCommand(toolsCommand(dockerClient))
 	cmd.AddCommand(versionCommand())
+	cmd.AddCommand(workingSetCommand())
 
 	if os.Getenv("DOCKER_MCP_SHOW_HIDDEN") == "1" {
 		unhideHiddenCommands(cmd)

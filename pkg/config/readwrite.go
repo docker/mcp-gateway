@@ -32,6 +32,15 @@ func ReadCatalog() ([]byte, error) {
 	return readFileOrEmpty(path)
 }
 
+func ReadWorkingSets() ([]byte, error) {
+	path, err := FilePath("working-sets.json")
+	if err != nil {
+		return nil, err
+	}
+
+	return readFileOrEmpty(path)
+}
+
 func ReadCatalogFile(name string) ([]byte, error) {
 	path, err := FilePath(catalogFilename(name))
 	if err != nil {
@@ -55,6 +64,10 @@ func WriteRegistry(content []byte) error {
 
 func WriteCatalog(content []byte) error {
 	return writeConfigFile("catalog.json", content)
+}
+
+func WriteWorkingSets(content []byte) error {
+	return writeConfigFile("working-sets.json", content)
 }
 
 func WriteCatalogFile(name string, content []byte) error {
