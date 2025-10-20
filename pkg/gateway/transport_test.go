@@ -6,6 +6,56 @@ import (
 	"testing"
 )
 
+// TestIsAllowedOrigin tests the isAllowedOrigin helper function with various inputs.
+func TestIsAllowedOrigin(t *testing.T) {
+	tests := []struct {
+		name     string
+		origin   string
+		expected bool
+	}{
+		// Valid localhost origins
+		{"http localhost no port", "http://localhost", true},
+		{"https localhost no port", "https://localhost", true},
+		{"http localhost with port", "http://localhost:3000", true},
+		{"https localhost with port", "https://localhost:8080", true},
+		{"http 127.0.0.1 no port", "http://127.0.0.1", true},
+		{"https 127.0.0.1 no port", "https://127.0.0.1", true},
+		{"http 127.0.0.1 with port", "http://127.0.0.1:8080", true},
+		{"https 127.0.0.1 with port", "https://127.0.0.1:5000", true},
+
+		// Invalid origins - malicious domains
+		{"evil domain", "https://evil.com", false},
+		{"evil domain with port", "https://evil.com:8080", false},
+		{"subdomain attack", "http://localhost.evil.com", false},
+		{"subdomain with 127", "http://127.0.0.1.evil.com", false},
+
+		// Invalid origins - DNS rebinding attempts
+		{"0.0.0.0 bypass", "http://0.0.0.0:8080", false},
+		{"0.0.0.0 no port", "http://0.0.0.0", false},
+		{"all zeros IPv6", "http://[::]:8080", false},
+
+		// Invalid schemes
+		{"ftp scheme", "ftp://localhost", false},
+		{"ws scheme", "ws://localhost", false},
+		{"file scheme", "file://localhost", false},
+
+		// Malformed URLs
+		{"not a URL", "not-a-url", false},
+		{"missing scheme", "localhost:8080", false},
+		{"single slash", "http:/localhost", false},
+		{"empty string", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isAllowedOrigin(tt.origin)
+			if result != tt.expected {
+				t.Errorf("isAllowedOrigin(%q) = %v, expected %v", tt.origin, result, tt.expected)
+			}
+		})
+	}
+}
+
 // TestOriginSecurityHandler verifies that the Origin header validation prevents DNS rebinding attacks
 // as required by the MCP specification:
 // https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
