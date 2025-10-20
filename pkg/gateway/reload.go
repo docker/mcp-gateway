@@ -26,7 +26,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	// List all the available tools.
 	startList := time.Now()
 	log.Log("- Listing MCP tools...")
-	capabilities, err := g.listCapabilities(ctx, configuration, serverNames, clientConfig)
+	capabilities, err := g.listCapabilities(ctx, serverNames, clientConfig)
 	if err != nil {
 		return fmt.Errorf("listing resources: %w", err)
 	}
@@ -201,7 +201,7 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 	}
 
 	// Get current newServerCaps from the server (this reflects the server's current state after it notified us of changes)
-	newServerCaps, err := g.listCapabilities(ctx, g.configuration, []string{serverName}, clientConfig)
+	newServerCaps, err := g.listCapabilities(ctx, []string{serverName}, clientConfig)
 	if err != nil {
 		return fmt.Errorf("failed to list capabilities for %s: %w", serverName, err)
 	}
