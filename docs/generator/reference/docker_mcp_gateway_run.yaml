@@ -275,7 +275,8 @@ options:
     - option: transport
       value_type: string
       default_value: stdio
-      description: stdio, sse or streaming (default is stdio)
+      description: |
+        stdio, sse or streaming. Uses MCP_GATEWAY_AUTH_TOKEN environment variable for localhost authentication to prevent dns rebinding attacks.
       deprecated: false
       hidden: false
       experimental: false
