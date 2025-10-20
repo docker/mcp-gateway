@@ -3,19 +3,18 @@ package workingset
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
 func Show(name string, format Format) error {
-	cfg, err := ReadConfig()
+	ws, err := ReadWorkingSetFile(name)
 	if err != nil {
-		return fmt.Errorf("failed to read working-sets config: %w", err)
-	}
-
-	ws, exists := cfg.WorkingSets[name]
-	if !exists {
-		return fmt.Errorf("working-set %q not found", name)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("working-set %q not found", name)
+		}
+		return fmt.Errorf("failed to read working-set: %w", err)
 	}
 
 	switch format {
@@ -32,7 +31,7 @@ func Show(name string, format Format) error {
 		}
 		fmt.Print(string(data))
 	default:
-		humanPrintWorkingSet(name, ws)
+		humanPrintWorkingSet(name, *ws)
 	}
 
 	return nil

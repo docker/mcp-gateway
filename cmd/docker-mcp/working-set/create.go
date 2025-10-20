@@ -25,11 +25,25 @@ func Create(name, description string, servers []string) error {
 		return fmt.Errorf("working-set %q already exists", name)
 	}
 
-	// Create new working-set
-	cfg.WorkingSets[name] = WorkingSet{
+	// Create working-set object
+	ws := &WorkingSet{
 		Name:        name,
 		Description: description,
 		Servers:     servers,
+	}
+
+	// Write working-set file
+	if err := WriteWorkingSetFile(name, ws); err != nil {
+		return fmt.Errorf("failed to write working-set file: %w", err)
+	}
+
+	// Update config with metadata
+	displayName := name
+	if description != "" {
+		displayName = description
+	}
+	cfg.WorkingSets[name] = WorkingSetMetadata{
+		DisplayName: displayName,
 	}
 
 	// Write config

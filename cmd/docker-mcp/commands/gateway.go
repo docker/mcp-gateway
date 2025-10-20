@@ -136,16 +136,10 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 					return fmt.Errorf("cannot use --working-set with --enable-all-servers flag")
 				}
 
-				// Read working-set config
-				wsCfg, err := workingset.ReadConfig()
+				// Read working-set file
+				ws, err := workingset.ReadWorkingSetFile(workingSetName)
 				if err != nil {
-					return fmt.Errorf("failed to read working-sets config: %w", err)
-				}
-
-				// Get the working-set
-				ws, exists := wsCfg.WorkingSets[workingSetName]
-				if !exists {
-					return fmt.Errorf("working-set %q not found", workingSetName)
+					return fmt.Errorf("failed to read working-set %q: %w", workingSetName, err)
 				}
 
 				// Set server names from the working-set

@@ -46,39 +46,39 @@ func SupportedFormats() string {
 	return strings.Join(quoted, ", ")
 }
 
-// WorkingSetMetadata contains summary info about a working-set (excluding full server list)
-type WorkingSetMetadata struct {
+// WorkingSetListMetadata contains summary info about a working-set (excluding full server list)
+type WorkingSetListMetadata struct {
 	Description  string `json:"description,omitempty" yaml:"description,omitempty"`
 	ServerCount  int    `json:"serverCount" yaml:"serverCount"`
 }
 
 type ListOutput struct {
-	WorkingSets map[string]WorkingSetMetadata `json:"workingSets" yaml:"workingSets"`
+	WorkingSets map[string]WorkingSetListMetadata `json:"workingSets" yaml:"workingSets"`
 }
 
 func List(format Format) error {
-	cfg, err := ReadConfig()
+	workingSets, err := ListWorkingSets()
 	if err != nil {
-		return fmt.Errorf("failed to read working-sets config: %w", err)
+		return fmt.Errorf("failed to read working-sets: %w", err)
 	}
 
 	switch format {
 	case JSON:
-		output := buildListOutput(cfg.WorkingSets)
+		output := buildListOutput(workingSets)
 		data, err := json.MarshalIndent(output, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal to JSON: %w", err)
 		}
 		fmt.Println(string(data))
 	case YAML:
-		output := buildListOutput(cfg.WorkingSets)
+		output := buildListOutput(workingSets)
 		data, err := yaml.Marshal(output)
 		if err != nil {
 			return fmt.Errorf("failed to marshal to YAML: %w", err)
 		}
 		fmt.Print(string(data))
 	default:
-		humanPrintWorkingSetsList(cfg.WorkingSets)
+		humanPrintWorkingSetsList(workingSets)
 	}
 
 	return nil
@@ -86,11 +86,11 @@ func List(format Format) error {
 
 func buildListOutput(workingSets map[string]WorkingSet) ListOutput {
 	output := ListOutput{
-		WorkingSets: make(map[string]WorkingSetMetadata),
+		WorkingSets: make(map[string]WorkingSetListMetadata),
 	}
 
 	for name, ws := range workingSets {
-		output.WorkingSets[name] = WorkingSetMetadata{
+		output.WorkingSets[name] = WorkingSetListMetadata{
 			Description: ws.Description,
 			ServerCount: len(ws.Servers),
 		}
