@@ -24,9 +24,17 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 	sseHandler := mcp.NewSSEHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
+	// Wrap with Origin validation to prevent DNS rebinding
 	mux.Handle("/sse", originSecurityHandler(sseHandler))
+
+	// Wrap entire mux with authentication middleware (excludes /health)
+	var handler http.Handler = mux
+	if g.authToken != "" {
+		handler = authenticationMiddleware(g.authToken, mux)
+	}
+
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler: handler,
 	}
 	go func() {
 		<-ctx.Done()
@@ -42,9 +50,17 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
+	// Wrap with Origin validation to prevent DNS rebinding
 	mux.Handle("/mcp", originSecurityHandler(streamHandler))
+
+	// Wrap entire mux with authentication middleware (excludes /health)
+	var handler http.Handler = mux
+	if g.authToken != "" {
+		handler = authenticationMiddleware(g.authToken, mux)
+	}
+
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler: handler,
 	}
 
 	go func() {

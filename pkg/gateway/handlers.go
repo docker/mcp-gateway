@@ -57,8 +57,14 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 	}
 }
 
-func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
+func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Look up server configuration
+		serverConfig, _, ok := g.configuration.Find(serverName)
+		if !ok {
+			return nil, fmt.Errorf("server %q not found in configuration", serverName)
+		}
+
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Tool call received: %s from server: %s\n", req.Params.Name, serverConfig.Name)
@@ -152,8 +158,14 @@ func (g *Gateway) mcpServerToolHandler(serverConfig *catalog.ServerConfig, serve
 	}
 }
 
-func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.PromptHandler {
+func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) mcp.PromptHandler {
 	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		// Look up server configuration
+		serverConfig, _, ok := g.configuration.Find(serverName)
+		if !ok {
+			return nil, fmt.Errorf("server %q not found in configuration", serverName)
+		}
+
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Prompt get received: %s from server: %s\n", req.Params.Name, serverConfig.Name)
@@ -212,8 +224,14 @@ func (g *Gateway) mcpServerPromptHandler(serverConfig *catalog.ServerConfig, ser
 	}
 }
 
-func (g *Gateway) mcpServerResourceHandler(serverConfig *catalog.ServerConfig, server *mcp.Server) mcp.ResourceHandler {
+func (g *Gateway) mcpServerResourceHandler(serverName string, server *mcp.Server) mcp.ResourceHandler {
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		// Look up server configuration
+		serverConfig, _, ok := g.configuration.Find(serverName)
+		if !ok {
+			return nil, fmt.Errorf("server %q not found in configuration", serverName)
+		}
+
 		// Debug logging to stderr
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-HANDLER] Resource read received: %s from server: %s\n", req.Params.URI, serverConfig.Name)
