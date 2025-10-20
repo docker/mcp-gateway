@@ -159,7 +159,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							ServerName: serverConfig.Name,
 							Tool:       &prefixedTool,
-							Handler:    g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
+							Handler:    g.mcpServerToolHandler(serverConfig.Name, g.mcpServer, tool.Annotations),
 						})
 					}
 				}
@@ -173,7 +173,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							ServerName: serverConfig.Name,
 							Prompt:     prompt,
-							Handler:    g.mcpServerPromptHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerPromptHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -187,7 +187,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
 							ServerName: serverConfig.Name,
 							Resource:   resource,
-							Handler:    g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -201,7 +201,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
 							ServerName:       serverConfig.Name,
 							ResourceTemplate: *resourceTemplate,
-							Handler:          g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:          g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
