@@ -34,5 +34,6 @@ type Options struct {
 	OAuthInterceptorEnabled bool
 	McpOAuthDcrEnabled      bool
 	DynamicTools            bool
+	ToolNamePrefix          bool
 	LogFilePath             string
 }

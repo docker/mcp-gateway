@@ -31,6 +31,7 @@ type Server struct {
 	AllowHosts     []string `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
 	Tools          []Tool   `yaml:"tools,omitempty" json:"tools,omitempty"`
 	Config         []any    `yaml:"config,omitempty" json:"config,omitempty"`
+	Prefix         string   `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 }
 
 type Secret struct {

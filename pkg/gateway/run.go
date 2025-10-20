@@ -64,6 +64,11 @@ type Gateway struct {
 	// Track registered capabilities per server for proper reload handling
 	capabilitiesMu     sync.RWMutex
 	serverCapabilities map[string]*ServerCapabilities
+
+	// authToken stores the authentication token for SSE/streaming modes
+	authToken string
+	// authTokenWasGenerated indicates whether the token was auto-generated or from environment
+	authTokenWasGenerated bool
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
@@ -282,18 +287,47 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return nil
 	}
 
+	// Initialize authentication token for SSE and streaming modes
+	transport := strings.ToLower(g.Transport)
+	if transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http" {
+		token, wasGenerated, err := getOrGenerateAuthToken()
+		if err != nil {
+			return fmt.Errorf("failed to initialize auth token: %w", err)
+		}
+		g.authToken = token
+		g.authTokenWasGenerated = wasGenerated
+	}
+
 	// Start the server
-	switch strings.ToLower(g.Transport) {
+	switch transport {
 	case "stdio":
 		log.Log("> Start stdio server")
 		return g.startStdioServer(ctx, os.Stdin, os.Stdout)
 
 	case "sse":
 		log.Log("> Start sse server on port", g.Port)
+		endpoint := "/sse"
+		url := formatGatewayURL(g.Port, endpoint)
+		if g.authTokenWasGenerated {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
+		} else {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token from MCP_GATEWAY_AUTH_TOKEN environment variable")
+		}
 		return g.startSseServer(ctx, ln)
 
 	case "http", "streamable", "streaming", "streamable-http":
 		log.Log("> Start streaming server on port", g.Port)
+		endpoint := "/mcp"
+		url := formatGatewayURL(g.Port, endpoint)
+		if g.authTokenWasGenerated {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
+		} else {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token from MCP_GATEWAY_AUTH_TOKEN environment variable")
+		}
 		return g.startStreamingServer(ctx, ln)
 
 	default:
