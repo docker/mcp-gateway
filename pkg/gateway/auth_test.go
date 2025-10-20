@@ -99,44 +99,6 @@ func TestAuthenticationMiddleware_HealthEndpoint(t *testing.T) {
 	}
 }
 
-func TestAuthenticationMiddleware_QueryParamAuth_Valid(t *testing.T) {
-	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("success"))
-	})
-
-	middleware := authenticationMiddleware(authToken, handler)
-
-	req := httptest.NewRequest(http.MethodGet, "/sse?MCP_GATEWAY_AUTH_TOKEN=test-token-123", nil)
-	w := httptest.NewRecorder()
-
-	middleware.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d with valid query param token, got %d", http.StatusOK, w.Code)
-	}
-}
-
-func TestAuthenticationMiddleware_QueryParamAuth_Invalid(t *testing.T) {
-	authToken := "test-token-123"
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("success"))
-	})
-
-	middleware := authenticationMiddleware(authToken, handler)
-
-	req := httptest.NewRequest(http.MethodGet, "/sse?MCP_GATEWAY_AUTH_TOKEN=wrong-token", nil)
-	w := httptest.NewRecorder()
-
-	middleware.ServeHTTP(w, req)
-
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected status %d with invalid query param token, got %d", http.StatusUnauthorized, w.Code)
-	}
-}
-
 func TestAuthenticationMiddleware_BearerAuth_Valid(t *testing.T) {
 	authToken := "test-token-123"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -235,20 +197,19 @@ func TestAuthenticationMiddleware_BearerAuth_MalformedHeader(t *testing.T) {
 
 func TestFormatGatewayURL(t *testing.T) {
 	tests := []struct {
-		port      int
-		endpoint  string
-		authToken string
-		expected  string
+		port     int
+		endpoint string
+		expected string
 	}{
-		{8811, "/sse", "abc123", "http://localhost:8811/sse?MCP_GATEWAY_AUTH_TOKEN=abc123"},
-		{3000, "/mcp", "xyz789", "http://localhost:3000/mcp?MCP_GATEWAY_AUTH_TOKEN=xyz789"},
-		{80, "/test", "token", "http://localhost:80/test?MCP_GATEWAY_AUTH_TOKEN=token"},
+		{8811, "/sse", "http://localhost:8811/sse"},
+		{3000, "/mcp", "http://localhost:3000/mcp"},
+		{80, "/test", "http://localhost:80/test"},
 	}
 
 	for _, tt := range tests {
-		result := formatGatewayURL(tt.port, tt.endpoint, tt.authToken)
+		result := formatGatewayURL(tt.port, tt.endpoint)
 		if result != tt.expected {
-			t.Errorf("formatGatewayURL(%d, %q, %q) = %q, want %q", tt.port, tt.endpoint, tt.authToken, result, tt.expected)
+			t.Errorf("formatGatewayURL(%d, %q) = %q, want %q", tt.port, tt.endpoint, result, tt.expected)
 		}
 	}
 }

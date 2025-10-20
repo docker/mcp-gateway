@@ -95,45 +95,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 		}
 	})
 
-	// Test 3: SSE endpoint should accept valid query parameter auth
-	t.Run("SSEEndpointQueryParamAuth", func(t *testing.T) {
-		url := fmt.Sprintf("http://127.0.0.1:%d/sse?MCP_GATEWAY_AUTH_TOKEN=%s", port, token)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatalf("request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		// SSE endpoint should return 200 or appropriate streaming status
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			t.Errorf("expected successful response for /sse with valid token, got %d: %s", resp.StatusCode, string(body))
-		}
-	})
-
-	// Test 4: SSE endpoint should reject invalid query parameter auth
-	t.Run("SSEEndpointInvalidQueryParam", func(t *testing.T) {
-		url := fmt.Sprintf("http://127.0.0.1:%d/sse?MCP_GATEWAY_AUTH_TOKEN=invalid", port)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatalf("request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusUnauthorized {
-			t.Errorf("expected status 401 for /sse with invalid token, got %d", resp.StatusCode)
-		}
-	})
-
-	// Test 5: SSE endpoint should accept valid bearer auth
+	// Test 3: SSE endpoint should accept valid bearer auth
 	t.Run("SSEEndpointBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
@@ -154,7 +116,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 		}
 	})
 
-	// Test 6: SSE endpoint should reject invalid bearer auth
+	// Test 4: SSE endpoint should reject invalid bearer auth
 	t.Run("SSEEndpointInvalidBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/sse", port), nil)
@@ -267,27 +229,7 @@ func TestStreamingServerAuthentication(t *testing.T) {
 		}
 	})
 
-	// Test 3: MCP endpoint should accept valid query parameter auth
-	t.Run("MCPEndpointQueryParamAuth", func(t *testing.T) {
-		url := fmt.Sprintf("http://127.0.0.1:%d/mcp?MCP_GATEWAY_AUTH_TOKEN=%s", port, token)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Fatalf("request failed: %v", err)
-		}
-		defer resp.Body.Close()
-
-		// The streaming endpoint may return an error if we don't send proper MCP protocol,
-		// but it should not be 401 Unauthorized
-		if resp.StatusCode == http.StatusUnauthorized {
-			t.Errorf("expected non-401 status for /mcp with valid token, got %d", resp.StatusCode)
-		}
-	})
-
-	// Test 4: MCP endpoint should accept valid bearer auth
+	// Test 3: MCP endpoint should accept valid bearer auth
 	t.Run("MCPEndpointBearerAuth", func(t *testing.T) {
 		client := &http.Client{}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("http://127.0.0.1:%d/mcp", port), nil)
@@ -339,22 +281,16 @@ func TestAuthTokenFromEnvironment(t *testing.T) {
 	}
 }
 
-// TestFormatGatewayURLWithToken tests that the gateway URL is formatted correctly
-func TestFormatGatewayURLWithToken(t *testing.T) {
+// TestFormatGatewayURLIntegration tests that the gateway URL is formatted correctly
+func TestFormatGatewayURLIntegration(t *testing.T) {
 	port := 8811
 	endpoint := "/sse"
-	token := "abc123xyz"
 
-	url := formatGatewayURL(port, endpoint, token)
+	url := formatGatewayURL(port, endpoint)
 
-	expected := fmt.Sprintf("http://localhost:%d%s?MCP_GATEWAY_AUTH_TOKEN=%s", port, endpoint, token)
+	expected := fmt.Sprintf("http://localhost:%d%s", port, endpoint)
 	if url != expected {
 		t.Errorf("expected URL %q, got %q", expected, url)
-	}
-
-	// Verify the URL contains the token
-	if !strings.Contains(url, token) {
-		t.Errorf("URL should contain the auth token")
 	}
 }
 

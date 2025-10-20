@@ -307,26 +307,26 @@ func (g *Gateway) Run(ctx context.Context) error {
 	case "sse":
 		log.Log("> Start sse server on port", g.Port)
 		endpoint := "/sse"
-		url := formatGatewayURL(g.Port, endpoint, g.authToken)
+		url := formatGatewayURL(g.Port, endpoint)
 		if g.authTokenWasGenerated {
-			log.Logf("> Gateway URL (with auto-generated auth token): %s", url)
-			log.Logf("> Or use Bearer token: %s", formatBearerToken(g.authToken))
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
-			log.Logf("> Gateway URL (using MCP_GATEWAY_AUTH_TOKEN from environment): %s", url)
-			log.Logf("> Or use Bearer token in Authorization header")
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token from MCP_GATEWAY_AUTH_TOKEN environment variable")
 		}
 		return g.startSseServer(ctx, ln)
 
 	case "http", "streamable", "streaming", "streamable-http":
 		log.Log("> Start streaming server on port", g.Port)
 		endpoint := "/mcp"
-		url := formatGatewayURL(g.Port, endpoint, g.authToken)
+		url := formatGatewayURL(g.Port, endpoint)
 		if g.authTokenWasGenerated {
-			log.Logf("> Gateway URL (with auto-generated auth token): %s", url)
-			log.Logf("> Or use Bearer token: %s", formatBearerToken(g.authToken))
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
-			log.Logf("> Gateway URL (using MCP_GATEWAY_AUTH_TOKEN from environment): %s", url)
-			log.Logf("> Or use Bearer token in Authorization header")
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Use Bearer token from MCP_GATEWAY_AUTH_TOKEN environment variable")
 		}
 		return g.startStreamingServer(ctx, ln)
 

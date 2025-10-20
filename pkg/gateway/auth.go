@@ -46,9 +46,8 @@ func getOrGenerateAuthToken() (string, bool, error) {
 	return token, true, nil // true indicates token was generated
 }
 
-// authenticationMiddleware creates an HTTP middleware that validates requests using either:
-// 1. Bearer token in the Authorization header
-// 2. Query parameter MCP_GATEWAY_AUTH_TOKEN that matches the auth token
+// authenticationMiddleware creates an HTTP middleware that validates requests using
+// Bearer token in the Authorization header.
 //
 // The /health endpoint is excluded from authentication.
 func authenticationMiddleware(authToken string, next http.Handler) http.Handler {
@@ -61,26 +60,16 @@ func authenticationMiddleware(authToken string, next http.Handler) http.Handler 
 
 		authenticated := false
 
-		// Check for query parameter authentication
-		if queryToken := r.URL.Query().Get("MCP_GATEWAY_AUTH_TOKEN"); queryToken != "" {
-			// Use constant-time comparison to prevent timing attacks
-			if subtle.ConstantTimeCompare([]byte(queryToken), []byte(authToken)) == 1 {
-				authenticated = true
-			}
-		}
-
-		// Check for Bearer token in Authorization header if query param auth failed
-		if !authenticated {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" {
-				// Extract Bearer token from "Bearer <token>" format
-				const bearerPrefix = "Bearer "
-				if len(authHeader) > len(bearerPrefix) && authHeader[:len(bearerPrefix)] == bearerPrefix {
-					bearerToken := authHeader[len(bearerPrefix):]
-					// Use constant-time comparison to prevent timing attacks
-					if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(authToken)) == 1 {
-						authenticated = true
-					}
+		// Check for Bearer token in Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			// Extract Bearer token from "Bearer <token>" format
+			const bearerPrefix = "Bearer "
+			if len(authHeader) > len(bearerPrefix) && authHeader[:len(bearerPrefix)] == bearerPrefix {
+				bearerToken := authHeader[len(bearerPrefix):]
+				// Use constant-time comparison to prevent timing attacks
+				if subtle.ConstantTimeCompare([]byte(bearerToken), []byte(authToken)) == 1 {
+					authenticated = true
 				}
 			}
 		}
@@ -97,9 +86,9 @@ func authenticationMiddleware(authToken string, next http.Handler) http.Handler 
 	})
 }
 
-// formatGatewayURL formats the gateway URL with the auth token as a query parameter
-func formatGatewayURL(port int, endpoint string, authToken string) string {
-	return fmt.Sprintf("http://localhost:%d%s?MCP_GATEWAY_AUTH_TOKEN=%s", port, endpoint, authToken)
+// formatGatewayURL formats the gateway URL without authentication info
+func formatGatewayURL(port int, endpoint string) string {
+	return fmt.Sprintf("http://localhost:%d%s", port, endpoint)
 }
 
 // formatBearerToken formats the Bearer token for display in the Authorization header
