@@ -1,8 +1,0 @@
-name: personal-catalog
-displayName: personal-catalog
-registry:
-  io.github.dockersamples/mcp-docker-release-information:
-    name: io.github.dockersamples/mcp-docker-release-information
-    image: dockersamples/mcp-docker-release-information:0.3.0
-    description: MCP server providing Docker Desktop release notes and security information.
-    remote: {}

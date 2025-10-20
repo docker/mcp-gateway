@@ -1,5 +1,0 @@
-name: docker-test
-registry:
-  elicit:
-    longLived: true
-    image: elicit:latest
