@@ -10,6 +10,8 @@ import (
 
 type WorkingSetDAO interface {
 	GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
+	FindWorkingSetsByIdPrefix(ctx context.Context, prefix string) ([]WorkingSet, error)
+	ListWorkingSets(ctx context.Context) ([]WorkingSet, error)
 	CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 }
@@ -69,7 +71,7 @@ func (secrets *SecretMap) Scan(value any) error {
 	return json.Unmarshal([]byte(str), &secrets)
 }
 
-func (d *Dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error) {
+func (d *dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error) {
 	const query = `SELECT id, name, servers, secrets FROM working_set WHERE id = $1`
 
 	var workingSet WorkingSet
@@ -83,7 +85,7 @@ func (d *Dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
 	return &workingSet, nil
 }
 
-func (d *Dao) CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error {
+func (d *dao) CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error {
 	const query = `INSERT INTO working_set (id, name, servers, secrets) VALUES ($1, $2, $3, $4)`
 
 	_, err := d.db.ExecContext(ctx, query, workingSet.ID, workingSet.Name, workingSet.Servers, workingSet.Secrets)
@@ -93,7 +95,7 @@ func (d *Dao) CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	return nil
 }
 
-func (d *Dao) UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error {
+func (d *dao) UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error {
 	const query = `UPDATE working_set SET name = $2, servers = $3, secrets = $4 WHERE id = $1`
 
 	_, err := d.db.ExecContext(ctx, query, workingSet.ID, workingSet.Name, workingSet.Servers, workingSet.Secrets)
@@ -101,4 +103,26 @@ func (d *Dao) UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 		return err
 	}
 	return nil
+}
+
+func (d *dao) FindWorkingSetsByIdPrefix(ctx context.Context, prefix string) ([]WorkingSet, error) {
+	const query = `SELECT id, name, servers, secrets FROM working_set WHERE id LIKE $1`
+
+	var workingSets []WorkingSet
+	err := d.db.SelectContext(ctx, &workingSets, query, prefix+"%")
+	if err != nil {
+		return nil, err
+	}
+	return workingSets, nil
+}
+
+func (d *dao) ListWorkingSets(ctx context.Context) ([]WorkingSet, error) {
+	const query = `SELECT id, name, servers, secrets FROM working_set`
+
+	var workingSets []WorkingSet
+	err := d.db.SelectContext(ctx, &workingSets, query)
+	if err != nil {
+		return nil, err
+	}
+	return workingSets, nil
 }

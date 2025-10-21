@@ -1,6 +1,11 @@
 package workingset
 
 import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
@@ -112,4 +117,36 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 	}
 
 	return dbSet
+}
+
+func createWorkingSetId(ctx context.Context, name string, dao db.DAO) (string, error) {
+	// Replace all non-alphanumeric characters with a hyphen and make all uppercase lowercase
+	re := regexp.MustCompile("[^a-zA-Z0-9]+")
+	cleaned := re.ReplaceAllString(name, "-")
+	baseName := strings.ToLower(cleaned)
+
+	existingSets, err := dao.FindWorkingSetsByIdPrefix(ctx, baseName)
+	if err != nil {
+		return "", fmt.Errorf("failed to find working sets by name prefix: %w", err)
+	}
+
+	if len(existingSets) == 0 {
+		return baseName, nil
+	}
+
+	takenIds := make(map[string]bool)
+	for _, set := range existingSets {
+		takenIds[set.ID] = true
+	}
+
+	// TODO(cody): there are better ways to do this, but this is a simple brute force for now
+	// Append a number to the base name
+	for i := 2; i <= 100; i++ {
+		newName := fmt.Sprintf("%s-%d", baseName, i)
+		if !takenIds[newName] {
+			return newName, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to create working set id: %w", err)
 }
