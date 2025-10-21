@@ -27,23 +27,34 @@ func workingSetCommand() *cobra.Command {
 }
 
 func listWorkingSetsCommand() *cobra.Command {
-	return &cobra.Command{
+	format := string(workingset.OutputFormatHumanReadable)
+
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List working sets",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", format)
+			}
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return workingset.List(cmd.Context(), dao)
+			return workingset.List(cmd.Context(), dao, workingset.OutputFormat(format))
 		},
 	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
 }
 
 func showWorkingSetCommand() *cobra.Command {
-	format := string(workingset.OutputFormatJSON)
+	format := string(workingset.OutputFormatHumanReadable)
 
 	cmd := &cobra.Command{
 		Use:   "show <working-set-id>",
@@ -63,7 +74,7 @@ func showWorkingSetCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&format, "format", string(workingset.OutputFormatJSON), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 
 	return cmd
 }

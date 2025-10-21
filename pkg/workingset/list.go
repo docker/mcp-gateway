@@ -2,12 +2,15 @@ package workingset
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"gopkg.in/yaml.v3"
 )
 
-func List(ctx context.Context, dao db.DAO) error {
+func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 	dbSets, err := dao.ListWorkingSets(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list working sets: %w", err)
@@ -18,12 +21,31 @@ func List(ctx context.Context, dao db.DAO) error {
 		workingSets[i] = NewFromDb(&dbWorkingSet)
 	}
 
-	fmt.Println("ID\tName")
-	fmt.Println("----\t----")
-	for _, workingSet := range workingSets {
-		fmt.Printf("%s\t%s\n", workingSet.ID, workingSet.Name)
+	var data []byte
+	switch format {
+	case OutputFormatHumanReadable:
+		data = []byte(printListHumanReadable(workingSets))
+	case OutputFormatJSON:
+		data, err = json.MarshalIndent(workingSets, "", "  ")
+	case OutputFormatYAML:
+		data, err = yaml.Marshal(workingSets)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
 	}
-	fmt.Println()
+	if err != nil {
+		return fmt.Errorf("failed to marshal working sets: %w", err)
+	}
+
+	fmt.Println(string(data))
 
 	return nil
+}
+
+func printListHumanReadable(workingSets []WorkingSet) string {
+	lines := ""
+	for _, workingSet := range workingSets {
+		lines += fmt.Sprintf("%s\t%s\n", workingSet.ID, workingSet.Name)
+	}
+	lines = strings.TrimSuffix(lines, "\n")
+	return fmt.Sprintf("ID\tName\n----\t----\n%s", lines)
 }
