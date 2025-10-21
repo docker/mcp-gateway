@@ -28,15 +28,21 @@ func createWorkingSetCommand() *cobra.Command {
 		Servers     []string
 	}
 	cmd := &cobra.Command{
-		Use:   "create --name <name> [--description <description>] --server <server1> --server <server2> ...",
+		Use:   "create --name <name> [--description <description>] --server <ref1> --server <ref2> ...",
 		Short: "Create a new working-set of MCP servers",
 		Long: `Create a new working-set that groups multiple MCP servers together.
-A working-set allows you to organize and manage related servers as a single unit.`,
-		Example: `  # Create a working-set with multiple servers
-  docker mcp working-set create --name dev-tools --description "Development tools" --server github --server slack
+A working-set allows you to organize and manage related servers as a single unit.
+Working-sets are decoupled from catalogs. Servers can be:
+  - Catalog server names (e.g., "github", "docker")
+  - OCI image references with docker:// prefix (e.g., "docker://mcp/github:latest")`,
+		Example: `  # Create a working-set with multiple servers (OCI references)
+  docker mcp working-set create --name dev-tools --description "Development tools" --server docker://mcp/github:latest --server docker://mcp/slack:latest
 
-  # Create a working-set with a single server
-  docker mcp working-set create --name docker-only --server docker`,
+  # Create a working-set with catalog server names
+  docker mcp working-set create --name catalog-servers --server github --server docker
+
+  # Mix catalog names and OCI references
+  docker mcp working-set create --name mixed --server github --server docker://custom/server:v1`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return workingset.Create(opts.Name, opts.Description, opts.Servers)
 		},
@@ -44,7 +50,7 @@ A working-set allows you to organize and manage related servers as a single unit
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Name, "name", "", "Name of the working-set (required)")
 	flags.StringVar(&opts.Description, "description", "", "Description of the working-set")
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include in the working-set (can be specified multiple times)")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include: catalog name or OCI reference with docker:// prefix (can be specified multiple times)")
 
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("server")

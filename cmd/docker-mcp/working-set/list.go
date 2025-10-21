@@ -48,8 +48,8 @@ func SupportedFormats() string {
 
 // WorkingSetListMetadata contains summary info about a working-set (excluding full server list)
 type WorkingSetListMetadata struct {
-	Description  string `json:"description,omitempty" yaml:"description,omitempty"`
-	ServerCount  int    `json:"serverCount" yaml:"serverCount"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	ServerCount int    `json:"serverCount" yaml:"serverCount"`
 }
 
 type ListOutput struct {

@@ -143,6 +143,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				}
 
 				// Set server names from the working-set
+				// These are treated as server references (can be OCI image refs or catalog names)
+				// and will go through the self-contained catalog resolution
 				options.ServerNames = ws.Servers
 			}
 
