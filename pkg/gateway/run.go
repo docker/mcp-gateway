@@ -65,6 +65,9 @@ type Gateway struct {
 	capabilitiesMu     sync.RWMutex
 	serverCapabilities map[string]*ServerCapabilities
 
+	// Track all tool registrations for mcp-exec
+	toolRegistrations map[string]ToolRegistration
+
 	// authToken stores the authentication token for SSE/streaming modes
 	authToken string
 	// authTokenWasGenerated indicates whether the token was auto-generated or from environment
@@ -108,6 +111,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		},
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
+		toolRegistrations:  make(map[string]ToolRegistration),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 
