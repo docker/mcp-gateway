@@ -72,6 +72,22 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
+	// Prepend session-specific paths if SessionName is set
+	registryPath := config.RegistryPath
+	configPath := config.ConfigPath
+	toolsPath := config.ToolsPath
+
+	if config.SessionName != "" {
+		// Prepend session-specific paths to load session configs first
+		sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
+		sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
+		sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
+
+		registryPath = append([]string{sessionRegistry}, registryPath...)
+		configPath = append([]string{sessionConfig}, configPath...)
+		toolsPath = append([]string{sessionTools}, toolsPath...)
+	}
+
 	g := &Gateway{
 		Options:        config.Options,
 		docker:         docker,
@@ -79,20 +95,22 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		configurator: &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
-			RegistryPath:       config.RegistryPath,
-			ConfigPath:         config.ConfigPath,
+			RegistryPath:       registryPath,
+			ConfigPath:         configPath,
 			SecretsPath:        config.SecretsPath,
-			ToolsPath:          config.ToolsPath,
+			ToolsPath:          toolsPath,
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
+			sessionName:        config.SessionName,
 			docker:             docker,
 		},
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
+
 	return g
 }
 
@@ -159,6 +177,13 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return err
 	}
 	defer func() { _ = stopConfigWatcher() }()
+
+	// Set the session name in the configuration for persistence if specified via --session flag
+	if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
+		if fbc.sessionName != "" {
+			g.configuration.SessionName = fbc.sessionName
+		}
+	}
 
 	// Parse interceptors
 	var parsedInterceptors []interceptors.Interceptor

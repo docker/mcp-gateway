@@ -96,6 +96,10 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 
+		// Add mcp-session-name tool
+		mcpSessionNameTool := g.createMcpSessionNameTool()
+		g.mcpServer.AddTool(mcpSessionNameTool.Tool, mcpSessionNameTool.Handler)
+
 		// Add codemode
 		codeModeTool := g.createCodeModeTool(clientConfig)
 		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
@@ -108,6 +112,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
 		log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
 		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+		log.Log("  > mcp-session-name: tool for setting session name to persist configuration")
 		log.Log("  > code-mode: write code that calls other MCPs directly")
 	}
 
