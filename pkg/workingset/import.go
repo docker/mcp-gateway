@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Import(ctx context.Context, dao *db.Dao, filename string) error {
+func Import(ctx context.Context, dao db.DAO, filename string) error {
 	workingSetBuf, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read working set file: %w", err)
@@ -35,35 +35,7 @@ func Import(ctx context.Context, dao *db.Dao, filename string) error {
 		return fmt.Errorf("unsupported working set version: %d", workingSet.Version)
 	}
 
-	dbServers := make(db.ServerList, len(workingSet.Servers))
-	for i, server := range workingSet.Servers {
-		dbServers[i] = db.Server{
-			Type:    string(server.Type),
-			Config:  server.Config,
-			Secrets: server.Secrets,
-			Tools:   server.Tools,
-		}
-		if server.Type == ServerTypeRegistry {
-			dbServers[i].Source = server.Source
-		}
-		if server.Type == ServerTypeImage {
-			dbServers[i].Image = server.Image
-		}
-	}
-
-	dbSecrets := make(db.SecretMap, len(workingSet.Secrets))
-	for name, secret := range workingSet.Secrets {
-		dbSecrets[name] = db.Secret{
-			Provider: string(secret.Provider),
-		}
-	}
-
-	dbSet := db.WorkingSet{
-		ID:      workingSet.ID,
-		Name:    workingSet.Name,
-		Servers: dbServers,
-		Secrets: dbSecrets,
-	}
+	dbSet := workingSet.ToDb()
 
 	existingSet, err := dao.GetWorkingSet(ctx, workingSet.ID)
 	if err != nil {

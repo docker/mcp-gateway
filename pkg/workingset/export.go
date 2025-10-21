@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Export(ctx context.Context, dao *db.Dao, id string, filename string) error {
+func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to get working set: %w", err)
@@ -20,36 +20,7 @@ func Export(ctx context.Context, dao *db.Dao, id string, filename string) error 
 		return fmt.Errorf("working set %s not found", id)
 	}
 
-	servers := make([]Server, len(dbSet.Servers))
-	for i, server := range dbSet.Servers {
-		servers[i] = Server{
-			Type:    ServerType(server.Type),
-			Config:  server.Config,
-			Secrets: server.Secrets,
-			Tools:   server.Tools,
-		}
-		if server.Type == "registry" {
-			servers[i].Source = server.Source
-		}
-		if server.Type == "image" {
-			servers[i].Image = server.Image
-		}
-	}
-
-	secrets := make(map[string]Secret)
-	for name, secret := range dbSet.Secrets {
-		secrets[name] = Secret{
-			Provider: SecretProvider(secret.Provider),
-		}
-	}
-
-	workingSet := WorkingSet{
-		Version: 1,
-		ID:      dbSet.ID,
-		Name:    dbSet.Name,
-		Servers: servers,
-		Secrets: secrets,
-	}
+	workingSet := NewFromDb(dbSet)
 
 	var data []byte
 	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {

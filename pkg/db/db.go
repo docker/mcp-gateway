@@ -21,7 +21,7 @@ type DAO interface {
 	WorkingSetDAO
 }
 
-type Dao struct {
+type dao struct {
 	db *sqlx.DB
 }
 
@@ -41,7 +41,7 @@ func WithDatabaseFile(dbFile string) Option {
 	}
 }
 
-func New(opts ...Option) (*Dao, error) {
+func New(opts ...Option) (DAO, error) {
 	var o options
 	for _, opt := range opts {
 		if err := opt(&o); err != nil {
@@ -88,7 +88,7 @@ func New(opts ...Option) (*Dao, error) {
 
 	sqlxDb := sqlx.NewDb(db, "sqlite")
 
-	return &Dao{db: sqlxDb}, nil
+	return &dao{db: sqlxDb}, nil
 }
 
 func DefaultDatabaseFilename() (string, error) {

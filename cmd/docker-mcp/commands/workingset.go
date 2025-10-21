@@ -21,7 +21,8 @@ func workingSetCommand() *cobra.Command {
 func exportWorkingSetCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "export <working-set-id> <output-file>",
-		Short: "Export working set",
+		Short: "Export working set to file",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
@@ -35,7 +36,8 @@ func exportWorkingSetCommand() *cobra.Command {
 func importWorkingSetCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "import <input-file>",
-		Short: "Import working set",
+		Short: "Import working set from file",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {

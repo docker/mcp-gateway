@@ -1,0 +1,115 @@
+package workingset
+
+import (
+	"github.com/docker/mcp-gateway/pkg/db"
+)
+
+// WorkingSet represents a collection of MCP servers and their configurations
+type WorkingSet struct {
+	Version int               `yaml:"version" json:"version"`
+	ID      string            `yaml:"id" json:"id"`
+	Name    string            `yaml:"name" json:"name"`
+	Servers []Server          `yaml:"servers" json:"servers"`
+	Secrets map[string]Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+}
+
+type ServerType string
+
+const (
+	ServerTypeRegistry ServerType = "registry"
+	ServerTypeImage    ServerType = "image"
+)
+
+// Server represents a server configuration in a working set
+type Server struct {
+	Type    ServerType             `yaml:"type" json:"type"`
+	Config  map[string]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
+	Secrets string                 `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+	Tools   []string               `yaml:"tools,omitempty" json:"tools,omitempty"`
+
+	// ServerTypeRegistry only
+	Source string `yaml:"source,omitempty" json:"source,omitempty"`
+
+	// ServerTypeImage only
+	Image string `yaml:"image,omitempty" json:"image,omitempty"`
+}
+
+type SecretProvider string
+
+const (
+	SecretProviderDockerDesktop SecretProvider = "docker-desktop-store"
+)
+
+// Secret represents a secret configuration in a working set
+type Secret struct {
+	Provider SecretProvider `yaml:"provider" json:"provider"`
+}
+
+func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
+	servers := make([]Server, len(dbSet.Servers))
+	for i, server := range dbSet.Servers {
+		servers[i] = Server{
+			Type:    ServerType(server.Type),
+			Config:  server.Config,
+			Secrets: server.Secrets,
+			Tools:   server.Tools,
+		}
+		if server.Type == "registry" {
+			servers[i].Source = server.Source
+		}
+		if server.Type == "image" {
+			servers[i].Image = server.Image
+		}
+	}
+
+	secrets := make(map[string]Secret)
+	for name, secret := range dbSet.Secrets {
+		secrets[name] = Secret{
+			Provider: SecretProvider(secret.Provider),
+		}
+	}
+
+	workingSet := WorkingSet{
+		Version: 1,
+		ID:      dbSet.ID,
+		Name:    dbSet.Name,
+		Servers: servers,
+		Secrets: secrets,
+	}
+
+	return workingSet
+}
+
+func (workingSet WorkingSet) ToDb() db.WorkingSet {
+	dbServers := make(db.ServerList, len(workingSet.Servers))
+	for i, server := range workingSet.Servers {
+		dbServers[i] = db.Server{
+			Type:    string(server.Type),
+			Config:  server.Config,
+			Secrets: server.Secrets,
+			Tools:   server.Tools,
+		}
+		if server.Type == ServerTypeRegistry {
+			dbServers[i].Source = server.Source
+		}
+		if server.Type == ServerTypeImage {
+			dbServers[i].Image = server.Image
+		}
+	}
+
+	dbSecrets := make(db.SecretMap, len(workingSet.Secrets))
+	for name, secret := range workingSet.Secrets {
+		dbSecrets[name] = db.Secret{
+			Provider: string(secret.Provider),
+		}
+	}
+
+	dbSet := db.WorkingSet{
+		ID:      workingSet.ID,
+		Name:    workingSet.Name,
+		Servers: dbServers,
+		Secrets: dbSecrets,
+	}
+
+	return dbSet
+}
