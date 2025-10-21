@@ -27,7 +27,7 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 	}, nil)
 	mux.Handle("/sse", originSecurityHandler(sseHandler))
 
-	// Wrap entire mux with authentication middleware (excludes /health)
+	// Wrap with authentication middleware
 	var handler http.Handler = mux
 	if g.authToken != "" {
 		handler = authenticationMiddleware(g.authToken, mux)
@@ -52,7 +52,7 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 	}, nil)
 	mux.Handle("/mcp", originSecurityHandler(streamHandler))
 
-	// Wrap entire mux with authentication middleware (excludes /health)
+	// Wrap with authentication middleware
 	var handler http.Handler = mux
 	if g.authToken != "" {
 		handler = authenticationMiddleware(g.authToken, mux)
@@ -106,10 +106,6 @@ func isAllowedOrigin(origin string) bool {
 }
 
 // originSecurityHandler validates Origin header to prevent DNS rebinding attacks.
-// This implements the security requirement from the MCP specification:
-// https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
-//
-// Origin validation is disabled when DOCKER_MCP_IN_CONTAINER=1 for compose networking.
 func originSecurityHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip origin validation in container environments (compose networking)
