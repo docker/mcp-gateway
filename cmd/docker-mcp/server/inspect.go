@@ -61,9 +61,8 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 		errs      errgroup.Group
 	)
 	errs.Go(func() error {
-		// Skip fetching tools if they're dynamically discovered at runtime
+		// Do no fetch tools if dynamic tools are enabled
 		if server.Dynamic != nil && server.Dynamic.Tools {
-			// Initialize as empty slice instead of nil for consistent JSON serialization
 			tools = []Tool{}
 			return nil
 		}
