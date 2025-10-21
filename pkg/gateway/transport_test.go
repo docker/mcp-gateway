@@ -3,6 +3,7 @@ package gateway
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -204,5 +205,33 @@ func TestCombinedSecurityLayers(t *testing.T) {
 				t.Errorf("Expected status %d, got %d\nReason: %s", tt.expectedStatus, rr.Code, tt.reason)
 			}
 		})
+	}
+}
+
+func TestOriginSecurityHandler_ContainerMode(t *testing.T) {
+	// Set container environment variable
+	os.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
+	defer os.Unsetenv("DOCKER_MCP_IN_CONTAINER")
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("success"))
+	})
+
+	secured := originSecurityHandler(handler)
+
+	// Should allow non-localhost origin when in container mode (compose networking)
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Origin", "http://some-service:8080")
+
+	rr := httptest.NewRecorder()
+	secured.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200 in container mode, got %d", rr.Code)
+	}
+
+	if rr.Body.String() != "success" {
+		t.Errorf("Expected 'success', got %q", rr.Body.String())
 	}
 }

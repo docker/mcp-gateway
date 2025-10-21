@@ -228,3 +228,32 @@ func TestFormatBearerToken(t *testing.T) {
 		t.Errorf("expected result to start with 'Authorization: Bearer ', got %q", result)
 	}
 }
+
+func TestAuthenticationMiddleware_ContainerMode(t *testing.T) {
+	// Set container environment variable
+	os.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
+	defer os.Unsetenv("DOCKER_MCP_IN_CONTAINER")
+
+	authToken := "test-token-123"
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("success"))
+	})
+
+	secured := authenticationMiddleware(authToken, handler)
+
+	// Should allow request without auth token when in container mode
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	// No Authorization header
+
+	rr := httptest.NewRecorder()
+	secured.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200 in container mode, got %d", rr.Code)
+	}
+
+	if rr.Body.String() != "success" {
+		t.Errorf("Expected 'success', got %q", rr.Body.String())
+	}
+}
