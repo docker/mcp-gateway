@@ -1,6 +1,7 @@
 package oci
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -30,17 +31,24 @@ type Server struct {
 	Registry json.RawMessage `json:"x-io.modelcontextprotocol.registry"`
 }
 
-func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subjectDigest v1.Hash, subjectSize int64, subjectMediaType types.MediaType, push bool) (string, error) {
-	// Marshal the catalog to bytes
-	content, err := json.Marshal(catalog)
+func CreateArtifactWithSubjectAndPush(ctx context.Context, ref name.Reference, catalog Catalog, subjectDigest v1.Hash, subjectSize int64, subjectMediaType types.MediaType) (string, error) {
+	return PushArtifact(ctx, ref, MCPServerArtifactType, catalog, &oci.Descriptor{
+		MediaType: string(subjectMediaType),
+		Digest:    digest.Digest(subjectDigest.String()),
+		Size:      subjectSize,
+	})
+}
+
+func PushArtifact[T any](ctx context.Context, ref name.Reference, artifactType string, content T, subject *oci.Descriptor) (string, error) {
+	contentBytes, err := json.Marshal(content)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal catalog: %w", err)
+		return "", fmt.Errorf("failed to marshal content: %w", err)
 	}
 
 	// Create empty config blob
 	emptyConfig := []byte("{}")
 	configDigest := digest.FromBytes(emptyConfig)
-	contentDigest := digest.FromBytes(content)
+	contentDigest := digest.FromBytes(contentBytes)
 
 	// Create OCI manifest with subject descriptor using OCI spec types
 	manifest := oci.Manifest{
@@ -48,7 +56,7 @@ func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subje
 			SchemaVersion: 2,
 		},
 		MediaType:    "application/vnd.oci.image.manifest.v1+json",
-		ArtifactType: MCPServerArtifactType,
+		ArtifactType: artifactType,
 		Config: oci.Descriptor{
 			MediaType: "application/vnd.oci.empty.v1+json",
 			Digest:    configDigest,
@@ -58,54 +66,44 @@ func CreateArtifactWithSubjectAndPush(ref name.Reference, catalog Catalog, subje
 			{
 				MediaType: "application/json",
 				Digest:    contentDigest,
-				Size:      int64(len(content)),
+				Size:      int64(len(contentBytes)),
 			},
 		},
-		Subject: &oci.Descriptor{
-			MediaType: string(subjectMediaType),
-			Digest:    digest.Digest(subjectDigest.String()),
-			Size:      subjectSize,
-		},
 	}
 
-	if push {
-		// Upload empty config blob
-		err := uploadBlob(ref, emptyConfig, configDigest)
-		if err != nil {
-			return "", fmt.Errorf("failed to upload config blob: %w", err)
-		}
-
-		// Upload content blob
-		err = uploadBlob(ref, content, contentDigest)
-		if err != nil {
-			return "", fmt.Errorf("failed to upload content blob: %w", err)
-		}
-
-		// Upload manifest
-		manifestBytes, err := json.Marshal(manifest)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal manifest: %w", err)
-		}
-
-		err = uploadManifest(ref, manifestBytes)
-		if err != nil {
-			return "", fmt.Errorf("failed to upload manifest: %w", err)
-		}
-
-		// Calculate and output the manifest digest
-		manifestDigest := sha256.Sum256(manifestBytes)
-		return fmt.Sprintf("%x", manifestDigest), nil
+	if subject != nil {
+		manifest.Subject = subject
 	}
 
-	// Store locally using the store package
-	// Note: For local storage, we only need the manifest since the store
-	// handles the artifact metadata, not the actual blob storage
-	fmt.Printf("Storing artifact locally (not pushing to registry)\n")
+	// Upload empty config blob
+	err = uploadBlob(ctx, ref, emptyConfig, configDigest)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload config blob: %w", err)
+	}
 
-	return "", nil
+	// Upload content blob
+	err = uploadBlob(ctx, ref, contentBytes, contentDigest)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload content blob: %w", err)
+	}
+
+	// Upload manifest
+	manifestBytes, err := json.Marshal(manifest)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+
+	err = uploadManifest(ctx, ref, manifestBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload manifest: %w", err)
+	}
+
+	// Calculate and output the manifest digest
+	manifestDigest := sha256.Sum256(manifestBytes)
+	return fmt.Sprintf("%x", manifestDigest), nil
 }
 
-func uploadBlob(ref name.Reference, data []byte, _ digest.Digest) error {
+func uploadBlob(ctx context.Context, ref name.Reference, data []byte, _ digest.Digest) error {
 	// Use go-containerregistry's blob upload mechanism
 	repo := ref.Context()
 
@@ -113,12 +111,12 @@ func uploadBlob(ref name.Reference, data []byte, _ digest.Digest) error {
 	layer := static.NewLayer(data, types.MediaType("application/octet-stream"))
 
 	// Write the layer (blob) to the repository with authentication
-	return remote.WriteLayer(repo, layer, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	return remote.WriteLayer(repo, layer, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
 }
 
-func uploadManifest(ref name.Reference, manifestBytes []byte) error {
+func uploadManifest(ctx context.Context, ref name.Reference, manifestBytes []byte) error {
 	// Create a custom image with the manifest
-	return remote.Put(ref, &customManifest{data: manifestBytes}, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	return remote.Put(ref, &customManifest{data: manifestBytes}, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
 }
 
 // customManifest implements v1.Image interface for custom manifest
@@ -198,82 +196,82 @@ func (c *customManifest) RawManifest() ([]byte, error) {
 
 // ReadArtifact reads an OCI artifact by reference and returns parsed Catalog from the first layer
 // if the artifact type is application/vnd.docker.mcp.server, otherwise returns an error
-func ReadArtifact(ociRef string) (Catalog, error) {
+func ReadArtifact[T any](ociRef string, expectedArtifactType string) (T, error) {
 	if ociRef == "" {
-		return Catalog{}, fmt.Errorf("OCI reference is required")
+		return *new(T), fmt.Errorf("OCI reference is required")
 	}
 
 	// Parse the OCI reference
 	ref, err := name.ParseReference(ociRef)
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to parse OCI reference %s: %w", ociRef, err)
+		return *new(T), fmt.Errorf("failed to parse OCI reference %s: %w", ociRef, err)
 	}
 
 	// Get the image/artifact from the registry
 	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to fetch image/artifact %s: %w", ociRef, err)
+		return *new(T), fmt.Errorf("failed to fetch image/artifact %s: %w", ociRef, err)
 	}
 
 	// Get the raw manifest to check if it's an OCI artifact
 	rawManifest, err := img.RawManifest()
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to get raw manifest: %w", err)
+		return *new(T), fmt.Errorf("failed to get raw manifest: %w", err)
 	}
 
 	// Parse as OCI manifest to check artifact type
 	var ociManifest oci.Manifest
 	if err := json.Unmarshal(rawManifest, &ociManifest); err != nil {
-		return Catalog{}, fmt.Errorf("failed to parse OCI manifest: %w", err)
+		return *new(T), fmt.Errorf("failed to parse OCI manifest: %w", err)
 	}
 
 	// Check if this is an MCP server artifact
-	if ociManifest.ArtifactType != MCPServerArtifactType {
-		return Catalog{}, fmt.Errorf("artifact type %s is not %s", ociManifest.ArtifactType, MCPServerArtifactType)
+	if ociManifest.ArtifactType != expectedArtifactType {
+		return *new(T), fmt.Errorf("artifact type %s is not %s", ociManifest.ArtifactType, expectedArtifactType)
 	}
 
 	// Get the layers
 	layers, err := img.Layers()
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to get layers: %w", err)
+		return *new(T), fmt.Errorf("failed to get layers: %w", err)
 	}
 
 	if len(layers) == 0 {
-		return Catalog{}, fmt.Errorf("no layers found in artifact")
+		return *new(T), fmt.Errorf("no layers found in artifact")
 	}
 
 	// Get content from the first layer
 	firstLayer := layers[0]
 	rc, err := firstLayer.Uncompressed()
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to get first layer content: %w", err)
+		return *new(T), fmt.Errorf("failed to get first layer content: %w", err)
 	}
 	defer rc.Close()
 
 	content, err := io.ReadAll(rc)
 	if err != nil {
-		return Catalog{}, fmt.Errorf("failed to read first layer content: %w", err)
+		return *new(T), fmt.Errorf("failed to read first layer content: %w", err)
 	}
 
-	// Parse JSON from first layer as Catalog
-	var catalog Catalog
-	if err := json.Unmarshal(content, &catalog); err != nil {
-		return Catalog{}, fmt.Errorf("failed to parse Catalog from first layer: %w", err)
+	// Parse JSON from first layer as content
+	var parsedContent T
+	if err := json.Unmarshal(content, &parsedContent); err != nil {
+		return *new(T), fmt.Errorf("failed to parse content from first layer: %w", err)
 	}
 
-	return catalog, nil
+	return parsedContent, nil
 }
 
 // InspectArtifact reads an OCI artifact and outputs formatted JSON content
-func InspectArtifact(ociRef string) error {
-	// Use ReadArtifact to get the parsed Catalog data
-	catalog, err := ReadArtifact(ociRef)
+func InspectArtifact[T any](ociRef string, expectedArtifactType string) error {
+	// Use ReadArtifact to get the parsed content
+	content, err := ReadArtifact[T](ociRef, expectedArtifactType)
 	if err != nil {
 		return fmt.Errorf("failed to read artifact: %w", err)
 	}
 
 	// Format and output the JSON data
-	prettyJSON, err := json.MarshalIndent(catalog, "", "  ")
+	prettyJSON, err := json.MarshalIndent(content, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to format JSON: %w", err)
 	}

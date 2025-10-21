@@ -583,7 +583,7 @@ func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[stri
 		}
 
 		// Use the existing oci.ReadArtifact function to get the Catalog data
-		ociCatalog, err := oci.ReadArtifact(ociRef)
+		ociCatalog, err := oci.ReadArtifact[oci.Catalog](ociRef, oci.MCPServerArtifactType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
 		}
