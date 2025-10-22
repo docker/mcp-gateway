@@ -2,7 +2,6 @@ package workingset
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -31,12 +30,7 @@ func Push(ctx context.Context, dao db.DAO, id string, refStr string) error {
 	workingSet := NewFromDb(dbSet)
 	catalog := NewCatalogFromWorkingSet(workingSet)
 
-	content, err := json.Marshal(catalog)
-	if err != nil {
-		return fmt.Errorf("failed to marshal working set: %w", err)
-	}
-
-	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, content, nil)
+	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, catalog, nil)
 	if err != nil {
 		return fmt.Errorf("failed to push working set artifact: %w", err)
 	}
