@@ -15,8 +15,10 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 type Configurator interface {
@@ -88,6 +90,68 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 		byName[tool.Name] = tool
 	}
 	return nil, &byName, true
+}
+
+type WorkingSetConfiguration struct {
+	WorkingSet string
+}
+
+func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
+	configuration, err := c.readOnce(ctx)
+	if err != nil {
+		return Configuration{}, nil, nil, err
+	}
+
+	// TODO Stub for now
+	updates := make(chan Configuration)
+
+	return configuration, updates, func() error { return nil }, nil
+}
+
+func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, error) {
+	start := time.Now()
+	log("- Reading working set configuration...")
+
+	dao, err := db.New()
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to create database client: %w", err)
+	}
+
+	workingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to get working set: %w", err)
+	}
+	if workingSet == nil {
+		return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
+	}
+
+	// TODO totally incomplete
+	serverNames := make([]string, len(workingSet.Servers))
+	for i, server := range workingSet.Servers {
+		if server.Type == string(workingset.ServerTypeImage) {
+			serverNames[i] = server.Image
+		}
+	}
+
+	servers := make(map[string]catalog.Server)
+	for _, server := range workingSet.Servers {
+		if server.Type == string(workingset.ServerTypeImage) {
+			servers[server.Image] = catalog.Server{
+				Image: server.Image,
+				Name:  server.Image,
+			}
+		}
+	}
+
+	log("- Configuration read in", time.Since(start))
+
+	return Configuration{
+		serverNames: serverNames,
+		servers:     servers,
+		config:      make(map[string]map[string]any),
+		tools:       config.ToolsConfig{},
+		secrets:     make(map[string]string),
+	}, nil
 }
 
 type FileBasedConfiguration struct {

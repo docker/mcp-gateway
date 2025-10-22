@@ -74,10 +74,13 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
-	g := &Gateway{
-		Options: config.Options,
-		docker:  docker,
-		configurator: &FileBasedConfiguration{
+	var configurator Configurator
+	if config.WorkingSet != "" {
+		configurator = &WorkingSetConfiguration{
+			WorkingSet: config.WorkingSet,
+		}
+	} else {
+		configurator = &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
 			RegistryPath:       config.RegistryPath,
@@ -90,7 +93,12 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			Central:            config.Central,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			docker:             docker,
-		},
+		}
+	}
+	g := &Gateway{
+		Options:            config.Options,
+		docker:             docker,
+		configurator:       configurator,
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
 	}

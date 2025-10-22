@@ -4,6 +4,7 @@ import "github.com/docker/mcp-gateway/pkg/catalog"
 
 type Config struct {
 	Options
+	WorkingSet         string
 	ServerNames        []string
 	CatalogPath        []string
 	ConfigPath         []string
