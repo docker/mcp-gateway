@@ -50,12 +50,14 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 			for _, tool := range response.Tools {
 				fmt.Println(" -", tool.Name, "-", toolDescription(tool))
 			}
+			fmt.Println("\033[36mTip: Use \033[1;3m'docker mcp tools inspect <tool-name>'\033[0;36m to see tool details, or \033[1;3m'docker mcp tools call <tool-name>'\033[0;36m to test it\033[0m")
 		}
 	case "count":
 		if format == "json" {
 			fmt.Printf("{\"count\": %d}\n", len(response.Tools))
 		} else {
 			fmt.Println(len(response.Tools), "tools")
+			fmt.Println("\033[36mTip: Run \033[1;3m'docker mcp tools ls'\033[0;36m to see all available tools\033[0m")
 		}
 	case "inspect":
 		var found *mcp.Tool
