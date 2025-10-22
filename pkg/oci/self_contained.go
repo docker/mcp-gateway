@@ -30,13 +30,19 @@ func SelfContainedCatalog(ctx context.Context, dockerClient docker.Client, serve
 			}
 
 			metadataLabel, exists := inspect.Config.Labels["io.docker.server.metadata"]
-			if !exists {
-				return catalog.Catalog{}, nil, fmt.Errorf("server name %s looks like an OCI ref but is missing the io.docker.server.metadata label", serverName)
-			}
 
 			var server catalog.Server
-			if err := yaml.Unmarshal([]byte(metadataLabel), &server); err != nil {
-				return catalog.Catalog{}, nil, fmt.Errorf("failed to parse metadata label for %s: %w", serverName, err)
+			if exists {
+				// If metadata label exists, parse it for full server configuration
+				if err := yaml.Unmarshal([]byte(metadataLabel), &server); err != nil {
+					return catalog.Catalog{}, nil, fmt.Errorf("failed to parse metadata label for %s: %w", serverName, err)
+				}
+			} else {
+				// If no metadata label, create a minimal server entry with just the image
+				// This allows plain MCP server images to work without requiring the label
+				server = catalog.Server{
+					Type: "server",
+				}
 			}
 
 			server.Image = ociRef

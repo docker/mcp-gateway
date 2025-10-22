@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	workingset "github.com/docker/mcp-gateway/cmd/docker-mcp/working-set"
 	catalogTypes "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway"
@@ -29,6 +30,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	var additionalToolsConfig []string
 	var mcpRegistryUrls []string
 	var enableAllServers bool
+	var workingSetName string
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		// In-container.
 		// Note: The catalog URL will be updated after checking the feature flag in RunE
@@ -125,6 +127,27 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.MCPRegistryServers = mcpServers
 			}
 
+			// Handle --working-set flag
+			if workingSetName != "" {
+				if len(options.ServerNames) > 0 {
+					return fmt.Errorf("cannot use --working-set with --servers flag")
+				}
+				if enableAllServers {
+					return fmt.Errorf("cannot use --working-set with --enable-all-servers flag")
+				}
+
+				// Read working-set file
+				ws, err := workingset.ReadWorkingSetFile(workingSetName)
+				if err != nil {
+					return fmt.Errorf("failed to read working-set %q: %w", workingSetName, err)
+				}
+
+				// Set server names from the working-set
+				// These are treated as server references (can be OCI image refs or catalog names)
+				// and will go through the self-contained catalog resolution
+				options.ServerNames = ws.Servers
+			}
+
 			// Handle --enable-all-servers flag
 			if enableAllServers {
 				if len(options.ServerNames) > 0 {
@@ -150,6 +173,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
+	runCmd.Flags().StringVar(&workingSetName, "working-set", "", "Name of the working-set to use (mutually exclusive with --servers and --enable-all-servers)")
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")

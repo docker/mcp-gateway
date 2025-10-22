@@ -32,6 +32,24 @@ func ReadCatalog() ([]byte, error) {
 	return readFileOrEmpty(path)
 }
 
+func ReadWorkingSetConfig() ([]byte, error) {
+	path, err := FilePath("working-set-config.json")
+	if err != nil {
+		return nil, err
+	}
+
+	return readFileOrEmpty(path)
+}
+
+func ReadWorkingSetFile(name string) ([]byte, error) {
+	path, err := FilePath(workingSetFilename(name))
+	if err != nil {
+		return nil, err
+	}
+
+	return readFileOrEmpty(path)
+}
+
 func ReadCatalogFile(name string) ([]byte, error) {
 	path, err := FilePath(catalogFilename(name))
 	if err != nil {
@@ -57,12 +75,29 @@ func WriteCatalog(content []byte) error {
 	return writeConfigFile("catalog.json", content)
 }
 
+func WriteWorkingSetConfig(content []byte) error {
+	return writeConfigFile("working-set-config.json", content)
+}
+
+func WriteWorkingSetFile(name string, content []byte) error {
+	return writeConfigFile(workingSetFilename(name), content)
+}
+
 func WriteCatalogFile(name string, content []byte) error {
 	return writeConfigFile(catalogFilename(name), content)
 }
 
 func RemoveCatalogFile(name string) error {
 	path, err := FilePath(catalogFilename(name))
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(path)
+}
+
+func RemoveWorkingSetFile(name string) error {
+	path, err := FilePath(workingSetFilename(name))
 	if err != nil {
 		return err
 	}
@@ -129,6 +164,10 @@ func FilePath(name string) (string, error) {
 
 func catalogFilename(name string) string {
 	return filepath.Join("catalogs", sanitizeFilename(name)+".yaml")
+}
+
+func workingSetFilename(name string) string {
+	return filepath.Join("working-sets", sanitizeFilename(name)+".json")
 }
 
 func readFileOrEmpty(path string) ([]byte, error) {
