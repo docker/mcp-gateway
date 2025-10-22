@@ -9,6 +9,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
+const CurrentWorkingSetVersion = 1
+
 // WorkingSet represents a collection of MCP servers and their configurations
 type WorkingSet struct {
 	Version int               `yaml:"version" json:"version"`
@@ -75,7 +77,7 @@ func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
 	}
 
 	workingSet := WorkingSet{
-		Version: 1,
+		Version: CurrentWorkingSetVersion,
 		ID:      dbSet.ID,
 		Name:    dbSet.Name,
 		Servers: servers,

@@ -62,7 +62,7 @@ func (catalog Catalog) ToWorkingSet() WorkingSet {
 	}
 
 	return WorkingSet{
-		Version: 1,
+		Version: CurrentWorkingSetVersion,
 		Name:    catalog.Name,
 		Servers: servers,
 		Secrets: secrets,

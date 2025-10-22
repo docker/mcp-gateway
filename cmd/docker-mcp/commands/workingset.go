@@ -22,6 +22,50 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(listWorkingSetsCommand())
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
+	cmd.AddCommand(createWorkingSetCommand())
+
+	return cmd
+}
+
+func createWorkingSetCommand() *cobra.Command {
+	var opts struct {
+		Id      string
+		Name    string
+		Servers []string
+	}
+
+	cmd := &cobra.Command{
+		Use:   "create --name <name> [--id <id>] --server <ref1> --server <ref2> ...",
+		Short: "Create a new working set of MCP servers",
+		Long: `Create a new working set that groups multiple MCP servers together.
+A working set allows you to organize and manage related servers as a single unit.
+Working sets are decoupled from catalogs. Servers can be:
+  - MCP Registry references (e.g. http://registry.modelcontextprotocol.io/v0/servers/312e45a4-2216-4b21-b9a8-0f1a51425073)
+  - OCI image references with docker:// prefix (e.g., "docker://mcp/github:latest")`,
+		Example: `  # Create a working-set with multiple servers (OCI references)
+  docker mcp working-set create --name dev-tools --server docker://mcp/github:latest --server docker://mcp/slack:latest
+
+  # Create a working-set with MCP Registry references
+  docker mcp working-set create --name registry-servers --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+  # Mix MCP Registry references and OCI references
+  docker mcp working-set create --name mixed --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.Create(cmd.Context(), dao, opts.Id, opts.Name, opts.Servers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&opts.Name, "name", "", "Name of the working set (required)")
+	flags.StringVar(&opts.Id, "id", "", "ID of the working set (defaults to a slugified version of the name)")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include: catalog name or OCI reference with docker:// prefix (can be specified multiple times)")
+
+	_ = cmd.MarkFlagRequired("name")
 
 	return cmd
 }
