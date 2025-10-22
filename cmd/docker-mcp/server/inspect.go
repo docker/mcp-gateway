@@ -61,7 +61,7 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 		errs      errgroup.Group
 	)
 	errs.Go(func() error {
-		// Do no fetch tools if dynamic tools are enabled
+		// Do not fetch tools if config states tools will be dynamic
 		if server.Dynamic != nil && server.Dynamic.Tools {
 			tools = []Tool{}
 			return nil
