@@ -14,7 +14,6 @@ func Pull(ctx context.Context, dao db.DAO, ref string) error {
 		return fmt.Errorf("failed to read OCI working set: %w", err)
 	}
 
-	// TODO: validate the catalog
 	workingSet := ociCatalog.ToWorkingSet()
 
 	id, err := createWorkingSetId(ctx, workingSet.Name, dao)
@@ -22,6 +21,10 @@ func Pull(ctx context.Context, dao db.DAO, ref string) error {
 		return fmt.Errorf("failed to create working set id: %w", err)
 	}
 	workingSet.ID = id
+
+	if err := workingSet.Validate(); err != nil {
+		return fmt.Errorf("invalid working set: %w", err)
+	}
 
 	err = dao.CreateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {

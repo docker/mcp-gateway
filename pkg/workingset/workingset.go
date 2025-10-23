@@ -7,17 +7,18 @@ import (
 	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/validate"
 )
 
 const CurrentWorkingSetVersion = 1
 
 // WorkingSet represents a collection of MCP servers and their configurations
 type WorkingSet struct {
-	Version int               `yaml:"version" json:"version"`
-	ID      string            `yaml:"id" json:"id"`
-	Name    string            `yaml:"name" json:"name"`
-	Servers []Server          `yaml:"servers" json:"servers"`
-	Secrets map[string]Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+	Version int               `yaml:"version" json:"version" validate:"required,min=1,max=1"`
+	ID      string            `yaml:"id" json:"id" validate:"required"`
+	Name    string            `yaml:"name" json:"name" validate:"required,min=1"`
+	Servers []Server          `yaml:"servers" json:"servers" validate:"dive"`
+	Secrets map[string]Secret `yaml:"secrets,omitempty" json:"secrets,omitempty" validate:"dive"`
 }
 
 type ServerType string
@@ -29,16 +30,16 @@ const (
 
 // Server represents a server configuration in a working set
 type Server struct {
-	Type    ServerType             `yaml:"type" json:"type"`
+	Type    ServerType             `yaml:"type" json:"type" validate:"required,oneof=registry image"`
 	Config  map[string]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string                 `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Tools   []string               `yaml:"tools,omitempty" json:"tools,omitempty"`
 
 	// ServerTypeRegistry only
-	Source string `yaml:"source,omitempty" json:"source,omitempty"`
+	Source string `yaml:"source,omitempty" json:"source,omitempty" validate:"required_if=Type registry"`
 
 	// ServerTypeImage only
-	Image string `yaml:"image,omitempty" json:"image,omitempty"`
+	Image string `yaml:"image,omitempty" json:"image,omitempty" validate:"required_if=Type image"`
 }
 
 type SecretProvider string
@@ -49,7 +50,7 @@ const (
 
 // Secret represents a secret configuration in a working set
 type Secret struct {
-	Provider SecretProvider `yaml:"provider" json:"provider"`
+	Provider SecretProvider `yaml:"provider" json:"provider" validate:"required,oneof=docker-desktop-store"`
 }
 
 func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
@@ -119,6 +120,10 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 	}
 
 	return dbSet
+}
+
+func (workingSet *WorkingSet) Validate() error {
+	return validate.Get().Struct(workingSet)
 }
 
 func createWorkingSetId(ctx context.Context, name string, dao db.DAO) (string, error) {

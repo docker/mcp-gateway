@@ -54,6 +54,10 @@ func Create(ctx context.Context, dao db.DAO, id string, name string, servers []s
 		}
 	}
 
+	if err := workingSet.Validate(); err != nil {
+		return fmt.Errorf("invalid working set: %w", err)
+	}
+
 	err = dao.CreateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
 		return fmt.Errorf("failed to create working set: %w", err)

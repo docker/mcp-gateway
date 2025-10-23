@@ -17,7 +17,6 @@ func Import(ctx context.Context, dao db.DAO, filename string) error {
 		return fmt.Errorf("failed to read working set file: %w", err)
 	}
 
-	// TODO add validation
 	var workingSet WorkingSet
 	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
 		if err := yaml.Unmarshal(workingSetBuf, &workingSet); err != nil {
@@ -31,8 +30,8 @@ func Import(ctx context.Context, dao db.DAO, filename string) error {
 		return fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", filename)
 	}
 
-	if workingSet.Version != 1 {
-		return fmt.Errorf("unsupported working set version: %d", workingSet.Version)
+	if err := workingSet.Validate(); err != nil {
+		return fmt.Errorf("invalid working set: %w", err)
 	}
 
 	dbSet := workingSet.ToDb()
