@@ -54,5 +54,7 @@ func Import(ctx context.Context, dao db.DAO, filename string) error {
 		}
 	}
 
+	fmt.Printf("Imported working set %s\n", workingSet.ID)
+
 	return nil
 }

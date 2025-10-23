@@ -39,5 +39,7 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 		return fmt.Errorf("failed to write working set: %w", err)
 	}
 
+	fmt.Printf("Exported working set %s to %s\n", id, filename)
+
 	return nil
 }
