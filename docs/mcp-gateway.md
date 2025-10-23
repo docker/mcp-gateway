@@ -29,7 +29,12 @@ docker mcp gateway run --watch
 
 # Run a standalone dockerized MCP server (no catalog required)
 docker mcp gateway run --server docker.io/namespace/repository:latest
+
+# Run with a working set (requires working-sets feature to be enabled)
+docker mcp gateway run --working-set my-working-set
 ```
+
+See [Working Sets](working-sets.md) for more information about organizing servers into reusable collections.
 
 ## How to connect to an MCP Client?
 
@@ -104,7 +109,10 @@ Flags:
       --verbose                   Verbose output
       --verify-signatures         Verify signatures of the server images
       --watch                     Watch for changes and reconfigure the gateway (default true)
+      --working-set string        Working set ID to use (requires working-sets feature, mutually exclusive with --servers and --enable-all-servers)
 ```
+
+**Note:** The `--working-set` flag is only available when the `working-sets` feature is enabled via `docker mcp feature enable working-sets`.
 
 ## Troubleshooting
 
