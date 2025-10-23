@@ -9,17 +9,18 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/client"
 )
 
-func clientCommand(cwd string) *cobra.Command {
+func clientCommand(cwd string, dockerCli command.Cli) *cobra.Command {
 	cfg := client.ReadConfig()
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("client (Supported: %s)", strings.Join(client.GetSupportedMCPClients(*cfg), ", ")),
 		Short: "Manage MCP clients",
 	}
 	cmd.AddCommand(listClientCommand(cwd, *cfg))
-	cmd.AddCommand(connectClientCommand(cwd, *cfg))
+	cmd.AddCommand(connectClientCommand(cwd, *cfg, dockerCli))
 	cmd.AddCommand(disconnectClientCommand(cwd, *cfg))
 	cmd.AddCommand(manualClientCommand())
 	return cmd
@@ -44,7 +45,7 @@ func listClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	return cmd
 }
 
-func connectClientCommand(cwd string, cfg client.Config) *cobra.Command {
+func connectClientCommand(cwd string, cfg client.Config, dockerCli command.Cli) *cobra.Command {
 	var opts struct {
 		Global     bool
 		Quiet      bool
@@ -61,7 +62,9 @@ func connectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	flags := cmd.Flags()
 	addGlobalFlag(flags, &opts.Global)
 	addQuietFlag(flags, &opts.Quiet)
-	addWorkingSetFlag(flags, &opts.WorkingSet)
+	if isWorkingSetsFeatureEnabled(dockerCli) {
+		addWorkingSetFlag(flags, &opts.WorkingSet)
+	}
 	return cmd
 }
 
