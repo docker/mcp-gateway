@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 )
 
 func Connect(ctx context.Context, cwd string, config Config, vendor string, global, quiet bool) error {
@@ -33,6 +35,8 @@ func Connect(ctx context.Context, cwd string, config Config, vendor string, glob
 		return err
 	}
 	fmt.Printf("You might have to restart '%s'.\n", vendor)
-	fmt.Println("\033[36mTip: Your client is now connected! Try \033[1;3m'docker mcp tools ls'\033[0;36m to see available tools\033[0m")
+	if hints.Enabled() {
+		fmt.Println("\033[36mTip: Your client is now connected! Try \033[1;3m'docker mcp tools ls'\033[0;36m to see available tools\033[0m")
+	}
 	return nil
 }

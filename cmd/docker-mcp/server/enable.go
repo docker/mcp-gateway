@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -94,12 +95,12 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 		return fmt.Errorf("writing registry config: %w", err)
 	}
 
-	if len(add) > 0 {
+	if len(add) > 0 && hints.Enabled() {
 		fmt.Println("\033[36mTip: \033[32m✓\033[0m \033[36mServer enabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to view all enabled servers\033[0m")
 		fmt.Println()
 	}
 
-	if len(remove) > 0 {
+	if len(remove) > 0 && hints.Enabled() {
 		fmt.Println("\033[36mTip: \033[32m✓\033[0m \033[36mServer disabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to see remaining enabled servers\033[0m")
 		fmt.Println()
 	}

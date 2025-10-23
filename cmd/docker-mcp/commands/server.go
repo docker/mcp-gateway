@@ -8,6 +8,7 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -42,8 +43,10 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 				fmt.Fprintln(cmd.OutOrStdout(), "No server is enabled")
 			} else {
 				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(list, ", "))
-				fmt.Fprintln(cmd.OutOrStdout(), "\033[36mTip: Connect to Claude/Cursor to use these servers with \033[1;3m'docker mcp client connect <client-name>'\033[0m")
-				fmt.Fprintln(cmd.OutOrStdout(), "")
+				if hints.Enabled() {
+					fmt.Fprintln(cmd.OutOrStdout(), "\033[36mTip: Connect to a client (IE: Claude/Cursor) to use these servers with \033[1;3m'docker mcp client connect <client-name>'\033[0m")
+					fmt.Fprintln(cmd.OutOrStdout(), "")
+				}
 			}
 
 			return nil

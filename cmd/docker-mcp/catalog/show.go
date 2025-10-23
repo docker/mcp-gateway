@@ -13,6 +13,7 @@ import (
 	"github.com/moby/term"
 	"gopkg.in/yaml.v3"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/pkg/yq"
 )
 
@@ -153,8 +154,9 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
 	fmt.Printf("  %d servers total\n", serverCount)
 	fmt.Println()
-	fmt.Println("\033[36mTip: \033[1;3mdocker mcp server inspect <server-name>\033[0;36m to view server details, \033[1;3mdocker mcp server enable <server-name>\033[0;36m to add servers\033[0m")
-	fmt.Println()
+	if hints.Enabled() {
+		fmt.Println("\033[36mTip: \033[1;3mdocker mcp server inspect <server-name>\033[0;36m to view server details, \033[1;3mdocker mcp server enable <server-name>\033[0;36m to add servers\033[0m")
+	}
 
 	return nil
 }

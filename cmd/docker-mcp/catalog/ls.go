@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -47,5 +48,7 @@ func humanPrintCatalog(cfg Config) {
 	for name, catalog := range cfg.Catalogs {
 		fmt.Printf("%s: %s\n", name, catalog.DisplayName)
 	}
-	fmt.Println("\033[36mTip: Use \033[1;3m'docker mcp catalog show <name>'\033[0;36m to browse a catalog's servers\033[0m")
+	if hints.Enabled() {
+		fmt.Println("\033[36mTip: Use \033[1;3m'docker mcp catalog show <name>'\033[0;36m to browse a catalog's servers\033[0m")
+	}
 }
