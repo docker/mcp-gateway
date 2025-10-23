@@ -23,7 +23,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
-
+	cmd.AddCommand(removeWorkingSetCommand())
 	return cmd
 }
 
@@ -179,6 +179,21 @@ func importWorkingSetCommand() *cobra.Command {
 				return err
 			}
 			return workingset.Import(cmd.Context(), dao, args[0])
+		},
+	}
+}
+
+func removeWorkingSetCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "remove <working-set-id>",
+		Short: "Remove a working set",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.Remove(cmd.Context(), dao, args[0])
 		},
 	}
 }

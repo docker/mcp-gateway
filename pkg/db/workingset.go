@@ -14,6 +14,7 @@ type WorkingSetDAO interface {
 	ListWorkingSets(ctx context.Context) ([]WorkingSet, error)
 	CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
+	RemoveWorkingSet(ctx context.Context, id string) error
 }
 
 type ServerList []Server
@@ -83,6 +84,16 @@ func (d *dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
 		return nil, err
 	}
 	return &workingSet, nil
+}
+
+func (d *dao) RemoveWorkingSet(ctx context.Context, id string) error {
+	const query = `DELETE FROM working_set WHERE id = $1`
+
+	_, err := d.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *dao) CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error {
