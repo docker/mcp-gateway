@@ -185,9 +185,10 @@ func importWorkingSetCommand() *cobra.Command {
 
 func removeWorkingSetCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <working-set-id>",
-		Short: "Remove a working set",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove <working-set-id>",
+		Aliases: []string{"rm"},
+		Short:   "Remove a working set",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
