@@ -317,8 +317,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 
 	// Initialize authentication token for SSE and streaming modes
+	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
 	transport := strings.ToLower(g.Transport)
-	if transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http" {
+	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
+	if (transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http") && !inContainer {
 		token, wasGenerated, err := getOrGenerateAuthToken()
 		if err != nil {
 			return fmt.Errorf("failed to initialize auth token: %w", err)
@@ -337,7 +339,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start sse server on port", g.Port)
 		endpoint := "/sse"
 		url := formatGatewayURL(g.Port, endpoint)
-		if g.authTokenWasGenerated {
+		if inContainer {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Authentication disabled (running in container)")
+		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
@@ -350,7 +355,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start streaming server on port", g.Port)
 		endpoint := "/mcp"
 		url := formatGatewayURL(g.Port, endpoint)
-		if g.authTokenWasGenerated {
+		if inContainer {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Authentication disabled (running in container)")
+		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
