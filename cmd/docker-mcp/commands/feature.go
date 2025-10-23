@@ -199,13 +199,19 @@ func isFeatureEnabledFromCli(dockerCli command.Cli, feature string) bool {
 
 // isFeatureEnabledFromConfig checks if a feature is enabled from a config file
 func isFeatureEnabledFromConfig(configFile *configfile.ConfigFile, feature string) bool {
+	// Features that are enabled by default
+	defaultEnabledFeatures := map[string]bool{
+		"mcp-oauth-dcr":  true,
+		"dynamic-tools":  true,
+	}
+
 	if configFile.Features == nil {
-		return feature == "mcp-oauth-dcr" // mcp-oauth-dcr is enabled by default
+		return defaultEnabledFeatures[feature]
 	}
 
 	value, exists := configFile.Features[feature]
 	if !exists {
-		return feature == "mcp-oauth-dcr" // mcp-oauth-dcr is enabled by default
+		return defaultEnabledFeatures[feature]
 	}
 
 	// Handle both boolean string values and "enabled"/"disabled" strings
