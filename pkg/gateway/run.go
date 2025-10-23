@@ -65,6 +65,9 @@ type Gateway struct {
 	capabilitiesMu     sync.RWMutex
 	serverCapabilities map[string]*ServerCapabilities
 
+	// Track all tool registrations for mcp-exec
+	toolRegistrations map[string]ToolRegistration
+
 	// authToken stores the authentication token for SSE/streaming modes
 	authToken string
 	// authTokenWasGenerated indicates whether the token was auto-generated or from environment
@@ -72,6 +75,22 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
+	// Prepend session-specific paths if SessionName is set
+	registryPath := config.RegistryPath
+	configPath := config.ConfigPath
+	toolsPath := config.ToolsPath
+
+	if config.SessionName != "" {
+		// Prepend session-specific paths to load session configs first
+		sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
+		sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
+		sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
+
+		registryPath = append([]string{sessionRegistry}, registryPath...)
+		configPath = append([]string{sessionConfig}, configPath...)
+		toolsPath = append([]string{sessionTools}, toolsPath...)
+	}
+
 	g := &Gateway{
 		Options:        config.Options,
 		docker:         docker,
@@ -79,20 +98,23 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		configurator: &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
-			RegistryPath:       config.RegistryPath,
-			ConfigPath:         config.ConfigPath,
+			RegistryPath:       registryPath,
+			ConfigPath:         configPath,
 			SecretsPath:        config.SecretsPath,
-			ToolsPath:          config.ToolsPath,
+			ToolsPath:          toolsPath,
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
+			sessionName:        config.SessionName,
 			docker:             docker,
 		},
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
+		toolRegistrations:  make(map[string]ToolRegistration),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
+
 	return g
 }
 
@@ -159,6 +181,13 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return err
 	}
 	defer func() { _ = stopConfigWatcher() }()
+
+	// Set the session name in the configuration for persistence if specified via --session flag
+	if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
+		if fbc.sessionName != "" {
+			g.configuration.SessionName = fbc.sessionName
+		}
+	}
 
 	// Parse interceptors
 	var parsedInterceptors []interceptors.Interceptor
@@ -288,8 +317,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 	}
 
 	// Initialize authentication token for SSE and streaming modes
+	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
 	transport := strings.ToLower(g.Transport)
-	if transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http" {
+	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
+	if (transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http") && !inContainer {
 		token, wasGenerated, err := getOrGenerateAuthToken()
 		if err != nil {
 			return fmt.Errorf("failed to initialize auth token: %w", err)
@@ -308,7 +339,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start sse server on port", g.Port)
 		endpoint := "/sse"
 		url := formatGatewayURL(g.Port, endpoint)
-		if g.authTokenWasGenerated {
+		if inContainer {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Authentication disabled (running in container)")
+		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {
@@ -321,7 +355,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start streaming server on port", g.Port)
 		endpoint := "/mcp"
 		url := formatGatewayURL(g.Port, endpoint)
-		if g.authTokenWasGenerated {
+		if inContainer {
+			log.Logf("> Gateway URL: %s", url)
+			log.Logf("> Authentication disabled (running in container)")
+		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
 		} else {

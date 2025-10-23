@@ -55,8 +55,9 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		}
 	}
 
-	// Clear the tracking map - we'll rebuild it
+	// Clear the tracking maps - we'll rebuild them
 	g.serverCapabilities = make(map[string]*ServerCapabilities)
+	g.toolRegistrations = make(map[string]ToolRegistration)
 
 	// Add new capabilities and track them per server
 	for _, tool := range capabilities.Tools {
@@ -70,6 +71,9 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 			g.serverCapabilities[tool.ServerName].ToolNames,
 			tool.Tool.Name,
 		)
+
+		// Track tool registration for mcp-exec
+		g.toolRegistrations[tool.Tool.Name] = tool
 	}
 
 	// Add internal tools when dynamic-tools feature is enabled
@@ -79,26 +83,42 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		// Add mcp-find tool
 		mcpFindTool := g.createMcpFindTool(configuration)
 		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
+		g.toolRegistrations[mcpFindTool.Tool.Name] = *mcpFindTool
 
 		// Add mcp-add tool
 		mcpAddTool := g.createMcpAddTool(clientConfig)
 		g.mcpServer.AddTool(mcpAddTool.Tool, mcpAddTool.Handler)
+		g.toolRegistrations[mcpAddTool.Tool.Name] = *mcpAddTool
 
 		// Add mcp-remove tool
 		mcpRemoveTool := g.createMcpRemoveTool()
 		g.mcpServer.AddTool(mcpRemoveTool.Tool, mcpRemoveTool.Handler)
+		g.toolRegistrations[mcpRemoveTool.Tool.Name] = *mcpRemoveTool
 
 		// Add mcp-registry-import tool
 		mcpRegistryImportTool := g.createMcpRegistryImportTool(configuration, clientConfig)
 		g.mcpServer.AddTool(mcpRegistryImportTool.Tool, mcpRegistryImportTool.Handler)
+		g.toolRegistrations[mcpRegistryImportTool.Tool.Name] = *mcpRegistryImportTool
 
 		// Add mcp-config-set tool
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
+		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
+
+		// Add mcp-session-name tool
+		mcpSessionNameTool := g.createMcpSessionNameTool()
+		g.mcpServer.AddTool(mcpSessionNameTool.Tool, mcpSessionNameTool.Handler)
+		g.toolRegistrations[mcpSessionNameTool.Tool.Name] = *mcpSessionNameTool
 
 		// Add codemode
 		codeModeTool := g.createCodeModeTool(clientConfig)
 		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
+		g.toolRegistrations[codeModeTool.Tool.Name] = *codeModeTool
+
+		// Add mcp-exec tool
+		mcpExecTool := g.createMcpExecTool()
+		g.mcpServer.AddTool(mcpExecTool.Tool, mcpExecTool.Handler)
+		g.toolRegistrations[mcpExecTool.Tool.Name] = *mcpExecTool
 
 		prompts.AddDiscoverPrompt(g.mcpServer)
 
@@ -108,7 +128,9 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
 		log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
 		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+		log.Log("  > mcp-session-name: tool for setting session name to persist configuration")
 		log.Log("  > code-mode: write code that calls other MCPs directly")
+		log.Log("  > mcp-exec: execute tools that exist in the current session")
 	}
 
 	for _, prompt := range capabilities.Prompts {
