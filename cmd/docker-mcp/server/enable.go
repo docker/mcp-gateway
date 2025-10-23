@@ -95,12 +95,12 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 	}
 
 	if len(add) > 0 {
-		fmt.Println("\033[32m✓\033[0m \033[36mServer enabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to view servers\033[0m")
+		fmt.Println("\033[36mTip: \033[32m✓\033[0m \033[36mServer enabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to view servers\033[0m")
 		fmt.Println()
 	}
 
 	if len(remove) > 0 {
-		fmt.Println("\033[32m✓\033[0m \033[36mServer disabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to see remaining enabled servers\033[0m")
+		fmt.Println("\033[36mTip: \033[32m✓\033[0m \033[36mServer disabled. Run \033[1;3m'docker mcp server ls'\033[0;36m to see remaining enabled servers\033[0m")
 		fmt.Println()
 	}
 
