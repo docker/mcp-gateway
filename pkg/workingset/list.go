@@ -16,6 +16,11 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 		return fmt.Errorf("failed to list working sets: %w", err)
 	}
 
+	if len(dbSets) == 0 {
+		fmt.Println("No working sets found. Use `docker mcp workingset create --name <name>` to create a working set.")
+		return nil
+	}
+
 	workingSets := make([]WorkingSet, len(dbSets))
 	for i, dbWorkingSet := range dbSets {
 		workingSets[i] = NewFromDb(&dbWorkingSet)
