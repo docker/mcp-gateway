@@ -343,7 +343,7 @@ func (g *Gateway) createCodeModeTool(_ *clientConfig) *ToolRegistration {
 
 		// Usage instructions
 		responseText.WriteString("## How to Use\n")
-		responseText.WriteString(fmt.Sprintf("You can call this tool using the **mcp-exec** tool:\n"))
+		responseText.WriteString("You can call this tool using the **mcp-exec** tool:\n")
 		responseText.WriteString("```json\n")
 		responseText.WriteString("{\n")
 		responseText.WriteString(fmt.Sprintf("  \"name\": \"%s\",\n", toolName))
@@ -352,7 +352,7 @@ func (g *Gateway) createCodeModeTool(_ *clientConfig) *ToolRegistration {
 		responseText.WriteString("  }\n")
 		responseText.WriteString("}\n")
 		responseText.WriteString("```\n\n")
-		responseText.WriteString(fmt.Sprintf("The tool is now available in your session and can be executed via mcp-exec."))
+		responseText.WriteString("The tool is now available in your session and can be executed via mcp-exec.")
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
@@ -453,7 +453,7 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("Bitly API returned status %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("bitly API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Parse the response
@@ -1132,7 +1132,7 @@ func (g *Gateway) createMcpSessionNameTool() *ToolRegistration {
 // isValidSessionName checks if a session name contains only alphanumeric characters and hyphens
 func isValidSessionName(name string) bool {
 	for _, ch := range name {
-		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_') {
+		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '_' {
 			return false
 		}
 	}

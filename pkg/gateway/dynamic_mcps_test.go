@@ -43,11 +43,11 @@ func TestMcpExecTool(t *testing.T) {
 		},
 	}
 
-	mockToolHandler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	mockToolHandler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		mockToolCalled = true
 
 		// Verify the arguments were passed correctly
-		var args map[string]interface{}
+		var args map[string]any
 		err := json.Unmarshal(req.Params.Arguments, &args)
 		require.NoError(t, err)
 		assert.Equal(t, "test-value", args["param1"])
@@ -140,9 +140,9 @@ func TestMcpExecTool(t *testing.T) {
 		mockToolCalled = false
 
 		// Create a request to call test-tool through mcp-exec
-		execArgs := map[string]interface{}{
+		execArgs := map[string]any{
 			"name": "test-tool",
-			"arguments": map[string]interface{}{
+			"arguments": map[string]any{
 				"param1": "test-value",
 			},
 		}
@@ -171,9 +171,9 @@ func TestMcpExecTool(t *testing.T) {
 
 	// Test calling a non-existent tool
 	t.Run("tool not found", func(t *testing.T) {
-		execArgs := map[string]interface{}{
+		execArgs := map[string]any{
 			"name": "non-existent-tool",
-			"arguments": map[string]interface{}{
+			"arguments": map[string]any{
 				"param1": "test-value",
 			},
 		}
@@ -201,8 +201,8 @@ func TestMcpExecTool(t *testing.T) {
 
 	// Test missing tool name
 	t.Run("missing tool name", func(t *testing.T) {
-		execArgs := map[string]interface{}{
-			"arguments": map[string]interface{}{
+		execArgs := map[string]any{
+			"arguments": map[string]any{
 				"param1": "test-value",
 			},
 		}
@@ -235,7 +235,7 @@ func TestMcpExecTool(t *testing.T) {
 			},
 		}
 
-		noArgToolHandler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		noArgToolHandler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			noArgToolCalled = true
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{Text: "no-arg tool executed"}},
@@ -248,7 +248,7 @@ func TestMcpExecTool(t *testing.T) {
 			Handler:    noArgToolHandler,
 		}
 
-		execArgs := map[string]interface{}{
+		execArgs := map[string]any{
 			"name": "no-arg-tool",
 		}
 
@@ -274,13 +274,13 @@ func TestMcpExecTool(t *testing.T) {
 
 		// Create arguments as they would come when schema had Type: "string"
 		// The arguments field itself is a JSON string containing the actual arguments
-		innerArgs := map[string]interface{}{
+		innerArgs := map[string]any{
 			"param1": "test-value",
 		}
 		innerArgsJSON, err := json.Marshal(innerArgs)
 		require.NoError(t, err)
 
-		execArgs := map[string]interface{}{
+		execArgs := map[string]any{
 			"name":      "test-tool",
 			"arguments": string(innerArgsJSON), // Pass as string (simulating the old behavior)
 		}
@@ -391,7 +391,7 @@ func TestShortenURLWithBitly(t *testing.T) {
 
 		longURL := "https://example.com/oauth/authorize?client_id=abc123&redirect_uri=https://example.com/callback&response_type=code&state=xyz789"
 		_, err := shortenURL(ctx, longURL)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "BITLY_ACCESS_TOKEN not set")
 	})
 
