@@ -3,7 +3,6 @@ package workingset
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 )
@@ -40,18 +39,11 @@ func Create(ctx context.Context, dao db.DAO, id string, name string, servers []s
 	}
 
 	for i, server := range servers {
-		// TODO finalize image schema
-		if strings.HasPrefix(server, "docker://") {
-			workingSet.Servers[i] = Server{
-				Type:  ServerTypeImage,
-				Image: strings.TrimPrefix(server, "docker://"),
-			}
-		} else {
-			workingSet.Servers[i] = Server{
-				Type:   ServerTypeRegistry,
-				Source: server,
-			}
+		s, err := resolveServerFromString(server)
+		if err != nil {
+			return fmt.Errorf("invalid server value: %w", err)
 		}
+		workingSet.Servers[i] = s
 	}
 
 	if err := workingSet.Validate(); err != nil {

@@ -157,3 +157,19 @@ func createWorkingSetId(ctx context.Context, name string, dao db.DAO) (string, e
 
 	return "", fmt.Errorf("failed to create working set id: %w", err)
 }
+
+func resolveServerFromString(value string) (Server, error) {
+	if strings.HasPrefix(value, "docker://") {
+		return Server{
+			Type:  ServerTypeImage,
+			Image: strings.TrimPrefix(value, "docker://"),
+		}, nil
+	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
+		return Server{
+			Type:   ServerTypeRegistry,
+			Source: value,
+		}, nil
+	} else {
+		return Server{}, fmt.Errorf("invalid server value: %s", value)
+	}
+}

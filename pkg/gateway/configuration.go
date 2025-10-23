@@ -102,7 +102,7 @@ func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan
 		return Configuration{}, nil, nil, err
 	}
 
-	// TODO Stub for now
+	// TODO(cody): Stub for now
 	updates := make(chan Configuration)
 
 	return configuration, updates, func() error { return nil }, nil
@@ -125,7 +125,8 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 		return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
 	}
 
-	// TODO totally incomplete
+	// TODO(cody): Finish making the gateway fully compatible with working sets
+	// This currently only supports no config + no secrets + image-only servers
 	serverNames := make([]string, len(workingSet.Servers))
 	for i, server := range workingSet.Servers {
 		if server.Type == string(workingset.ServerTypeImage) {
