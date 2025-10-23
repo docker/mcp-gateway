@@ -4,7 +4,11 @@ from mcp import ClientSession
 
 
 async def main():
-    async with streamablehttp_client(os.getenv("MCP_HOST")) as (
+    # Get authentication token from environment
+    token = os.getenv("MCP_GATEWAY_AUTH_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    async with streamablehttp_client(os.getenv("MCP_HOST"), headers=headers) as (
         read_stream,
         write_stream,
         _,
