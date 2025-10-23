@@ -159,7 +159,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
-	runCmd.Flags().StringVar(&options.WorkingSet, "working-set", "", "Working set ID to use (mutually exclusive with --servers and --enable-all-servers)")
+	if isWorkingSetsFeatureEnabled(dockerCli) {
+		runCmd.Flags().StringVar(&options.WorkingSet, "working-set", "", "Working set ID to use (mutually exclusive with --servers and --enable-all-servers)")
+	}
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
@@ -315,5 +317,19 @@ func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
 		return false
 	}
 
+	return value == "enabled"
+}
+
+// isWorkingSetsFeatureEnabled checks if the working-sets feature is enabled
+func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["working-sets"]
+	if !exists {
+		return false
+	}
 	return value == "enabled"
 }

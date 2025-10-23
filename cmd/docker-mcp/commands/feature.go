@@ -39,14 +39,15 @@ func featureEnableCommand(dockerCli command.Cli) *cobra.Command {
 Available features:
   oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication
   mcp-oauth-dcr          Enable Dynamic Client Registration (DCR) for automatic OAuth client setup
-  dynamic-tools          Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)`,
+  dynamic-tools          Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)
+	working-sets           Enable working set management tools (docker mcp workingset <subcommand>)`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			featureName := args[0]
 
 			// Validate feature name
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  mcp-oauth-dcr          Enable Dynamic Client Registration for automatic OAuth setup\n  dynamic-tools          Enable internal MCP management tools", featureName)
+				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  mcp-oauth-dcr          Enable Dynamic Client Registration for automatic OAuth setup\n  dynamic-tools          Enable internal MCP management tools\n  working-sets           Enable working set management tools (docker mcp workingset <subcommand>)", featureName)
 			}
 
 			// Enable the feature
@@ -83,6 +84,11 @@ Available features:
 				fmt.Println("  - mcp-add: add MCP servers to the registry and reload configuration")
 				fmt.Println("  - mcp-remove: remove MCP servers from the registry and reload configuration")
 				fmt.Println("\nNo additional flags are needed - this applies to all gateway runs.")
+			case "working-sets":
+				fmt.Println("\nThis feature enables working set management tools.")
+				fmt.Println("When enabled, the cli provides commands for managing working sets:")
+				fmt.Println("  - docker mcp workingset <subcommand> ...")
+				fmt.Println("\nThis also enables the --working-set flag for the docker mcp gateway run command.")
 			}
 
 			return nil
@@ -137,7 +143,7 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools"}
+			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools", "working-sets"}
 			for _, feature := range knownFeatures {
 				status := "disabled"
 				if isFeatureEnabledFromCli(dockerCli, feature) {
@@ -154,6 +160,8 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 					fmt.Printf("  %-20s %s\n", "", "Enable Dynamic Client Registration (DCR) for automatic OAuth client setup")
 				case "dynamic-tools":
 					fmt.Printf("  %-20s %s\n", "", "Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)")
+				case "working-sets":
+					fmt.Printf("  %-20s %s\n", "", "Enable working set management tools (docker mcp workingset <subcommand>)")
 				}
 				fmt.Println()
 			}
@@ -217,6 +225,7 @@ func isKnownFeature(feature string) bool {
 		"oauth-interceptor",
 		"mcp-oauth-dcr",
 		"dynamic-tools",
+		"working-sets",
 	}
 
 	for _, known := range knownFeatures {
