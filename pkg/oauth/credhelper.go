@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/docker/docker-credential-helpers/client"
@@ -169,9 +171,76 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 
 // newOAuthHelper creates a credential helper for OAuth token access
 func newOAuthHelper() credentials.Helper {
-	return oauthHelper{
-		program: newShellProgramFunc("docker-credential-desktop"),
+	helperName := getCredentialHelperName()
+	if helperName == "" {
+		log.Logf("! No credential helper found")
+		log.Logf("! Install a credential helper for your platform:")
+		log.Logf("!   macOS:   brew install docker-credential-helper")
+		log.Logf("!   Ubuntu:  sudo apt-get install docker-credential-secretservice")
+		log.Logf("!   Linux:   sudo apt-get install docker-credential-pass")
+		log.Logf("!   Windows: Download from https://github.com/docker/docker-credential-helpers/releases")
+		log.Logf("! Then configure Docker: echo '{\"credsStore\": \"osxkeychain\"}' > ~/.docker/config.json")
+		// Return a helper that will fail with clear error messages
+		helperName = "notfound"
 	}
+
+	log.Logf("- Using credential helper: docker-credential-%s", helperName)
+	return oauthHelper{
+		program: newShellProgramFunc("docker-credential-" + helperName),
+	}
+}
+
+// getCredentialHelperName returns the credential helper to use
+// Priority: Desktop binary > Docker config credsStore setting
+func getCredentialHelperName() string {
+	// 1. Desktop mode - use docker-credential-desktop if available
+	if !IsCEMode() && commandExists("docker-credential-desktop") {
+		return "desktop"
+	}
+
+	// 2. Read from ~/.docker/config.json
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Logf("! Failed to get home directory: %v", err)
+		return ""
+	}
+
+	configPath := filepath.Join(homeDir, ".docker", "config.json")
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Logf("! Failed to read Docker config at %s: %v", configPath, err)
+		}
+		return ""
+	}
+
+	// Parse JSON to get credsStore
+	var config struct {
+		CredsStore string `json:"credsStore"`
+	}
+	if err := json.Unmarshal(configData, &config); err != nil {
+		log.Logf("! Failed to parse Docker config: %v", err)
+		return ""
+	}
+
+	if config.CredsStore == "" {
+		return ""
+	}
+
+	// Verify the helper binary exists
+	helperBinary := "docker-credential-" + config.CredsStore
+	if !commandExists(helperBinary) {
+		log.Logf("! Configured credential helper '%s' not found in PATH", helperBinary)
+		return ""
+	}
+
+	return config.CredsStore
+}
+
+// commandExists checks if a command exists in PATH
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
 }
 
 // newShellProgramFunc creates programs that are executed in a Shell.
