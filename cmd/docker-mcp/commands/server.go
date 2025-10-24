@@ -83,7 +83,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			// OCI refs typically contain a registry/repository pattern with optional tag or digest
 			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
 				// Use OCI inspect for OCI references
-				return oci.InspectArtifact(arg)
+				return oci.InspectArtifact[oci.Catalog](arg, oci.MCPServerArtifactType)
 			}
 
 			// Use regular server inspect for server names

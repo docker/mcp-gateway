@@ -75,27 +75,29 @@ type Gateway struct {
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
-	// Prepend session-specific paths if SessionName is set
-	registryPath := config.RegistryPath
-	configPath := config.ConfigPath
-	toolsPath := config.ToolsPath
+	var configurator Configurator
+	if config.WorkingSet != "" {
+		configurator = &WorkingSetConfiguration{
+			WorkingSet: config.WorkingSet,
+		}
+	} else {
+		// Prepend session-specific paths if SessionName is set
+		registryPath := config.RegistryPath
+		configPath := config.ConfigPath
+		toolsPath := config.ToolsPath
 
-	if config.SessionName != "" {
-		// Prepend session-specific paths to load session configs first
-		sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
-		sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
-		sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
+		if config.SessionName != "" {
+			// Prepend session-specific paths to load session configs first
+			sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
+			sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
+			sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
 
-		registryPath = append([]string{sessionRegistry}, registryPath...)
-		configPath = append([]string{sessionConfig}, configPath...)
-		toolsPath = append([]string{sessionTools}, toolsPath...)
-	}
+			registryPath = append([]string{sessionRegistry}, registryPath...)
+			configPath = append([]string{sessionConfig}, configPath...)
+			toolsPath = append([]string{sessionTools}, toolsPath...)
+		}
 
-	g := &Gateway{
-		Options:        config.Options,
-		docker:         docker,
-		oauthProviders: make(map[string]*oauth.Provider),
-		configurator: &FileBasedConfiguration{
+		configurator = &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
 			RegistryPath:       registryPath,
@@ -108,7 +110,14 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			sessionName:        config.SessionName,
 			docker:             docker,
-		},
+		}
+	}
+
+	g := &Gateway{
+		Options:            config.Options,
+		docker:             docker,
+		oauthProviders:     make(map[string]*oauth.Provider),
+		configurator:       configurator,
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
 		toolRegistrations:  make(map[string]ToolRegistration),

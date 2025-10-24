@@ -191,13 +191,17 @@ func Import(registryURL string, ociRepository string, push bool) error {
 		Registry: []Server{server},
 	}
 
-	// Create the OCI artifact with the subject
-	manifest, err := CreateArtifactWithSubjectAndPush(artifactRef, ociCatalog, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType, push)
-	if err != nil {
-		return fmt.Errorf("failed to create OCI artifact: %w", err)
-	}
+	if push {
+		// Create the OCI artifact with the subject
+		manifest, err := CreateArtifactWithSubjectAndPush(context.Background(), artifactRef, ociCatalog, subjectDescriptor.Digest, subjectDescriptor.Size, subjectDescriptor.MediaType)
+		if err != nil {
+			return fmt.Errorf("failed to create OCI artifact: %w", err)
+		}
 
-	fmt.Printf("%s@sha256:%s", artifactRef.Context().Name(), manifest)
+		fmt.Printf("%s@sha256:%s", artifactRef.Context().Name(), manifest)
+	} else {
+		fmt.Printf("Artifact not pushed")
+	}
 
 	return nil
 }
