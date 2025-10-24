@@ -260,7 +260,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
-	if g.McpOAuthDcrEnabled {
+	// When running in Container mode, disable OAuth notification monitoring and authentication
+	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
+
+	if g.McpOAuthDcrEnabled && !inContainer {
 		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
 		log.Log("- Starting OAuth notification monitor")
 		monitor := oauth.NewNotificationMonitor()
@@ -319,7 +322,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize authentication token for SSE and streaming modes
 	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
 	transport := strings.ToLower(g.Transport)
-	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
 	if (transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http") && !inContainer {
 		token, wasGenerated, err := getOrGenerateAuthToken()
 		if err != nil {
