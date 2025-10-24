@@ -7,15 +7,21 @@ import (
 
 func Enabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
-	if configFile != nil && configFile.Plugins != nil {
-		if pluginConfig, ok := configFile.Plugins["-x-cli-hints"]; ok {
-			if enabledValue, exists := pluginConfig["enabled"]; exists {
-				return enabledValue == "true"
-			}
-		}
+	if configFile == nil || configFile.Plugins == nil {
+		return true
 	}
 
-	return true
+	pluginConfig, ok := configFile.Plugins["-x-cli-hints"]
+	if !ok {
+		return true
+	}
+
+	enabledValue, exists := pluginConfig["enabled"]
+	if !exists {
+		return true
+	}
+
+	return enabledValue == "true"
 }
 
 var (
