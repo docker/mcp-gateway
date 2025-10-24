@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/moby/term"
 	"gopkg.in/yaml.v3"
@@ -54,7 +55,7 @@ func SupportedFormats() string {
 	return strings.Join(quoted, ", ")
 }
 
-func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bool) error {
+func Show(ctx context.Context, dockerCli command.Cli, name string, format Format, mcpOAuthDcrEnabled bool) error {
 	cfg, err := ReadConfigWithDefaultCatalog(ctx)
 	if err != nil {
 		return err
@@ -154,7 +155,7 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
 	fmt.Printf("  %d servers total\n", serverCount)
 	fmt.Println()
-	if hints.Enabled() {
+	if hints.Enabled(dockerCli) {
 		hints.TipCyan.Print("Tip: To view server details, use ")
 		hints.TipCyanBoldItalic.Print("docker mcp server inspect <server-name>")
 		hints.TipCyan.Print(". To add servers, use ")

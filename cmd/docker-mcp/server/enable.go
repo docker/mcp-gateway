@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/cli/cli/command"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
@@ -14,15 +15,15 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
-func Disable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
-	return update(ctx, docker, nil, serverNames, mcpOAuthDcrEnabled)
+func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
+	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled)
 }
 
-func Enable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
-	return update(ctx, docker, serverNames, nil, mcpOAuthDcrEnabled)
+func Enable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
+	return update(ctx, docker, dockerCli, serverNames, nil, mcpOAuthDcrEnabled)
 }
 
-func update(ctx context.Context, docker docker.Client, add []string, remove []string, mcpOAuthDcrEnabled bool) error {
+func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, add []string, remove []string, mcpOAuthDcrEnabled bool) error {
 	// Read registry.yaml that contains which servers are enabled.
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
@@ -95,7 +96,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 		return fmt.Errorf("writing registry config: %w", err)
 	}
 
-	if len(add) > 0 && hints.Enabled() {
+	if len(add) > 0 && hints.Enabled(dockerCli) {
 		hints.TipCyan.Print("Tip: ")
 		hints.TipGreen.Print("✓")
 		hints.TipCyan.Print(" Server enabled. To view all enabled servers, use ")
@@ -103,7 +104,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 		fmt.Println()
 	}
 
-	if len(remove) > 0 && hints.Enabled() {
+	if len(remove) > 0 && hints.Enabled(dockerCli) {
 		hints.TipCyan.Print("Tip: ")
 		hints.TipGreen.Print("✓")
 		hints.TipCyan.Print(" Server disabled. To see remaining enabled servers, use ")

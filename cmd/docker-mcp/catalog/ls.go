@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/cli/cli/command"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
-func Ls(ctx context.Context, format Format) error {
+func Ls(ctx context.Context, dockerCli command.Cli, format Format) error {
 	// Initialize telemetry
 	telemetry.Init()
 
@@ -33,13 +35,13 @@ func Ls(ctx context.Context, format Format) error {
 		}
 		fmt.Println(string(data))
 	} else {
-		humanPrintCatalog(*cfg)
+		humanPrintCatalog(dockerCli, *cfg)
 	}
 
 	return nil
 }
 
-func humanPrintCatalog(cfg Config) {
+func humanPrintCatalog(dockerCli command.Cli, cfg Config) {
 	if len(cfg.Catalogs) == 0 {
 		fmt.Println("No catalogs configured.")
 		return
@@ -48,7 +50,7 @@ func humanPrintCatalog(cfg Config) {
 	for name, catalog := range cfg.Catalogs {
 		fmt.Printf("%s: %s\n", name, catalog.DisplayName)
 	}
-	if hints.Enabled() {
+	if hints.Enabled(dockerCli) {
 		hints.TipCyan.Print("Tip: To browse a catalog's servers, use ")
 		hints.TipCyanBoldItalic.Print("docker mcp catalog show <catalog-name>")
 		fmt.Println()

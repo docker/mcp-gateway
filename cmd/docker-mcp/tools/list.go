@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -14,7 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 )
 
-func List(ctx context.Context, version string, gatewayArgs []string, debug bool, show, tool, format string) error {
+func List(ctx context.Context, dockerCli command.Cli, version string, gatewayArgs []string, debug bool, show, tool, format string) error {
 	// Initialize telemetry for CLI operations
 	meter := otel.GetMeterProvider().Meter("github.com/docker/mcp-gateway")
 	toolsDiscoveredGauge, _ := meter.Int64Gauge("mcp.cli.tools.discovered",
@@ -52,7 +53,7 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 			for _, tool := range response.Tools {
 				fmt.Println(" -", tool.Name, "-", toolDescription(tool))
 			}
-			if hints.Enabled() {
+			if hints.Enabled(dockerCli) {
 				hints.TipCyan.Print("Tip: For tool details, use ")
 				hints.TipCyanBoldItalic.Print("docker mcp tools inspect <tool-name>")
 				hints.TipCyan.Print(". To test the tool, use ")
@@ -65,7 +66,7 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 			fmt.Printf("{\"count\": %d}\n", len(response.Tools))
 		} else {
 			fmt.Println(len(response.Tools), "tools")
-			if hints.Enabled() {
+			if hints.Enabled(dockerCli) {
 				hints.TipCyan.Print("Tip: To see all available tools, use ")
 				hints.TipCyanBoldItalic.Println("docker mcp tools ls")
 				fmt.Println()
