@@ -53,7 +53,11 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 				fmt.Println(" -", tool.Name, "-", toolDescription(tool))
 			}
 			if hints.Enabled() {
-				fmt.Println("\033[36mTip: Use \033[1;3m'docker mcp tools inspect <tool-name>'\033[0;36m to see tool details, or \033[1;3m'docker mcp tools call <tool-name>'\033[0;36m to test it\033[0m")
+				hints.TipCyan.Print("Tip: For tool details, use ")
+				hints.TipCyanBoldItalic.Print("docker mcp tools inspect <tool-name>")
+				hints.TipCyan.Print(". To test the tool, use ")
+				hints.TipCyanBoldItalic.Println("docker mcp tools call <tool-name>")
+				fmt.Println()
 			}
 		}
 	case "count":
@@ -62,7 +66,9 @@ func List(ctx context.Context, version string, gatewayArgs []string, debug bool,
 		} else {
 			fmt.Println(len(response.Tools), "tools")
 			if hints.Enabled() {
-				fmt.Println("\033[36mTip: Run \033[1;3m'docker mcp tools ls'\033[0;36m to see all available tools\033[0m")
+				hints.TipCyan.Print("Tip: To see all available tools, use ")
+				hints.TipCyanBoldItalic.Println("docker mcp tools ls")
+				fmt.Println()
 			}
 		}
 	case "inspect":

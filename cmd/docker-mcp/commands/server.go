@@ -44,7 +44,8 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			} else {
 				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(list, ", "))
 				if hints.Enabled() {
-					fmt.Fprintln(cmd.OutOrStdout(), "\033[36mTip: Connect to a client (IE: Claude/Cursor) to use these servers with \033[1;3m'docker mcp client connect <client-name>'\033[0m")
+					hints.TipCyan.Fprint(cmd.OutOrStdout(), "Tip: To use these servers, connect to a client (IE: claude/cursor) with ")
+					hints.TipCyanBoldItalic.Fprintln(cmd.OutOrStdout(), "docker mcp client connect <client-name>")
 					fmt.Fprintln(cmd.OutOrStdout(), "")
 				}
 			}

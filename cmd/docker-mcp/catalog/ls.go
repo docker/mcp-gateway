@@ -49,6 +49,8 @@ func humanPrintCatalog(cfg Config) {
 		fmt.Printf("%s: %s\n", name, catalog.DisplayName)
 	}
 	if hints.Enabled() {
-		fmt.Println("\033[36mTip: Use \033[1;3m'docker mcp catalog show <name>'\033[0;36m to browse a catalog's servers\033[0m")
+		hints.TipCyan.Print("Tip: To browse a catalog's servers, use ")
+		hints.TipCyanBoldItalic.Print("docker mcp catalog show <catalog-name>")
+		fmt.Println()
 	}
 }

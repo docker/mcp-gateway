@@ -155,7 +155,10 @@ func Show(ctx context.Context, name string, format Format, mcpOAuthDcrEnabled bo
 	fmt.Printf("  %d servers total\n", serverCount)
 	fmt.Println()
 	if hints.Enabled() {
-		fmt.Println("\033[36mTip: \033[1;3mdocker mcp server inspect <server-name>\033[0;36m to view server details, \033[1;3mdocker mcp server enable <server-name>\033[0;36m to add servers\033[0m")
+		hints.TipCyan.Print("Tip: To view server details, use ")
+		hints.TipCyanBoldItalic.Print("docker mcp server inspect <server-name>")
+		hints.TipCyan.Print(". To add servers, use ")
+		hints.TipCyanBoldItalic.Println("docker mcp server enable <server-name>")
 	}
 
 	return nil
