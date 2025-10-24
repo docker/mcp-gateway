@@ -23,7 +23,7 @@ func catalogCommand(dockerCli command.Cli) *cobra.Command {
 	cmd.AddCommand(bootstrapCatalogCommand())
 	cmd.AddCommand(importCatalogCommand())
 	cmd.AddCommand(exportCatalogCommand())
-	cmd.AddCommand(lsCatalogCommand())
+	cmd.AddCommand(lsCatalogCommand(dockerCli))
 	cmd.AddCommand(rmCatalogCommand())
 	cmd.AddCommand(updateCatalogCommand(dockerCli))
 	cmd.AddCommand(showCatalogCommand(dockerCli))
@@ -86,7 +86,7 @@ cannot be exported as it is managed by Docker.`,
 	}
 }
 
-func lsCatalogCommand() *cobra.Command {
+func lsCatalogCommand(dockerCli command.Cli) *cobra.Command {
 	var opts struct {
 		Format catalog.Format
 	}
@@ -101,7 +101,7 @@ func lsCatalogCommand() *cobra.Command {
   # List catalogs in JSON format
   docker mcp catalog ls --format=json`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return catalog.Ls(cmd.Context(), opts.Format)
+			return catalog.Ls(cmd.Context(), dockerCli, opts.Format)
 		},
 	}
 	flags := cmd.Flags()
@@ -165,7 +165,7 @@ If no name is provided, shows the Docker official catalog.`,
 			}
 
 			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			return catalog.Show(cmd.Context(), name, opts.Format, mcpOAuthDcrEnabled)
+			return catalog.Show(cmd.Context(), dockerCli, name, opts.Format, mcpOAuthDcrEnabled)
 		},
 	}
 	flags := cmd.Flags()
