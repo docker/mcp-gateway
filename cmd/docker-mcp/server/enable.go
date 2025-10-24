@@ -9,27 +9,11 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
 func Disable(ctx context.Context, docker docker.Client, serverNames []string, mcpOAuthDcrEnabled bool) error {
-	// Get catalog including user-configured catalogs to find OAuth-enabled remote servers for DCR cleanup
-	catalog, err := catalog.GetWithOptions(ctx, true, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get catalog: %w", err)
-	}
-
-	// Clean up OAuth for disabled servers first
-	for _, serverName := range serverNames {
-		if server, found := catalog.Servers[serverName]; found {
-			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
-			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
-				cleanupOAuthForRemoteServer(ctx, serverName)
-			}
-		}
-	}
-
 	return update(ctx, docker, nil, serverNames, mcpOAuthDcrEnabled)
 }
 
@@ -76,7 +60,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 
 			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
-				if err := registerProviderForLazySetup(ctx, serverName); err != nil {
+				if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 					fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
 				} else {
@@ -111,72 +95,4 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 	}
 
 	return nil
-}
-
-// registerProviderForLazySetup registers a provider for lazy DCR setup
-// This shows the provider in the OAuth tab immediately without doing network calls
-func registerProviderForLazySetup(ctx context.Context, serverName string) error {
-	client := desktop.NewAuthClient()
-
-	// Check if DCR client already exists to avoid double-registration
-	_, err := client.GetDCRClient(ctx, serverName)
-	if err == nil {
-		// Provider already registered, no need to register again
-		return nil
-	}
-
-	// Get catalog to extract provider name
-	catalog, err := catalog.GetWithOptions(ctx, true, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get catalog: %w", err)
-	}
-
-	server, found := catalog.Servers[serverName]
-	if !found {
-		return fmt.Errorf("server %s not found in catalog", serverName)
-	}
-
-	// Extract provider name from OAuth config
-	if server.OAuth == nil || len(server.OAuth.Providers) == 0 {
-		return fmt.Errorf("server %s has no OAuth providers configured", serverName)
-	}
-
-	providerName := server.OAuth.Providers[0].Provider // Use first provider
-
-	fmt.Printf("Configuring OAuth provider %s (provider: %s) for authentication...\n", serverName, providerName)
-
-	// Use the existing DCR endpoint with pending=true to register provider without DCR
-	dcrRequest := desktop.RegisterDCRRequest{
-		ProviderName: providerName,
-	}
-
-	if err := client.RegisterDCRClientPending(ctx, serverName, dcrRequest); err != nil {
-		return fmt.Errorf("failed to register pending DCR provider: %w", err)
-	}
-
-	return nil
-}
-
-// cleanupOAuthForRemoteServer removes OAuth provider and DCR client for clean slate UX
-// This ensures disabled servers disappear completely from the Docker Desktop OAuth tab
-func cleanupOAuthForRemoteServer(ctx context.Context, serverName string) {
-	client := desktop.NewAuthClient()
-
-	fmt.Printf("Cleaning up OAuth for %s...\n", serverName)
-
-	// 1. Revoke OAuth tokens (idempotent - fails gracefully if not exists)
-	if err := client.DeleteOAuthApp(ctx, serverName); err != nil {
-		fmt.Printf("   • No OAuth tokens to revoke\n")
-	} else {
-		fmt.Printf("   • OAuth tokens revoked\n")
-	}
-
-	// 2. Delete DCR client data (idempotent - fails gracefully if not exists)
-	if err := client.DeleteDCRClient(ctx, serverName); err != nil {
-		fmt.Printf("   • No DCR client to remove\n")
-	} else {
-		fmt.Printf("   • DCR client data removed\n")
-	}
-
-	fmt.Printf("OAuth cleanup complete for %s\n", serverName)
 }

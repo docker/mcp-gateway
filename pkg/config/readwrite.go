@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -109,6 +110,33 @@ func writeConfigFile(name string, content []byte) error {
 		return err
 	}
 	return os.WriteFile(path, content, 0o644)
+}
+
+// WriteConfigFileToSession writes a config file to a session directory
+func WriteConfigFileToSession(sessionName, name string, content []byte) error {
+	sessionPath, err := SessionFilePath(sessionName, name)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(sessionPath), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(sessionPath, content, 0o644)
+}
+
+// SessionFilePath returns the file path within a session directory
+func SessionFilePath(sessionName, name string) (string, error) {
+	if sessionName == "" {
+		return "", fmt.Errorf("session name is required")
+	}
+
+	homeDir, err := user.HomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(homeDir, ".docker", "mcp", sessionName, name), nil
 }
 
 func FilePath(name string) (string, error) {

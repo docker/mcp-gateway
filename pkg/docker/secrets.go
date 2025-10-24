@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 const jcatImage = "docker/jcat@sha256:76719466e8b99a65dd1d37d9ab94108851f009f0f687dce7ff8a6fc90575c4d4"
@@ -100,7 +101,7 @@ func (c *dockerClient) readSecretsOneByOneOptional(ctx context.Context, names []
 	for _, name := range names {
 		values, err := c.readSecrets(ctx, []string{name})
 		if err != nil {
-			logf("couldn't read secret %s: %v", name, err)
+			log.Logf("couldn't read secret %s: %v", name, err)
 			continue
 		}
 

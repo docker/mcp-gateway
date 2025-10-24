@@ -13,12 +13,13 @@ import (
 	"github.com/docker/docker/api/types/network"
 
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 const dnsImage = "docker/mcp-dns-forwarder:v1@sha256:a47b7362fdc78dd2cf8779c52ff782312a3758537e635b91529fddabaadbd4dd"
 
 func runDNSForwarder(ctx context.Context, cli docker.Client, target *TargetConfig, extNwName string, keepCtrs bool) (_ string, _ io.ReadCloser, retErr error) {
-	logf("Running dns forwarder...")
+	log.Logf("Running dns forwarder...")
 
 	if err := cli.PullImage(ctx, dnsImage); err != nil {
 		return "", nil, fmt.Errorf("pulling image %s: %w", dnsImage, err)
@@ -96,9 +97,9 @@ func runDNSForwarder(ctx context.Context, cli docker.Client, target *TargetConfi
 	go func() {
 		scanner := bufio.NewScanner(logReader)
 		for scanner.Scan() {
-			log := scanner.Text()
-			if strings.HasPrefix(log, "[INFO] REQ:") {
-				logf("> dns forwarder: %s", strings.TrimPrefix(log, "[INFO] REQ: "))
+			logLine := scanner.Text()
+			if strings.HasPrefix(logLine, "[INFO] REQ:") {
+				log.Logf("> dns forwarder: %s", strings.TrimPrefix(logLine, "[INFO] REQ: "))
 			}
 		}
 	}()

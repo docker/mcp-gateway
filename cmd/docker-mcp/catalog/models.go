@@ -5,7 +5,12 @@ type Registry struct {
 }
 
 type Tile struct {
-	Description string `yaml:"description"`
-	ReadmeURL   string `yaml:"readme"`
-	ToolsURL    string `yaml:"toolsUrl"`
+	Description string        `yaml:"description"`
+	ReadmeURL   string        `yaml:"readme"`
+	ToolsURL    string        `yaml:"toolsUrl"`
+	Dynamic     *DynamicFlags `yaml:"dynamic,omitempty"`
+}
+
+type DynamicFlags struct {
+	Tools bool `yaml:"tools"`
 }

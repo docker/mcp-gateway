@@ -11,6 +11,7 @@ require (
 	github.com/docker/cli-docs-tool v0.10.0
 	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
+	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
@@ -51,6 +52,12 @@ require (
 	modernc.org/libc v1.66.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
+)
+
+require (
+	github.com/dlclark/regexp2 v1.11.4 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 )
 
 require (
@@ -127,7 +134,7 @@ require (
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
-	github.com/moby/term v0.5.2 // indirect
+	github.com/moby/term v0.5.2
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect

@@ -12,6 +12,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -46,7 +48,69 @@ type ResourceTemplateRegistration struct {
 	Handler          mcp.ResourceHandler
 }
 
-func (g *Gateway) listCapabilities(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
+func (caps *Capabilities) getToolByName(toolName string) (ToolRegistration, error) {
+	for _, tool := range caps.Tools {
+		if tool.Tool.Name == toolName {
+			return tool, nil
+		}
+	}
+	return ToolRegistration{}, fmt.Errorf("unable to find tool")
+}
+
+// getToolNamePrefix returns the prefix to use for tool names based on server configuration
+// and gateway options. If ServerSpec.Prefix is set, it always uses that. Otherwise, it
+// uses the server name if ToolNamePrefix feature flag is enabled.
+func (g *Gateway) getToolNamePrefix(serverConfig *catalog.ServerConfig) string {
+	// If explicit prefix is set in server config, always use it
+	if serverConfig.Spec.Prefix != "" {
+		return serverConfig.Spec.Prefix
+	}
+
+	// Otherwise, use server name if tool-name-prefix feature is enabled
+	if g.ToolNamePrefix {
+		return serverConfig.Name
+	}
+
+	// No prefix
+	return ""
+}
+
+// prefixToolName adds a prefix to a tool name if prefix is not empty
+func prefixToolName(prefix, toolName string) string {
+	if prefix == "" {
+		return toolName
+	}
+	return prefix + ":" + toolName
+}
+
+func (caps *Capabilities) getPromptByName(promptName string) (PromptRegistration, error) {
+	for _, prompt := range caps.Prompts {
+		if prompt.Prompt.Name == promptName {
+			return prompt, nil
+		}
+	}
+	return PromptRegistration{}, fmt.Errorf("unable to find prompt")
+}
+
+func (caps *Capabilities) getResourceByURI(resourceURI string) (ResourceRegistration, error) {
+	for _, resource := range caps.Resources {
+		if resource.Resource.URI == resourceURI {
+			return resource, nil
+		}
+	}
+	return ResourceRegistration{}, fmt.Errorf("unable to find resource")
+}
+
+func (caps *Capabilities) getResourceTemplateByURITemplate(resource string) (ResourceTemplateRegistration, error) {
+	for _, template := range caps.ResourceTemplates {
+		if template.ResourceTemplate.URITemplate == resource {
+			return template, nil
+		}
+	}
+	return ResourceTemplateRegistration{}, fmt.Errorf("unable to find resource template")
+}
+
+func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, clientConfig *clientConfig) (*Capabilities, error) {
 	var (
 		lock            sync.Mutex
 		allCapabilities []Capabilities
@@ -55,18 +119,18 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	errs, ctx := errgroup.WithContext(ctx)
 	errs.SetLimit(runtime.NumCPU())
 	for _, serverName := range serverNames {
-		serverConfig, toolGroup, found := configuration.Find(serverName)
+		serverConfig, toolGroup, found := g.configuration.Find(serverName)
 
 		switch {
 		case !found:
-			log("  - MCP server not found:", serverName)
+			log.Log("  - MCP server not found:", serverName)
 
 		// It's an MCP Server
 		case serverConfig != nil:
 			errs.Go(func() error {
 				client, err := g.clientPool.AcquireClient(ctx, serverConfig, clientConfig)
 				if err != nil {
-					logf("  > Can't start %s: %s", serverConfig.Name, err)
+					log.Logf("  > Can't start %s: %s", serverConfig.Name, err)
 					return nil
 				}
 				defer g.clientPool.ReleaseClient(client)
@@ -75,19 +139,27 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 
 				tools, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
 				if err != nil {
-					logf("  > Can't list tools %s: %s", serverConfig.Name, err)
+					log.Logf("  > Can't list tools %s: %s", serverConfig.Name, err)
 				} else {
 					// Record the number of tools discovered from this server
 					telemetry.RecordToolList(ctx, serverConfig.Name, len(tools.Tools))
 
+					// Determine the prefix to use for this server's tools
+					prefix := g.getToolNamePrefix(serverConfig)
+
 					for _, tool := range tools.Tools {
-						if !isToolEnabled(configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
+						if !isToolEnabled(g.configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
 							continue
 						}
+
+						// Create a copy of the tool and apply prefix to its name
+						prefixedTool := *tool
+						prefixedTool.Name = prefixToolName(prefix, tool.Name)
+
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							ServerName: serverConfig.Name,
-							Tool:       tool,
-							Handler:    g.mcpServerToolHandler(serverConfig, g.mcpServer, tool.Annotations),
+							Tool:       &prefixedTool,
+							Handler:    g.mcpServerToolHandler(serverConfig.Name, g.mcpServer, tool.Annotations),
 						})
 					}
 				}
@@ -101,7 +173,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							ServerName: serverConfig.Name,
 							Prompt:     prompt,
-							Handler:    g.mcpServerPromptHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerPromptHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -115,7 +187,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.Resources = append(capabilities.Resources, ResourceRegistration{
 							ServerName: serverConfig.Name,
 							Resource:   resource,
-							Handler:    g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:    g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
@@ -129,26 +201,26 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 						capabilities.ResourceTemplates = append(capabilities.ResourceTemplates, ResourceTemplateRegistration{
 							ServerName:       serverConfig.Name,
 							ResourceTemplate: *resourceTemplate,
-							Handler:          g.mcpServerResourceHandler(serverConfig, g.mcpServer),
+							Handler:          g.mcpServerResourceHandler(serverConfig.Name, g.mcpServer),
 						})
 					}
 				}
 
-				var log string
+				var logMsg string
 				if len(capabilities.Tools) > 0 {
-					log += fmt.Sprintf(" (%d tools)", len(capabilities.Tools))
+					logMsg += fmt.Sprintf(" (%d tools)", len(capabilities.Tools))
 				}
 				if len(capabilities.Prompts) > 0 {
-					log += fmt.Sprintf(" (%d prompts)", len(capabilities.Prompts))
+					logMsg += fmt.Sprintf(" (%d prompts)", len(capabilities.Prompts))
 				}
 				if len(capabilities.Resources) > 0 {
-					log += fmt.Sprintf(" (%d resources)", len(capabilities.Resources))
+					logMsg += fmt.Sprintf(" (%d resources)", len(capabilities.Resources))
 				}
 				if len(capabilities.ResourceTemplates) > 0 {
-					log += fmt.Sprintf(" (%d resourceTemplates)", len(capabilities.ResourceTemplates))
+					logMsg += fmt.Sprintf(" (%d resourceTemplates)", len(capabilities.ResourceTemplates))
 				}
-				if log != "" {
-					logf("  > %s:%s", serverConfig.Name, log)
+				if logMsg != "" {
+					log.Logf("  > %s:%s", serverConfig.Name, logMsg)
 				}
 
 				lock.Lock()
@@ -162,8 +234,14 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 		case toolGroup != nil:
 			var capabilities Capabilities
 
+			// For POCI tools, use server name as prefix if feature flag is enabled
+			var prefix string
+			if g.ToolNamePrefix {
+				prefix = serverName
+			}
+
 			for _, tool := range *toolGroup {
-				if !isToolEnabled(configuration, serverName, "", tool.Name, g.ToolNames) {
+				if !isToolEnabled(g.configuration, serverName, "", tool.Name, g.ToolNames) {
 					continue
 				}
 
@@ -181,7 +259,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 				}
 
 				mcpTool := mcp.Tool{
-					Name:        tool.Name,
+					Name:        prefixToolName(prefix, tool.Name),
 					Description: tool.Description,
 					InputSchema: schema,
 				}
@@ -222,17 +300,17 @@ func (g *Gateway) listCapabilities(ctx context.Context, configuration Configurat
 	}, nil
 }
 
-func (c *Capabilities) ToolNames() []string {
+func (caps *Capabilities) ToolNames() []string {
 	var names []string
-	for _, tool := range c.Tools {
+	for _, tool := range caps.Tools {
 		names = append(names, tool.Tool.Name)
 	}
 	return names
 }
 
-func (c *Capabilities) PromptNames() []string {
+func (caps *Capabilities) PromptNames() []string {
 	var names []string
-	for _, prompt := range c.Prompts {
+	for _, prompt := range caps.Prompts {
 		names = append(names, prompt.Prompt.Name)
 	}
 	return names

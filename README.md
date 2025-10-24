@@ -46,7 +46,7 @@ Developers face criticial barriers when integrating Model Context Protocol (MCP)
 
 ### Install as Docker CLI Plugin
 
-The MCP cli will already be installed on recent versions of Docker Desktop but you can buildand install the latest version by following these steps:
+The MCP cli will already be installed on recent versions of Docker Desktop but you can build and install the latest version by following these steps:
 
 ```bash
 # Clone the repository

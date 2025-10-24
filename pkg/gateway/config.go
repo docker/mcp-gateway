@@ -11,6 +11,7 @@ type Config struct {
 	RegistryPath       []string
 	ToolsPath          []string
 	SecretsPath        string
+	SessionName        string           // Session name for persisting configuration
 	MCPRegistryServers []catalog.Server // catalog.Server objects from MCP registries
 }
 
@@ -32,8 +33,9 @@ type Options struct {
 	Cpus                    int
 	Memory                  string
 	Static                  bool
-	Central                 bool
 	OAuthInterceptorEnabled bool
 	McpOAuthDcrEnabled      bool
 	DynamicTools            bool
+	ToolNamePrefix          bool
+	LogFilePath             string
 }

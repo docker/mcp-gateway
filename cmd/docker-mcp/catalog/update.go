@@ -66,6 +66,12 @@ func updateCatalog(ctx context.Context, name string, catalog Catalog, mcpOAuthDc
 			// If it's an official v2/v3 catalog URL, always use the URL that matches the feature flag
 			isV2URL := strings.Contains(url, "/catalog/v2/catalog.yaml")
 			isV3URL := strings.Contains(url, "/catalog/v3/catalog.yaml")
+			isV1URL := strings.Contains(url, "/catalog/catalog.yaml")
+
+			if isV1URL {
+				url = GetDockerCatalogURL(mcpOAuthDcrEnabled)
+				catalog.URL = url
+			}
 
 			if isV2URL || isV3URL {
 				url = GetDockerCatalogURL(mcpOAuthDcrEnabled)

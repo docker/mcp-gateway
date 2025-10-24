@@ -14,6 +14,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/eval"
 	"github.com/docker/mcp-gateway/pkg/gateway/proxies"
+	"github.com/docker/mcp-gateway/pkg/log"
 	mcpclient "github.com/docker/mcp-gateway/pkg/mcp"
 )
 
@@ -165,7 +166,7 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 	cp.clientLock.Lock()
 	defer cp.clientLock.Unlock()
 
-	log(fmt.Sprintf("ClientPool: Invalidating OAuth clients for provider: %s", provider))
+	log.Log(fmt.Sprintf("ClientPool: Invalidating OAuth clients for provider: %s", provider))
 
 	var invalidatedKeys []clientKey
 	for key, keptClient := range cp.keptClients {
@@ -173,15 +174,15 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 		if keptClient.Config.Spec.OAuth != nil {
 			// Match by server name (for DCR providers, server name matches provider)
 			if keptClient.Config.Name == provider {
-				log(fmt.Sprintf("ClientPool: Closing OAuth connection for server: %s", keptClient.Config.Name))
+				log.Log(fmt.Sprintf("ClientPool: Closing OAuth connection for server: %s", keptClient.Config.Name))
 
 				// Close the connection
 				client, err := keptClient.Getter.GetClient(context.TODO())
 				if err == nil {
 					client.Session().Close()
-					log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
+					log.Log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
 				} else {
-					log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
+					log.Log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
 				}
 
 				// Mark for removal from kept clients
@@ -196,9 +197,9 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 	}
 
 	if len(invalidatedKeys) > 0 {
-		log(fmt.Sprintf("ClientPool: Invalidated %d OAuth connections for provider %s", len(invalidatedKeys), provider))
+		log.Log(fmt.Sprintf("ClientPool: Invalidated %d OAuth connections for provider %s", len(invalidatedKeys), provider))
 	} else {
-		log(fmt.Sprintf("ClientPool: No active OAuth connections found for provider %s", provider))
+		log.Log(fmt.Sprintf("ClientPool: No active OAuth connections found for provider %s", provider))
 	}
 }
 
@@ -240,7 +241,7 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 	command := eval.EvaluateList(tool.Container.Command, arguments)
 	args = append(args, command...)
 
-	log("  - Running container", tool.Container.Image, "with args", args)
+	log.Log("  - Running container", tool.Container.Image, "with args", args)
 
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	if cp.Verbose {
@@ -325,7 +326,7 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 		if ok {
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
 		} else {
-			logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
+			log.Logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
 		}
 	}
@@ -446,9 +447,9 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
-					log("  - Running", imageBaseName(image), "with", args)
+					log.Log("  - Running", imageBaseName(image), "with", args)
 				} else {
-					log("  - Running", imageBaseName(image), "with", args, "and command", command)
+					log.Log("  - Running", imageBaseName(image), "with", args, "and command", command)
 				}
 
 				var runArgs []string

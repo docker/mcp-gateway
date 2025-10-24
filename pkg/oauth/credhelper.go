@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"time"
 
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // CredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
@@ -26,6 +28,13 @@ func NewOAuthCredentialHelper() *CredentialHelper {
 	}
 }
 
+// TokenStatus represents the validity status of an OAuth token
+type TokenStatus struct {
+	Valid        bool
+	ExpiresAt    time.Time
+	NeedsRefresh bool
+}
+
 // GetOAuthToken retrieves an OAuth token for the specified server
 // It follows this flow:
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
@@ -36,6 +45,7 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	client := desktop.NewAuthClient()
 	dcrClient, err := client.GetDCRClient(ctx, serverName)
 	if err != nil {
+		log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
 		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
 	}
 
@@ -46,8 +56,10 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
+			log.Logf("- OAuth token not found for key: %s", credentialKey)
 			return "", fmt.Errorf("OAuth token not found for %s (key: %s). Run 'docker mcp oauth authorize %s' to authenticate", serverName, credentialKey, serverName)
 		}
+		log.Logf("- Failed to retrieve token from credential helper: %v", err)
 		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
@@ -75,6 +87,84 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	}
 
 	return tokenData.AccessToken, nil
+}
+
+// GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
+func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
+	// Get DCR client info
+	client := desktop.NewAuthClient()
+	dcrClient, err := client.GetDCRClient(ctx, serverName)
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	}
+
+	// Construct credential key using authorization endpoint + provider name
+	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
+
+	// Retrieve token from docker-credential-desktop
+	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
+	if err != nil {
+		if credentials.IsErrCredentialsNotFound(err) {
+			return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
+		}
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
+	}
+
+	if tokenSecret == "" {
+		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
+	}
+
+	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+	}
+
+	// Parse the JSON to extract token data including expiry
+	var tokenData struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		RefreshToken string `json:"refresh_token,omitempty"`
+		Expiry       string `json:"expiry,omitempty"`
+	}
+	if err := json.Unmarshal(tokenJSON, &tokenData); err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to parse OAuth token JSON for %s: %w", serverName, err)
+	}
+
+	if tokenData.AccessToken == "" {
+		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth access token found for %s", serverName)
+	}
+
+	// Parse expiry time from RFC3339 string
+	var expiresAt time.Time
+	if tokenData.Expiry != "" {
+		var err error
+		expiresAt, err = time.Parse(time.RFC3339, tokenData.Expiry)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("failed to parse expiry time for %s: %w", serverName, err)
+		}
+	} else {
+		// No expiry information - assume token is valid but check immediately
+		return TokenStatus{
+			Valid:        true,
+			ExpiresAt:    time.Time{},
+			NeedsRefresh: true,
+		}, nil
+	}
+
+	// Check if token needs refresh (expires within 10 seconds)
+	// Otherwise attempting to refresh earlier will return cached token
+	now := time.Now()
+	timeUntilExpiry := expiresAt.Sub(now)
+	needsRefresh := timeUntilExpiry <= 10*time.Second
+
+	log.Logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
+		serverName, expiresAt.Format(time.RFC3339), timeUntilExpiry.Round(time.Second), needsRefresh)
+
+	return TokenStatus{
+		Valid:        true,
+		ExpiresAt:    expiresAt,
+		NeedsRefresh: needsRefresh,
+	}, nil
 }
 
 // newOAuthHelper creates a credential helper for OAuth token access
