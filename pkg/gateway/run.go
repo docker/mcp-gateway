@@ -260,8 +260,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
-	// Check if running in container mode (compose, k8s, etc.)
-	// Container mode disables OAuth monitoring and authentication
+	// When running in Container mode, disable OAuth notification monitoring and authentication
 	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
 
 	if g.McpOAuthDcrEnabled && !inContainer {
