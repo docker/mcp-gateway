@@ -72,7 +72,7 @@ system:
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
   vscode:
-    displayName: VSCode
+    displayName: Visual Studio Code
     source: https://code.visualstudio.com/
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/vscode.svg
     installCheckPaths:
@@ -230,7 +230,7 @@ project:
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
   vscode:
-    displayname: VSCode
+    displayname: Visual Studio Code
     projectfile: .vscode/mcp.json
     icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/vscode.svg
     yq:
@@ -245,4 +245,3 @@ project:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"type":"stdio"}
       del: del(.mcpServers[$NAME])
-
