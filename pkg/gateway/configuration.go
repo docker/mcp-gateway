@@ -112,7 +112,7 @@ func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan
 
 func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, error) {
 	start := time.Now()
-	log("- Reading working set configuration...")
+	log.Log("- Reading working set configuration...")
 
 	dao, err := db.New()
 	if err != nil {
@@ -146,7 +146,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 		}
 	}
 
-	log("- Configuration read in", time.Since(start))
+	log.Log("- Configuration read in", time.Since(start))
 
 	return Configuration{
 		serverNames: serverNames,

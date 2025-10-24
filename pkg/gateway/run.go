@@ -114,14 +114,9 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	}
 
 	g := &Gateway{
-		Options:        config.Options,
-		docker:         docker,
-		oauthProviders: make(map[string]*oauth.Provider),
-		configurator:   configurator,
-	}
-	g := &Gateway{
 		Options:            config.Options,
 		docker:             docker,
+		oauthProviders:     make(map[string]*oauth.Provider),
 		configurator:       configurator,
 		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
 		serverCapabilities: make(map[string]*ServerCapabilities),
