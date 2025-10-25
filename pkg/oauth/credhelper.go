@@ -18,9 +18,14 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 
-// CredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
+// CredentialHelper provides secure access to OAuth tokens via credential helpers
 type CredentialHelper struct {
 	credentialHelper credentials.Helper
+}
+
+// GetHelper returns the underlying credential helper
+func (h *CredentialHelper) GetHelper() credentials.Helper {
+	return h.credentialHelper
 }
 
 // NewOAuthCredentialHelper creates a new OAuth credential helper
@@ -169,7 +174,8 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	}, nil
 }
 
-// newOAuthHelper creates a credential helper for OAuth token access
+// newOAuthHelper creates a READ-ONLY credential helper for OAuth token access
+// This is used by existing Gateway code that only reads tokens
 func newOAuthHelper() credentials.Helper {
 	helperName := getCredentialHelperName()
 	if helperName == "" {
@@ -189,6 +195,47 @@ func newOAuthHelper() credentials.Helper {
 		program: newShellProgramFunc("docker-credential-" + helperName),
 	}
 }
+
+// NewReadWriteCredentialHelper creates a READ-WRITE credential helper for CE mode
+// This is used for DCR client storage and token storage operations
+func NewReadWriteCredentialHelper() credentials.Helper {
+	helperName := getCredentialHelperName()
+	if helperName == "" {
+		// Return a helper that will fail with clear errors
+		helperName = "notfound"
+	}
+
+	// Return the actual client implementation (read-write)
+	program := newShellProgramFunc("docker-credential-" + helperName)
+	return &readWriteHelper{program: program}
+}
+
+// readWriteHelper is a full read-write credential helper
+type readWriteHelper struct {
+	program client.ProgramFunc
+}
+
+func (h *readWriteHelper) Add(creds *credentials.Credentials) error {
+	return client.Store(h.program, creds)
+}
+
+func (h *readWriteHelper) Delete(serverURL string) error {
+	return client.Erase(h.program, serverURL)
+}
+
+func (h *readWriteHelper) Get(serverURL string) (string, string, error) {
+	creds, err := client.Get(h.program, serverURL)
+	if err != nil {
+		return "", "", err
+	}
+	return creds.Username, creds.Secret, nil
+}
+
+func (h *readWriteHelper) List() (map[string]string, error) {
+	return client.List(h.program)
+}
+
+var _ credentials.Helper = &readWriteHelper{}
 
 // getCredentialHelperName returns the credential helper to use
 // Priority: Desktop binary > Docker config credsStore setting
