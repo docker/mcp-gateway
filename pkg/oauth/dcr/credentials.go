@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/docker-credential-helpers/credentials"
+
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 

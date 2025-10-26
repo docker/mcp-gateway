@@ -16,6 +16,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/user"
 )
 
 // CredentialHelper provides secure access to OAuth tokens via credential helpers
@@ -246,7 +247,7 @@ func getCredentialHelperName() string {
 	}
 
 	// 2. Read from ~/.docker/config.json
-	homeDir, err := os.UserHomeDir()
+	homeDir, err := user.HomeDir()
 	if err != nil {
 		log.Logf("! Failed to get home directory: %v", err)
 		return ""

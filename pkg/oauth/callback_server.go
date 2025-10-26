@@ -92,7 +92,7 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 		}
 
 		log.Logf("! Callback error: %s", errMsg)
-		s.errCh <- fmt.Errorf(errMsg)
+		s.errCh <- fmt.Errorf("%s", errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}
@@ -100,7 +100,7 @@ func (s *CallbackServer) handleCallback(w http.ResponseWriter, r *http.Request) 
 	if state == "" {
 		errMsg := "Missing state parameter in callback"
 		log.Logf("! %s", errMsg)
-		s.errCh <- fmt.Errorf(errMsg)
+		s.errCh <- fmt.Errorf("%s", errMsg)
 		http.Error(w, errMsg, http.StatusBadRequest)
 		return
 	}

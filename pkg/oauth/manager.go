@@ -67,7 +67,7 @@ func (m *Manager) EnsureDCRClient(ctx context.Context, serverName string, scopes
 // BuildAuthorizationURL generates the OAuth authorization URL with PKCE
 // If callbackURL is provided, extracts port and embeds in state for mcp-oauth proxy routing
 // Returns: authURL, baseState, verifier, error
-func (m *Manager) BuildAuthorizationURL(ctx context.Context, serverName string, scopes []string, callbackURL string) (string, string, string, error) {
+func (m *Manager) BuildAuthorizationURL(_ context.Context, serverName string, scopes []string, callbackURL string) (string, string, string, error) {
 	// Get DCR client
 	dcrClient, err := m.dcrManager.GetDCRClient(serverName)
 	if err != nil {
@@ -180,7 +180,7 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 }
 
 // RevokeToken revokes an OAuth token for a server
-func (m *Manager) RevokeToken(ctx context.Context, serverName string) error {
+func (m *Manager) RevokeToken(_ context.Context, serverName string) error {
 	dcrClient, err := m.dcrManager.GetDCRClient(serverName)
 	if err != nil {
 		return fmt.Errorf("DCR client not found for %s: %w", serverName, err)

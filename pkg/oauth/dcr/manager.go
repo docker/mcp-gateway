@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/docker/docker-credential-helpers/credentials"
+
 	oauth "github.com/docker/mcp-gateway-oauth-helpers"
+
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/log"
 )
@@ -151,14 +153,14 @@ func mergeScopes(requiredScopes []string, userScopes string) []string {
 // logger adapter for oauth-helpers library
 type logger struct{}
 
-func (l *logger) Infof(format string, args ...interface{}) {
+func (l *logger) Infof(format string, args ...any) {
 	log.Logf(format, args...)
 }
 
-func (l *logger) Warnf(format string, args ...interface{}) {
+func (l *logger) Warnf(format string, args ...any) {
 	log.Logf("! "+format, args...)
 }
 
-func (l *logger) Debugf(format string, args ...interface{}) {
+func (l *logger) Debugf(format string, args ...any) {
 	log.Logf(format, args...)
 }

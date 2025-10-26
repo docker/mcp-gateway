@@ -40,14 +40,14 @@ func authorizeDesktopMode(ctx context.Context, app string, scopes string) error 
 
 // authorizeCEMode handles OAuth in standalone CE mode
 func authorizeCEMode(ctx context.Context, serverName string, scopes string) error {
-	fmt.Printf("🔐 Starting OAuth authorization for %s (CE mode)\n", serverName)
+	fmt.Printf("Starting OAuth authorization for %s...\n", serverName)
 
 	// Create OAuth manager with read-write credential helper
 	credHelper := pkgoauth.NewReadWriteCredentialHelper()
 	manager := pkgoauth.NewManager(credHelper)
 
 	// Step 1: Ensure DCR client is registered
-	fmt.Printf("📋 Checking DCR registration...\n")
+	fmt.Printf("Checking DCR registration...\n")
 	if err := manager.EnsureDCRClient(ctx, serverName, scopes); err != nil {
 		return fmt.Errorf("DCR registration failed: %w", err)
 	}
@@ -61,17 +61,19 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	// Start callback server in background
 	go func() {
 		if err := callbackServer.Start(); err != nil {
-			fmt.Printf("! Callback server error: %v\n", err)
+			fmt.Printf("Callback server error: %v\n", err)
 		}
 	}()
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		callbackServer.Shutdown(shutdownCtx)
+		if err := callbackServer.Shutdown(shutdownCtx); err != nil {
+			fmt.Printf("Warning: failed to shutdown callback server: %v\n", err)
+		}
 	}()
 
 	// Step 3: Build authorization URL with callback URL in state
-	fmt.Printf("🔗 Generating authorization URL...\n")
+	fmt.Printf("Generating authorization URL...\n")
 
 	scopesList := []string{}
 	if scopes != "" {
@@ -89,16 +91,16 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	_ = baseState // We'll validate using the state from callback
 
 	// Step 4: Open browser
-	fmt.Printf("🌐 Opening browser for authorization...\n")
-	fmt.Printf("   If it doesn't open automatically, visit: %s\n", authURL)
+	fmt.Printf("Opening browser for authorization...\n")
+	fmt.Printf("If it doesn't open automatically, visit: %s\n", authURL)
 
 	if err := pkgoauth.OpenBrowser(authURL); err != nil {
-		fmt.Printf("! Failed to open browser automatically: %v\n", err)
-		fmt.Printf("! Please open the URL manually\n")
+		fmt.Printf("Failed to open browser: %v\n", err)
+		fmt.Printf("Please open the URL manually.\n")
 	}
 
 	// Step 5: Wait for callback
-	fmt.Printf("⏳ Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())
+	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
@@ -109,14 +111,13 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	}
 
 	// Step 6: Exchange code for token
-	fmt.Printf("🔄 Exchanging authorization code for access token...\n")
+	fmt.Printf("Exchanging authorization code for access token...\n")
 	if err := manager.ExchangeCode(ctx, code, callbackState); err != nil {
 		return fmt.Errorf("token exchange failed: %w", err)
 	}
 
-	fmt.Printf("✅ Authorization successful! Token stored securely.\n")
-	fmt.Printf("   You can now use: docker mcp server start %s\n", serverName)
+	fmt.Printf("Authorization successful! Token stored securely.\n")
+	fmt.Printf("You can now use: docker mcp server start %s\n", serverName)
 
 	return nil
 }
-

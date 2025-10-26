@@ -10,7 +10,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/oauth"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
 
@@ -66,7 +65,7 @@ func update(ctx context.Context, docker docker.Client, add []string, remove []st
 					fmt.Printf("OAuth server %s enabled. Run 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				} else {
 					// Desktop mode - register provider for lazy setup
-					if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+					if err := pkgoauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 						fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 						fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
 					} else {
