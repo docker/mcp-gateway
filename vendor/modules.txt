@@ -157,6 +157,9 @@ github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
+# github.com/docker/mcp-gateway-oauth-helpers v0.0.2 => github.com/saucow/mcp-gateway-oauth-helpers v0.0.0-20251027224632-d54920a37a0a
+## explicit; go 1.23.0
+github.com/docker/mcp-gateway-oauth-helpers
 # github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 ## explicit; go 1.20
 github.com/dop251/goja
@@ -464,6 +467,9 @@ github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
 github.com/pelletier/go-toml/v2/unstable
+# github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+## explicit; go 1.14
+github.com/pkg/browser
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -830,6 +836,10 @@ golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
+# golang.org/x/oauth2 v0.32.0
+## explicit; go 1.24.0
+golang.org/x/oauth2
+golang.org/x/oauth2/internal
 # golang.org/x/sync v0.15.0
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
@@ -992,3 +1002,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.17
 # k8s.io/client-go v0.33.1
 ## explicit; go 1.24.0
+# github.com/docker/mcp-gateway-oauth-helpers => github.com/saucow/mcp-gateway-oauth-helpers v0.0.0-20251027224632-d54920a37a0a
