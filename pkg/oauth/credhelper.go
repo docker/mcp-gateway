@@ -16,6 +16,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
 
@@ -47,20 +48,32 @@ type TokenStatus struct {
 // It follows this flow:
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
 // 2. Construct credential key using: [AuthorizationEndpoint]/[ProviderName]
-// 3. Retrieve token from docker-credential-desktop
+// 3. Retrieve token from credential helper
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
-	// Step 1: Get DCR client info (includes stored provider name)
-	client := desktop.NewAuthClient()
-	dcrClient, err := client.GetDCRClient(ctx, serverName)
-	if err != nil {
-		log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
-		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	var credentialKey string
+
+	// Get DCR client based on mode
+	if IsCEMode() {
+		// CE mode: Read DCR client from credential helper
+		dcrMgr := dcr.NewManager(h.credentialHelper, "")
+		client, err := dcrMgr.GetDCRClient(serverName)
+		if err != nil {
+			log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
+			return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+	} else {
+		// Desktop mode: Use Desktop API
+		client := desktop.NewAuthClient()
+		dcrClient, err := client.GetDCRClient(ctx, serverName)
+		if err != nil {
+			log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
+			return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 	}
 
-	// Step 2: Construct credential key using authorization endpoint + provider name
-	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
-
-	// Step 3: Retrieve token from docker-credential-desktop
+	// Retrieve token from credential helper
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
@@ -99,17 +112,28 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 
 // GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
-	// Get DCR client info
-	client := desktop.NewAuthClient()
-	dcrClient, err := client.GetDCRClient(ctx, serverName)
-	if err != nil {
-		return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	var credentialKey string
+
+	// Get DCR client based on mode
+	if IsCEMode() {
+		// CE mode: Read DCR client from credential helper
+		dcrMgr := dcr.NewManager(h.credentialHelper, "")
+		client, err := dcrMgr.GetDCRClient(serverName)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+	} else {
+		// Desktop mode: Use Desktop API
+		client := desktop.NewAuthClient()
+		dcrClient, err := client.GetDCRClient(ctx, serverName)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 	}
 
-	// Construct credential key using authorization endpoint + provider name
-	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
-
-	// Retrieve token from docker-credential-desktop
+	// Retrieve token from credential helper
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {

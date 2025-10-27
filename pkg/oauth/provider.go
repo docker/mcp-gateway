@@ -141,18 +141,22 @@ func (p *Provider) Run(ctx context.Context) {
 
 		// Trigger refresh if needed
 		if shouldTriggerRefresh {
-			go func() {
-				authClient := desktop.NewAuthClient()
-				app, err := authClient.GetOAuthApp(context.Background(), p.name)
-				if err != nil {
-					log.Logf("! GetOAuthApp failed for %s: %v", p.name, err)
-					return
-				}
-				if !app.Authorized {
-					log.Logf("! GetOAuthApp returned Authorized=false for %s", p.name)
-					return
-				}
-			}()
+			if !IsCEMode() {
+				// Desktop mode: Trigger refresh via Desktop API
+				go func() {
+					authClient := desktop.NewAuthClient()
+					app, err := authClient.GetOAuthApp(context.Background(), p.name)
+					if err != nil {
+						log.Logf("! GetOAuthApp failed for %s: %v", p.name, err)
+						return
+					}
+					if !app.Authorized {
+						log.Logf("! GetOAuthApp returned Authorized=false for %s", p.name)
+						return
+					}
+				}()
+			}
+			// CE mode: Skip Desktop refresh (manual re-auth required)
 		}
 
 		// Wait pattern - interruptible by SSE events
