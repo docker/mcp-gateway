@@ -74,7 +74,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 		cmd.AddCommand(workingSetCommand())
 	}
 	cmd.AddCommand(catalogCommand(dockerCli))
-	cmd.AddCommand(clientCommand(cwd, dockerCli))
+	cmd.AddCommand(clientCommand(dockerCli, cwd))
 	cmd.AddCommand(configCommand(dockerClient))
 	cmd.AddCommand(featureCommand(dockerCli))
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli))
@@ -83,7 +83,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 	cmd.AddCommand(registryCommand())
 	cmd.AddCommand(secretCommand(dockerClient))
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
-	cmd.AddCommand(toolsCommand(dockerClient))
+	cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
 	cmd.AddCommand(versionCommand())
 
 	if os.Getenv("DOCKER_MCP_SHOW_HIDDEN") == "1" {
