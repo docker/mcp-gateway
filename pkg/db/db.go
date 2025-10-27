@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/docker/mcp-gateway/pkg/user"
-	"github.com/jmoiron/sqlx"
-
 	"github.com/golang-migrate/migrate/v4"
 	msqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jmoiron/sqlx"
 
+	"github.com/docker/mcp-gateway/pkg/user"
+
+	// This enables to sqlite driver
 	_ "modernc.org/sqlite"
 )
 

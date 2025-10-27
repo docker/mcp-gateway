@@ -2,7 +2,9 @@ package workingset
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -14,10 +16,10 @@ import (
 func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("working set %s not found", id)
+		}
 		return fmt.Errorf("failed to get working set: %w", err)
-	}
-	if dbSet == nil {
-		return fmt.Errorf("working set %s not found", id)
 	}
 
 	workingSet := NewFromDb(dbSet)

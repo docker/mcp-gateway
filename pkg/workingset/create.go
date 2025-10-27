@@ -2,6 +2,8 @@ package workingset
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -10,15 +12,15 @@ import (
 func Create(ctx context.Context, dao db.DAO, id string, name string, servers []string) error {
 	var err error
 	if id != "" {
-		existingSet, err := dao.GetWorkingSet(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to look for existing working set: %w", err)
-		}
-		if existingSet != nil {
+		_, err := dao.GetWorkingSet(ctx, id)
+		if err == nil {
 			return fmt.Errorf("working set with id %s already exists", id)
 		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("failed to look for existing working set: %w", err)
+		}
 	} else {
-		id, err = createWorkingSetId(ctx, name, dao)
+		id, err = createWorkingSetID(ctx, name, dao)
 		if err != nil {
 			return fmt.Errorf("failed to create working set id: %w", err)
 		}

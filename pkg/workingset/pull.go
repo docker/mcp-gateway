@@ -16,7 +16,7 @@ func Pull(ctx context.Context, dao db.DAO, ref string) error {
 
 	workingSet := ociCatalog.ToWorkingSet()
 
-	id, err := createWorkingSetId(ctx, workingSet.Name, dao)
+	id, err := createWorkingSetID(ctx, workingSet.Name, dao)
 	if err != nil {
 		return fmt.Errorf("failed to create working set id: %w", err)
 	}

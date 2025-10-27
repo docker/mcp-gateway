@@ -7,6 +7,7 @@ import (
 )
 
 var validate *validator.Validate
+
 var once sync.Once
 
 func Get() *validator.Validate {

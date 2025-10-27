@@ -2,6 +2,8 @@ package workingset
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -12,10 +14,10 @@ import (
 func Push(ctx context.Context, dao db.DAO, id string, refStr string) error {
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("working set %s not found", id)
+		}
 		return fmt.Errorf("failed to get working set: %w", err)
-	}
-	if dbSet == nil {
-		return fmt.Errorf("working set %s not found", id)
 	}
 
 	ref, err := name.ParseReference(refStr)

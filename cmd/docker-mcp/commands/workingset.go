@@ -29,7 +29,7 @@ func workingSetCommand() *cobra.Command {
 
 func createWorkingSetCommand() *cobra.Command {
 	var opts struct {
-		Id      string
+		ID      string
 		Name    string
 		Servers []string
 	}
@@ -51,18 +51,18 @@ Working sets are decoupled from catalogs. Servers can be:
   # Mix MCP Registry references and OCI references
   docker mcp working-set create --name mixed --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return workingset.Create(cmd.Context(), dao, opts.Id, opts.Name, opts.Servers)
+			return workingset.Create(cmd.Context(), dao, opts.ID, opts.Name, opts.Servers)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Name, "name", "", "Name of the working set (required)")
-	flags.StringVar(&opts.Id, "id", "", "ID of the working set (defaults to a slugified version of the name)")
+	flags.StringVar(&opts.ID, "id", "", "ID of the working set (defaults to a slugified version of the name)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include: catalog name or OCI reference with docker:// prefix (can be specified multiple times)")
 
 	_ = cmd.MarkFlagRequired("name")
@@ -78,7 +78,7 @@ func listWorkingSetsCommand() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List working sets",
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			supported := slices.Contains(workingset.SupportedFormats(), format)
 			if !supported {
 				return fmt.Errorf("unsupported format: %s", format)

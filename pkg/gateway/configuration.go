@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -121,10 +123,10 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 
 	workingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
+		}
 		return Configuration{}, fmt.Errorf("failed to get working set: %w", err)
-	}
-	if workingSet == nil {
-		return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
 	}
 
 	// TODO(cody): Finish making the gateway fully compatible with working sets

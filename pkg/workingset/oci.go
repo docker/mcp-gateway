@@ -10,7 +10,7 @@ func fullName(ref name.Reference) string {
 		// Docker Hub is the default domain
 		domain = ""
 	} else {
-		domain = domain + "/"
+		domain += "/"
 	}
 
 	if tagged, ok := ref.(name.Tag); ok {

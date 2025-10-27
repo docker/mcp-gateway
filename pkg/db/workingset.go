@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -10,7 +9,7 @@ import (
 
 type WorkingSetDAO interface {
 	GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
-	FindWorkingSetsByIdPrefix(ctx context.Context, prefix string) ([]WorkingSet, error)
+	FindWorkingSetsByIDPrefix(ctx context.Context, prefix string) ([]WorkingSet, error)
 	ListWorkingSets(ctx context.Context) ([]WorkingSet, error)
 	CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
@@ -18,6 +17,7 @@ type WorkingSetDAO interface {
 }
 
 type ServerList []Server
+
 type SecretMap map[string]Secret
 
 type WorkingSet struct {
@@ -78,9 +78,6 @@ func (d *dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
 	var workingSet WorkingSet
 	err := d.db.GetContext(ctx, &workingSet, query, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return &workingSet, nil
@@ -116,7 +113,7 @@ func (d *dao) UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	return nil
 }
 
-func (d *dao) FindWorkingSetsByIdPrefix(ctx context.Context, prefix string) ([]WorkingSet, error) {
+func (d *dao) FindWorkingSetsByIDPrefix(ctx context.Context, prefix string) ([]WorkingSet, error) {
 	const query = `SELECT id, name, servers, secrets FROM working_set WHERE id LIKE $1`
 
 	var workingSets []WorkingSet
