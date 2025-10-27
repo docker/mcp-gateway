@@ -1,13 +1,14 @@
 package commands
 
 import (
+	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/tools"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
-func toolsCommand(docker docker.Client) *cobra.Command {
+func toolsCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tools",
 		Short: "Manage tools",
@@ -30,7 +31,7 @@ func toolsCommand(docker docker.Client) *cobra.Command {
 		Short:   "List tools",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return tools.List(cmd.Context(), version, gatewayArgs, verbose, "list", "", format)
+			return tools.List(cmd.Context(), dockerCli, version, gatewayArgs, verbose, "list", "", format)
 		},
 	})
 
@@ -39,7 +40,7 @@ func toolsCommand(docker docker.Client) *cobra.Command {
 		Short: "Count tools",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return tools.List(cmd.Context(), version, gatewayArgs, verbose, "count", "", format)
+			return tools.List(cmd.Context(), dockerCli, version, gatewayArgs, verbose, "count", "", format)
 		},
 	})
 
@@ -48,7 +49,7 @@ func toolsCommand(docker docker.Client) *cobra.Command {
 		Short: "Inspect a tool",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return tools.List(cmd.Context(), version, gatewayArgs, verbose, "inspect", args[0], format)
+			return tools.List(cmd.Context(), dockerCli, version, gatewayArgs, verbose, "inspect", args[0], format)
 		},
 	})
 	cmd.AddCommand(&cobra.Command{
