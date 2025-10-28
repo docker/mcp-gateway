@@ -5,10 +5,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/docker/mcp-gateway/pkg/log"
 )
+
+// DefaultOAuthPort is the default port for the OAuth callback server
+// Can be overridden with MCP_GATEWAY_OAUTH_PORT environment variable
+const DefaultOAuthPort = 5000
 
 // CallbackData represents the data received from an OAuth callback
 type CallbackData struct {
@@ -25,15 +31,43 @@ type CallbackServer struct {
 	errCh    chan error
 }
 
-// NewCallbackServer creates a new callback server on a random available port
+// getOAuthPort returns the OAuth callback port from environment variable or default
+// Port validation ensures the value is in the valid range (1024-65535)
+func getOAuthPort() int {
+	if envPort := os.Getenv("MCP_GATEWAY_OAUTH_PORT"); envPort != "" {
+		if port, err := strconv.Atoi(envPort); err == nil {
+			// Validate port range
+			if port > 1024 && port <= 65535 {
+				return port
+			}
+			log.Logf("! Invalid MCP_GATEWAY_OAUTH_PORT %s (must be 1024-65535), using default %d", envPort, DefaultOAuthPort)
+		} else {
+			log.Logf("! Invalid MCP_GATEWAY_OAUTH_PORT %s (not a number), using default %d", envPort, DefaultOAuthPort)
+		}
+	}
+	return DefaultOAuthPort
+}
+
+// NewCallbackServer creates a new callback server on a fixed port (default 5000)
+// The port can be customized via MCP_GATEWAY_OAUTH_PORT environment variable
 func NewCallbackServer() (*CallbackServer, error) {
-	// Find an available port
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	port := getOAuthPort()
+
+	// Bind to the fixed port
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to find available port: %w", err)
+		return nil, fmt.Errorf(
+			"OAuth callback port %d is already in use.\n\n"+
+				"Solutions:\n"+
+				"  1. Stop the service using port %d\n"+
+				"  2. Set a custom port: export MCP_GATEWAY_OAUTH_PORT=5001\n"+
+				"  3. Check what's using the port: lsof -i :%d\n\n"+
+				"Error: %w",
+			port, port, port, err,
+		)
 	}
 
-	port := listener.Addr().(*net.TCPAddr).Port
+	log.Logf("OAuth callback server bound to localhost:%d", port)
 
 	return &CallbackServer{
 		port:     port,

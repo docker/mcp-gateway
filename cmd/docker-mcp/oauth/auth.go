@@ -90,14 +90,8 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	// Store base state for later validation
 	_ = baseState // We'll validate using the state from callback
 
-	// Step 4: Open browser
-	fmt.Printf("Opening browser for authorization...\n")
-	fmt.Printf("If it doesn't open automatically, visit: %s\n", authURL)
-
-	if err := pkgoauth.OpenBrowser(authURL); err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-		fmt.Printf("Please open the URL manually.\n")
-	}
+	// Step 4: Display authorization URL
+	fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
 
 	// Step 5: Wait for callback
 	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())

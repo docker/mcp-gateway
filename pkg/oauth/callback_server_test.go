@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// getTestPort returns a unique port for testing (sequential from 15000)
+var testPortCounter = 15000
+
+func getTestPort(t *testing.T) int {
+	testPortCounter++
+	port := testPortCounter
+	t.Setenv("MCP_GATEWAY_OAUTH_PORT", fmt.Sprintf("%d", port))
+	return port
+}
+
 func TestCallbackServer_PortAssignment(t *testing.T) {
+	getTestPort(t) // Set unique port for this test
+
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
@@ -26,6 +39,8 @@ func TestCallbackServer_PortAssignment(t *testing.T) {
 }
 
 func TestCallbackServer_Success(t *testing.T) {
+	getTestPort(t) // Set unique port for this test
+
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
@@ -64,6 +79,8 @@ func TestCallbackServer_Success(t *testing.T) {
 }
 
 func TestCallbackServer_MissingCode(t *testing.T) {
+	getTestPort(t) // Set unique port for this test
+
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
@@ -90,6 +107,8 @@ func TestCallbackServer_MissingCode(t *testing.T) {
 }
 
 func TestCallbackServer_MissingState(t *testing.T) {
+	getTestPort(t) // Set unique port for this test
+
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
@@ -135,6 +154,8 @@ func TestCallbackServer_OAuthError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			getTestPort(t) // Set unique port for this subtest
+
 			server, err := NewCallbackServer()
 			require.NoError(t, err)
 			defer func() {
@@ -162,6 +183,8 @@ func TestCallbackServer_OAuthError(t *testing.T) {
 }
 
 func TestCallbackServer_Timeout(t *testing.T) {
+	getTestPort(t) // Set unique port for this test
+
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
