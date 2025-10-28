@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
@@ -29,6 +30,7 @@ type Configuration struct {
 	config      map[string]map[string]any
 	tools       config.ToolsConfig
 	secrets     map[string]string
+	SessionName string
 }
 
 func (c *Configuration) ServerNames() []string {
@@ -90,6 +92,51 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 	return nil, &byName, true
 }
 
+// Persist writes the configuration files to the session directory if SessionName is set
+func (c *Configuration) Persist() error {
+	if c.SessionName == "" {
+		return nil // No session name set, nothing to persist
+	}
+
+	// Serialize and write registry.yaml
+	registry := config.Registry{
+		Servers: make(map[string]config.Tile),
+	}
+	for _, serverName := range c.serverNames {
+		registry.Servers[serverName] = config.Tile{
+			Ref: serverName,
+		}
+	}
+	registryBytes, err := yaml.Marshal(registry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal registry: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "registry.yaml", registryBytes); err != nil {
+		return fmt.Errorf("failed to write registry.yaml: %w", err)
+	}
+
+	// Serialize and write config.yaml
+	configBytes, err := yaml.Marshal(c.config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "config.yaml", configBytes); err != nil {
+		return fmt.Errorf("failed to write config.yaml: %w", err)
+	}
+
+	// Serialize and write tools.yaml
+	toolsBytes, err := yaml.Marshal(c.tools)
+	if err != nil {
+		return fmt.Errorf("failed to marshal tools: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "tools.yaml", toolsBytes); err != nil {
+		return fmt.Errorf("failed to write tools.yaml: %w", err)
+	}
+
+	log.Log(fmt.Sprintf("  - Configuration persisted to session '%s'", c.SessionName))
+	return nil
+}
+
 type FileBasedConfiguration struct {
 	CatalogPath        []string
 	ServerNames        []string // Takes precedence over the RegistryPath
@@ -101,6 +148,7 @@ type FileBasedConfiguration struct {
 	MCPRegistryServers []catalog.Server // Servers fetched from MCP registries
 	Watch              bool
 	McpOAuthDcrEnabled bool
+	sessionName        string // Session name for persisting configuration
 
 	docker docker.Client
 }

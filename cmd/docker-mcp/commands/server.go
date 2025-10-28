@@ -9,6 +9,7 @@ import (
 	"github.com/docker/cli/cli/command"
 	"github.com/spf13/cobra"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -43,6 +44,11 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 				fmt.Fprintln(cmd.OutOrStdout(), "No server is enabled")
 			} else {
 				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(list, ", "))
+				if hints.Enabled(dockerCli) {
+					hints.TipCyan.Fprint(cmd.OutOrStdout(), "Tip: To use these servers, connect to a client (IE: claude/cursor) with ")
+					hints.TipCyanBoldItalic.Fprintln(cmd.OutOrStdout(), "docker mcp client connect <client-name>")
+					fmt.Fprintln(cmd.OutOrStdout(), "")
+				}
 			}
 
 			return nil
@@ -58,7 +64,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			return server.Enable(cmd.Context(), docker, args, mcpOAuthDcrEnabled)
+			return server.Enable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
 		},
 	})
 
@@ -69,7 +75,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			return server.Disable(cmd.Context(), docker, args, mcpOAuthDcrEnabled)
+			return server.Disable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
 		},
 	})
 
