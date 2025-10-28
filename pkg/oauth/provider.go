@@ -208,15 +208,18 @@ func (p *Provider) SendEvent(event Event) {
 // refreshTokenCE refreshes an OAuth token in CE mode
 // Uses the same oauth2 library refresh mechanism as Desktop
 func (p *Provider) refreshTokenCE() error {
+	// Create read-write credential helper for save operations
+	rwHelper := NewReadWriteCredentialHelper()
+
 	// Get DCR client from credential helper
-	dcrMgr := dcr.NewManager(p.credHelper.GetHelper(), "")
+	dcrMgr := dcr.NewManager(rwHelper, "")
 	dcrClient, err := dcrMgr.GetDCRClient(p.name)
 	if err != nil {
 		return fmt.Errorf("failed to get DCR client: %w", err)
 	}
 
-	// Get current token
-	tokenStore := NewTokenStore(p.credHelper.GetHelper())
+	// Get current token and create token store
+	tokenStore := NewTokenStore(rwHelper)
 	token, err := tokenStore.Retrieve(dcrClient)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve token: %w", err)
