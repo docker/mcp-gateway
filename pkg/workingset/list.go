@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func List(ctx context.Context, dao db.DAO, format OutputFormat) error {

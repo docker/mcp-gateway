@@ -9,8 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
@@ -36,7 +37,7 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 		return fmt.Errorf("failed to marshal working set: %w", err)
 	}
 
-	err = os.WriteFile(filename, data, 0644)
+	err = os.WriteFile(filename, data, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to write working set: %w", err)
 	}

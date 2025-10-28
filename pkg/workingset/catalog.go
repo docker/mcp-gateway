@@ -6,9 +6,9 @@ type Catalog struct {
 }
 
 type CatalogServer struct {
-	Type   string                 `yaml:"type" json:"type"`
-	Config map[string]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
-	Tools  []string               `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Type   string         `yaml:"type" json:"type"`
+	Config map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
+	Tools  []string       `yaml:"tools,omitempty" json:"tools,omitempty"`
 
 	// If type is "registry"
 	Source string `yaml:"source,omitempty" json:"source,omitempty"`

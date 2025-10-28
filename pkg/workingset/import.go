@@ -9,8 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func Import(ctx context.Context, dao db.DAO, filename string) error {

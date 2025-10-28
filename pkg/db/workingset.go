@@ -28,12 +28,12 @@ type WorkingSet struct {
 }
 
 type Server struct {
-	Type    string                 `json:"type"`
-	Config  map[string]interface{} `json:"config,omitempty"`
-	Secrets string                 `json:"secrets,omitempty"`
-	Tools   []string               `json:"tools,omitempty"`
-	Source  string                 `json:"source,omitempty"`
-	Image   string                 `json:"image,omitempty"`
+	Type    string         `json:"type"`
+	Config  map[string]any `json:"config,omitempty"`
+	Secrets string         `json:"secrets,omitempty"`
+	Tools   []string       `json:"tools,omitempty"`
+	Source  string         `json:"source,omitempty"`
+	Image   string         `json:"image,omitempty"`
 }
 
 type Secret struct {

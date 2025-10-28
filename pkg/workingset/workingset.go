@@ -30,10 +30,10 @@ const (
 
 // Server represents a server configuration in a working set
 type Server struct {
-	Type    ServerType             `yaml:"type" json:"type" validate:"required,oneof=registry image"`
-	Config  map[string]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
-	Secrets string                 `yaml:"secrets,omitempty" json:"secrets,omitempty"`
-	Tools   []string               `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image"`
+	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
+	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+	Tools   []string       `yaml:"tools,omitempty" json:"tools,omitempty"`
 
 	// ServerTypeRegistry only
 	Source string `yaml:"source,omitempty" json:"source,omitempty" validate:"required_if=Type registry"`

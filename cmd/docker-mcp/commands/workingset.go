@@ -5,9 +5,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/spf13/cobra"
 )
 
 func workingSetCommand() *cobra.Command {
