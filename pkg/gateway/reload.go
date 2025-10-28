@@ -268,6 +268,10 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)
+		// Remove from tool registrations tracking
+		for _, toolName := range removedTools {
+			delete(g.toolRegistrations, toolName)
+		}
 		log.Log("  - Removed", len(removedTools), "tools for", serverName)
 	}
 
@@ -290,6 +294,8 @@ func (g *Gateway) reloadServerConfiguration(ctx context.Context, serverName stri
 	for _, tool := range addedTools {
 		if registration, err := newServerCaps.getToolByName(tool); err == nil {
 			g.mcpServer.AddTool(registration.Tool, registration.Handler)
+			// Track tool registration for mcp-exec and mcp-add
+			g.toolRegistrations[registration.Tool.Name] = registration
 		}
 	}
 	if len(addedTools) > 0 {

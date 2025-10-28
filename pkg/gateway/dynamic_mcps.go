@@ -673,6 +673,46 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			log.Log("Warning: Failed to persist configuration:", err)
 		}
 
+		// Get the list of tools that were just added from this server
+		var addedTools []*mcp.Tool
+		g.capabilitiesMu.RLock()
+		if serverCaps := g.serverCapabilities[serverName]; serverCaps != nil {
+			for _, toolName := range serverCaps.ToolNames {
+				if toolReg, exists := g.toolRegistrations[toolName]; exists {
+					addedTools = append(addedTools, toolReg.Tool)
+				}
+			}
+		}
+		g.capabilitiesMu.RUnlock()
+
+		// Build the response text
+		responseText := fmt.Sprintf("Successfully added %d tools in server '%s'. Assume that it is fully configured and ready to use.", len(addedTools), serverName)
+
+		// Include the JSON representation of the newly added tools
+		// This is useful when the client session does not support tool change notifications
+		if len(addedTools) > 0 {
+			// Create a tools list response matching the format from tools/list
+			toolsList := make([]map[string]any, 0, len(addedTools))
+			for _, tool := range addedTools {
+				toolMap := map[string]any{
+					"name":        tool.Name,
+					"description": tool.Description,
+				}
+				if tool.InputSchema != nil {
+					toolMap["inputSchema"] = tool.InputSchema
+				}
+				toolsList = append(toolsList, toolMap)
+			}
+
+			// Convert to JSON
+			toolsJSON, err := json.MarshalIndent(map[string]any{
+				"tools": toolsList,
+			}, "", "  ")
+			if err == nil {
+				responseText += "\n\nNewly added tools:\n```json\n" + string(toolsJSON) + "\n```"
+			}
+		}
+
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
 		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
 			return g.addRemoteOAuthServer(ctx, serverName, req)
@@ -680,7 +720,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. Assume that it is fully configured and ready to use.", serverName),
+				Text: responseText,
 			}},
 		}, nil
 	}
