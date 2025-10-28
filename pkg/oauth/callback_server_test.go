@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// getTestPort returns a unique port for testing (sequential from 15000)
+// getTestPort sets a unique port for testing via environment variable (sequential from 15000)
 var testPortCounter = 15000
 
-func getTestPort(t *testing.T) int {
+func getTestPort(t *testing.T) {
+	t.Helper()
 	testPortCounter++
 	port := testPortCounter
 	t.Setenv("MCP_GATEWAY_OAUTH_PORT", fmt.Sprintf("%d", port))
-	return port
 }
 
 func TestCallbackServer_PortAssignment(t *testing.T) {
