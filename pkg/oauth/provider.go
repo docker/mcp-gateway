@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -141,7 +142,14 @@ func (p *Provider) Run(ctx context.Context) {
 
 		// Trigger refresh if needed
 		if shouldTriggerRefresh {
-			if !IsCEMode() {
+			if IsCEMode() {
+				// CE mode: Refresh token directly
+				go func() {
+					if err := p.refreshTokenCE(); err != nil {
+						log.Logf("! Token refresh failed for %s: %v", p.name, err)
+					}
+				}()
+			} else {
 				// Desktop mode: Trigger refresh via Desktop API
 				go func() {
 					authClient := desktop.NewAuthClient()
@@ -156,7 +164,6 @@ func (p *Provider) Run(ctx context.Context) {
 					}
 				}()
 			}
-			// CE mode: Skip Desktop refresh (manual re-auth required)
 		}
 
 		// Wait pattern - interruptible by SSE events
@@ -196,4 +203,40 @@ func (p *Provider) Stop() {
 // SendEvent sends an SSE event to this provider's event channel
 func (p *Provider) SendEvent(event Event) {
 	p.eventChan <- event
+}
+
+// refreshTokenCE refreshes an OAuth token in CE mode
+// Uses the same oauth2 library refresh mechanism as Desktop
+func (p *Provider) refreshTokenCE() error {
+	// Get DCR client from credential helper
+	dcrMgr := dcr.NewManager(p.credHelper.GetHelper(), "")
+	dcrClient, err := dcrMgr.GetDCRClient(p.name)
+	if err != nil {
+		return fmt.Errorf("failed to get DCR client: %w", err)
+	}
+
+	// Get current token
+	tokenStore := NewTokenStore(p.credHelper.GetHelper())
+	token, err := tokenStore.Retrieve(dcrClient)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve token: %w", err)
+	}
+
+	// Refresh token using oauth2 library
+	provider := NewDCRProvider(dcrClient, DefaultRedirectURI)
+	config := provider.Config()
+
+	// TokenSource automatically refreshes using refresh_token
+	refreshedToken, err := config.TokenSource(context.Background(), token).Token()
+	if err != nil {
+		return fmt.Errorf("token refresh failed: %w", err)
+	}
+
+	// Save refreshed token
+	if err := tokenStore.Save(dcrClient, refreshedToken); err != nil {
+		return fmt.Errorf("failed to save refreshed token: %w", err)
+	}
+
+	log.Logf("- Successfully refreshed token for %s", p.name)
+	return nil
 }
