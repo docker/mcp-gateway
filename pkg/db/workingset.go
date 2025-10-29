@@ -53,7 +53,7 @@ func (servers *ServerList) Scan(value any) error {
 	if !ok {
 		return errors.New("failed to scan server list")
 	}
-	return json.Unmarshal([]byte(str), &servers)
+	return json.Unmarshal([]byte(str), servers)
 }
 
 func (secrets SecretMap) Value() (driver.Value, error) {
@@ -69,7 +69,7 @@ func (secrets *SecretMap) Scan(value any) error {
 	if !ok {
 		return errors.New("failed to scan secret list")
 	}
-	return json.Unmarshal([]byte(str), &secrets)
+	return json.Unmarshal([]byte(str), secrets)
 }
 
 func (d *dao) GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error) {

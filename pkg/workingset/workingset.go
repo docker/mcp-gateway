@@ -155,7 +155,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 		}
 	}
 
-	return "", fmt.Errorf("failed to create working set id: %w", err)
+	return "", fmt.Errorf("failed to create working set id")
 }
 
 func resolveServerFromString(value string) (Server, error) {
