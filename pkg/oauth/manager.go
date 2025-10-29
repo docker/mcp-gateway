@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
@@ -13,8 +12,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
 
-// DefaultRedirectURI can be overridden via DOCKER_MCP_OAUTH_REDIRECT_URI env var
-// For local testing, set to: http://localhost:8080/oauth/callback
+// DefaultRedirectURI is the OAuth callback endpoint
 const DefaultRedirectURI = "https://mcp.docker.com/oauth/callback"
 
 // Manager orchestrates OAuth flows for DCR-based providers
@@ -27,19 +25,11 @@ type Manager struct {
 
 // NewManager creates a new OAuth manager for CE mode
 func NewManager(credHelper credentials.Helper) *Manager {
-	redirectURI := DefaultRedirectURI
-
-	// Allow override for local testing
-	if envURI := os.Getenv("DOCKER_MCP_OAUTH_REDIRECT_URI"); envURI != "" {
-		redirectURI = envURI
-		log.Logf("- Using custom redirect URI: %s", redirectURI)
-	}
-
 	return &Manager{
-		dcrManager:   dcr.NewManager(credHelper, redirectURI),
+		dcrManager:   dcr.NewManager(credHelper, DefaultRedirectURI),
 		tokenStore:   NewTokenStore(credHelper),
 		stateManager: NewStateManager(),
-		redirectURI:  redirectURI,
+		redirectURI:  DefaultRedirectURI,
 	}
 }
 

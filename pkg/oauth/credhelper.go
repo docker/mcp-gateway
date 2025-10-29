@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"time"
 
 	"github.com/docker/docker-credential-helpers/client"
@@ -17,7 +15,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
-	"github.com/docker/mcp-gateway/pkg/user"
 )
 
 // CredentialHelper provides secure access to OAuth tokens via credential helpers
@@ -263,56 +260,21 @@ func (h *readWriteHelper) List() (map[string]string, error) {
 var _ credentials.Helper = &readWriteHelper{}
 
 // getCredentialHelperName returns the credential helper to use
-// Priority: Desktop binary > Docker config credsStore setting
 func getCredentialHelperName() string {
-	// 1. Desktop mode - use docker-credential-desktop if available
-	if !IsCEMode() && commandExists("docker-credential-desktop") {
-		return "desktop"
-	}
-
-	// 2. Read from ~/.docker/config.json
-	homeDir, err := user.HomeDir()
+	resolver := NewResolver()
+	helperName, err := resolver.Resolve()
 	if err != nil {
-		log.Logf("! Failed to get home directory: %v", err)
+		log.Logf("! %v", err)
 		return ""
 	}
 
-	configPath := filepath.Join(homeDir, ".docker", "config.json")
-	configData, err := os.ReadFile(configPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			log.Logf("! Failed to read Docker config at %s: %v", configPath, err)
-		}
+	if helperName == "" {
+		log.Logf("! No credential helper found")
 		return ""
 	}
 
-	// Parse JSON to get credsStore
-	var config struct {
-		CredsStore string `json:"credsStore"`
-	}
-	if err := json.Unmarshal(configData, &config); err != nil {
-		log.Logf("! Failed to parse Docker config: %v", err)
-		return ""
-	}
-
-	if config.CredsStore == "" {
-		return ""
-	}
-
-	// Verify the helper binary exists
-	helperBinary := "docker-credential-" + config.CredsStore
-	if !commandExists(helperBinary) {
-		log.Logf("! Configured credential helper '%s' not found in PATH", helperBinary)
-		return ""
-	}
-
-	return config.CredsStore
-}
-
-// commandExists checks if a command exists in PATH
-func commandExists(cmd string) bool {
-	_, err := exec.LookPath(cmd)
-	return err == nil
+	log.Logf("- Using credential helper: docker-credential-%s", helperName)
+	return helperName
 }
 
 // newShellProgramFunc creates programs that are executed in a Shell.
