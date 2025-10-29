@@ -123,6 +123,15 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.MCPRegistryServers = mcpServers
 			}
 
+			if options.WorkingSet != "" {
+				if len(options.ServerNames) > 0 {
+					return fmt.Errorf("cannot use --working-set with --servers flag")
+				}
+				if enableAllServers {
+					return fmt.Errorf("cannot use --working-set with --enable-all-servers flag")
+				}
+			}
+
 			// Handle --enable-all-servers flag
 			if enableAllServers {
 				if len(options.ServerNames) > 0 {
@@ -148,6 +157,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
+	if isWorkingSetsFeatureEnabled(dockerCli) {
+		runCmd.Flags().StringVar(&options.WorkingSet, "working-set", "", "Working set ID to use (mutually exclusive with --servers and --enable-all-servers)")
+	}
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
@@ -177,6 +189,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")
 	runCmd.Flags().StringVar(&options.LogFilePath, "log", options.LogFilePath, "Path to log file for stderr output (relative or absolute)")
+	runCmd.Flags().StringVar(&options.SessionName, "session", "", "Session name for loading and persisting configuration from ~/.docker/mcp/{SessionName}/")
 
 	// Very experimental features
 	_ = runCmd.Flags().MarkHidden("log")
@@ -295,12 +308,12 @@ func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
 func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
-		return false
+		return true // Default enabled when no config exists
 	}
 
 	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
-		return false
+		return true // Default enabled when not in config
 	}
 
 	return value == "enabled"
@@ -318,5 +331,19 @@ func isToolNamePrefixFeatureEnabled(dockerCli command.Cli) bool {
 		return false
 	}
 
+	return value == "enabled"
+}
+
+// isWorkingSetsFeatureEnabled checks if the working-sets feature is enabled
+func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["working-sets"]
+	if !exists {
+		return false
+	}
 	return value == "enabled"
 }

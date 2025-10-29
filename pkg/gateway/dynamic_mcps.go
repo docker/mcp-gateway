@@ -308,10 +308,55 @@ func (g *Gateway) createCodeModeTool(_ *clientConfig) *ToolRegistration {
 		// Add the tool to the gateway's MCP server
 		g.mcpServer.AddTool(customTool.Tool, customTool.Handler)
 
+		// Track the tool registration for capabilities and mcp-exec
+		g.capabilitiesMu.Lock()
+		g.toolRegistrations[toolName] = ToolRegistration{
+			ServerName: "code-mode",
+			Tool:       customTool.Tool,
+			Handler:    customTool.Handler,
+		}
+		g.capabilitiesMu.Unlock()
+
+		// Build detailed response with tool information
+		var responseText strings.Builder
+		responseText.WriteString(fmt.Sprintf("Successfully created code-mode tool '%s'\n\n", toolName))
+
+		// Tool description
+		responseText.WriteString("## Tool Details\n")
+		responseText.WriteString(fmt.Sprintf("**Name:** %s\n", toolName))
+		responseText.WriteString(fmt.Sprintf("**Description:** %s\n\n", customTool.Tool.Description))
+
+		// Input schema information
+		responseText.WriteString("## Input Schema\n")
+		if customTool.Tool.InputSchema != nil {
+			schemaJSON, err := json.MarshalIndent(customTool.Tool.InputSchema, "", "  ")
+			if err == nil {
+				responseText.WriteString("```json\n")
+				responseText.WriteString(string(schemaJSON))
+				responseText.WriteString("\n```\n\n")
+			}
+		}
+
+		// Available servers
+		responseText.WriteString("## Available Servers\n")
+		responseText.WriteString(fmt.Sprintf("This tool has access to tools from: %s\n\n", strings.Join(params.Servers, ", ")))
+
+		// Usage instructions
+		responseText.WriteString("## How to Use\n")
+		responseText.WriteString("You can call this tool using the **mcp-exec** tool:\n")
+		responseText.WriteString("```json\n")
+		responseText.WriteString("{\n")
+		responseText.WriteString(fmt.Sprintf("  \"name\": \"%s\",\n", toolName))
+		responseText.WriteString("  \"arguments\": {\n")
+		responseText.WriteString("    \"script\": \"<your JavaScript code here>\"\n")
+		responseText.WriteString("  }\n")
+		responseText.WriteString("}\n")
+		responseText.WriteString("```\n\n")
+		responseText.WriteString("The tool is now available in your session and can be executed via mcp-exec.")
+
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully created code-mode tool '%s' with access to servers: %s",
-					toolName, strings.Join(params.Servers, ", ")),
+				Text: responseText.String(),
 			}},
 		}, nil
 	}
@@ -368,6 +413,62 @@ func (a *serverToolSetAdapter) Tools(ctx context.Context) ([]*codemode.ToolWithH
 	}
 
 	return result, nil
+}
+
+// shortenURL creates a shortened URL using Bitly's API
+// It returns the shortened URL or an error if the request fails
+func shortenURL(ctx context.Context, longURL string) (string, error) {
+	// Get Bitly API token from environment or secrets
+	apiToken := os.Getenv("BITLY_ACCESS_TOKEN")
+	if apiToken == "" {
+		return "", fmt.Errorf("BITLY_ACCESS_TOKEN not set")
+	}
+
+	// Create the request payload
+	payload := map[string]string{
+		"long_url": longURL,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	// Create HTTP request to Bitly API
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api-ssl.bitly.com/v4/shorten", strings.NewReader(string(payloadBytes)))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiToken)
+
+	// Make the request
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to shorten URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("bitly API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse the response
+	var response struct {
+		Link string `json:"link"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if response.Link == "" {
+		return "", fmt.Errorf("empty link in response")
+	}
+
+	return response.Link, nil
 }
 
 // addRemoteOAuthServer handles the OAuth setup for a remote OAuth server
@@ -430,9 +531,21 @@ func (g *Gateway) addRemoteOAuthServer(ctx context.Context, serverName string, r
 	if err != nil {
 		log.Logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
 	} else if authResponse.BrowserURL != "" {
+		// Try to shorten the URL using Bitly
+		shortURL, err := shortenURL(ctx, authResponse.BrowserURL)
+		var displayLink string
+		if err != nil {
+			// If shortening fails, use the original URL
+			log.Logf("Warning: Failed to shorten URL for %s: %v", serverName, err)
+			displayLink = fmt.Sprintf("[Click here to authorize](%s)", authResponse.BrowserURL)
+		} else {
+			// Use the shortened URL in the markdown link
+			displayLink = fmt.Sprintf("[Click here to authorize](%s)", shortURL)
+		}
+
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please open the following URL in your browser:\n\n%s", serverName, authResponse.BrowserURL),
+				Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please %s", serverName, displayLink),
 			}},
 		}, nil
 	}
@@ -524,14 +637,80 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}
 		}
 
-		// If secrets are missing, return a Resource response with instructions
+		// If secrets are missing, handle based on client type
 		if len(missingSecrets) > 0 {
-			// Build JavaScript to create buttons for each missing secret
-			return secretInput(missingSecrets, serverName), nil
+			// Check if the client is nanobot
+			clientName := ""
+			if req.Session.InitializeParams().ClientInfo != nil {
+				clientName = req.Session.InitializeParams().ClientInfo.Name
+			}
+
+			if clientName == "nanobot" {
+				// For nanobot, return the interactive UI
+				return secretInput(missingSecrets, serverName), nil
+			}
+
+			// For other clients, return an error with command line instructions
+			var secretCommands []string
+			for _, secret := range missingSecrets {
+				secretCommands = append(secretCommands, fmt.Sprintf("  docker mcp secret set %s=<value>", secret))
+			}
+
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("Error: Cannot add server '%s'. Required secrets are not set: %s\n\nThe server was not added. Please configure these secrets first:\n\n%s",
+						serverName, strings.Join(missingSecrets, ", "), strings.Join(secretCommands, "\n")),
+				}},
+			}, nil
 		}
 
 		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
+		}
+
+		// Persist configuration if session name is set
+		if err := g.configuration.Persist(); err != nil {
+			log.Log("Warning: Failed to persist configuration:", err)
+		}
+
+		// Get the list of tools that were just added from this server
+		var addedTools []*mcp.Tool
+		g.capabilitiesMu.RLock()
+		if serverCaps := g.serverCapabilities[serverName]; serverCaps != nil {
+			for _, toolName := range serverCaps.ToolNames {
+				if toolReg, exists := g.toolRegistrations[toolName]; exists {
+					addedTools = append(addedTools, toolReg.Tool)
+				}
+			}
+		}
+		g.capabilitiesMu.RUnlock()
+
+		// Build the response text
+		responseText := fmt.Sprintf("Successfully added %d tools in server '%s'. Assume that it is fully configured and ready to use.", len(addedTools), serverName)
+
+		// Include the JSON representation of the newly added tools
+		// This is useful when the client session does not support tool change notifications
+		if len(addedTools) > 0 {
+			// Create a tools list response matching the format from tools/list
+			toolsList := make([]map[string]any, 0, len(addedTools))
+			for _, tool := range addedTools {
+				toolMap := map[string]any{
+					"name":        tool.Name,
+					"description": tool.Description,
+				}
+				if tool.InputSchema != nil {
+					toolMap["inputSchema"] = tool.InputSchema
+				}
+				toolsList = append(toolsList, toolMap)
+			}
+
+			// Convert to JSON
+			toolsJSON, err := json.MarshalIndent(map[string]any{
+				"tools": toolsList,
+			}, "", "  ")
+			if err == nil {
+				responseText += "\n\nNewly added tools:\n```json\n" + string(toolsJSON) + "\n```"
+			}
 		}
 
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
@@ -541,7 +720,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. Assume that it is fully configured and ready to use.", serverName),
+				Text: responseText,
 			}},
 		}, nil
 	}
@@ -609,6 +788,11 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 
 		if err := g.removeServerConfiguration(ctx, serverName); err != nil {
 			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
+		}
+
+		// Persist configuration if session name is set
+		if err := g.configuration.Persist(); err != nil {
+			log.Log("Warning: Failed to persist configuration:", err)
 		}
 
 		return &mcp.CallToolResult{
@@ -884,6 +1068,11 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
+		// Persist configuration if session name is set
+		if err := g.configuration.Persist(); err != nil {
+			log.Log("Warning: Failed to persist configuration:", err)
+		}
+
 		var resultMessage string
 		if oldValue != nil {
 			resultMessage = fmt.Sprintf("Successfully updated config for server '%s': %s = %v (was: %v)", serverName, configKey, params.Value, oldValue)
@@ -905,6 +1094,190 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-config-set", handler),
+	}
+}
+
+// createMcpSessionNameTool implements a tool for setting the session name
+func (g *Gateway) createMcpSessionNameTool() *ToolRegistration {
+	tool := &mcp.Tool{
+		Name:        "mcp-session-name",
+		Description: "Set a session name for the gateway configuration. When set, configuration changes will be persisted to ~/.docker/mcp/{SessionName}/ directory.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name": {
+					Type:        "string",
+					Description: "Session name to set (alphanumeric and hyphens only)",
+				},
+			},
+			Required: []string{"name"},
+		},
+	}
+
+	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Parse parameters
+		var params struct {
+			Name string `json:"name"`
+		}
+
+		if req.Params.Arguments == nil {
+			return nil, fmt.Errorf("missing arguments")
+		}
+
+		paramsBytes, err := json.Marshal(req.Params.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
+		if err := json.Unmarshal(paramsBytes, &params); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+
+		if params.Name == "" {
+			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		sessionName := strings.TrimSpace(params.Name)
+
+		// Validate session name (alphanumeric and hyphens only)
+		if !isValidSessionName(sessionName) {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("Error: Invalid session name '%s'. Session names must contain only alphanumeric characters and hyphens.", sessionName),
+				}},
+			}, nil
+		}
+
+		// Set the session name
+		g.configuration.SessionName = sessionName
+
+		// Persist the current configuration to the session directory
+		if err := g.configuration.Persist(); err != nil {
+			return nil, fmt.Errorf("failed to persist configuration: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: fmt.Sprintf("Successfully set session name to '%s'. Configuration will now be persisted to ~/.docker/mcp/%s/", sessionName, sessionName),
+			}},
+		}, nil
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-session-name", handler),
+	}
+}
+
+// isValidSessionName checks if a session name contains only alphanumeric characters and hyphens
+func isValidSessionName(name string) bool {
+	for _, ch := range name {
+		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '_' {
+			return false
+		}
+	}
+	return len(name) > 0
+}
+
+// createMcpExecTool implements a tool for executing tools that exist in the current session
+// but may not be returned from listTools calls
+func (g *Gateway) createMcpExecTool() *ToolRegistration {
+	tool := &mcp.Tool{
+		Name:        "mcp-exec",
+		Description: "Execute a tool that exists in the current session. This allows calling tools that may not be visible in listTools results.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name": {
+					Type:        "string",
+					Description: "Name of the tool to execute",
+				},
+				"arguments": {
+					Description: "Arguments to pass to the tool (can be any valid JSON value)",
+				},
+			},
+			Required: []string{"name"},
+		},
+	}
+
+	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Parse parameters
+		var params struct {
+			Name      string          `json:"name"`
+			Arguments json.RawMessage `json:"arguments"`
+		}
+
+		if req.Params.Arguments == nil {
+			return nil, fmt.Errorf("missing arguments")
+		}
+
+		paramsBytes, err := json.Marshal(req.Params.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
+		if err := json.Unmarshal(paramsBytes, &params); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+
+		if params.Name == "" {
+			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		toolName := strings.TrimSpace(params.Name)
+
+		// Look up the tool in current tool registrations
+		g.capabilitiesMu.RLock()
+		toolReg, found := g.toolRegistrations[toolName]
+		g.capabilitiesMu.RUnlock()
+
+		if !found {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("Error: Tool '%s' not found in current session. Make sure the server providing this tool is added to the session.", toolName),
+				}},
+			}, nil
+		}
+
+		// Handle the case where arguments might be a JSON-encoded string
+		// This happens when the schema previously specified Type: "string"
+		var toolArguments json.RawMessage
+		if len(params.Arguments) > 0 {
+			// Try to unmarshal as a string first (for backward compatibility)
+			var argString string
+			if err := json.Unmarshal(params.Arguments, &argString); err == nil {
+				// It was a JSON string, use the unescaped content
+				toolArguments = json.RawMessage(argString)
+			} else {
+				// It's already a proper JSON object/value
+				toolArguments = params.Arguments
+			}
+		}
+
+		// Create a new CallToolRequest with the provided arguments
+		log.Logf("calling tool %s with %s", toolName, toolArguments)
+		toolCallRequest := &mcp.CallToolRequest{
+			Session: req.Session,
+			Params: &mcp.CallToolParamsRaw{
+				Meta:      req.Params.Meta,
+				Name:      toolName,
+				Arguments: toolArguments,
+			},
+			Extra: req.Extra,
+		}
+
+		// Execute the tool using its registered handler
+		result, err := toolReg.Handler(ctx, toolCallRequest)
+		if err != nil {
+			return nil, fmt.Errorf("tool execution failed: %w", err)
+		}
+
+		return result, nil
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-exec", handler),
 	}
 }
 

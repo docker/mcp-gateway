@@ -3,9 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
+
+	"github.com/docker/cli/cli/command"
+
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 )
 
-func Connect(ctx context.Context, cwd string, config Config, vendor string, global, quiet bool) error {
+func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config Config, vendor string, global, quiet bool, workingSet string) error {
 	if vendor == vendorCodex {
 		if !global {
 			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
@@ -22,8 +26,14 @@ func Connect(ctx context.Context, cwd string, config Config, vendor string, glob
 		if err != nil {
 			return err
 		}
-		if err := updater(DockerMCPCatalog, newMCPGatewayServer()); err != nil {
-			return err
+		if workingSet != "" {
+			if err := updater(DockerMCPCatalog, newMcpGatewayServerWithWorkingSet(workingSet)); err != nil {
+				return err
+			}
+		} else {
+			if err := updater(DockerMCPCatalog, newMCPGatewayServer()); err != nil {
+				return err
+			}
 		}
 	}
 	if quiet {
@@ -33,5 +43,11 @@ func Connect(ctx context.Context, cwd string, config Config, vendor string, glob
 		return err
 	}
 	fmt.Printf("You might have to restart '%s'.\n", vendor)
+	if hints.Enabled(dockerCli) {
+		hints.TipCyan.Print("Tip: Your client is now connected! Use ")
+		hints.TipCyanBoldItalic.Print("docker mcp tools ls")
+		hints.TipCyan.Println(" to see your available tools")
+		fmt.Println()
+	}
 	return nil
 }

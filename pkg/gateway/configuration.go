@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -11,12 +13,15 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 type Configurator interface {
@@ -29,6 +34,7 @@ type Configuration struct {
 	config      map[string]map[string]any
 	tools       config.ToolsConfig
 	secrets     map[string]string
+	SessionName string
 }
 
 func (c *Configuration) ServerNames() []string {
@@ -90,6 +96,114 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 	return nil, &byName, true
 }
 
+type WorkingSetConfiguration struct {
+	WorkingSet string
+}
+
+func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
+	configuration, err := c.readOnce(ctx)
+	if err != nil {
+		return Configuration{}, nil, nil, err
+	}
+
+	// TODO(cody): Stub for now
+	updates := make(chan Configuration)
+
+	return configuration, updates, func() error { return nil }, nil
+}
+
+func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, error) {
+	start := time.Now()
+	log.Log("- Reading working set configuration...")
+
+	dao, err := db.New()
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to create database client: %w", err)
+	}
+
+	workingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
+		}
+		return Configuration{}, fmt.Errorf("failed to get working set: %w", err)
+	}
+
+	// TODO(cody): Finish making the gateway fully compatible with working sets
+	// This currently only supports no config + no secrets + image-only servers
+	serverNames := make([]string, len(workingSet.Servers))
+	for i, server := range workingSet.Servers {
+		if server.Type == string(workingset.ServerTypeImage) {
+			serverNames[i] = server.Image
+		}
+	}
+
+	servers := make(map[string]catalog.Server)
+	for _, server := range workingSet.Servers {
+		if server.Type == string(workingset.ServerTypeImage) {
+			servers[server.Image] = catalog.Server{
+				Image: server.Image,
+				Name:  server.Image,
+			}
+		}
+	}
+
+	log.Log("- Configuration read in", time.Since(start))
+
+	return Configuration{
+		serverNames: serverNames,
+		servers:     servers,
+		config:      make(map[string]map[string]any),
+		tools:       config.ToolsConfig{},
+		secrets:     make(map[string]string),
+	}, nil
+}
+
+// Persist writes the configuration files to the session directory if SessionName is set
+func (c *Configuration) Persist() error {
+	if c.SessionName == "" {
+		return nil // No session name set, nothing to persist
+	}
+
+	// Serialize and write registry.yaml
+	registry := config.Registry{
+		Servers: make(map[string]config.Tile),
+	}
+	for _, serverName := range c.serverNames {
+		registry.Servers[serverName] = config.Tile{
+			Ref: serverName,
+		}
+	}
+	registryBytes, err := yaml.Marshal(registry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal registry: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "registry.yaml", registryBytes); err != nil {
+		return fmt.Errorf("failed to write registry.yaml: %w", err)
+	}
+
+	// Serialize and write config.yaml
+	configBytes, err := yaml.Marshal(c.config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "config.yaml", configBytes); err != nil {
+		return fmt.Errorf("failed to write config.yaml: %w", err)
+	}
+
+	// Serialize and write tools.yaml
+	toolsBytes, err := yaml.Marshal(c.tools)
+	if err != nil {
+		return fmt.Errorf("failed to marshal tools: %w", err)
+	}
+	if err := config.WriteConfigFileToSession(c.SessionName, "tools.yaml", toolsBytes); err != nil {
+		return fmt.Errorf("failed to write tools.yaml: %w", err)
+	}
+
+	log.Log(fmt.Sprintf("  - Configuration persisted to session '%s'", c.SessionName))
+	return nil
+}
+
 type FileBasedConfiguration struct {
 	CatalogPath        []string
 	ServerNames        []string // Takes precedence over the RegistryPath
@@ -101,6 +215,7 @@ type FileBasedConfiguration struct {
 	MCPRegistryServers []catalog.Server // Servers fetched from MCP registries
 	Watch              bool
 	McpOAuthDcrEnabled bool
+	sessionName        string // Session name for persisting configuration
 
 	docker docker.Client
 }
@@ -560,7 +675,7 @@ func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[stri
 		}
 
 		// Use the existing oci.ReadArtifact function to get the Catalog data
-		ociCatalog, err := oci.ReadArtifact(ociRef)
+		ociCatalog, err := oci.ReadArtifact[oci.Catalog](ociRef, oci.MCPServerArtifactType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
 		}

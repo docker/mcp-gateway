@@ -242,6 +242,16 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: session
+      value_type: string
+      description: |
+        Session name for loading and persisting configuration from ~/.docker/mcp/{SessionName}/
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: static
       value_type: bool
       default_value: "false"

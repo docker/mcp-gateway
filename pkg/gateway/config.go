@@ -4,12 +4,14 @@ import "github.com/docker/mcp-gateway/pkg/catalog"
 
 type Config struct {
 	Options
+	WorkingSet         string
 	ServerNames        []string
 	CatalogPath        []string
 	ConfigPath         []string
 	RegistryPath       []string
 	ToolsPath          []string
 	SecretsPath        string
+	SessionName        string           // Session name for persisting configuration
 	MCPRegistryServers []catalog.Server // catalog.Server objects from MCP registries
 }
 
