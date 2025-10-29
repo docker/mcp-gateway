@@ -90,7 +90,7 @@ func getTemplateSet(templateName string) (*templateSet, error) {
 }
 
 // Init initializes a new MCP server project in the specified directory
-func Init(ctx context.Context, dir string, language string, templateName string) error {
+func Init(_ context.Context, dir string, language string, templateName string) error {
 	if language != "go" {
 		return fmt.Errorf("unsupported language: %s (currently only 'go' is supported)", language)
 	}
@@ -102,7 +102,7 @@ func Init(ctx context.Context, dir string, language string, templateName string)
 	}
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("creating directory: %w", err)
 	}
 
@@ -121,12 +121,12 @@ func Init(ctx context.Context, dir string, language string, templateName string)
 
 	// Generate files from templates
 	files := map[string]string{
-		"main.go":       templates.mainGo,
-		"Dockerfile":    templates.dockerfile,
-		"compose.yaml":  templates.compose,
-		"catalog.yaml":  templates.catalog,
-		"go.mod":        templates.goMod,
-		"README.md":     templates.readme,
+		"main.go":      templates.mainGo,
+		"Dockerfile":   templates.dockerfile,
+		"compose.yaml": templates.compose,
+		"catalog.yaml": templates.catalog,
+		"go.mod":       templates.goMod,
+		"README.md":    templates.readme,
 	}
 
 	// Add ui.html for chatgpt-app-basic template
@@ -148,7 +148,7 @@ func Init(ctx context.Context, dir string, language string, templateName string)
 
 		// Write file
 		path := filepath.Join(dir, filename)
-		if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
+		if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", filename, err)
 		}
 	}

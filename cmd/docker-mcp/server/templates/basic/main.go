@@ -22,7 +22,7 @@ func main() {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "greet",
 		Description: "say hi",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args args) (*mcp.CallToolResult, any, error) {
+	}, func(_ context.Context, _ *mcp.CallToolRequest, args args) (*mcp.CallToolResult, any, error) {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Hi " + args.Name},

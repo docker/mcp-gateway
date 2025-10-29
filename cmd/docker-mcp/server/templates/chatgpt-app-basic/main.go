@@ -21,7 +21,7 @@ func main() {
 		Name:        "Greeter Widget",
 		Description: "Interactive UI for the greeter tool",
 		MIMEType:    "text/html+skybridge",
-	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	}, func(_ context.Context, _ *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{
 				{
@@ -50,7 +50,7 @@ func main() {
 			"openai/toolInvocation/invoking": "Greeting...",
 			"openai/widgetAccessible":        true,
 		},
-	}, func(ctx context.Context, req *mcp.CallToolRequest, args args) (*mcp.CallToolResult, any, error) {
+	}, func(_ context.Context, _ *mcp.CallToolRequest, args args) (*mcp.CallToolResult, any, error) {
 		// Default to "Hi" if not specified
 		greetingType := args.GreetingType
 		if greetingType == "" {
@@ -59,7 +59,7 @@ func main() {
 		greeting := greetingType + " " + args.Name + "!"
 
 		// Return structured data that the UI can consume
-		structuredData := map[string]interface{}{
+		structuredData := map[string]any{
 			"greeting":     greeting,
 			"name":         args.Name,
 			"greetingType": greetingType,
@@ -72,7 +72,7 @@ func main() {
 		}
 
 		// Add metadata linking to the UI resource
-		result.Meta.SetMeta(map[string]interface{}{
+		result.SetMeta(map[string]any{
 			"outputTemplate":    "ui://greeter/widget.html",
 			"structuredContent": structuredData,
 		})

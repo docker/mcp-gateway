@@ -141,7 +141,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	}
 	initCommand.Flags().StringVar(&language, "language", "go", "Programming language for the server (currently only 'go' is supported)")
 	initCommand.Flags().StringVar(&templateName, "template", "basic", "Template to use (basic, chatgpt-app-basic)")
-	initCommand.MarkFlagRequired("template")
+	_ = initCommand.MarkFlagRequired("template")
 	cmd.AddCommand(initCommand)
 
 	return cmd
