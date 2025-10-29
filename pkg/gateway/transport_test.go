@@ -34,7 +34,7 @@ func TestIsAllowedOrigin(t *testing.T) {
 		{"subdomain attack", "http://localhost.evil.com", false},
 		{"subdomain with 127", "http://127.0.0.1.evil.com", false},
 
-		// Invalid origins - Non-localhost IPs (RFC 1122 prohibits 0.0.0.0 as destination)
+		// Invalid origins - RFC 1122 prohibits 0.0.0.0 as destination
 		{"0.0.0.0 address", "http://0.0.0.0:8080", false},
 		{"0.0.0.0 no port", "http://0.0.0.0", false},
 		{"all zeros IPv6", "http://[::]:8080", false},
@@ -99,7 +99,7 @@ func TestOriginSecurityHandler(t *testing.T) {
 			name:           "Non-localhost IP origin",
 			origin:         "http://0.0.0.0:8080",
 			expectedStatus: http.StatusForbidden,
-			reason:         "Block non-localhost IPs. Note: In real DNS rebinding, evil.com resolves to 0.0.0.0 but Origin would be http://evil.com",
+			reason:         "Block non-localhost IPs. Note: In DNS rebinding, evil.com resolves to 0.0.0.0 but Origin would be http://evil.com",
 		},
 		{
 			name:           "Subdomain bypass attempt",

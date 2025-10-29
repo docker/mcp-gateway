@@ -50,15 +50,8 @@ func getOrGenerateAuthToken() (string, bool, error) {
 // Bearer token in the Authorization header.
 //
 // The /health endpoint is excluded from authentication.
-// Authentication is also disabled when DOCKER_MCP_IN_CONTAINER=1 for compose networking.
 func authenticationMiddleware(authToken string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip authentication in container environments (compose networking)
-		if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		// Skip authentication for health check endpoint
 		if r.URL.Path == "/health" {
 			next.ServeHTTP(w, r)

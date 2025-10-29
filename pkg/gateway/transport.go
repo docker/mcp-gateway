@@ -106,12 +106,6 @@ func isAllowedOrigin(origin string) bool {
 }
 
 // originSecurityHandler validates Origin header to prevent DNS rebinding attacks.
-// This implements the security requirement from the MCP specification:
-// https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
-//
-// Note: Origin validation is NOT skipped in container mode because:
-// - Container services use HTTP clients which don't send Origin headers (validation allows them)
-// - If container port is exposed to host, Origin validation still protects against browsers
 func originSecurityHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
@@ -120,7 +114,6 @@ func originSecurityHandler(next http.Handler) http.Handler {
 		// This handles:
 		// - Non-browser clients (curl, SDKs) - no Origin header sent
 		// - Same-origin requests - browsers don't send Origin for same-origin
-		// - Container-to-container requests (HTTP clients don't send Origin)
 		if origin != "" && !isAllowedOrigin(origin) {
 			msg := fmt.Sprintf("Forbidden: Origin must be localhost, 127.0.0.1, or ::1, got: %s", origin)
 			http.Error(w, msg, http.StatusForbidden)
