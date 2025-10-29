@@ -102,6 +102,12 @@ func newMCPGatewayServer() *MCPServerSTDIO {
 	}
 }
 
+func newMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
+	server := newMCPGatewayServer()
+	server.Args = append(server.Args, "--working-set", workingSet)
+	return server
+}
+
 func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater, error) {
 	if global {
 		cfg, ok := config.System[vendor]

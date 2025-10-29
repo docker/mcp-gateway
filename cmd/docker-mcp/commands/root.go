@@ -70,6 +70,9 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 
 	dockerClient := docker.NewClient(dockerCli)
 
+	if isWorkingSetsFeatureEnabled(dockerCli) {
+		cmd.AddCommand(workingSetCommand())
+	}
 	cmd.AddCommand(catalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(dockerCli, cwd))
 	cmd.AddCommand(configCommand(dockerClient))
