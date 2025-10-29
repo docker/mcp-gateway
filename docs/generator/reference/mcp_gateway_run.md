@@ -29,6 +29,7 @@ Run the gateway
 | `--registry`                | `stringSlice` | `[registry.yaml]`   | Paths to the registry files (absolute or relative to ~/.docker/mcp/)                                                                          |
 | `--secrets`                 | `string`      | `docker-desktop`    | Colon separated paths to search for secrets. Can be `docker-desktop` or a path to a .env file (default to using Docker Desktop's secrets API) |
 | `--servers`                 | `stringSlice` |                     | Names of the servers to enable (if non empty, ignore --registry flag)                                                                         |
+| `--session`                 | `string`      |                     | Session name for loading and persisting configuration from ~/.docker/mcp/{SessionName}/                                                       |
 | `--static`                  | `bool`        |                     | Enable static mode (aka pre-started servers)                                                                                                  |
 | `--tools`                   | `stringSlice` |                     | List of tools to enable                                                                                                                       |
 | `--tools-config`            | `stringSlice` | `[tools.yaml]`      | Paths to the tools files (absolute or relative to ~/.docker/mcp/)                                                                             |

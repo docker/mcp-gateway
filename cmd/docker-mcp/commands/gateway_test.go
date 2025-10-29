@@ -88,12 +88,12 @@ func TestIsDynamicToolsFeatureEnabled(t *testing.T) {
 			Features: map[string]string{},
 		}
 		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
-		assert.False(t, enabled, "should return false when dynamic-tools is not set")
+		assert.True(t, enabled, "should return true when dynamic-tools is not set")
 	})
 
 	t.Run("nil config", func(t *testing.T) {
 		enabled := isDynamicToolsFeatureEnabledFromConfig(nil)
-		assert.False(t, enabled, "should return false when config is nil")
+		assert.True(t, enabled, "should return true when config is nil")
 	})
 
 	t.Run("nil features", func(t *testing.T) {
@@ -101,18 +101,18 @@ func TestIsDynamicToolsFeatureEnabled(t *testing.T) {
 			Features: nil,
 		}
 		enabled := isDynamicToolsFeatureEnabledFromConfig(configFile)
-		assert.False(t, enabled, "should return false when features is nil")
+		assert.True(t, enabled, "should return true when features is nil")
 	})
 }
 
 // Helper function for testing (extract logic from isDynamicToolsFeatureEnabled)
 func isDynamicToolsFeatureEnabledFromConfig(configFile *configfile.ConfigFile) bool {
 	if configFile == nil || configFile.Features == nil {
-		return false
+		return true // Default enabled when no config exists
 	}
 	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
-		return false
+		return true // Default enabled when not in config
 	}
 	return value == "enabled"
 }

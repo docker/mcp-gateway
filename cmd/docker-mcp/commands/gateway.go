@@ -177,6 +177,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")
 	runCmd.Flags().StringVar(&options.LogFilePath, "log", options.LogFilePath, "Path to log file for stderr output (relative or absolute)")
+	runCmd.Flags().StringVar(&options.SessionName, "session", "", "Session name for loading and persisting configuration from ~/.docker/mcp/{SessionName}/")
 
 	// Very experimental features
 	_ = runCmd.Flags().MarkHidden("log")
@@ -295,12 +296,12 @@ func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
 func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
-		return false
+		return true // Default enabled when no config exists
 	}
 
 	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
-		return false
+		return true // Default enabled when not in config
 	}
 
 	return value == "enabled"

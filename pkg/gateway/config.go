@@ -10,6 +10,7 @@ type Config struct {
 	RegistryPath       []string
 	ToolsPath          []string
 	SecretsPath        string
+	SessionName        string           // Session name for persisting configuration
 	MCPRegistryServers []catalog.Server // catalog.Server objects from MCP registries
 }
 
