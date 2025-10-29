@@ -1,0 +1,6 @@
+registry:
+  {{.ServerName}}:
+    description: A simple MCP server that greets users
+    title: {{.ServerName}}
+    type: server
+    image: {{.ServerName}}:latest

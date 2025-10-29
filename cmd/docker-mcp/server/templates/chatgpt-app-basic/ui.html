@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 24px;
+            text-align: center;
+            font-size: 28px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .response {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+        .response.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .response-text {
+            color: #333;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .error {
+            border-left-color: #ef4444;
+            background: #fee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋 Greeter</h1>
+        <div class="form-group">
+            <label for="greetingType">Choose a greeting:</label>
+            <select id="greetingType">
+                <option value="Hi">Hi</option>
+                <option value="Hey">Hey</option>
+                <option value="Hello">Hello</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="nameInput">What's your name?</label>
+            <input type="text" id="nameInput" placeholder="Enter your name" autofocus>
+        </div>
+        <button id="greetBtn">Greet Me</button>
+        <div id="response" class="response">
+            <div class="response-text" id="responseText"></div>
+        </div>
+    </div>
+    <script>
+        const greetingType = document.getElementById('greetingType');
+        const nameInput = document.getElementById('nameInput');
+        const greetBtn = document.getElementById('greetBtn');
+        const response = document.getElementById('response');
+        const responseText = document.getElementById('responseText');
+
+        function resetButton() {
+            greetBtn.disabled = false;
+            greetBtn.textContent = 'Greet Me';
+        }
+
+        greetBtn.addEventListener('click', handleGreet);
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleGreet();
+        });
+
+        async function handleGreet() {
+            const name = nameInput.value.trim();
+            if (!name) {
+                showResponse('Please enter your name', true);
+                return;
+            }
+
+            const greeting = greetingType.value;
+            greetBtn.disabled = true;
+            greetBtn.textContent = 'Greeting...';
+
+            try {
+                // Call the MCP tool using the ChatGPT Apps SDK
+                const result = await window.openai.callTool('greet', {
+                    name: name,
+                    greetingType: greeting
+                });
+
+                // Display the result from structured content
+                if (result && result.structuredContent && result.structuredContent.greeting) {
+                    showResponse(result.structuredContent.greeting, false);
+                } else if (result && result.content && result.content[0]) {
+                    showResponse(result.content[0].text, false);
+                } else {
+                    showResponse('Received response but no greeting found', true);
+                }
+            } catch (error) {
+                showResponse('Error: ' + error.message, true);
+            } finally {
+                resetButton();
+            }
+        }
+
+        function showResponse(text, isError) {
+            responseText.textContent = text;
+            response.className = 'response show' + (isError ? ' error' : '');
+        }
+    </script>
+</body>
+</html>
