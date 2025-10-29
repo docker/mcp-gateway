@@ -3,7 +3,7 @@ package gateway
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
 	"testing"
 )
 
@@ -23,6 +23,10 @@ func TestIsAllowedOrigin(t *testing.T) {
 		{"https 127.0.0.1 no port", "https://127.0.0.1", true},
 		{"http 127.0.0.1 with port", "http://127.0.0.1:8080", true},
 		{"https 127.0.0.1 with port", "https://127.0.0.1:5000", true},
+		{"http IPv6 localhost", "http://[::1]", true},
+		{"https IPv6 localhost", "https://[::1]", true},
+		{"http IPv6 localhost with port", "http://[::1]:8080", true},
+		{"https IPv6 localhost with port", "https://[::1]:3000", true},
 
 		// Invalid origins - malicious domains
 		{"evil domain", "https://evil.com", false},
@@ -30,8 +34,8 @@ func TestIsAllowedOrigin(t *testing.T) {
 		{"subdomain attack", "http://localhost.evil.com", false},
 		{"subdomain with 127", "http://127.0.0.1.evil.com", false},
 
-		// Invalid origins - DNS rebinding attempts
-		{"0.0.0.0 bypass", "http://0.0.0.0:8080", false},
+		// Invalid origins - Non-localhost IPs (RFC 1122 prohibits 0.0.0.0 as destination)
+		{"0.0.0.0 address", "http://0.0.0.0:8080", false},
 		{"0.0.0.0 no port", "http://0.0.0.0", false},
 		{"all zeros IPv6", "http://[::]:8080", false},
 
@@ -92,10 +96,10 @@ func TestOriginSecurityHandler(t *testing.T) {
 			reason:         "CRITICAL: Developer running local frontend on different port must work. Common development scenario.",
 		},
 		{
-			name:           "DNS rebinding via 0.0.0.0",
+			name:           "Non-localhost IP origin",
 			origin:         "http://0.0.0.0:8080",
 			expectedStatus: http.StatusForbidden,
-			reason:         "IMPORTANT: Specifically mentioned in vulnerability report. 0.0.0.0 bypasses browser CORS protections.",
+			reason:         "Block non-localhost IPs. Note: In real DNS rebinding, evil.com resolves to 0.0.0.0 but Origin would be http://evil.com",
 		},
 		{
 			name:           "Subdomain bypass attempt",
@@ -119,11 +123,11 @@ func TestOriginSecurityHandler(t *testing.T) {
 				t.Errorf("Expected status %d, got %d\nReason: %s", tt.expectedStatus, rr.Code, tt.reason)
 			}
 
-			// Verify response body for blocked requests
+			// Verify response body for blocked requests contains helpful error message
 			if tt.expectedStatus == http.StatusForbidden {
-				expectedBody := "Forbidden: Invalid Origin header\n"
-				if rr.Body.String() != expectedBody {
-					t.Errorf("Expected body %q, got %q", expectedBody, rr.Body.String())
+				body := rr.Body.String()
+				if !strings.Contains(body, "Forbidden") || !strings.Contains(body, "Origin") {
+					t.Errorf("Expected error body to contain 'Forbidden' and 'Origin', got %q", body)
 				}
 			}
 		})
@@ -205,33 +209,5 @@ func TestCombinedSecurityLayers(t *testing.T) {
 				t.Errorf("Expected status %d, got %d\nReason: %s", tt.expectedStatus, rr.Code, tt.reason)
 			}
 		})
-	}
-}
-
-func TestOriginSecurityHandler_ContainerMode(t *testing.T) {
-	// Set container environment variable
-	os.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
-	defer os.Unsetenv("DOCKER_MCP_IN_CONTAINER")
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("success"))
-	})
-
-	secured := originSecurityHandler(handler)
-
-	// Should allow non-localhost origin when in container mode (compose networking)
-	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
-	req.Header.Set("Origin", "http://some-service:8080")
-
-	rr := httptest.NewRecorder()
-	secured.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected 200 in container mode, got %d", rr.Code)
-	}
-
-	if rr.Body.String() != "success" {
-		t.Errorf("Expected 'success', got %q", rr.Body.String())
 	}
 }

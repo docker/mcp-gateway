@@ -2,11 +2,11 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -86,7 +86,7 @@ func healthHandler(state *health.State) http.HandlerFunc {
 }
 
 // isAllowedOrigin validates that the origin is from localhost.
-// Returns true if the origin's hostname is "localhost" or "127.0.0.1" (any port allowed).
+// Returns true if the origin's hostname is "localhost", "127.0.0.1", or "::1" (IPv6 localhost).
 func isAllowedOrigin(origin string) bool {
 	u, err := url.Parse(origin)
 	if err != nil {
@@ -101,27 +101,29 @@ func isAllowedOrigin(origin string) bool {
 	// Extract hostname (without port)
 	host := u.Hostname()
 
-	// Only allow localhost or 127.0.0.1
-	return host == "localhost" || host == "127.0.0.1"
+	// Only allow localhost, IPv4 loopback, or IPv6 loopback
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 // originSecurityHandler validates Origin header to prevent DNS rebinding attacks.
+// This implements the security requirement from the MCP specification:
+// https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#security-warning
+//
+// Note: Origin validation is NOT skipped in container mode because:
+// - Container services use HTTP clients which don't send Origin headers (validation allows them)
+// - If container port is exposed to host, Origin validation still protects against browsers
 func originSecurityHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip origin validation in container environments (compose networking)
-		if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		origin := r.Header.Get("Origin")
 
 		// Allow requests with no Origin header
 		// This handles:
 		// - Non-browser clients (curl, SDKs) - no Origin header sent
 		// - Same-origin requests - browsers don't send Origin for same-origin
+		// - Container-to-container requests (HTTP clients don't send Origin)
 		if origin != "" && !isAllowedOrigin(origin) {
-			http.Error(w, "Forbidden: Invalid Origin header", http.StatusForbidden)
+			msg := fmt.Sprintf("Forbidden: Origin must be localhost, 127.0.0.1, or ::1, got: %s", origin)
+			http.Error(w, msg, http.StatusForbidden)
 			return
 		}
 
