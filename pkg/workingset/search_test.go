@@ -7,10 +7,11 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func registryURL(serverName string) string {
@@ -41,7 +42,7 @@ func TestNoWorkingSetsJSON(t *testing.T) {
 	var results []SearchResult
 	err := json.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	require.Len(t, results, 0)
+	require.Empty(t, results)
 }
 
 func TestNoWorkingSetsYAML(t *testing.T) {
@@ -56,7 +57,7 @@ func TestNoWorkingSetsYAML(t *testing.T) {
 	var results []SearchResult
 	err := yaml.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	require.Len(t, results, 0)
+	require.Empty(t, results)
 }
 
 func TestOneWorkingSetJSON(t *testing.T) {
@@ -375,7 +376,7 @@ func TestQueryMatchesNoResultsJSON(t *testing.T) {
 	var results []SearchResult
 	err = json.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryMatchesNoResultsYAML(t *testing.T) {
@@ -400,7 +401,7 @@ func TestQueryMatchesNoResultsYAML(t *testing.T) {
 	var results []SearchResult
 	err = yaml.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryMatchesOneResultJSON(t *testing.T) {
@@ -569,7 +570,7 @@ func TestQueryMatchesNoResultsWithMultipleSetsJSON(t *testing.T) {
 	var results []SearchResult
 	err = json.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryMatchesNoResultsWithMultipleSetsYAML(t *testing.T) {
@@ -604,7 +605,7 @@ func TestQueryMatchesNoResultsWithMultipleSetsYAML(t *testing.T) {
 	var results []SearchResult
 	err = yaml.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryMatchesMultipleResultsSameSetJSON(t *testing.T) {
@@ -1012,7 +1013,7 @@ func TestQueryWithSpecificWorkingSetNoMatchJSON(t *testing.T) {
 	var results []SearchResult
 	err = json.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryWithSpecificWorkingSetNoMatchYAML(t *testing.T) {
@@ -1036,7 +1037,7 @@ func TestQueryWithSpecificWorkingSetNoMatchYAML(t *testing.T) {
 	var results []SearchResult
 	err = yaml.Unmarshal([]byte(output), &results)
 	require.NoError(t, err)
-	assert.Len(t, results, 0)
+	assert.Empty(t, results)
 }
 
 func TestQueryCaseInsensitiveJSON(t *testing.T) {
@@ -1283,31 +1284,31 @@ type mockErrorDAO struct {
 	searchError error
 }
 
-func (m *mockErrorDAO) SearchWorkingSets(ctx context.Context, query string, workingSetID string) ([]db.WorkingSet, error) {
+func (m *mockErrorDAO) SearchWorkingSets(_ context.Context, _ string, _ string) ([]db.WorkingSet, error) {
 	return nil, m.searchError
 }
 
-func (m *mockErrorDAO) GetWorkingSet(ctx context.Context, id string) (*db.WorkingSet, error) {
+func (m *mockErrorDAO) GetWorkingSet(_ context.Context, _ string) (*db.WorkingSet, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockErrorDAO) FindWorkingSetsByIDPrefix(_ context.Context, _ string) ([]db.WorkingSet, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockErrorDAO) ListWorkingSets(_ context.Context) ([]db.WorkingSet, error) {
 	return nil, nil
 }
 
-func (m *mockErrorDAO) FindWorkingSetsByIDPrefix(ctx context.Context, prefix string) ([]db.WorkingSet, error) {
-	return nil, nil
-}
-
-func (m *mockErrorDAO) ListWorkingSets(ctx context.Context) ([]db.WorkingSet, error) {
-	return nil, nil
-}
-
-func (m *mockErrorDAO) CreateWorkingSet(ctx context.Context, workingSet db.WorkingSet) error {
+func (m *mockErrorDAO) CreateWorkingSet(_ context.Context, _ db.WorkingSet) error {
 	return nil
 }
 
-func (m *mockErrorDAO) UpdateWorkingSet(ctx context.Context, workingSet db.WorkingSet) error {
+func (m *mockErrorDAO) UpdateWorkingSet(_ context.Context, _ db.WorkingSet) error {
 	return nil
 }
 
-func (m *mockErrorDAO) RemoveWorkingSet(ctx context.Context, id string) error {
+func (m *mockErrorDAO) RemoveWorkingSet(_ context.Context, _ string) error {
 	return nil
 }
 
