@@ -152,6 +152,18 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.ServerNames = allServerNames
 			}
 
+			// Disable dynamic-tools if the user explicitly configured a set of servers via the --servers flag.
+			// When users specify servers explicitly, they're operating in a more manual mode
+			// and may not want the automatic server management tools (mcp-find, mcp-add, mcp-remove).
+			if len(options.ServerNames) > 0 && !enableAllServers {
+				if options.DynamicTools {
+					options.DynamicTools = false
+					if options.Verbose {
+						fmt.Fprintln(dockerCli.Err(), "Note: dynamic-tools disabled when using --servers flag")
+					}
+				}
+			}
+
 			return gateway.NewGateway(options, docker).Run(cmd.Context())
 		},
 	}
@@ -308,12 +320,12 @@ func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
 func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
-		return true // Default enabled when no config exists
+		return false // Default disabled when no config exists
 	}
 
 	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
-		return true // Default enabled when not in config
+		return false // Default disabled when not in config
 	}
 
 	return value == "enabled"

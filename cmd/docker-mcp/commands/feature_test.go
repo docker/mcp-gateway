@@ -63,7 +63,7 @@ func TestIsFeatureEnabledDynamicTools(t *testing.T) {
 			Features: make(map[string]string),
 		}
 		enabled := isFeatureEnabledFromConfig(configFile, "dynamic-tools")
-		assert.True(t, enabled, "dynamic-tools should default to enabled when missing")
+		assert.False(t, enabled, "dynamic-tools should default to disabled when missing")
 	})
 
 	t.Run("nil features map", func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestIsFeatureEnabledDynamicTools(t *testing.T) {
 			Features: nil,
 		}
 		enabled := isFeatureEnabledFromConfig(configFile, "dynamic-tools")
-		assert.True(t, enabled, "dynamic-tools should default to enabled when Features is nil")
+		assert.False(t, enabled, "dynamic-tools should default to disabled when Features is nil")
 	})
 }
 

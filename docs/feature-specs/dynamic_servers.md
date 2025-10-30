@@ -18,6 +18,8 @@ docker config view | grep dynamic-tools
 
 When enabled, the gateway adds five internal management tools to the available tool set.
 
+**Note**: Dynamic tools are automatically disabled when using the `--servers` flag to explicitly specify which servers to run. This is because explicit server configuration indicates a manual mode where automatic server management tools are not needed.
+
 ## Available Tools
 
 ### 1. mcp-find
