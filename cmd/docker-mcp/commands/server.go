@@ -42,8 +42,37 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			} else if len(list) == 0 {
 				fmt.Fprintln(cmd.OutOrStdout(), "No server is enabled")
 			} else {
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(list, ", "))
+				// Format: $ docker mcp server ls
+				// MCP Servers (7 enabled)
+				//
+				// NAME SECRETS CONFIG DESCRIPTION
+				// atlassian ✓ done ✓ done Confluence and Jira tools
+
+				enabledCount := len(list)
+				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled, %d configured)\n\n", enabledCount, enabledCount)
+
+				// Print table headers
+				fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-50s\n", "NAME", "SECRETS", "CONFIG", "DESCRIPTION")
+				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", 103))
+
+				// Print entries
+				for _, entry := range list {
+					// Determine secrets and config display strings
+					secretsText := entry.Secrets.DisplayString()
+					configText := entry.Config.DisplayString()
+
+					// Truncate description to fit within the 50-character column
+					description := entry.Description
+					if len(description) > 47 {
+						description = description[:47] + "..."
+					}
+
+					fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-50s\n",
+						entry.Name, secretsText, configText, description)
+				}
+
 				if hints.Enabled(dockerCli) {
+					fmt.Fprintln(cmd.OutOrStdout(), "")
 					hints.TipCyan.Fprint(cmd.OutOrStdout(), "Tip: To use these servers, connect to a client (IE: claude/cursor) with ")
 					hints.TipCyanBoldItalic.Fprintln(cmd.OutOrStdout(), "docker mcp client connect <client-name>")
 					fmt.Fprintln(cmd.OutOrStdout(), "")
