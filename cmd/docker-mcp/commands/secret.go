@@ -108,8 +108,8 @@ func setSecretCommand() *cobra.Command {
 	return cmd
 }
 
-func isNotImplicitReadFromStdinSyntax(args []string, opts secret.SetOpts) bool {
-	return strings.Contains(args[0], "=") || len(args) > 1 || opts.Provider != ""
+func isNotImplicitReadFromStdinSyntax(args []string, _ secret.SetOpts) bool {
+	return strings.Contains(args[0], "=") || len(args) > 1
 }
 
 func exportSecretCommand(docker docker.Client) *cobra.Command {
