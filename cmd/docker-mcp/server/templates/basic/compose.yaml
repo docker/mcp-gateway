@@ -1,0 +1,15 @@
+services:
+  gateway:
+    image: docker/mcp-gateway
+    command:
+      - --servers={{.ServerName}}
+      - --catalog=/mcp/catalog.yaml
+      - --transport=streaming
+      - --port=8811
+    environment:
+      - DOCKER_MCP_IN_CONTAINER=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./catalog.yaml:/mcp/catalog.yaml
+    ports:
+      - "8811:8811"
