@@ -15,7 +15,7 @@ func TestNewCatalogFromWorkingSet(t *testing.T) {
 			{
 				Type:   ServerTypeRegistry,
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1", "tool2"},
 			},
 			{
@@ -37,7 +37,7 @@ func TestNewCatalogFromWorkingSet(t *testing.T) {
 	// Check registry server
 	assert.Equal(t, "registry", catalog.Servers[0].Type)
 	assert.Equal(t, "https://example.com/server", catalog.Servers[0].Source)
-	assert.Equal(t, map[string]interface{}{"key": "value"}, catalog.Servers[0].Config)
+	assert.Equal(t, map[string]any{"key": "value"}, catalog.Servers[0].Config)
 	assert.Equal(t, []string{"tool1", "tool2"}, catalog.Servers[0].Tools)
 
 	// Check image server
@@ -53,7 +53,7 @@ func TestCatalogToWorkingSet(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1", "tool2"},
 			},
 			{
@@ -73,7 +73,7 @@ func TestCatalogToWorkingSet(t *testing.T) {
 	// Check registry server
 	assert.Equal(t, ServerTypeRegistry, workingSet.Servers[0].Type)
 	assert.Equal(t, "https://example.com/server", workingSet.Servers[0].Source)
-	assert.Equal(t, map[string]interface{}{"key": "value"}, workingSet.Servers[0].Config)
+	assert.Equal(t, map[string]any{"key": "value"}, workingSet.Servers[0].Config)
 	assert.Equal(t, "default", workingSet.Servers[0].Secrets)
 	assert.Equal(t, []string{"tool1", "tool2"}, workingSet.Servers[0].Tools)
 
@@ -95,7 +95,7 @@ func TestCatalogRoundTrip(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1", "tool2"},
 			},
 		},
@@ -109,7 +109,7 @@ func TestCatalogRoundTrip(t *testing.T) {
 	assert.Equal(t, original.Name, roundTripped.Name)
 
 	// Servers should be preserved
-	assert.Equal(t, len(original.Servers), len(roundTripped.Servers))
+	assert.Len(t, roundTripped.Servers, len(original.Servers))
 	assert.Equal(t, original.Servers[0].Type, roundTripped.Servers[0].Type)
 	assert.Equal(t, original.Servers[0].Source, roundTripped.Servers[0].Source)
 	assert.Equal(t, original.Servers[0].Config, roundTripped.Servers[0].Config)
@@ -125,6 +125,6 @@ func TestCatalogWithEmptyServers(t *testing.T) {
 	workingSet := catalog.ToWorkingSet()
 
 	assert.Equal(t, "Empty Catalog", workingSet.Name)
-	assert.Len(t, workingSet.Servers, 0)
+	assert.Empty(t, workingSet.Servers)
 	assert.Len(t, workingSet.Secrets, 1) // Default secret should still be added
 }

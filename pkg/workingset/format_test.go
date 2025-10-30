@@ -29,7 +29,7 @@ func TestSupportedFormatsPure(t *testing.T) {
 }
 
 func TestOutputFormatConstants(t *testing.T) {
-	assert.Equal(t, OutputFormat("json"), OutputFormatJSON)
-	assert.Equal(t, OutputFormat("yaml"), OutputFormatYAML)
-	assert.Equal(t, OutputFormat("human"), OutputFormatHumanReadable)
+	assert.Equal(t, OutputFormatJSON, OutputFormat("json"))
+	assert.Equal(t, OutputFormatYAML, OutputFormat("yaml"))
+	assert.Equal(t, OutputFormatHumanReadable, OutputFormat("human"))
 }

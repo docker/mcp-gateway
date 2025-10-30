@@ -4,13 +4,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 // setupTestDB creates a temporary database for testing
-func setupTestDB(t *testing.T) (db.DAO, string) {
+func setupTestDB(t *testing.T) db.DAO {
 	t.Helper()
 
 	tempDir := t.TempDir()
@@ -19,7 +20,7 @@ func setupTestDB(t *testing.T) (db.DAO, string) {
 	dao, err := db.New(db.WithDatabaseFile(dbFile))
 	require.NoError(t, err)
 
-	return dao, dbFile
+	return dao
 }
 
 func TestNewFromDb(t *testing.T) {
@@ -30,7 +31,7 @@ func TestNewFromDb(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1", "tool2"},
 			},
 			{
@@ -53,7 +54,7 @@ func TestNewFromDb(t *testing.T) {
 	// Check registry server
 	assert.Equal(t, ServerTypeRegistry, workingSet.Servers[0].Type)
 	assert.Equal(t, "https://example.com/server", workingSet.Servers[0].Source)
-	assert.Equal(t, map[string]interface{}{"key": "value"}, workingSet.Servers[0].Config)
+	assert.Equal(t, map[string]any{"key": "value"}, workingSet.Servers[0].Config)
 	assert.Equal(t, []string{"tool1", "tool2"}, workingSet.Servers[0].Tools)
 
 	// Check image server
@@ -74,7 +75,7 @@ func TestWorkingSetToDb(t *testing.T) {
 			{
 				Type:   ServerTypeRegistry,
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1", "tool2"},
 			},
 			{
@@ -96,7 +97,7 @@ func TestWorkingSetToDb(t *testing.T) {
 	// Check registry server
 	assert.Equal(t, "registry", dbSet.Servers[0].Type)
 	assert.Equal(t, "https://example.com/server", dbSet.Servers[0].Source)
-	assert.Equal(t, map[string]interface{}{"key": "value"}, dbSet.Servers[0].Config)
+	assert.Equal(t, map[string]any{"key": "value"}, dbSet.Servers[0].Config)
 	assert.Equal(t, []string{"tool1", "tool2"}, dbSet.Servers[0].Tools)
 
 	// Check image server
@@ -117,7 +118,7 @@ func TestWorkingSetRoundTrip(t *testing.T) {
 			{
 				Type:    ServerTypeRegistry,
 				Source:  "https://example.com/server",
-				Config:  map[string]interface{}{"key": "value"},
+				Config:  map[string]any{"key": "value"},
 				Secrets: "default",
 				Tools:   []string{"tool1", "tool2"},
 			},
@@ -261,46 +262,46 @@ func TestCreateWorkingSetID(t *testing.T) {
 	tests := []struct {
 		name        string
 		inputName   string
-		existingIds []string
-		expectedId  string
+		existingIDs []string
+		expectedID  string
 	}{
 		{
 			name:       "simple name",
 			inputName:  "MyWorkingSet",
-			expectedId: "myworkingset",
+			expectedID: "myworkingset",
 		},
 		{
 			name:       "name with spaces",
 			inputName:  "My Working Set",
-			expectedId: "my-working-set",
+			expectedID: "my-working-set",
 		},
 		{
 			name:       "name with special characters",
 			inputName:  "My@Working#Set!",
-			expectedId: "my-working-set-",
+			expectedID: "my-working-set-",
 		},
 		{
 			name:        "name with collision",
 			inputName:   "test",
-			existingIds: []string{"test"},
-			expectedId:  "test-2",
+			existingIDs: []string{"test"},
+			expectedID:  "test-2",
 		},
 		{
 			name:        "name with multiple collisions",
 			inputName:   "test",
-			existingIds: []string{"test", "test-2", "test-3"},
-			expectedId:  "test-4",
+			existingIDs: []string{"test", "test-2", "test-3"},
+			expectedID:  "test-4",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a fresh database for each subtest to avoid ID conflicts
-			dao, _ := setupTestDB(t)
+			dao := setupTestDB(t)
 			ctx := t.Context()
 
 			// Setup: create existing working sets
-			for _, id := range tt.existingIds {
+			for _, id := range tt.existingIDs {
 				err := dao.CreateWorkingSet(ctx, db.WorkingSet{
 					ID:      id,
 					Name:    "Existing",
@@ -312,7 +313,7 @@ func TestCreateWorkingSetID(t *testing.T) {
 
 			id, err := createWorkingSetID(ctx, tt.inputName, dao)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedId, id)
+			assert.Equal(t, tt.expectedID, id)
 		})
 	}
 }

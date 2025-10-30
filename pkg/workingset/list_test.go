@@ -7,10 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 // captureStdout captures stdout during function execution
@@ -25,12 +26,12 @@ func captureStdout(f func()) string {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 	return buf.String()
 }
 
 func TestListEmpty(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	output := captureStdout(func() {
@@ -42,7 +43,7 @@ func TestListEmpty(t *testing.T) {
 }
 
 func TestListHumanReadable(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create some working sets
@@ -77,7 +78,7 @@ func TestListHumanReadable(t *testing.T) {
 }
 
 func TestListJSON(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create some working sets
@@ -111,7 +112,7 @@ func TestListJSON(t *testing.T) {
 }
 
 func TestListYAML(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create some working sets
@@ -145,7 +146,7 @@ func TestListYAML(t *testing.T) {
 }
 
 func TestListMultipleWorkingSets(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create multiple working sets
@@ -172,7 +173,7 @@ func TestListMultipleWorkingSets(t *testing.T) {
 }
 
 func TestListUnsupportedFormat(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create at least one working set so the format validation is reached
@@ -190,7 +191,7 @@ func TestListUnsupportedFormat(t *testing.T) {
 }
 
 func TestListWithComplexWorkingSets(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a complex working set
@@ -201,7 +202,7 @@ func TestListWithComplexWorkingSets(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"key1": "value1",
 					"key2": 123,
 				},
@@ -238,7 +239,7 @@ func TestListWithComplexWorkingSets(t *testing.T) {
 }
 
 func TestListPreservesServerOrder(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create working set with multiple servers
@@ -272,7 +273,7 @@ func TestListPreservesServerOrder(t *testing.T) {
 }
 
 func TestListNameWithSpecialCharacters(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create working set with special characters in name
@@ -294,7 +295,7 @@ func TestListNameWithSpecialCharacters(t *testing.T) {
 }
 
 func TestListEmptyServersAndSecrets(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create working set with empty servers and secrets
@@ -316,6 +317,6 @@ func TestListEmptyServersAndSecrets(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, workingSets, 1)
-	assert.Len(t, workingSets[0].Servers, 0)
-	assert.Len(t, workingSets[0].Secrets, 0)
+	assert.Empty(t, workingSets[0].Servers)
+	assert.Empty(t, workingSets[0].Secrets)
 }

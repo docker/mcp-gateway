@@ -7,14 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func TestImportYAML(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a YAML file
@@ -29,7 +30,7 @@ func TestImportYAML(t *testing.T) {
 			{
 				Type:   ServerTypeRegistry,
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1"},
 			},
 		},
@@ -40,7 +41,7 @@ func TestImportYAML(t *testing.T) {
 
 	data, err := yaml.Marshal(workingSet)
 	require.NoError(t, err)
-	err = os.WriteFile(yamlFile, data, 0644)
+	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
 	// Import the file
@@ -59,7 +60,7 @@ func TestImportYAML(t *testing.T) {
 }
 
 func TestImportJSON(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a JSON file
@@ -83,7 +84,7 @@ func TestImportJSON(t *testing.T) {
 
 	data, err := json.MarshalIndent(workingSet, "", "  ")
 	require.NoError(t, err)
-	err = os.WriteFile(jsonFile, data, 0644)
+	err = os.WriteFile(jsonFile, data, 0o644)
 	require.NoError(t, err)
 
 	// Import the file
@@ -102,7 +103,7 @@ func TestImportJSON(t *testing.T) {
 }
 
 func TestImportCreatesNewWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a YAML file
@@ -119,7 +120,7 @@ func TestImportCreatesNewWorkingSet(t *testing.T) {
 
 	data, err := yaml.Marshal(workingSet)
 	require.NoError(t, err)
-	err = os.WriteFile(yamlFile, data, 0644)
+	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
 	// Verify set doesn't exist
@@ -138,7 +139,7 @@ func TestImportCreatesNewWorkingSet(t *testing.T) {
 }
 
 func TestImportUpdatesExistingWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an existing working set
@@ -170,7 +171,7 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 
 	data, err := yaml.Marshal(workingSet)
 	require.NoError(t, err)
-	err = os.WriteFile(yamlFile, data, 0644)
+	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
 	// Import the file
@@ -189,7 +190,7 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 }
 
 func TestImportInvalidFile(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Try to import non-existent file
@@ -199,14 +200,14 @@ func TestImportInvalidFile(t *testing.T) {
 }
 
 func TestImportInvalidYAML(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an invalid YAML file
 	tempDir := t.TempDir()
 	yamlFile := filepath.Join(tempDir, "invalid.yaml")
 
-	err := os.WriteFile(yamlFile, []byte("invalid: yaml: content: ["), 0644)
+	err := os.WriteFile(yamlFile, []byte("invalid: yaml: content: ["), 0o644)
 	require.NoError(t, err)
 
 	// Try to import
@@ -216,14 +217,14 @@ func TestImportInvalidYAML(t *testing.T) {
 }
 
 func TestImportInvalidJSON(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an invalid JSON file
 	tempDir := t.TempDir()
 	jsonFile := filepath.Join(tempDir, "invalid.json")
 
-	err := os.WriteFile(jsonFile, []byte("{invalid json}"), 0644)
+	err := os.WriteFile(jsonFile, []byte("{invalid json}"), 0o644)
 	require.NoError(t, err)
 
 	// Try to import
@@ -233,14 +234,14 @@ func TestImportInvalidJSON(t *testing.T) {
 }
 
 func TestImportUnsupportedExtension(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a file with unsupported extension
 	tempDir := t.TempDir()
 	txtFile := filepath.Join(tempDir, "import.txt")
 
-	err := os.WriteFile(txtFile, []byte("some content"), 0644)
+	err := os.WriteFile(txtFile, []byte("some content"), 0o644)
 	require.NoError(t, err)
 
 	// Try to import
@@ -250,7 +251,7 @@ func TestImportUnsupportedExtension(t *testing.T) {
 }
 
 func TestImportValidationFailure(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a YAML file with invalid data (missing required fields)
@@ -266,7 +267,7 @@ func TestImportValidationFailure(t *testing.T) {
 
 	data, err := yaml.Marshal(workingSet)
 	require.NoError(t, err)
-	err = os.WriteFile(yamlFile, data, 0644)
+	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
 	// Try to import
@@ -276,14 +277,14 @@ func TestImportValidationFailure(t *testing.T) {
 }
 
 func TestImportEmptyFile(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an empty YAML file
 	tempDir := t.TempDir()
 	yamlFile := filepath.Join(tempDir, "empty.yaml")
 
-	err := os.WriteFile(yamlFile, []byte(""), 0644)
+	err := os.WriteFile(yamlFile, []byte(""), 0o644)
 	require.NoError(t, err)
 
 	// Try to import

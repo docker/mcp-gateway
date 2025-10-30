@@ -2,16 +2,16 @@ package workingset
 
 import (
 	"database/sql"
-	"errors"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func TestRemoveExistingWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -35,11 +35,10 @@ func TestRemoveExistingWorkingSet(t *testing.T) {
 	// Verify it's gone
 	_, err = dao.GetWorkingSet(ctx, "test-set")
 	require.ErrorIs(t, err, sql.ErrNoRows)
-	require.True(t, errors.Is(err, sql.ErrNoRows))
 }
 
 func TestRemoveNonExistentWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Try to remove a non-existent working set
@@ -49,7 +48,7 @@ func TestRemoveNonExistentWorkingSet(t *testing.T) {
 }
 
 func TestRemoveOneOfMany(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create multiple working sets
@@ -86,7 +85,7 @@ func TestRemoveOneOfMany(t *testing.T) {
 }
 
 func TestRemoveTwice(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -109,7 +108,7 @@ func TestRemoveTwice(t *testing.T) {
 }
 
 func TestRemoveCaseSensitive(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -133,7 +132,7 @@ func TestRemoveCaseSensitive(t *testing.T) {
 }
 
 func TestRemoveWithEmptyId(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Try to remove with empty ID

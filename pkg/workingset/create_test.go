@@ -8,7 +8,7 @@ import (
 )
 
 func TestCreateWithDockerImages(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "My Test Set", []string{
@@ -34,7 +34,7 @@ func TestCreateWithDockerImages(t *testing.T) {
 }
 
 func TestCreateWithRegistryServers(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "Registry Set", []string{
@@ -58,7 +58,7 @@ func TestCreateWithRegistryServers(t *testing.T) {
 }
 
 func TestCreateWithMixedServers(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "Mixed Set", []string{
@@ -78,7 +78,7 @@ func TestCreateWithMixedServers(t *testing.T) {
 }
 
 func TestCreateWithCustomId(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "custom-id", "Test Set", []string{
@@ -96,7 +96,7 @@ func TestCreateWithCustomId(t *testing.T) {
 }
 
 func TestCreateWithExistingId(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create first working set
@@ -114,7 +114,7 @@ func TestCreateWithExistingId(t *testing.T) {
 }
 
 func TestCreateGeneratesUniqueIds(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create first working set
@@ -154,7 +154,7 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 }
 
 func TestCreateWithInvalidServerFormat(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "Test Set", []string{
@@ -165,7 +165,7 @@ func TestCreateWithInvalidServerFormat(t *testing.T) {
 }
 
 func TestCreateWithEmptyName(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "test-id", "", []string{
@@ -176,7 +176,7 @@ func TestCreateWithEmptyName(t *testing.T) {
 }
 
 func TestCreateWithEmptyServers(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "Empty Set", []string{})
@@ -187,11 +187,11 @@ func TestCreateWithEmptyServers(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
-	assert.Len(t, dbSet.Servers, 0)
+	assert.Empty(t, dbSet.Servers)
 }
 
 func TestCreateAddsDefaultSecrets(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Create(ctx, dao, "", "Test Set", []string{
@@ -213,34 +213,34 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 	tests := []struct {
 		name       string
 		inputName  string
-		expectedId string
+		expectedID string
 	}{
 		{
 			name:       "name with spaces",
 			inputName:  "My Test Set",
-			expectedId: "my-test-set",
+			expectedID: "my-test-set",
 		},
 		{
 			name:       "name with special chars",
 			inputName:  "Test@Set#123!",
-			expectedId: "test-set-123-",
+			expectedID: "test-set-123-",
 		},
 		{
 			name:       "name with multiple spaces",
 			inputName:  "Test   Set",
-			expectedId: "test-set",
+			expectedID: "test-set",
 		},
 		{
 			name:       "name with underscores",
 			inputName:  "Test_Set_Name",
-			expectedId: "test-set-name",
+			expectedID: "test-set-name",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a fresh database for each subtest to avoid ID conflicts
-			dao, _ := setupTestDB(t)
+			dao := setupTestDB(t)
 			ctx := t.Context()
 
 			err := Create(ctx, dao, "", tt.inputName, []string{
@@ -249,10 +249,10 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 			require.NoError(t, err)
 
 			// Verify the ID was generated correctly
-			dbSet, err := dao.GetWorkingSet(ctx, tt.expectedId)
+			dbSet, err := dao.GetWorkingSet(ctx, tt.expectedID)
 			require.NoError(t, err)
 			require.NotNil(t, dbSet)
-			assert.Equal(t, tt.expectedId, dbSet.ID)
+			assert.Equal(t, tt.expectedID, dbSet.ID)
 		})
 	}
 }

@@ -6,14 +6,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func TestExportYAML(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -24,7 +25,7 @@ func TestExportYAML(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{"key": "value"},
+				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1"},
 			},
 		},
@@ -60,7 +61,7 @@ func TestExportYAML(t *testing.T) {
 }
 
 func TestExportJSON(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -105,7 +106,7 @@ func TestExportJSON(t *testing.T) {
 }
 
 func TestExportNonExistentWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	tempDir := t.TempDir()
@@ -117,7 +118,7 @@ func TestExportNonExistentWorkingSet(t *testing.T) {
 }
 
 func TestExportUnsupportedExtension(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -138,7 +139,7 @@ func TestExportUnsupportedExtension(t *testing.T) {
 }
 
 func TestExportEmptyWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an empty working set
@@ -166,12 +167,12 @@ func TestExportEmptyWorkingSet(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "empty-set", exported.ID)
-	assert.Len(t, exported.Servers, 0)
-	assert.Len(t, exported.Secrets, 0)
+	assert.Empty(t, exported.Servers)
+	assert.Empty(t, exported.Secrets)
 }
 
 func TestExportToNonexistentDirectory(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -191,7 +192,7 @@ func TestExportToNonexistentDirectory(t *testing.T) {
 }
 
 func TestExportPreservesDataTypes(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set with various data types in config
@@ -202,12 +203,12 @@ func TestExportPreservesDataTypes(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"string": "value",
 					"int":    42,
 					"float":  3.14,
 					"bool":   true,
-					"array":  []interface{}{1, 2, 3},
+					"array":  []any{1, 2, 3},
 				},
 			},
 		},
@@ -233,10 +234,10 @@ func TestExportPreservesDataTypes(t *testing.T) {
 	config := exported.Servers[0].Config
 	assert.Equal(t, "value", config["string"])
 	assert.IsType(t, float64(0), config["int"]) // JSON numbers are float64
-	assert.Equal(t, float64(42), config["int"])
+	assert.InEpsilon(t, float64(42), config["int"], 0.0000001)
 	assert.IsType(t, float64(0), config["float"])
-	assert.Equal(t, 3.14, config["float"])
+	assert.InEpsilon(t, 3.14, config["float"], 0.0000001)
 	assert.IsType(t, true, config["bool"])
 	assert.Equal(t, true, config["bool"])
-	assert.IsType(t, []interface{}{}, config["array"])
+	assert.IsType(t, []any{}, config["array"])
 }

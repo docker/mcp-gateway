@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func TestShowHumanReadable(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -22,7 +23,7 @@ func TestShowHumanReadable(t *testing.T) {
 			{
 				Type:    "registry",
 				Source:  "https://example.com/server",
-				Config:  map[string]interface{}{"key": "value"},
+				Config:  map[string]any{"key": "value"},
 				Secrets: "default",
 				Tools:   []string{"tool1", "tool2"},
 			},
@@ -48,7 +49,7 @@ func TestShowHumanReadable(t *testing.T) {
 }
 
 func TestShowJSON(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -85,7 +86,7 @@ func TestShowJSON(t *testing.T) {
 }
 
 func TestShowYAML(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -121,7 +122,7 @@ func TestShowYAML(t *testing.T) {
 }
 
 func TestShowNonExistentWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	err := Show(ctx, dao, "non-existent", OutputFormatJSON)
@@ -130,7 +131,7 @@ func TestShowNonExistentWorkingSet(t *testing.T) {
 }
 
 func TestShowUnsupportedFormat(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -148,7 +149,7 @@ func TestShowUnsupportedFormat(t *testing.T) {
 }
 
 func TestShowComplexWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a complex working set
@@ -159,10 +160,10 @@ func TestShowComplexWorkingSet(t *testing.T) {
 			{
 				Type:   "registry",
 				Source: "https://example.com/server1",
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"key1": "value1",
 					"key2": 123,
-					"nested": map[string]interface{}{
+					"nested": map[string]any{
 						"key": "value",
 					},
 				},
@@ -209,7 +210,7 @@ func TestShowComplexWorkingSet(t *testing.T) {
 }
 
 func TestShowEmptyWorkingSet(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create an empty working set
@@ -231,8 +232,8 @@ func TestShowEmptyWorkingSet(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "empty-set", workingSet.ID)
-	assert.Len(t, workingSet.Servers, 0)
-	assert.Len(t, workingSet.Secrets, 0)
+	assert.Empty(t, workingSet.Servers)
+	assert.Empty(t, workingSet.Secrets)
 }
 
 func TestPrintHumanReadableWithImageServer(t *testing.T) {
@@ -244,7 +245,7 @@ func TestPrintHumanReadableWithImageServer(t *testing.T) {
 			{
 				Type:    ServerTypeImage,
 				Image:   "docker/test:latest",
-				Config:  map[string]interface{}{},
+				Config:  map[string]any{},
 				Secrets: "default",
 				Tools:   []string{"tool1"},
 			},
@@ -305,7 +306,7 @@ func TestPrintHumanReadableMultipleSecrets(t *testing.T) {
 }
 
 func TestShowPreservesVersion(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set
@@ -330,7 +331,7 @@ func TestShowPreservesVersion(t *testing.T) {
 }
 
 func TestShowWithNilConfig(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set with nil config
@@ -361,7 +362,7 @@ func TestShowWithNilConfig(t *testing.T) {
 }
 
 func TestShowWithEmptyTools(t *testing.T) {
-	dao, _ := setupTestDB(t)
+	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	// Create a working set with empty tools
@@ -389,5 +390,5 @@ func TestShowWithEmptyTools(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, workingSet.Servers, 1)
-	assert.Len(t, workingSet.Servers[0].Tools, 0)
+	assert.Empty(t, workingSet.Servers[0].Tools)
 }

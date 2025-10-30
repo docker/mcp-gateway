@@ -73,8 +73,8 @@ func TestCreateWorkingSetWithEmptyServersAndSecrets(t *testing.T) {
 	assert.Equal(t, workingSet.Name, retrieved.Name)
 	assert.NotNil(t, retrieved.Servers)
 	assert.NotNil(t, retrieved.Secrets)
-	assert.Len(t, retrieved.Servers, 0)
-	assert.Len(t, retrieved.Secrets, 0)
+	assert.Empty(t, retrieved.Servers)
+	assert.Empty(t, retrieved.Secrets)
 }
 
 func TestCreateWorkingSetDuplicateID(t *testing.T) {
@@ -94,7 +94,7 @@ func TestCreateWorkingSetDuplicateID(t *testing.T) {
 	// Try to create another with the same ID
 	workingSet.Name = "Second"
 	err = dao.CreateWorkingSet(ctx, workingSet)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestGetWorkingSetNotFound(t *testing.T) {
@@ -102,7 +102,7 @@ func TestGetWorkingSetNotFound(t *testing.T) {
 	ctx := t.Context()
 
 	_, err := dao.GetWorkingSet(ctx, "nonexistent")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
@@ -162,7 +162,7 @@ func TestUpdateWorkingSetNonexistent(t *testing.T) {
 
 	// Verify it wasn't created
 	_, err = dao.GetWorkingSet(ctx, "nonexistent")
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestRemoveWorkingSet(t *testing.T) {
@@ -189,7 +189,7 @@ func TestRemoveWorkingSet(t *testing.T) {
 
 	// Verify it's gone
 	_, err = dao.GetWorkingSet(ctx, "remove-test")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
@@ -254,7 +254,7 @@ func TestListWorkingSetsEmpty(t *testing.T) {
 
 	retrieved, err := dao.ListWorkingSets(ctx)
 	require.NoError(t, err)
-	assert.Len(t, retrieved, 0)
+	assert.Empty(t, retrieved)
 }
 
 func TestFindWorkingSetsByIDPrefix(t *testing.T) {
@@ -467,8 +467,8 @@ func TestComplexWorkingSet(t *testing.T) {
 	// Verify complex nested structures
 	assert.Equal(t, "registry", retrieved.Servers[0].Type)
 	config := retrieved.Servers[0].Config
-	assert.Equal(t, float64(60), config["timeout"])
-	assert.Equal(t, float64(3), config["retries"])
+	assert.InEpsilon(t, float64(60), config["timeout"], 0.000001)
+	assert.InEpsilon(t, float64(3), config["retries"], 0.000001)
 	endpoints, ok := config["endpoints"].([]any)
 	require.True(t, ok)
 	assert.Len(t, endpoints, 3)
@@ -491,7 +491,7 @@ func TestConcurrentOperations(t *testing.T) {
 
 	// Perform multiple reads concurrently
 	done := make(chan bool, 10)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			_, err := dao.GetWorkingSet(ctx, "concurrent-test")
 			assert.NoError(t, err)
@@ -500,7 +500,7 @@ func TestConcurrentOperations(t *testing.T) {
 	}
 
 	// Wait for all goroutines to complete
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 }
