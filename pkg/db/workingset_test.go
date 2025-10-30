@@ -504,3 +504,353 @@ func TestConcurrentOperations(t *testing.T) {
 		<-done
 	}
 }
+
+func TestSearchWorkingSetsEmptyParameters(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	workingSets := []WorkingSet{
+		{
+			ID:   "set-1",
+			Name: "First",
+			Servers: ServerList{
+				{Type: "image", Image: "postgres:latest"},
+			},
+			Secrets: SecretMap{},
+		},
+		{
+			ID:   "set-2",
+			Name: "Second",
+			Servers: ServerList{
+				{Type: "registry", Source: "https://example.com/server"},
+			},
+			Secrets: SecretMap{},
+		},
+	}
+
+	for _, ws := range workingSets {
+		err := dao.CreateWorkingSet(ctx, ws)
+		require.NoError(t, err)
+	}
+
+	results, err := dao.SearchWorkingSets(ctx, "", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 2)
+}
+
+func TestSearchWorkingSetsQueryOnly(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:latest"},
+			{Type: "image", Image: "redis:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-2",
+		Name: "Second",
+		Servers: ServerList{
+			{Type: "image", Image: "nginx:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "postgres", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "set-1", results[0].ID)
+}
+
+func TestSearchWorkingSetsWorkingSetIDOnly(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:latest"},
+			{Type: "image", Image: "redis:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-2",
+		Name: "Second",
+		Servers: ServerList{
+			{Type: "image", Image: "nginx:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "", "set-1")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "set-1", results[0].ID)
+	assert.Len(t, results[0].Servers, 2)
+}
+
+func TestSearchWorkingSetsBothParameters(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:latest"},
+			{Type: "image", Image: "redis:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-2",
+		Name: "Second",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:14"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "postgres", "set-1")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "set-1", results[0].ID)
+}
+
+func TestSearchWorkingSetsMatchesImageField(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "postgres", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "postgres:latest", results[0].Servers[0].Image)
+}
+
+func TestSearchWorkingSetsMatchesSourceField(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "registry", Source: "https://example.com/my-server"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "my-server", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "https://example.com/my-server", results[0].Servers[0].Source)
+}
+
+func TestSearchWorkingSetsMatchesMultipleServersInSameSet(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "myapp:frontend"},
+			{Type: "image", Image: "myapp:backend"},
+			{Type: "image", Image: "redis:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "myapp", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Len(t, results[0].Servers, 3)
+}
+
+func TestSearchWorkingSetsMatchesAcrossMultipleSets(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:13"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-2",
+		Name: "Second",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:14"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-3",
+		Name: "Third",
+		Servers: ServerList{
+			{Type: "image", Image: "redis:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "postgres", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 2)
+}
+
+func TestSearchWorkingSetsCaseInsensitive(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "PostgreSQL:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "postgresql", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+
+	results, err = dao.SearchWorkingSets(ctx, "POSTGRESQL", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+}
+
+func TestSearchWorkingSetsNoMatches(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "postgres:latest"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "nonexistent", "")
+	require.NoError(t, err)
+	assert.Empty(t, results)
+
+	results, err = dao.SearchWorkingSets(ctx, "", "nonexistent")
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestSearchWorkingSetsOrderedByID(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	workingSets := []WorkingSet{
+		{ID: "z-set", Name: "Z", Servers: ServerList{{Type: "image", Image: "app:latest"}}, Secrets: SecretMap{}},
+		{ID: "a-set", Name: "A", Servers: ServerList{{Type: "image", Image: "app:latest"}}, Secrets: SecretMap{}},
+		{ID: "m-set", Name: "M", Servers: ServerList{{Type: "image", Image: "app:latest"}}, Secrets: SecretMap{}},
+	}
+
+	for _, ws := range workingSets {
+		err := dao.CreateWorkingSet(ctx, ws)
+		require.NoError(t, err)
+	}
+
+	results, err := dao.SearchWorkingSets(ctx, "", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 3)
+
+	assert.Equal(t, "a-set", results[0].ID)
+	assert.Equal(t, "m-set", results[1].ID)
+	assert.Equal(t, "z-set", results[2].ID)
+}
+
+func TestSearchWorkingSetsPartialMatch(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:   "set-1",
+		Name: "First",
+		Servers: ServerList{
+			{Type: "image", Image: "mycompany/myapp:v1.2.3"},
+		},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "mycompany", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+
+	results, err = dao.SearchWorkingSets(ctx, "myapp", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+
+	results, err = dao.SearchWorkingSets(ctx, "v1.2", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+}
+
+func TestSearchWorkingSetsWithEmptyServersList(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, WorkingSet{
+		ID:      "empty-set",
+		Name:    "Empty",
+		Servers: ServerList{},
+		Secrets: SecretMap{},
+	})
+	require.NoError(t, err)
+
+	results, err := dao.SearchWorkingSets(ctx, "", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+
+	results, err = dao.SearchWorkingSets(ctx, "anything", "")
+	require.NoError(t, err)
+	assert.Empty(t, results)
+
+	results, err = dao.SearchWorkingSets(ctx, "", "empty-set")
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+}
