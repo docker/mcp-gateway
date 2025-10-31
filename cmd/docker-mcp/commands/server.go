@@ -13,6 +13,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/terminal"
 )
 
 func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
@@ -51,9 +52,21 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 				enabledCount := len(list)
 				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled)\n\n", enabledCount)
 
+				// Calculate column widths based on terminal size
+				termWidth := terminal.GetWidthFrom(cmd.OutOrStdout())
+				colWidths := calculateColumnWidths(termWidth)
+
+				// Calculate total table width (sum of columns + spaces between columns)
+				totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4 // 4 spaces between columns
+
 				// Print table headers
-				fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-12s %-50s\n", "NAME", "OAUTH", "SECRETS", "CONFIG", "DESCRIPTION")
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", 115))
+				fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+					colWidths.name, "NAME",
+					colWidths.oauth, "OAUTH",
+					colWidths.secrets, "SECRETS",
+					colWidths.config, "CONFIG",
+					colWidths.description, "DESCRIPTION")
+				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", totalWidth))
 
 				// Print entries
 				for _, entry := range list {
@@ -62,14 +75,15 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 					configText := entry.Config.DisplayString()
 					oauthText := entry.OAuth.DisplayString()
 
-					// Truncate description to fit within the 50-character column
-					description := entry.Description
-					if len(description) > 47 {
-						description = description[:47] + "..."
-					}
+					// Truncate description to fit within the available column width
+					description := truncateString(entry.Description, colWidths.description)
 
-					fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-12s %-50s\n",
-						entry.Name, oauthText, secretsText, configText, description)
+					fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+						colWidths.name, truncateString(entry.Name, colWidths.name),
+						colWidths.oauth, oauthText,
+						colWidths.secrets, secretsText,
+						colWidths.config, configText,
+						colWidths.description, description)
 				}
 
 				if hints.Enabled(dockerCli) {
@@ -148,4 +162,58 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	})
 
 	return cmd
+}
+
+type columnWidths struct {
+	name        int
+	oauth       int
+	secrets     int
+	config      int
+	description int
+}
+
+func calculateColumnWidths(termWidth int) columnWidths {
+	// Minimum widths for each column
+	minWidths := columnWidths{
+		name:        15,
+		oauth:       10,
+		secrets:     10,
+		config:      10,
+		description: 20,
+	}
+
+	// Calculate minimum total width needed
+	minTotal := minWidths.name + minWidths.oauth + minWidths.secrets + minWidths.config + minWidths.description + 4 // 4 spaces
+
+	// If terminal is too narrow, use minimum widths
+	if termWidth < minTotal+20 {
+		return minWidths
+	}
+
+	// Available space after minimums and spacing
+	available := termWidth - minTotal
+
+	// Allocate extra space: 50% to description, 25% to name, 25% split between oauth/secrets/config
+	result := columnWidths{
+		name:        minWidths.name + available/4,
+		oauth:       minWidths.oauth + available/12,
+		secrets:     minWidths.secrets + available/12,
+		config:      minWidths.config + available/12,
+		description: minWidths.description + available/2,
+	}
+
+	return result
+}
+
+func truncateString(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+	if len(s) <= maxWidth {
+		return s
+	}
+	if maxWidth > 3 {
+		return s[:maxWidth-3] + "..."
+	}
+	return s[:maxWidth]
 }
