@@ -202,12 +202,8 @@ func newOAuthHelper() credentials.Helper {
 	helperName := getCredentialHelperName()
 	if helperName == "" {
 		log.Logf("! No credential helper found")
-		log.Logf("! Install a credential helper for your platform:")
-		log.Logf("!   macOS:   brew install docker-credential-helper")
-		log.Logf("!   Ubuntu:  sudo apt-get install docker-credential-secretservice")
-		log.Logf("!   Linux:   sudo apt-get install docker-credential-pass")
-		log.Logf("!   Windows: Download from https://github.com/docker/docker-credential-helpers/releases")
-		log.Logf("! Then configure Docker: echo '{\"credsStore\": \"osxkeychain\"}' > ~/.docker/config.json")
+		log.Logf("! Install a credential helper from: https://github.com/docker/docker-credential-helpers")
+		log.Logf("! Then configure Docker to use it (see repo for platform-specific instructions)")
 		// Return a helper that will fail with clear error messages
 		helperName = "notfound"
 	}
