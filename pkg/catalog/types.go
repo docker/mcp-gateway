@@ -65,6 +65,8 @@ type OAuth struct {
 
 type OAuthProvider struct {
 	Provider string `yaml:"provider" json:"provider"`
+	Secret   string `json:"secret,omitempty" yaml:"secret,omitempty"`
+	Env      string `json:"env,omitempty" yaml:"env,omitempty"`
 }
 
 // POCI tools
