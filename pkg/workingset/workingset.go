@@ -277,7 +277,7 @@ func resolveRegistry(ctx context.Context, registryClient registryapi.Client, val
 	}, nil
 }
 
-func resolveSnapshot(ctx context.Context, ociService oci.Service, server Server) (*ServerSnapshot, error) {
+func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server) (*ServerSnapshot, error) {
 	switch server.Type {
 	case ServerTypeImage:
 		return resolveImageSnapshot(ctx, ociService, server)

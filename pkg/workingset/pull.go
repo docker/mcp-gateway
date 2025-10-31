@@ -24,7 +24,7 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) e
 
 	// Resolve snapshots for each server before saving
 	for i := range len(workingSet.Servers) {
-		snapshot, err := resolveSnapshot(ctx, ociService, workingSet.Servers[i])
+		snapshot, err := ResolveSnapshot(ctx, ociService, workingSet.Servers[i])
 		if err != nil {
 			return fmt.Errorf("failed to resolve snapshot for server[%d]: %w", i, err)
 		}

@@ -581,7 +581,7 @@ type: remote`,
 			}))
 			ctx := t.Context()
 
-			snapshot, err := resolveSnapshot(ctx, ociService, tt.server)
+			snapshot, err := ResolveSnapshot(ctx, ociService, tt.server)
 
 			if tt.expectError {
 				assert.Error(t, err)
