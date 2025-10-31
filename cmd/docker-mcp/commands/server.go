@@ -49,7 +49,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 				// atlassian ✓ done ✓ done Confluence and Jira tools
 
 				enabledCount := len(list)
-				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled, %d configured)\n\n", enabledCount, enabledCount)
+				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled)\n\n", enabledCount)
 
 				// Print table headers
 				fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-12s %-50s\n", "NAME", "OAUTH", "SECRETS", "CONFIG", "DESCRIPTION")
