@@ -12,9 +12,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-func Import(ctx context.Context, dao db.DAO, filename string) error {
+func Import(ctx context.Context, dao db.DAO, ociService oci.Service, filename string) error {
 	workingSetBuf, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read working set file: %w", err)
@@ -31,6 +32,17 @@ func Import(ctx context.Context, dao db.DAO, filename string) error {
 		}
 	} else {
 		return fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", filename)
+	}
+
+	// Resolve snapshots for each server before saving
+	for i := range len(workingSet.Servers) {
+		snapshot, err := resolveSnapshot(ctx, ociService, workingSet.Servers[i])
+		if err != nil {
+			return fmt.Errorf("failed to resolve snapshot for server[%d]: %w", i, err)
+		}
+		if snapshot != nil {
+			workingSet.Servers[i].Snapshot = snapshot
+		}
 	}
 
 	if err := workingSet.Validate(); err != nil {

@@ -22,6 +22,13 @@ func fullName(ref name.Reference) string {
 	return ref.Name()
 }
 
+func hasDigest(ref name.Reference) bool {
+	if _, ok := ref.(name.Digest); ok {
+		return true
+	}
+	return false
+}
+
 func isValidInputReference(ref name.Reference) bool {
 	if _, ok := ref.(name.Tag); ok {
 		return true

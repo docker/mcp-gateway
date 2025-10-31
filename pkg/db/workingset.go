@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
 type WorkingSetDAO interface {
@@ -34,10 +36,18 @@ type Server struct {
 	Tools   []string       `json:"tools,omitempty"`
 	Source  string         `json:"source,omitempty"`
 	Image   string         `json:"image,omitempty"`
+
+	// Optional snapshot of the server schema
+	Snapshot *ServerSnapshot `json:"snapshot,omitempty"`
 }
 
 type Secret struct {
 	Provider string `json:"provider"`
+}
+
+type ServerSnapshot struct {
+	// TODO(cody): hacky reference to the same type that we use elsewhere
+	Server catalog.Server `json:"server"`
 }
 
 func (servers ServerList) Value() (driver.Value, error) {
