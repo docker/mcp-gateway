@@ -52,14 +52,15 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled, %d configured)\n\n", enabledCount, enabledCount)
 
 				// Print table headers
-				fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-50s\n", "NAME", "SECRETS", "CONFIG", "DESCRIPTION")
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", 103))
+				fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-12s %-50s\n", "NAME", "OAUTH", "SECRETS", "CONFIG", "DESCRIPTION")
+				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", 115))
 
 				// Print entries
 				for _, entry := range list {
-					// Determine secrets and config display strings
+					// Determine secrets, config, and OAuth display strings
 					secretsText := entry.Secrets.DisplayString()
 					configText := entry.Config.DisplayString()
+					oauthText := entry.OAuth.DisplayString()
 
 					// Truncate description to fit within the 50-character column
 					description := entry.Description
@@ -67,8 +68,8 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 						description = description[:47] + "..."
 					}
 
-					fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-50s\n",
-						entry.Name, secretsText, configText, description)
+					fmt.Fprintf(cmd.OutOrStdout(), "%-25s %-12s %-12s %-12s %-50s\n",
+						entry.Name, oauthText, secretsText, configText, description)
 				}
 
 				if hints.Enabled(dockerCli) {

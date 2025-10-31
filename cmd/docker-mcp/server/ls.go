@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -26,6 +25,7 @@ type ListEntry struct {
 	Description string
 	Secrets     ConfigStatus
 	Config      ConfigStatus
+	OAuth       ConfigStatus
 }
 
 func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
@@ -39,8 +39,6 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("registryYAML", string(registryYAML))
-	fmt.Printf("DEBUG: Parsed registry: %+v\n", registry)
 
 	// Read user's configuration to populate registry tiles
 	userConfigYAML, err := config.ReadConfig(ctx, docker)
@@ -53,15 +51,12 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 		return nil, fmt.Errorf("parsing user config: %w", err)
 	}
 
-	fmt.Printf("DEBUG: User config loaded: %+v\n", userConfig)
-
 	// Populate registry tiles with user config
 	for serverName, tile := range registry.Servers {
 		if len(tile.Config) == 0 {
 			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
 				tile.Config = userServerConfig
 				registry.Servers[serverName] = tile
-				fmt.Printf("DEBUG: Populated config for %s: %+v\n", serverName, userServerConfig)
 			}
 		}
 	}
@@ -81,7 +76,6 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 	// Create a map of configured secret names for quick lookup
 	configuredSecretNames := make(map[string]struct{})
 	for _, secret := range configuredSecrets {
-		// println(secret.Name)
 		configuredSecretNames[secret.Name] = struct{}{}
 	}
 
@@ -90,8 +84,13 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 		return ok
 	}
 
-	// fmt.Println(configuredSecrets)
-	// fmt.Println(configuredSecretNames)
+	// Get OAuth apps to check authorization status
+	authClient := desktop.NewAuthClient()
+	oauthApps, err := authClient.ListOAuthApps(ctx)
+	if err != nil {
+		// If we can't get OAuth apps, we'll just skip OAuth checking
+		oauthApps = []desktop.OAuthApp{}
+	}
 
 	var entries []ListEntry
 	for _, serverName := range registry.ServerNames() {
@@ -100,6 +99,7 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 			Description: "",
 			Secrets:     ConfigStatusNone, // Default to no secrets needed
 			Config:      ConfigStatusNone, // Default to no config needed
+			OAuth:       ConfigStatusNone, // Default to no OAuth needed
 		}
 
 		// Get description and check configuration from catalog
@@ -108,20 +108,8 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 
 			// Check secrets configuration
 			if len(server.Secrets) > 0 {
-
-				// Server requires secrets, check if they are configured
-				// hasAllSecrets := true
-				// hasSomeSecrets := false
 				hasSomeSecrets := slices.ContainsFunc(server.Secrets, isSecretConfigured)
 				hasAllSecrets := !slices.ContainsFunc(server.Secrets, func(s catalog.Secret) bool { return !isSecretConfigured(s) })
-
-				// for _, secret := range server.Secrets {
-				// 	if isSecretConfigured(secret.Name) {
-				// 		hasSomeSecrets = true
-				// 	} else {
-				// 		hasAllSecrets = false
-				// 	}
-				// }
 
 				switch {
 				case hasAllSecrets:
@@ -133,47 +121,46 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 				}
 
 			}
+
+			// Check OAuth configuration
+			if server.IsOAuthServer() && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+				providerName := server.OAuth.Providers[0].Provider
+
+				// Find OAuth app by provider name
+				var oauthApp *desktop.OAuthApp
+				for i := range oauthApps {
+					if oauthApps[i].App == providerName {
+						oauthApp = &oauthApps[i]
+						break
+					}
+				}
+
+				// Also check if server name matches (for DCR servers)
+				if oauthApp == nil {
+					for i := range oauthApps {
+						if oauthApps[i].App == serverName {
+							oauthApp = &oauthApps[i]
+							break
+						}
+					}
+				}
+
+				if oauthApp != nil && oauthApp.Authorized {
+					entry.OAuth = ConfigStatusDone
+				} else {
+					entry.OAuth = ConfigStatusRequired
+				}
+			}
+
 			// Check other config requirements (non-OAuth config)
 			if len(server.Config) > 0 {
-				fmt.Println(len(server.Config))
 
-				// Estoy esta retornando DONE para todos los configs solo por el OAuth
-				// Check OAuth configuration
-
-				// if server.IsOAuthServer() {
-				// 	// Check if OAuth is configured
-				// 	tile, hasConfig := registry.Servers[serverName]
-				// 	if !hasConfig || len(tile.Config) == 0 {
-				// 		entry.Config = ConfigStatusRequired
-				// 	} else {
-				// 		// Check if OAuth credentials are in config
-				// 		if _, hasOAuth := tile.Config["oauth"]; hasOAuth {
-				// 			entry.Config = ConfigStatusDone
-				// 		} else {
-				// 			entry.Config = ConfigStatusPartial
-				// 		}
-				// 	}
-				// }
-
-				// Server has config requirements beyond OAuth
 				tile, hasConfig := registry.Servers[serverName]
-				fmt.Println("tile", tile)
-				fmt.Println("HAS OCNFIG", hasConfig)
-				fmt.Println("tile config", len(tile.Config))
 				if !hasConfig || len(tile.Config) == 0 {
-					// if entry.Config == ConfigStatusNone {
 					entry.Config = ConfigStatusRequired
-					// }
 				} else {
 					// Validate config requirements against user configuration
-					// configStatus := validateConfigRequirements(server.Config, tile.Config)
 					entry.Config = validateConfigRequirements(server.Config, tile.Config)
-					// if entry.Config == ConfigStatusNone {
-					// 	entry.Config = configStatus
-					// } else if configStatus == ConfigStatusRequired {
-					// 	// If OAuth was done but other config is required, mark as partial
-					// 	entry.Config = ConfigStatusPartial
-					// }
 				}
 			}
 		}
@@ -202,23 +189,15 @@ func (cs ConfigStatus) DisplayString() string {
 
 // validateConfigRequirements validates user configuration against server requirements
 func validateConfigRequirements(requirements []any, userConfig map[string]any) ConfigStatus {
-	requirementsJSON, _ := json.MarshalIndent(requirements, "", "  ")
-	fmt.Printf("requirements ---\n%s\n", string(requirementsJSON))
-
-	// Flatten requirements into dot-notation keys for easy comparison
 	flatReq := collectRequiredFields(requirements)
 	var flatReqKeys []string
 	for k := range flatReq {
 		flatReqKeys = append(flatReqKeys, k)
 	}
 	slices.Sort(flatReqKeys)
-	flatReqJSON, _ := json.MarshalIndent(flatReqKeys, "", "  ")
-	fmt.Printf("requirements (flattened) ---\n%s\n", string(flatReqJSON))
 
 	// Flatten user config for easier comparison (dot notation like a.b)
 	flattened := flattenMap("", userConfig)
-	userConfigJSON, _ := json.MarshalIndent(flattened, "", "  ")
-	fmt.Printf("userConfig (flattened) ---\n%s\n", string(userConfigJSON))
 
 	// Determine status based on total vs configured counts across ALL requirements
 	total := len(flatReq)
@@ -231,7 +210,7 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 			configured++
 		}
 	}
-	fmt.Printf("TOTAL required keys: %d, CONFIGURED: %d\n", total, configured)
+
 	switch {
 	case configured == 0:
 		return ConfigStatusRequired
