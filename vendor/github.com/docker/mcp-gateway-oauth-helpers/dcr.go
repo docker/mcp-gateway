@@ -7,9 +7,38 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 const DefaultRedirectURI = "https://mcp.docker.com/oauth/callback"
+
+// isValidRedirectURI validates that the redirect URI is allowed for this library
+// Only localhost and mcp.docker.com are permitted for security
+func isValidRedirectURI(redirectURI string) error {
+	if redirectURI == "" {
+		return nil // Empty is OK (will use default)
+	}
+
+	parsed, err := url.Parse(redirectURI)
+	if err != nil {
+		return fmt.Errorf("invalid redirect URI format: %w", err)
+	}
+
+	// Extract hostname (handles ports automatically)
+	hostname := parsed.Hostname()
+
+	// Allow localhost variations
+	if hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1" {
+		return nil
+	}
+
+	// Allow mcp.docker.com (production)
+	if hostname == "mcp.docker.com" {
+		return nil
+	}
+
+	return fmt.Errorf("redirect URI host %q not allowed - must be localhost or mcp.docker.com", hostname)
+}
 
 // PerformDCR performs Dynamic Client Registration with the authorization server
 // Returns client credentials for the registered public client
@@ -23,6 +52,11 @@ const DefaultRedirectURI = "https://mcp.docker.com/oauth/callback"
 func PerformDCR(ctx context.Context, discovery *Discovery, serverName string, redirectURI string) (*ClientCredentials, error) {
 	if discovery.RegistrationEndpoint == "" {
 		return nil, fmt.Errorf("no registration endpoint found for %s", serverName)
+	}
+
+	// Validate redirect URI for security (only localhost or mcp.docker.com allowed)
+	if err := isValidRedirectURI(redirectURI); err != nil {
+		return nil, fmt.Errorf("invalid redirect URI: %w", err)
 	}
 
 	// Use provided redirectURI, fallback to default if empty

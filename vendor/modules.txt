@@ -157,7 +157,7 @@ github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
-# github.com/docker/mcp-gateway-oauth-helpers v0.0.2 => github.com/saucow/mcp-gateway-oauth-helpers v0.0.0-20251027224632-d54920a37a0a
+# github.com/docker/mcp-gateway-oauth-helpers v0.0.3
 ## explicit; go 1.23.0
 github.com/docker/mcp-gateway-oauth-helpers
 # github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
@@ -999,4 +999,3 @@ gopkg.in/yaml.v3
 ## explicit; go 1.17
 # k8s.io/client-go v0.33.1
 ## explicit; go 1.24.0
-# github.com/docker/mcp-gateway-oauth-helpers => github.com/saucow/mcp-gateway-oauth-helpers v0.0.0-20251027224632-d54920a37a0a

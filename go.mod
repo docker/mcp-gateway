@@ -11,7 +11,7 @@ require (
 	github.com/docker/cli-docs-tool v0.10.0
 	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
-	github.com/docker/mcp-gateway-oauth-helpers v0.0.2
+	github.com/docker/mcp-gateway-oauth-helpers v0.0.3
 	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/go-containerregistry v0.20.6
@@ -74,7 +74,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
-	github.com/fatih/color v1.18.0 // indirect
+	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
@@ -180,5 +180,3 @@ require (
 	gotest.tools/v3 v3.5.2 // indirect
 	k8s.io/client-go v0.33.1 // indirect
 )
-
-replace github.com/docker/mcp-gateway-oauth-helpers => github.com/saucow/mcp-gateway-oauth-helpers v0.0.0-20251027224632-d54920a37a0a
