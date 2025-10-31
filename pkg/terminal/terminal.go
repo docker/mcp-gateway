@@ -20,7 +20,7 @@ func GetWidth() int {
 // GetWidthFrom returns the width of the terminal from a given output stream.
 // If the width cannot be determined from the provided stream, it falls back to os.Stdout.
 // If that also fails, it returns a default value of 120.
-func GetWidthFrom(out interface{}) int {
+func GetWidthFrom(out any) int {
 	// Try to get fd from the provided output
 	fd, _ := term.GetFdInfo(out)
 	if fd == 0 {
