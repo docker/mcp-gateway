@@ -3,35 +3,36 @@ package mocks
 import (
 	"context"
 
-	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/google/go-containerregistry/pkg/name"
+
+	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-type mockOCIServiceOption func(*mockOCIServiceOptions)
+type MockOCIServiceOption func(*MockOCIServiceOptions)
 
-type mockOCIServiceOptions struct {
+type MockOCIServiceOptions struct {
 	digests map[string]string
 	labels  map[string]map[string]string
 }
 
-func WithDigests(digests map[string]string) mockOCIServiceOption {
-	return func(o *mockOCIServiceOptions) {
+func WithDigests(digests map[string]string) MockOCIServiceOption {
+	return func(o *MockOCIServiceOptions) {
 		o.digests = digests
 	}
 }
 
-func WithLabels(labels map[string]map[string]string) mockOCIServiceOption {
-	return func(o *mockOCIServiceOptions) {
+func WithLabels(labels map[string]map[string]string) MockOCIServiceOption {
+	return func(o *MockOCIServiceOptions) {
 		o.labels = labels
 	}
 }
 
 type mockOCIService struct {
-	options mockOCIServiceOptions
+	options MockOCIServiceOptions
 }
 
-func NewMockOCIService(opts ...mockOCIServiceOption) oci.Service {
-	options := &mockOCIServiceOptions{
+func NewMockOCIService(opts ...MockOCIServiceOption) oci.Service {
+	options := &MockOCIServiceOptions{
 		digests: make(map[string]string),
 		labels:  make(map[string]map[string]string),
 	}
@@ -43,10 +44,10 @@ func NewMockOCIService(opts ...mockOCIServiceOption) oci.Service {
 	}
 }
 
-func (s *mockOCIService) GetImageDigest(ctx context.Context, ref name.Reference) (string, error) {
+func (s *mockOCIService) GetImageDigest(_ context.Context, ref name.Reference) (string, error) {
 	return s.options.digests[ref.String()], nil
 }
 
-func (s *mockOCIService) GetImageLabels(ctx context.Context, ref name.Reference) (map[string]string, error) {
+func (s *mockOCIService) GetImageLabels(_ context.Context, ref name.Reference) (map[string]string, error) {
 	return s.options.labels[ref.String()], nil
 }

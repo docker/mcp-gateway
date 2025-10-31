@@ -47,15 +47,14 @@ func ParseServerURL(rawURL string) (*ServerURL, error) {
 	// Find the API version (v0, v1, etc.) and "servers" keyword
 	apiVersion := ""
 	serversIdx := -1
-	for i := 0; i < len(parts)-1; i++ {
+	for i := range len(parts) - 1 {
 		if strings.HasPrefix(parts[i], "v") && len(parts[i]) > 1 && parts[i+1] == "servers" {
 			apiVersion = parts[i]
 			serversIdx = i + 1
 			break
-		} else {
-			// Add the path segment to the base URL if we aren't at the version yet
-			baseURL = fmt.Sprintf("%s/%s", baseURL, parts[i])
 		}
+		// Add the path segment to the base URL if we aren't at the version yet
+		baseURL = fmt.Sprintf("%s/%s", baseURL, parts[i])
 	}
 
 	if apiVersion == "" || serversIdx == -1 || serversIdx+1 >= len(parts) {

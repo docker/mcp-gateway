@@ -3,13 +3,14 @@ package workingset
 import (
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/oci"
-	"github.com/docker/mcp-gateway/pkg/registryapi"
-	"github.com/docker/mcp-gateway/test/mocks"
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 func getMockOciService() oci.Service {

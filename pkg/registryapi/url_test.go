@@ -85,9 +85,8 @@ func TestParseServerURL(t *testing.T) {
 			if tt.wantErr {
 				require.Error(t, err)
 				return
-			} else {
-				require.NoError(t, err)
 			}
+			require.NoError(t, err)
 
 			require.Equal(t, tt.wantBaseURL, got.BaseURL)
 			require.Equal(t, tt.wantAPIVersion, got.APIVersion)

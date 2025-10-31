@@ -17,8 +17,7 @@ type Service interface {
 	GetImageLabels(ctx context.Context, ref name.Reference) (map[string]string, error)
 }
 
-type service struct {
-}
+type service struct{}
 
 // TODO (cody): migrate everything in the other files over to the service
 func NewService() Service {

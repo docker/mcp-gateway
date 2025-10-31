@@ -6,14 +6,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/name"
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"gopkg.in/yaml.v3"
+
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/validate"
-	"github.com/google/go-containerregistry/pkg/name"
-	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
-	"gopkg.in/yaml.v3"
 )
 
 const CurrentWorkingSetVersion = 1
@@ -282,7 +283,7 @@ func resolveSnapshot(ctx context.Context, ociService oci.Service, server Server)
 		return resolveImageSnapshot(ctx, ociService, server)
 	case ServerTypeRegistry:
 		// TODO(cody): add snapshot
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	return nil, fmt.Errorf("unsupported server type: %s", server.Type)
 }
