@@ -70,7 +70,8 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 	// Get the list of configured secrets
 	configuredSecrets, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
 	if err != nil {
-		return nil, err
+		// If we can't get secrets, assume none are configured
+		configuredSecrets = []desktop.StoredSecret{}
 	}
 
 	// Create a map of configured secret names for quick lookup
