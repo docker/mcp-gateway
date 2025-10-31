@@ -9,7 +9,7 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 )
 
-func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config Config, vendor string, global, quiet bool) error {
+func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config Config, vendor string, global, quiet bool, workingSet string) error {
 	if vendor == vendorCodex {
 		if !global {
 			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
@@ -26,8 +26,14 @@ func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config Conf
 		if err != nil {
 			return err
 		}
-		if err := updater(DockerMCPCatalog, newMCPGatewayServer()); err != nil {
-			return err
+		if workingSet != "" {
+			if err := updater(DockerMCPCatalog, newMcpGatewayServerWithWorkingSet(workingSet)); err != nil {
+				return err
+			}
+		} else {
+			if err := updater(DockerMCPCatalog, newMCPGatewayServer()); err != nil {
+				return err
+			}
 		}
 	}
 	if quiet {

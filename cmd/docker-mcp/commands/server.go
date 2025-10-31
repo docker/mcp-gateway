@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/cli/cli/command"
@@ -89,7 +90,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			// OCI refs typically contain a registry/repository pattern with optional tag or digest
 			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
 				// Use OCI inspect for OCI references
-				return oci.InspectArtifact(arg)
+				return oci.InspectArtifact[oci.Catalog](arg, oci.MCPServerArtifactType)
 			}
 
 			// Use regular server inspect for server names
@@ -116,6 +117,32 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			return config.WriteRegistry(nil)
 		},
 	})
+
+	var language string
+	var templateName string
+	initCommand := &cobra.Command{
+		Use:   "init <directory>",
+		Short: "Initialize a new MCP server project",
+		Long:  "Initialize a new MCP server project in the specified directory with boilerplate code, Dockerfile, and compose.yaml",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dir := args[0]
+			if err := server.Init(cmd.Context(), dir, language, templateName); err != nil {
+				return err
+			}
+			serverName := filepath.Base(dir)
+			fmt.Fprintf(cmd.OutOrStdout(), "Successfully initialized MCP server project in %s (template: %s)\n", dir, templateName)
+			fmt.Fprintf(cmd.OutOrStdout(), "Next steps:\n")
+			fmt.Fprintf(cmd.OutOrStdout(), "  cd %s\n", dir)
+			fmt.Fprintf(cmd.OutOrStdout(), "  docker build -t %s:latest .\n", serverName)
+			fmt.Fprintf(cmd.OutOrStdout(), "  docker compose up\n")
+			return nil
+		},
+	}
+	initCommand.Flags().StringVar(&language, "language", "go", "Programming language for the server (currently only 'go' is supported)")
+	initCommand.Flags().StringVar(&templateName, "template", "basic", "Template to use (basic, chatgpt-app-basic)")
+	_ = initCommand.MarkFlagRequired("template")
+	cmd.AddCommand(initCommand)
 
 	return cmd
 }

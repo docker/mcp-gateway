@@ -688,9 +688,17 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		// Build the response text
 		responseText := fmt.Sprintf("Successfully added %d tools in server '%s'. Assume that it is fully configured and ready to use.", len(addedTools), serverName)
 
-		// Include the JSON representation of the newly added tools
-		// This is useful when the client session does not support tool change notifications
-		if len(addedTools) > 0 {
+		// Get client name
+		clientName := ""
+		if req.Session.InitializeParams().ClientInfo != nil {
+			clientName = req.Session.InitializeParams().ClientInfo.Name
+		}
+
+		// Include the JSON representation of the newly added tools if client name contains "cagent" or "claude"
+		clientNameLower := strings.ToLower(clientName)
+		shouldSendTools := len(addedTools) > 0 && strings.Contains(clientNameLower, "claude")
+
+		if shouldSendTools {
 			// Create a tools list response matching the format from tools/list
 			toolsList := make([]map[string]any, 0, len(addedTools))
 			for _, tool := range addedTools {
@@ -808,6 +816,7 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 	}
 }
 
+//nolint:unused
 func (g *Gateway) createMcpRegistryImportTool(configuration Configuration, _ *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-registry-import",
@@ -943,6 +952,8 @@ func (g *Gateway) createMcpRegistryImportTool(configuration Configuration, _ *cl
 }
 
 // readServersFromURL fetches and parses server definitions from a URL
+//
+//nolint:unused
 func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[string]catalog.Server, error) {
 	servers := make(map[string]catalog.Server)
 
@@ -1098,6 +1109,8 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 }
 
 // createMcpSessionNameTool implements a tool for setting the session name
+//
+//nolint:unused
 func (g *Gateway) createMcpSessionNameTool() *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-session-name",
@@ -1170,6 +1183,8 @@ func (g *Gateway) createMcpSessionNameTool() *ToolRegistration {
 }
 
 // isValidSessionName checks if a session name contains only alphanumeric characters and hyphens
+//
+//nolint:unused
 func isValidSessionName(name string) bool {
 	for _, ch := range name {
 		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '_' {
