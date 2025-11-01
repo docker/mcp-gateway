@@ -1,0 +1,56 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - containedctx
+    - copyloopvar
+    - errcheck
+    - ginkgolinter
+    - gocritic
+    - govet
+    - importas      # Enforces consistent import aliases.
+    - ineffassign
+    - misspell
+    - nakedret
+    - nolintlint
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - noctx
+    - nilnil
+    - testifylint
+    - intrange
+    - thelper
+    - forbidigo
+
+  settings:
+    forbidigo:
+      forbid:
+        - pattern: ^os\.UserHomeDir
+          message: "Do not use os.UserHomeDir(). Use user.HomeDir() instead."
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - exitAfterDefer
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofmt:
+      simplify: false
+      rewrite-rules:
+        - pattern: interface{}
+          replacement: any
+    goimports:
+      local-prefixes:
+        - github.com/docker/mcp-gateway-oauth-helpers

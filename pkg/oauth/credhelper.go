@@ -14,11 +14,17 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
 
-// CredentialHelper provides secure access to OAuth tokens via docker-credential-desktop
+// CredentialHelper provides secure access to OAuth tokens via credential helpers
 type CredentialHelper struct {
 	credentialHelper credentials.Helper
+}
+
+// GetHelper returns the underlying credential helper
+func (h *CredentialHelper) GetHelper() credentials.Helper {
+	return h.credentialHelper
 }
 
 // NewOAuthCredentialHelper creates a new OAuth credential helper
@@ -39,20 +45,32 @@ type TokenStatus struct {
 // It follows this flow:
 // 1. Get DCR client info to retrieve provider name and authorization endpoint
 // 2. Construct credential key using: [AuthorizationEndpoint]/[ProviderName]
-// 3. Retrieve token from docker-credential-desktop
+// 3. Retrieve token from credential helper
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
-	// Step 1: Get DCR client info (includes stored provider name)
-	client := desktop.NewAuthClient()
-	dcrClient, err := client.GetDCRClient(ctx, serverName)
-	if err != nil {
-		log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
-		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	var credentialKey string
+
+	// Get DCR client based on mode
+	if IsCEMode() {
+		// CE mode: Read DCR client from credential helper
+		dcrMgr := dcr.NewManager(h.credentialHelper, "")
+		client, err := dcrMgr.GetDCRClient(serverName)
+		if err != nil {
+			log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
+			return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+	} else {
+		// Desktop mode: Use Desktop API
+		client := desktop.NewAuthClient()
+		dcrClient, err := client.GetDCRClient(ctx, serverName)
+		if err != nil {
+			log.Logf("- Failed to get DCR client for %s: %v", serverName, err)
+			return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 	}
 
-	// Step 2: Construct credential key using authorization endpoint + provider name
-	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
-
-	// Step 3: Retrieve token from docker-credential-desktop
+	// Retrieve token from credential helper
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
@@ -91,17 +109,28 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 
 // GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
-	// Get DCR client info
-	client := desktop.NewAuthClient()
-	dcrClient, err := client.GetDCRClient(ctx, serverName)
-	if err != nil {
-		return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	var credentialKey string
+
+	// Get DCR client based on mode
+	if IsCEMode() {
+		// CE mode: Read DCR client from credential helper
+		dcrMgr := dcr.NewManager(h.credentialHelper, "")
+		client, err := dcrMgr.GetDCRClient(serverName)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+	} else {
+		// Desktop mode: Use Desktop API
+		client := desktop.NewAuthClient()
+		dcrClient, err := client.GetDCRClient(ctx, serverName)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+		}
+		credentialKey = fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
 	}
 
-	// Construct credential key using authorization endpoint + provider name
-	credentialKey := fmt.Sprintf("%s/%s", dcrClient.AuthorizationEndpoint, dcrClient.ProviderName)
-
-	// Retrieve token from docker-credential-desktop
+	// Retrieve token from credential helper
 	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
@@ -167,11 +196,81 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 	}, nil
 }
 
-// newOAuthHelper creates a credential helper for OAuth token access
+// newOAuthHelper creates a READ-ONLY credential helper for OAuth token access
+// This is used by existing Gateway code that only reads tokens
 func newOAuthHelper() credentials.Helper {
-	return oauthHelper{
-		program: newShellProgramFunc("docker-credential-desktop"),
+	helperName := getCredentialHelperName()
+	if helperName == "" {
+		log.Logf("! No credential helper found")
+		log.Logf("! Install a credential helper from: https://github.com/docker/docker-credential-helpers")
+		log.Logf("! Then configure Docker to use it (see repo for platform-specific instructions)")
+		// Return a helper that will fail with clear error messages
+		helperName = "notfound"
 	}
+
+	log.Logf("- Using credential helper: docker-credential-%s", helperName)
+	return oauthHelper{
+		program: newShellProgramFunc("docker-credential-" + helperName),
+	}
+}
+
+// NewReadWriteCredentialHelper creates a READ-WRITE credential helper for CE mode
+// This is used for DCR client storage and token storage operations
+func NewReadWriteCredentialHelper() credentials.Helper {
+	helperName := getCredentialHelperName()
+	if helperName == "" {
+		// Return a helper that will fail with clear errors
+		helperName = "notfound"
+	}
+
+	// Return the actual client implementation (read-write)
+	program := newShellProgramFunc("docker-credential-" + helperName)
+	return &readWriteHelper{program: program}
+}
+
+// readWriteHelper is a full read-write credential helper
+type readWriteHelper struct {
+	program client.ProgramFunc
+}
+
+func (h *readWriteHelper) Add(creds *credentials.Credentials) error {
+	return client.Store(h.program, creds)
+}
+
+func (h *readWriteHelper) Delete(serverURL string) error {
+	return client.Erase(h.program, serverURL)
+}
+
+func (h *readWriteHelper) Get(serverURL string) (string, string, error) {
+	creds, err := client.Get(h.program, serverURL)
+	if err != nil {
+		return "", "", err
+	}
+	return creds.Username, creds.Secret, nil
+}
+
+func (h *readWriteHelper) List() (map[string]string, error) {
+	return client.List(h.program)
+}
+
+var _ credentials.Helper = &readWriteHelper{}
+
+// getCredentialHelperName returns the credential helper to use
+func getCredentialHelperName() string {
+	resolver := NewResolver()
+	helperName, err := resolver.Resolve()
+	if err != nil {
+		log.Logf("! %v", err)
+		return ""
+	}
+
+	if helperName == "" {
+		log.Logf("! No credential helper found")
+		return ""
+	}
+
+	log.Logf("- Using credential helper: docker-credential-%s", helperName)
+	return helperName
 }
 
 // newShellProgramFunc creates programs that are executed in a Shell.
