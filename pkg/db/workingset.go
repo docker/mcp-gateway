@@ -14,6 +14,7 @@ type WorkingSetDAO interface {
 	CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	RemoveWorkingSet(ctx context.Context, id string) error
+	SearchWorkingSets(ctx context.Context, query string, workingSetID string) ([]WorkingSet, error)
 }
 
 type ServerList []Server
@@ -129,6 +130,29 @@ func (d *dao) ListWorkingSets(ctx context.Context) ([]WorkingSet, error) {
 
 	var workingSets []WorkingSet
 	err := d.db.SelectContext(ctx, &workingSets, query)
+	if err != nil {
+		return nil, err
+	}
+	return workingSets, nil
+}
+
+func (d *dao) SearchWorkingSets(ctx context.Context, query string, workingSetID string) ([]WorkingSet, error) {
+	sqlQuery := `
+		SELECT id, name, servers, secrets
+		FROM working_set
+		WHERE ($1 = '' OR id = $1)
+		  AND ($2 = '' OR EXISTS (
+			SELECT 1
+			FROM json_each(servers)
+			WHERE LOWER(json_extract(value, '$.image')) LIKE '%' || LOWER($2) || '%'
+			   OR LOWER(json_extract(value, '$.source')) LIKE '%' || LOWER($2) || '%'
+		  ))
+		ORDER BY id
+	`
+	args := []any{workingSetID, query}
+
+	var workingSets []WorkingSet
+	err := d.db.SelectContext(ctx, &workingSets, sqlQuery, args...)
 	if err != nil {
 		return nil, err
 	}

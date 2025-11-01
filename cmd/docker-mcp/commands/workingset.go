@@ -21,6 +21,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(importWorkingSetCommand())
 	cmd.AddCommand(showWorkingSetCommand())
 	cmd.AddCommand(listWorkingSetsCommand())
+	cmd.AddCommand(serversCommand())
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
@@ -198,4 +199,56 @@ func removeWorkingSetCommand() *cobra.Command {
 			return workingset.Remove(cmd.Context(), dao, args[0])
 		},
 	}
+}
+
+func serversCommand() *cobra.Command {
+	var opts struct {
+		WorkingSetID string
+		Filter       string
+		Format       string
+	}
+
+	cmd := &cobra.Command{
+		Use:   "servers",
+		Short: "List servers across working sets",
+		Long: `List all servers grouped by working set.
+
+Use --filter to search for servers matching a query (case-insensitive substring matching on image names or source URLs).
+Use --workingset to show servers only from a specific working set.`,
+		Example: `  # List all servers across all working sets
+  docker mcp workingset servers
+
+  # Filter servers by name
+  docker mcp workingset servers --filter github
+
+  # Show servers from a specific working set
+  docker mcp workingset servers --workingset my-dev-env
+
+  # Combine filter and working set
+  docker mcp workingset servers --workingset my-dev-env --filter slack
+
+  # Output in JSON format
+  docker mcp workingset servers --format json`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", opts.Format)
+			}
+
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+
+			return workingset.Servers(cmd.Context(), dao, opts.Filter, opts.WorkingSetID, workingset.OutputFormat(opts.Format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVarP(&opts.WorkingSetID, "workingset", "w", "", "Show servers only from specified working set")
+	flags.StringVar(&opts.Filter, "filter", "", "Filter servers by image name or source URL")
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
 }
