@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.24.5
+ARG GO_VERSION=1.24.6
 ARG DOCS_FORMATS="md,yaml"
 
 FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.1.6-alpine AS lint-base

@@ -7,9 +7,11 @@ import (
 	"fmt"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 )
 
-func Create(ctx context.Context, dao db.DAO, id string, name string, servers []string) error {
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, name string, servers []string) error {
 	var err error
 	if id != "" {
 		_, err := dao.GetWorkingSet(ctx, id)
@@ -41,7 +43,7 @@ func Create(ctx context.Context, dao db.DAO, id string, name string, servers []s
 	}
 
 	for i, server := range servers {
-		s, err := resolveServerFromString(server)
+		s, err := resolveServerFromString(ctx, registryClient, ociService, server)
 		if err != nil {
 			return fmt.Errorf("invalid server value: %w", err)
 		}

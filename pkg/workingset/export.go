@@ -25,6 +25,11 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 
 	workingSet := NewFromDb(dbSet)
 
+	// Don't export the snapshots
+	for i := range len(workingSet.Servers) {
+		workingSet.Servers[i].Snapshot = nil
+	}
+
 	var data []byte
 	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
 		data, err = yaml.Marshal(workingSet)
