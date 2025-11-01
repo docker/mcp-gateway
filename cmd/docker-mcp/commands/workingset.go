@@ -241,7 +241,7 @@ Use --workingset to show servers only from a specific working set.`,
 				return err
 			}
 
-			return workingset.Search(cmd.Context(), dao, opts.Filter, opts.WorkingSetID, workingset.OutputFormat(opts.Format))
+			return workingset.Servers(cmd.Context(), dao, opts.Filter, opts.WorkingSetID, workingset.OutputFormat(opts.Format))
 		},
 	}
 

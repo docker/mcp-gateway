@@ -23,7 +23,7 @@ func TestNoWorkingSetsHumanReadable(t *testing.T) {
 	ctx := t.Context()
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatHumanReadable)
+		err := Servers(ctx, dao, "", "", OutputFormatHumanReadable)
 		require.NoError(t, err)
 	})
 
@@ -35,7 +35,7 @@ func TestNoWorkingSetsJSON(t *testing.T) {
 	ctx := t.Context()
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -50,7 +50,7 @@ func TestNoWorkingSetsYAML(t *testing.T) {
 	ctx := t.Context()
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -73,7 +73,7 @@ func TestOneWorkingSetJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -101,7 +101,7 @@ func TestOneWorkingSetYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -138,7 +138,7 @@ func TestMultipleWorkingSetsSpecifyWorkingSetJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "test-set-2", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "test-set-2", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -175,7 +175,7 @@ func TestMultipleWorkingSetsSpecifyWorkingSetYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "test-set-2", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "test-set-2", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -212,7 +212,7 @@ func TestMultipleWorkingSetsWithQueryJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "test-server", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "test-server", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -256,7 +256,7 @@ func TestMultipleWorkingSetsWithQueryYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "test-server", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "test-server", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -300,7 +300,7 @@ func TestMultipleWorkingSetsWithQueryAndWorkingSetJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "test-server", "test-set-2", OutputFormatJSON)
+		err := Servers(ctx, dao, "test-server", "test-set-2", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -338,7 +338,7 @@ func TestMultipleWorkingSetsWithQueryAndWorkingSetYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "test-server", "test-set-2", OutputFormatYAML)
+		err := Servers(ctx, dao, "test-server", "test-set-2", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -369,7 +369,7 @@ func TestQueryMatchesNoResultsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "nonexistent-server", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "nonexistent-server", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -394,7 +394,7 @@ func TestQueryMatchesNoResultsYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "nonexistent-server", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "nonexistent-server", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -420,7 +420,7 @@ func TestQueryMatchesOneResultJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -449,7 +449,7 @@ func TestQueryMatchesOneResultYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -487,7 +487,7 @@ func TestQueryMatchesOneResultWithMultipleSetsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -525,7 +525,7 @@ func TestQueryMatchesOneResultWithMultipleSetsYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -563,7 +563,7 @@ func TestQueryMatchesNoResultsWithMultipleSetsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "nonexistent", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "nonexistent", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -598,7 +598,7 @@ func TestQueryMatchesNoResultsWithMultipleSetsYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "nonexistent", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "nonexistent", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -624,7 +624,7 @@ func TestQueryMatchesMultipleResultsSameSetJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "my-app", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "my-app", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -654,7 +654,7 @@ func TestQueryMatchesMultipleResultsSameSetYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "my-app", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "my-app", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -694,7 +694,7 @@ func TestQueryMatchesMultipleResultsSameSetWithMultipleSetsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "my-app", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "my-app", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -734,7 +734,7 @@ func TestQueryMatchesMultipleResultsSameSetWithMultipleSetsYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "my-app", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "my-app", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -773,7 +773,7 @@ func TestQueryMatchesMultipleResultsAcrossSetsJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -816,7 +816,7 @@ func TestQueryMatchesMultipleResultsAcrossSetsYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgres", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "postgres", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -858,7 +858,7 @@ func TestNoQueryListsAllServersJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -901,7 +901,7 @@ func TestNoQueryListsAllServersYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -944,7 +944,7 @@ func TestNoQueryWithSpecificWorkingSetJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "set-1", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "set-1", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -980,7 +980,7 @@ func TestNoQueryWithSpecificWorkingSetYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "set-1", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "set-1", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1006,7 +1006,7 @@ func TestQueryWithSpecificWorkingSetNoMatchJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "redis", "set-1", OutputFormatJSON)
+		err := Servers(ctx, dao, "redis", "set-1", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -1030,7 +1030,7 @@ func TestQueryWithSpecificWorkingSetNoMatchYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "redis", "set-1", OutputFormatYAML)
+		err := Servers(ctx, dao, "redis", "set-1", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1054,7 +1054,7 @@ func TestQueryCaseInsensitiveJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgresql", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "postgresql", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -1079,7 +1079,7 @@ func TestQueryCaseInsensitiveYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "postgresql", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "postgresql", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1105,7 +1105,7 @@ func TestQueryWithRegistryTypeServersJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "copilot", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "copilot", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -1134,7 +1134,7 @@ func TestQueryWithRegistryTypeServersYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "copilot", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "copilot", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1166,7 +1166,7 @@ func TestQueryWithHeterogeneousMixJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "mcp", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "mcp", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -1200,7 +1200,7 @@ func TestQueryWithHeterogeneousMixYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "mcp", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "mcp", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1237,7 +1237,7 @@ func TestWorkingSetWithNoServersJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatJSON)
+		err := Servers(ctx, dao, "", "", OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -1269,7 +1269,7 @@ func TestWorkingSetWithNoServersYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Search(ctx, dao, "", "", OutputFormatYAML)
+		err := Servers(ctx, dao, "", "", OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -1318,7 +1318,7 @@ func TestSearchDatabaseError(t *testing.T) {
 		searchError: fmt.Errorf("database connection failed"),
 	}
 
-	err := Search(ctx, mockDAO, "test", "", OutputFormatJSON)
+	err := Servers(ctx, mockDAO, "test", "", OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to search working sets")
 	assert.Contains(t, err.Error(), "database connection failed")
@@ -1337,7 +1337,7 @@ func TestSearchInvalidFormat(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = Search(ctx, dao, "", "", OutputFormat("invalid"))
+	err = Servers(ctx, dao, "", "", OutputFormat("invalid"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported format")
 }

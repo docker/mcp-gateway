@@ -19,7 +19,7 @@ type SearchResult struct {
 	Servers []Server `json:"servers" yaml:"servers"`
 }
 
-func Search(ctx context.Context, dao db.DAO, query string, workingSetID string, format OutputFormat) error {
+func Servers(ctx context.Context, dao db.DAO, query string, workingSetID string, format OutputFormat) error {
 	dbSets, err := dao.SearchWorkingSets(ctx, query, workingSetID)
 	if err != nil {
 		return fmt.Errorf("failed to search working sets: %w", err)
