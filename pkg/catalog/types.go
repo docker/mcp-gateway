@@ -34,6 +34,14 @@ type Server struct {
 	Prefix         string   `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 }
 
+func (s *Server) IsOAuthServer() bool {
+	return s.OAuth != nil && len(s.OAuth.Providers) > 0
+}
+
+func (s *Server) IsRemoteOAuthServer() bool {
+	return s.Type == "remote" && s.IsOAuthServer()
+}
+
 type Secret struct {
 	Name string `yaml:"name" json:"name"`
 	Env  string `yaml:"env" json:"env"`
@@ -57,6 +65,8 @@ type OAuth struct {
 
 type OAuthProvider struct {
 	Provider string `yaml:"provider" json:"provider"`
+	Secret   string `json:"secret,omitempty" yaml:"secret,omitempty"`
+	Env      string `json:"env,omitempty" yaml:"env,omitempty"`
 }
 
 // POCI tools
@@ -138,8 +148,4 @@ type ServerConfig struct {
 	Spec    Server
 	Config  map[string]any
 	Secrets map[string]string
-}
-
-func (s *Server) IsRemoteOAuthServer() bool {
-	return s.Type == "remote" && s.OAuth != nil && len(s.OAuth.Providers) > 0
 }
