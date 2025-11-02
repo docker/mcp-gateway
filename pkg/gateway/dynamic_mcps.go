@@ -664,9 +664,19 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}, nil
 		}
 
-		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
+		oldCaps, err := g.reloadServerCapabilities(ctx, serverName, clientConfig)
+		if err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
+
+		// Now update g.mcpServer with the new capabilities
+		g.capabilitiesMu.Lock()
+		newCaps := g.allCapabilities(serverName)
+		if err := g.updateServerCapabilities(serverName, oldCaps, newCaps, nil); err != nil {
+			g.capabilitiesMu.Unlock()
+			return nil, fmt.Errorf("failed to update server capabilities: %w", err)
+		}
+		g.capabilitiesMu.Unlock()
 
 		// Persist configuration if session name is set
 		if err := g.configuration.Persist(); err != nil {
@@ -1075,9 +1085,19 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
 
 		// Reload configuration with current server list to apply changes
-		if err := g.reloadServerConfiguration(ctx, serverName, clientConfig); err != nil {
+		oldCaps, err := g.reloadServerCapabilities(ctx, serverName, clientConfig)
+		if err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
+
+		// Now update g.mcpServer with the new capabilities
+		g.capabilitiesMu.Lock()
+		newCaps := g.allCapabilities(serverName)
+		if err := g.updateServerCapabilities(serverName, oldCaps, newCaps, nil); err != nil {
+			g.capabilitiesMu.Unlock()
+			return nil, fmt.Errorf("failed to update server capabilities: %w", err)
+		}
+		g.capabilitiesMu.Unlock()
 
 		// Persist configuration if session name is set
 		if err := g.configuration.Persist(); err != nil {
