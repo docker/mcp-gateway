@@ -100,7 +100,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
 		g.toolRegistrations[codeModeTool.Tool.Name] = *codeModeTool
 
-		// Add mcp-exec tool only if client name contains "claude"
+		// Add mcp-exec tool
 		mcpExecTool := g.createMcpExecTool()
 		g.mcpServer.AddTool(mcpExecTool.Tool, mcpExecTool.Handler)
 		g.toolRegistrations[mcpExecTool.Tool.Name] = *mcpExecTool
@@ -273,6 +273,19 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	// Store the full capabilities
 	g.serverAvailableCapabilities[serverName] = newServerCaps
 
+	// Update tool registrations for this server
+	// First remove old tool registrations for this server
+	if oldCaps != nil {
+		for _, toolName := range oldCaps.ToolNames {
+			delete(g.toolRegistrations, toolName)
+		}
+	}
+
+	// Add new tool registrations
+	for _, tool := range newServerCaps.Tools {
+		g.toolRegistrations[tool.Tool.Name] = tool
+	}
+
 	// Return old capabilities for the caller to use with updateServerCapabilities
 	// The caller should use g.allCapabilities(serverName) to get newCaps
 	// The full capabilities (newServerCaps) are now in g.serverAvailableCapabilities[serverName]
@@ -283,8 +296,6 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 // updateServerCapabilities updates g.mcpServer with capabilities from the server.
 // If toolFilter is non-nil, only tools in the filter will be added.
 // This function expects g.capabilitiesMu to be locked by the caller.
-//
-//nolint:unparam // toolFilter is currently always nil, but reserved for future filtering use
 func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *ServerCapabilities, toolFilter []string) error {
 	// Get the full capabilities from serverAvailableCapabilities
 	newServerCaps := g.serverAvailableCapabilities[serverName]
@@ -301,10 +312,6 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)
-		// Remove from tool registrations tracking
-		for _, toolName := range removedTools {
-			delete(g.toolRegistrations, toolName)
-		}
 		log.Log("  - Removed", len(removedTools), "tools for", serverName)
 	}
 
@@ -338,8 +345,6 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 		}
 		if registration, err := newServerCaps.getToolByName(tool); err == nil {
 			g.mcpServer.AddTool(registration.Tool, registration.Handler)
-			// Track tool registration for mcp-exec and mcp-add
-			g.toolRegistrations[registration.Tool.Name] = registration
 			toolsAdded++
 		}
 	}
