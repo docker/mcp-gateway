@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -28,7 +29,7 @@ type ListEntry struct {
 	OAuth       ConfigStatus
 }
 
-func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
+func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
 	// Read the registry to get enabled servers
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
@@ -71,7 +72,9 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 	configuredSecrets, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
 	if err != nil {
 		// If we can't get secrets, assume none are configured
-		configuredSecrets = []desktop.StoredSecret{}
+		if !quiet {
+			fmt.Fprintf(os.Stderr, "Warning: error fetching secrets: %v\n", err)
+		}
 	}
 
 	// Create a map of configured secret names for quick lookup
@@ -90,7 +93,9 @@ func List(ctx context.Context, docker docker.Client) ([]ListEntry, error) {
 	oauthApps, err := authClient.ListOAuthApps(ctx)
 	if err != nil {
 		// If we can't get OAuth apps, we'll just skip OAuth checking
-		oauthApps = []desktop.OAuthApp{}
+		if !quiet {
+			fmt.Fprintf(os.Stderr, "Warning: error fetching OAuth apps: %v\n", err)
+		}
 	}
 
 	var entries []ListEntry

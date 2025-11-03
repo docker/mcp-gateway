@@ -29,7 +29,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 		Short:   "List enabled servers",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			list, err := server.List(cmd.Context(), docker)
+			list, err := server.List(cmd.Context(), docker, outputJSON)
 			if err != nil {
 				return err
 			}
