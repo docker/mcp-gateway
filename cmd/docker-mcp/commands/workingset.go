@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -58,7 +60,9 @@ Working sets are decoupled from catalogs. Servers can be:
 			if err != nil {
 				return err
 			}
-			return workingset.Create(cmd.Context(), dao, opts.ID, opts.Name, opts.Servers)
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers)
 		},
 	}
 
@@ -135,7 +139,8 @@ func pullWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Pull(cmd.Context(), dao, args[0])
+			ociService := oci.NewService()
+			return workingset.Pull(cmd.Context(), dao, ociService, args[0])
 		},
 	}
 }
@@ -180,7 +185,8 @@ func importWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Import(cmd.Context(), dao, args[0])
+			ociService := oci.NewService()
+			return workingset.Import(cmd.Context(), dao, ociService, args[0])
 		},
 	}
 }
