@@ -22,11 +22,11 @@ const (
 )
 
 type ListEntry struct {
-	Name        string
-	Description string
-	Secrets     ConfigStatus
-	Config      ConfigStatus
-	OAuth       ConfigStatus
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Secrets     ConfigStatus `json:"secrets"`
+	Config      ConfigStatus `json:"config"`
+	OAuth       ConfigStatus `json:"oauth"`
 }
 
 func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
