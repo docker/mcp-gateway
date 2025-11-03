@@ -115,7 +115,7 @@ func originSecurityHandler(next http.Handler) http.Handler {
 		// - Non-browser clients (curl, SDKs) - no Origin header sent
 		// - Same-origin requests - browsers don't send Origin for same-origin
 		if origin != "" && !isAllowedOrigin(origin) {
-			msg := fmt.Sprintf("Forbidden: Origin must be localhost, 127.0.0.1, or ::1, got: %s", origin)
+			msg := fmt.Sprintf("Forbidden: Origin, if set, must be localhost, 127.0.0.1, or ::1, got: %s", origin)
 			http.Error(w, msg, http.StatusForbidden)
 			return
 		}
