@@ -129,7 +129,7 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 			}
 
 			// Check OAuth configuration
-			if server.IsOAuthServer() && server.OAuth != nil && len(server.OAuth.Providers) > 0 {
+			if server.IsOAuthServer() {
 				providerName := server.OAuth.Providers[0].Provider
 
 				// Find OAuth app by provider name
