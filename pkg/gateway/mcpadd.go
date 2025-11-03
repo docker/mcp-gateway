@@ -18,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
+	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
 // mcpAddTool implements a tool for adding new servers to the registry
@@ -105,29 +106,100 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}
 		}
 
-		// If secrets are missing, handle based on client type
-		if len(missingSecrets) > 0 {
+		// Check if all required config values are set and validate against schema
+		var missingConfig []string
+		if serverConfig != nil && len(serverConfig.Spec.Config) > 0 {
+			canonicalServerName := oci.CanonicalizeServerName(serverName)
+			serverConfigMap := g.configuration.config[canonicalServerName]
+
+			for _, configItem := range serverConfig.Spec.Config {
+				// Config items should be schema objects with a "name" property
+				schemaMap, ok := configItem.(map[string]any)
+				if !ok {
+					continue
+				}
+
+				// Get the name field - this identifies which config to validate
+				configName, ok := schemaMap["name"].(string)
+				if !ok || configName == "" {
+					continue
+				}
+
+				// Get the actual config value to validate
+				if serverConfigMap == nil {
+					missingConfig = append(missingConfig, fmt.Sprintf("%s (missing)", configName))
+					continue
+				}
+
+				configValue := serverConfigMap
+
+				// Convert the schema map to a jsonschema.Schema for validation
+				schemaBytes, err := json.Marshal(schemaMap)
+				if err != nil {
+					missingConfig = append(missingConfig, fmt.Sprintf("%s (invalid schema)", configName))
+					continue
+				}
+
+				var schema jsonschema.Schema
+				if err := json.Unmarshal(schemaBytes, &schema); err != nil {
+					missingConfig = append(missingConfig, fmt.Sprintf("%s (invalid schema)", configName))
+					continue
+				}
+
+				// Resolve the schema
+				resolved, err := schema.Resolve(nil)
+				if err != nil {
+					missingConfig = append(missingConfig, fmt.Sprintf("%s (schema resolution failed)", configName))
+					continue
+				}
+
+				// Validate the config value against the schema
+				if err := resolved.Validate(configValue); err != nil {
+					// Extract a helpful error message
+					errMsg := err.Error()
+					if len(errMsg) > 100 {
+						errMsg = errMsg[:97] + "..."
+					}
+					missingConfig = append(missingConfig, fmt.Sprintf("%s (%s)", configName, errMsg))
+				}
+			}
+		}
+
+		// If secrets or config are missing, handle based on client type
+		if len(missingSecrets) > 0 || len(missingConfig) > 0 {
 			// Check if the client is nanobot
 			clientName := ""
 			if req.Session.InitializeParams().ClientInfo != nil {
 				clientName = req.Session.InitializeParams().ClientInfo.Name
 			}
 
-			if clientName == "nanobot" {
-				// For nanobot, return the interactive UI
+			if clientName == "nanobot" && len(missingSecrets) > 0 {
+				// For nanobot, return the interactive UI (only for secrets)
 				return secretInput(missingSecrets, serverName), nil
 			}
 
 			// For other clients, return an error with command line instructions
-			var secretCommands []string
-			for _, secret := range missingSecrets {
-				secretCommands = append(secretCommands, fmt.Sprintf("  docker mcp secret set %s=<value>", secret))
+			var instructions []string
+			var missingItems []string
+
+			if len(missingSecrets) > 0 {
+				missingItems = append(missingItems, fmt.Sprintf("secrets (%s)", strings.Join(missingSecrets, ", ")))
+				instructions = append(instructions, "\nRequired secrets:")
+				for _, secret := range missingSecrets {
+					instructions = append(instructions, fmt.Sprintf("  docker mcp secret set %s=<value>", secret))
+				}
+			}
+
+			if len(missingConfig) > 0 {
+				missingItems = append(missingItems, fmt.Sprintf("config (%s)", strings.Join(missingConfig, ", ")))
+				instructions = append(instructions, fmt.Sprintf("\nRequired configuration: %s", strings.Join(missingConfig, ", ")))
+				instructions = append(instructions, "Use the mcp-config-set tool to configure these values.")
 			}
 
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Error: Cannot add server '%s'. Required secrets are not set: %s\n\nThe server was not added. Please configure these secrets first:\n\n%s",
-						serverName, strings.Join(missingSecrets, ", "), strings.Join(secretCommands, "\n")),
+					Text: fmt.Sprintf("Error: Cannot add server '%s'. Missing required %s.\n\nThe server was not added. Please configure these first:%s",
+						serverName, strings.Join(missingItems, " and "), strings.Join(instructions, "\n")),
 				}},
 			}, nil
 		}
@@ -204,9 +276,11 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		}
 
 		// Register DCR client and start OAuth provider if this is a remote OAuth server
+		// TODO and provider not registered
 		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
 			return g.addRemoteOAuthServer(ctx, serverName, req)
 		}
+		// TODO if provider registered - check if auth token is valid and show tools
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{

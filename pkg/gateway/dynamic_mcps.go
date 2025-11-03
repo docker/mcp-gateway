@@ -697,7 +697,7 @@ type configValue struct {
 }
 
 // mcpConfigSetTool implements a tool for setting configuration values for MCP servers
-func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegistration {
+func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-config-set",
 		Description: "Set configuration values for MCP servers. Creates or updates server configuration with the specified key-value pairs.",
@@ -710,7 +710,7 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 				},
 				"key": {
 					Type:        "string",
-					Description: "Configuration key to set",
+					Description: "Configuration key to set. This is not to be prefixed by the server name.",
 				},
 				"value": {
 					Description: "Configuration value to set (can be string, number, boolean, or object)",
@@ -720,7 +720,7 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 		},
 	}
 
-	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params configValue
 
@@ -762,12 +762,6 @@ func (g *Gateway) createMcpConfigSetTool(clientConfig *clientConfig) *ToolRegist
 
 		// Log the configuration change
 		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
-
-		// Reload configuration with current server list to apply changes
-		_, err = g.reloadServerCapabilities(ctx, serverName, clientConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to reload configuration: %w", err)
-		}
 
 		// Persist configuration if session name is set
 		if err := g.configuration.Persist(); err != nil {

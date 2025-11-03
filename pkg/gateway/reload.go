@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/prompts"
 	// "github.com/docker/mcp-gateway/pkg/prompts"
 )
 
@@ -130,8 +131,8 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		// log.Log("  > mcp-session-name: tool for setting session name to persist configuration")
 
 		// Add prompt
-		// prompts.AddDiscoverPrompt(g.mcpServer)
-		// log.Log("  > mcp-discover: prompt for learning about dynamic server management")
+		prompts.AddDiscoverPrompt(g.mcpServer)
+		log.Log("  > mcp-discover: prompt for learning about dynamic server management")
 	}
 
 	for _, prompt := range capabilities.Prompts {
@@ -274,14 +275,14 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	g.serverAvailableCapabilities[serverName] = newServerCaps
 
 	// Update tool registrations for this server
-	// First remove old tool registrations for this server
+	// This happens regardless of activation so tools can be called via mcp-exec
 	if oldCaps != nil {
+		// Remove old tool registrations for this server
 		for _, toolName := range oldCaps.ToolNames {
 			delete(g.toolRegistrations, toolName)
 		}
 	}
-
-	// Add new tool registrations
+	// Add new tool registrations from the server
 	for _, tool := range newServerCaps.Tools {
 		g.toolRegistrations[tool.Tool.Name] = tool
 	}
@@ -312,6 +313,10 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)
+		// Remove from tool registrations tracking
+		for _, toolName := range removedTools {
+			delete(g.toolRegistrations, toolName)
+		}
 		log.Log("  - Removed", len(removedTools), "tools for", serverName)
 	}
 
