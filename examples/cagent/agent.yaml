@@ -1,9 +1,8 @@
 version: v2
-
 agents:
   root:
     model: claude
-    description: Root orchestrator agent that coordinates tasks and delegates to specialized sub-agents
+    description: An agent to help you discover MCPs from a local catalog
     instruction: |
       You are a specialized agent with access to MCP (Model Context Protocol) server tools
       running through the Docker MCP Gateway.
@@ -19,16 +18,12 @@ agents:
       3. Return clear, structured results to the parent agent
       4. Handle errors gracefully and suggest alternatives
     toolsets:
-      - type: filesystem # Grants the agent filesystem access
-      - type: todo # Enable the todo list tool
       - type: mcp
         command: docker
         args:
           - mcp
           - gateway
           - run
-          - --log=/Users/slim/gateway.log
-
 models:
   claude:
     provider: anthropic

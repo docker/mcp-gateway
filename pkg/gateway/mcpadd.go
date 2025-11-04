@@ -204,6 +204,19 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}, nil
 		}
 
+		// Pull the Docker image before trying to use the server
+		if serverConfig.Spec.Image != "" {
+			log.Log(fmt.Sprintf("Pulling image for server '%s': %s", serverName, serverConfig.Spec.Image))
+			if err := g.docker.PullImage(ctx, serverConfig.Spec.Image); err != nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Failed to pull image '%s' for server '%s'.\n\nDetails: %v\n\nThe server was not added. Please check the image name and your network connection.",
+							serverConfig.Spec.Image, serverName, err),
+					}},
+				}, nil
+			}
+		}
+
 		oldCaps, err := g.reloadServerCapabilities(ctx, serverName, clientConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
@@ -275,12 +288,19 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}
 		}
 
-		// Register DCR client and start OAuth provider if this is a remote OAuth server
-		// TODO and provider not registered
+		// Register DCR client and make sure OAuth provider is started if this is a remote OAuth server
 		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
-			return g.addRemoteOAuthServer(ctx, serverName, req)
+			authorized, oauthText := g.getRemoteOAuthServerStatus(ctx, serverName, req)
+			if !authorized {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: oauthText,
+					}},
+				}, nil
+			} else {
+				responseText = oauthText + responseText
+			}
 		}
-		// TODO if provider registered - check if auth token is valid and show tools
 
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
@@ -353,14 +373,23 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 
 // addRemoteOAuthServer handles the OAuth setup for a remote OAuth server
 // It registers the provider, starts it, and handles authorization through elicitation or direct URL
-func (g *Gateway) addRemoteOAuthServer(ctx context.Context, serverName string, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	// Register DCR client with DD so user can authorize
-	if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-		log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
-	}
+// Returns the text message for the CallToolResult
+func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName string, req *mcp.CallToolRequest) (bool, string) {
+	// Check if provider already exists
+	g.providersMu.RLock()
+	_, providerExists := g.oauthProviders[serverName]
+	g.providersMu.RUnlock()
 
-	// Start provider
-	g.startProvider(ctx, serverName)
+	// Only register and start provider if it doesn't already exist
+	if !providerExists {
+		// Register DCR client with DD so user can authorize
+		if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+		}
+
+		// Start provider
+		g.startProvider(ctx, serverName)
+	}
 
 	// Check if current serverSession supports elicitations
 	if req.Session.InitializeParams().Capabilities != nil && req.Session.InitializeParams().Capabilities.Elicitation != nil {
@@ -380,6 +409,7 @@ func (g *Gateway) addRemoteOAuthServer(ctx context.Context, serverName string, r
 		})
 		if err != nil {
 			log.Logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
+			return false, "Client rejected eliciation to authorize"
 		} else if elicitResult.Action == "accept" && elicitResult.Content != nil {
 			// Check if user authorized
 			if authorize, ok := elicitResult.Content["authorize"].(bool); ok && authorize {
@@ -388,28 +418,39 @@ func (g *Gateway) addRemoteOAuthServer(ctx context.Context, serverName string, r
 				authResponse, err := client.PostOAuthApp(ctx, serverName, "", false)
 				if err != nil {
 					log.Logf("Warning: Failed to start OAuth flow for %s: %v", serverName, err)
+					return false, "unable to trigger OAuth Flow"
 				} else if authResponse.BrowserURL != "" {
 					log.Logf("Opening browser for authentication: %s", authResponse.BrowserURL)
 				} else {
 					log.Logf("Warning: OAuth provider for %s does not exist", serverName)
+					return false, "unable to trigger OAuth Flow"
 				}
 			}
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName),
-			}},
-		}, nil
+		return true, fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName)
+	}
+
+	// Check if user is already authorized by checking the credential helper (only if provider exists)
+	if providerExists {
+		// Create a credential helper to check token status
+		credHelper := oauth.NewOAuthCredentialHelper()
+		tokenStatus, err := credHelper.GetTokenStatus(ctx, serverName)
+		if err == nil && tokenStatus.Valid {
+			// User is already authorized, skip the OAuth URL generation
+			return true, fmt.Sprintf("Successfully added server '%s'. Server is already authorized.", serverName)
+		}
 	}
 
 	// Client doesn't support elicitations, get the login link and include it in the response
 	client := desktop.NewAuthClient()
 	// Set context flag to enable disableAutoOpen parameter
 	ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
+	// disable auto-open
 	authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
 	if err != nil {
 		log.Logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
+		return false, "Unable to get OAuth URL"
 	} else if authResponse.BrowserURL != "" {
 		// Try to shorten the URL using Bitly
 		shortURL, err := shortenURL(ctx, authResponse.BrowserURL)
@@ -423,16 +464,8 @@ func (g *Gateway) addRemoteOAuthServer(ctx context.Context, serverName string, r
 			displayLink = fmt.Sprintf("[Click here to authorize](%s)", shortURL)
 		}
 
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully added server '%s'. To authorize this server, please %s", serverName, displayLink),
-			}},
-		}, nil
+		return false, fmt.Sprintf("Successfully added server '%s'. To authorize this server, please %s", serverName, displayLink)
 	}
 
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{&mcp.TextContent{
-			Text: fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName),
-		}},
-	}, nil
+	return false, fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName)
 }

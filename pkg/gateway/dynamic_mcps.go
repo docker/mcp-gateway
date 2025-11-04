@@ -696,11 +696,41 @@ type configValue struct {
 	Value  any    `json:"value"`
 }
 
+// formatConfigValue formats a config value for display, handling arrays, objects, and primitives
+func formatConfigValue(value any) string {
+	if value == nil {
+		return "null"
+	}
+
+	// Try to format as JSON for complex types
+	switch v := value.(type) {
+	case string:
+		return fmt.Sprintf("%q", v)
+	case []any:
+		// Format array with proper JSON
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(jsonBytes)
+	case map[string]any:
+		// Format object with proper JSON
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return string(jsonBytes)
+	default:
+		// For numbers, booleans, etc.
+		return fmt.Sprintf("%v", v)
+	}
+}
+
 // mcpConfigSetTool implements a tool for setting configuration values for MCP servers
 func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-config-set",
-		Description: "Set configuration values for MCP servers. Creates or updates server configuration with the specified key-value pairs.",
+		Description: "Set configuration values for MCP servers. Creates or updates server configuration with the specified key-value pairs. Supports strings, numbers, booleans, objects, and arrays.",
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -713,7 +743,7 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 					Description: "Configuration key to set. This is not to be prefixed by the server name.",
 				},
 				"value": {
-					Description: "Configuration value to set (can be string, number, boolean, or object)",
+					Description: "Configuration value to set (can be string, number, boolean, object, or array)",
 				},
 			},
 			Required: []string{"server", "key", "value"},
@@ -748,6 +778,18 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 		serverName := strings.TrimSpace(params.Server)
 		configKey := strings.TrimSpace(params.Key)
 
+		// Decode JSON-encoded values (e.g., arrays passed as strings)
+		finalValue := params.Value
+		if strValue, ok := params.Value.(string); ok {
+			// Try to JSON decode the string value
+			var decoded any
+			if err := json.Unmarshal([]byte(strValue), &decoded); err == nil {
+				// Successfully decoded - use the decoded value
+				finalValue = decoded
+			}
+			// If decoding fails, keep the original string value
+		}
+
 		// Check if server exists in catalog (optional check - we can configure servers that don't exist yet)
 		_, _, serverExists := g.configuration.Find(serverName)
 
@@ -758,10 +800,14 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 
 		// Set the configuration value
 		oldValue := g.configuration.config[serverName][configKey]
-		g.configuration.config[serverName][configKey] = params.Value
+		g.configuration.config[serverName][configKey] = finalValue
+
+		// Format the value for display
+		valueStr := formatConfigValue(finalValue)
+		oldValueStr := formatConfigValue(oldValue)
 
 		// Log the configuration change
-		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %v", serverName, configKey, params.Value))
+		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %s", serverName, configKey, valueStr))
 
 		// Persist configuration if session name is set
 		if err := g.configuration.Persist(); err != nil {
@@ -770,9 +816,9 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 
 		var resultMessage string
 		if oldValue != nil {
-			resultMessage = fmt.Sprintf("Successfully updated config for server '%s': %s = %v (was: %v)", serverName, configKey, params.Value, oldValue)
+			resultMessage = fmt.Sprintf("Successfully updated config for server '%s': %s = %s (was: %s)", serverName, configKey, valueStr, oldValueStr)
 		} else {
-			resultMessage = fmt.Sprintf("Successfully set config for server '%s': %s = %v", serverName, configKey, params.Value)
+			resultMessage = fmt.Sprintf("Successfully set config for server '%s': %s = %s", serverName, configKey, valueStr)
 		}
 
 		if !serverExists {
