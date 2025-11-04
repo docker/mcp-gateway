@@ -28,6 +28,40 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
 	cmd.AddCommand(removeWorkingSetCommand())
+	cmd.AddCommand(configWorkingSetCommand())
+	return cmd
+}
+
+func configWorkingSetCommand() *cobra.Command {
+	format := string(workingset.OutputFormatHumanReadable)
+	getAll := false
+	var set []string
+	var get []string
+
+	cmd := &cobra.Command{
+		Use:   "config <working-set-id> [--set <config-arg1> <config-arg2> ...] [--get <config-key1> <config-key2> ...]",
+		Short: "Update the configuration of a working set",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", format)
+			}
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			ociService := oci.NewService()
+			return workingset.UpdateConfig(cmd.Context(), dao, ociService, args[0], set, get, getAll, workingset.OutputFormat(format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&set, "set", []string{}, "Set configuration values: <key>=<value> (can be specified multiple times)")
+	flags.StringArrayVar(&get, "get", []string{}, "Get configuration values: <key> (can be specified multiple times)")
+	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")
+	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
 	return cmd
 }
 
