@@ -290,7 +290,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 
 		// Register DCR client and make sure OAuth provider is started if this is a remote OAuth server
 		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
-			authorized, oauthText := g.getRemoteOAuthServerStatus(ctx, serverName, req)
+			authorized, oauthText := g.getRemoteOAuthServerStatus(ctx, serverName, req, shouldSendTools)
 			if !authorized {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
@@ -298,7 +298,7 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 					}},
 				}, nil
 			}
-			responseText = oauthText + responseText
+			responseText = oauthText
 		}
 
 		return &mcp.CallToolResult{
@@ -373,7 +373,7 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 // addRemoteOAuthServer handles the OAuth setup for a remote OAuth server
 // It registers the provider, starts it, and handles authorization through elicitation or direct URL
 // Returns the text message for the CallToolResult
-func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName string, req *mcp.CallToolRequest) (bool, string) {
+func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName string, req *mcp.CallToolRequest, shouldSendTools bool) (bool, string) {
 	// Check if provider already exists
 	g.providersMu.RLock()
 	_, providerExists := g.oauthProviders[serverName]
@@ -437,7 +437,10 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		tokenStatus, err := credHelper.GetTokenStatus(ctx, serverName)
 		if err == nil && tokenStatus.Valid {
 			// User is already authorized, skip the OAuth URL generation
-			return true, fmt.Sprintf("Successfully added server '%s'. Server is already authorized.", serverName)
+			if shouldSendTools {
+				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
+			}
+			return true, fmt.Sprintf("Successfully added server '%s'. Server is authorized.", serverName)
 		}
 	}
 
