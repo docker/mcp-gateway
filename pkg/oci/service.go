@@ -13,8 +13,10 @@ import (
 )
 
 type Service interface {
-	GetImageDigest(ctx context.Context, ref name.Reference) (string, error)
-	GetImageLabels(ctx context.Context, ref name.Reference) (map[string]string, error)
+	GetImageDigest(ctx context.Context, img v1.Image) (string, error)
+	GetImageLabels(ctx context.Context, img v1.Image) (map[string]string, error)
+	GetLocalImage(ctx context.Context, ref name.Reference) (v1.Image, error)
+	GetRemoteImage(ctx context.Context, ref name.Reference) (v1.Image, error)
 }
 
 type service struct{}
@@ -24,12 +26,7 @@ func NewService() Service {
 	return &service{}
 }
 
-func (s *service) GetImageDigest(ctx context.Context, ref name.Reference) (string, error) {
-	img, err := resolveImage(ctx, ref)
-	if err != nil {
-		return "", fmt.Errorf("failed to get image: %w", err)
-	}
-
+func (s *service) GetImageDigest(ctx context.Context, img v1.Image) (string, error) {
 	digest, err := img.Digest()
 	if err != nil {
 		return "", fmt.Errorf("failed to get digest: %w", err)
@@ -38,12 +35,7 @@ func (s *service) GetImageDigest(ctx context.Context, ref name.Reference) (strin
 	return digest.String(), nil
 }
 
-func (s *service) GetImageLabels(ctx context.Context, ref name.Reference) (map[string]string, error) {
-	img, err := resolveImage(ctx, ref)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get image: %w", err)
-	}
-
+func (s *service) GetImageLabels(ctx context.Context, img v1.Image) (map[string]string, error) {
 	labels, err := img.ConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config file: %w", err)
@@ -52,18 +44,14 @@ func (s *service) GetImageLabels(ctx context.Context, ref name.Reference) (map[s
 	return labels.Config.Labels, nil
 }
 
-func resolveImage(ctx context.Context, ref name.Reference) (v1.Image, error) {
-	img, err := daemon.Image(ref, daemon.WithContext(ctx))
-	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "no such image") {
-			img, err = remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
-			if err != nil {
-				return nil, fmt.Errorf("failed to get image from remote: %w", err)
-			}
-			return img, nil
-		}
-		return nil, fmt.Errorf("failed to get image from daemon: %w", err)
-	}
+func (s *service) GetLocalImage(ctx context.Context, ref name.Reference) (v1.Image, error) {
+	return daemon.Image(ref, daemon.WithContext(ctx))
+}
 
-	return img, nil
+func (s *service) GetRemoteImage(ctx context.Context, ref name.Reference) (v1.Image, error) {
+	return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+}
+
+func IsNoSuchImageError(err error) bool {
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), "no such image")
 }
