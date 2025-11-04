@@ -84,7 +84,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 		if server.Config == nil {
 			server.Config = make(map[string]any)
 		}
-		// TODO(cody): validate that schema supports the config we're adding
+		// TODO(cody): validate that schema supports the config we're adding and map it to the right type (right now we're forcing a string)
 		server.Config[configName] = value
 		outputMap[key] = value
 	}
