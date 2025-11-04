@@ -297,9 +297,8 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 						Text: oauthText,
 					}},
 				}, nil
-			} else {
-				responseText = oauthText + responseText
 			}
+			responseText = oauthText + responseText
 		}
 
 		return &mcp.CallToolResult{
