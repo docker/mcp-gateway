@@ -79,10 +79,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 		}
 	}
 
-	toolsConfig, err := c.readTools(workingSet)
-	if err != nil {
-		return Configuration{}, fmt.Errorf("failed to read tools: %w", err)
-	}
+	toolsConfig := c.readTools(workingSet)
 
 	// TODO(cody): Finish making the gateway fully compatible with working sets
 	// This currently only supports image-only servers
@@ -124,7 +121,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 	}, nil
 }
 
-func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) (config.ToolsConfig, error) {
+func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) config.ToolsConfig {
 	toolsConfig := config.ToolsConfig{
 		ServerTools: make(map[string][]string),
 	}
@@ -137,7 +134,7 @@ func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) (c
 		}
 		toolsConfig.ServerTools[server.Snapshot.Server.Name] = server.Tools
 	}
-	return toolsConfig, nil
+	return toolsConfig
 }
 
 func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet workingset.WorkingSet) (map[string]map[string]string, error) {

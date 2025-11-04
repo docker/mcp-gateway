@@ -13,8 +13,8 @@ import (
 )
 
 type Service interface {
-	GetImageDigest(ctx context.Context, img v1.Image) (string, error)
-	GetImageLabels(ctx context.Context, img v1.Image) (map[string]string, error)
+	GetImageDigest(img v1.Image) (string, error)
+	GetImageLabels(img v1.Image) (map[string]string, error)
 	GetLocalImage(ctx context.Context, ref name.Reference) (v1.Image, error)
 	GetRemoteImage(ctx context.Context, ref name.Reference) (v1.Image, error)
 }
@@ -26,7 +26,7 @@ func NewService() Service {
 	return &service{}
 }
 
-func (s *service) GetImageDigest(ctx context.Context, img v1.Image) (string, error) {
+func (s *service) GetImageDigest(img v1.Image) (string, error) {
 	digest, err := img.Digest()
 	if err != nil {
 		return "", fmt.Errorf("failed to get digest: %w", err)
@@ -35,7 +35,7 @@ func (s *service) GetImageDigest(ctx context.Context, img v1.Image) (string, err
 	return digest.String(), nil
 }
 
-func (s *service) GetImageLabels(ctx context.Context, img v1.Image) (map[string]string, error) {
+func (s *service) GetImageLabels(img v1.Image) (map[string]string, error) {
 	labels, err := img.ConfigFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config file: %w", err)

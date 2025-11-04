@@ -50,7 +50,7 @@ func NewMockOCIService(opts ...MockOCIServiceOption) oci.Service {
 	}
 }
 
-func (s *mockOCIService) GetImageDigest(_ context.Context, img v1.Image) (string, error) {
+func (s *mockOCIService) GetImageDigest(img v1.Image) (string, error) {
 	mockImg, ok := img.(*MockImage)
 	if !ok {
 		return "", fmt.Errorf("expected mockImage, got %T", img)
@@ -58,7 +58,7 @@ func (s *mockOCIService) GetImageDigest(_ context.Context, img v1.Image) (string
 	return mockImg.DigestString, nil
 }
 
-func (s *mockOCIService) GetImageLabels(_ context.Context, img v1.Image) (map[string]string, error) {
+func (s *mockOCIService) GetImageLabels(img v1.Image) (map[string]string, error) {
 	mockImg, ok := img.(*MockImage)
 	if !ok {
 		return nil, fmt.Errorf("expected mockImage, got %T", img)

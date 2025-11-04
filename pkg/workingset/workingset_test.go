@@ -439,7 +439,8 @@ func TestResolveServerFromString(t *testing.T) {
 						Labels: map[string]string{
 							"io.docker.server.metadata": "name: My Image",
 						},
-						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"},
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
 				}),
 				mocks.WithRemoteImages([]mocks.MockImage{
 					{

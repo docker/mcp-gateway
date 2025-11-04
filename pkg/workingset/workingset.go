@@ -257,7 +257,7 @@ func resolveImage(ctx context.Context, ociService oci.Service, value string) (Se
 		fullRef = ref.String()
 	} else {
 		// Remotes should be pinned to a digest
-		digest, err := ociService.GetImageDigest(ctx, img)
+		digest, err := ociService.GetImageDigest(img)
 		if err != nil {
 			return Server{}, fmt.Errorf("failed to get image digest: %w", err)
 		}
@@ -365,7 +365,7 @@ func resolveImageSnapshot(ctx context.Context, ociService oci.Service, server Se
 		}
 	}
 
-	serverSnapshot, err := getCatalogServerFromImage(ctx, ociService, img, server.Image)
+	serverSnapshot, err := getCatalogServerFromImage(ociService, img, server.Image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get catalog server from image: %w", err)
 	}
@@ -384,8 +384,8 @@ func resolveLatestVersion(versions v0.ServerListResponse) (string, error) {
 	return "", fmt.Errorf("no latest version found")
 }
 
-func getCatalogServerFromImage(ctx context.Context, ociService oci.Service, img v1.Image, name string) (catalog.Server, error) {
-	labels, err := ociService.GetImageLabels(ctx, img)
+func getCatalogServerFromImage(ociService oci.Service, img v1.Image, name string) (catalog.Server, error) {
+	labels, err := ociService.GetImageLabels(img)
 	if err != nil {
 		return catalog.Server{}, fmt.Errorf("failed to get image labels: %w", err)
 	}

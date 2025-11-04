@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
-	"gopkg.in/yaml.v3"
 )
 
 func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id string, setConfigArgs []string, getConfigArgs []string, getAll bool, outputFormat OutputFormat) error {
