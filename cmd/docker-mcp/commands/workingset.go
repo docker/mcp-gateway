@@ -37,9 +37,10 @@ func configWorkingSetCommand() *cobra.Command {
 	getAll := false
 	var set []string
 	var get []string
+	var del []string
 
 	cmd := &cobra.Command{
-		Use:   "config <working-set-id> [--set <config-arg1> <config-arg2> ...] [--get <config-key1> <config-key2> ...]",
+		Use:   "config <working-set-id> [--set <config-arg1> <config-arg2> ...] [--get <config-key1> <config-key2> ...] [--del <config-arg1> <config-arg2> ...]",
 		Short: "Update the configuration of a working set",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,13 +53,14 @@ func configWorkingSetCommand() *cobra.Command {
 				return err
 			}
 			ociService := oci.NewService()
-			return workingset.UpdateConfig(cmd.Context(), dao, ociService, args[0], set, get, getAll, workingset.OutputFormat(format))
+			return workingset.UpdateConfig(cmd.Context(), dao, ociService, args[0], set, get, del, getAll, workingset.OutputFormat(format))
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringArrayVar(&set, "set", []string{}, "Set configuration values: <key>=<value> (can be specified multiple times)")
 	flags.StringArrayVar(&get, "get", []string{}, "Get configuration values: <key> (can be specified multiple times)")
+	flags.StringArrayVar(&del, "del", []string{}, "Delete configuration values: <key> (can be specified multiple times)")
 	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 

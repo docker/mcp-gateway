@@ -14,7 +14,17 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id string, setConfigArgs []string, getConfigArgs []string, getAll bool, outputFormat OutputFormat) error {
+func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id string, setConfigArgs, getConfigArgs, delConfigArgs []string, getAll bool, outputFormat OutputFormat) error {
+	// Verify there is not conflict
+	for _, delConfigArg := range delConfigArgs {
+		for _, setConfigArg := range setConfigArgs {
+			first, _, found := strings.Cut(setConfigArg, "=")
+			if found && delConfigArg == first {
+				return fmt.Errorf("cannot both delete and set the same config value: %s", delConfigArg)
+			}
+		}
+	}
+
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -79,7 +89,24 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 		outputMap[key] = value
 	}
 
-	if len(setConfigArgs) > 0 {
+	for _, delConfigArg := range delConfigArgs {
+		serverName, configName, found := strings.Cut(delConfigArg, ".")
+		if !found {
+			return fmt.Errorf("invalid config argument: %s, expected <serverName>.<configName>", delConfigArg)
+		}
+
+		server := workingSet.FindServer(serverName)
+		if server == nil {
+			return fmt.Errorf("server %s not found in working set for argument %s", serverName, delConfigArg)
+		}
+
+		if server.Config != nil && server.Config[configName] != nil {
+			delete(server.Config, configName)
+			delete(outputMap, delConfigArg)
+		}
+	}
+
+	if len(setConfigArgs) > 0 || len(delConfigArgs) > 0 {
 		err := dao.UpdateWorkingSet(ctx, workingSet.ToDb())
 		if err != nil {
 			return fmt.Errorf("failed to update working set: %w", err)
