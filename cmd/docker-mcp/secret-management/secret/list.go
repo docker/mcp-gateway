@@ -6,24 +6,22 @@ import (
 	"fmt"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 type ListOptions struct {
 	JSON bool
 }
 
+// TODO: List needs to query the secrets engine
 func List(ctx context.Context, opts ListOptions) error {
-	l, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
-	if err != nil {
-		return err
+	var secrets []struct {
+		Name     string
+		Provider string
 	}
+	// fetch secrets from secrets engine
 
 	if opts.JSON {
-		if len(l) == 0 {
-			l = []desktop.StoredSecret{} // Guarantee empty list (instead of displaying null)
-		}
-		jsonData, err := json.MarshalIndent(l, "", "  ")
+		jsonData, err := json.MarshalIndent(secrets, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -31,7 +29,7 @@ func List(ctx context.Context, opts ListOptions) error {
 		return nil
 	}
 	var rows [][]string
-	for _, v := range l {
+	for _, v := range secrets {
 		rows = append(rows, []string{v.Name, v.Provider})
 	}
 	formatting.PrettyPrintTable(rows, []int{40, 120})

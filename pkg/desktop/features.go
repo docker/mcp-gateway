@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/PaesslerAG/jsonpath"
 )
@@ -36,11 +38,43 @@ func CheckFeatureIsEnabled(ctx context.Context, settingName string, label string
 		//nolint:staticcheck
 		return errors.New("Docker Desktop is not running")
 	}
+	fmt.Fprintf(os.Stdout, "DD settings: %+v\n", settings)
 	value, _ := jsonpath.Get("$.desktop."+settingName+".value", settings)
 	if value == false {
 		return errors.New("The \"" + label + "\" feature needs to be enabled in Docker Desktop Settings")
 	}
 
+	return nil
+}
+
+func GetVersion(ctx context.Context) (string, error) {
+	var result any
+	if err := ClientBackend.Get(ctx, "/versions", &result); err != nil {
+		return "", err
+	}
+	val, err := jsonpath.Get("$.appVersion", result)
+	if err != nil {
+		return "", err
+	}
+	version, ok := val.(string)
+	if !ok {
+		return "", errors.New("could not get docker desktop version")
+	}
+	return version, nil
+}
+
+var ErrDockerPassUnsupported = errors.New("docker pass has not been installed")
+
+func CheckHasDockerPass(ctx context.Context) error {
+	err := exec.CommandContext(ctx, "docker", "pass").Run()
+	execStatus, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	execStatus.ExitCode()
+	if execStatus.ExitCode() > 0 {
+		return ErrDockerPassUnsupported
+	}
 	return nil
 }
 

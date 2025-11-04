@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
@@ -28,6 +29,13 @@ func secretCommand(docker docker.Client) *cobra.Command {
 		Use:     "secret",
 		Short:   "Manage secrets",
 		Example: strings.Trim(setSecretExample, "\n"),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			err := desktop.CheckHasDockerPass(cmd.Context())
+			if err != nil {
+				return err
+			}
+			return nil
+		},
 	}
 	cmd.AddCommand(rmSecretCommand())
 	cmd.AddCommand(listSecretCommand())
@@ -83,9 +91,6 @@ func setSecretCommand() *cobra.Command {
 		Example: strings.Trim(setSecretExample, "\n"),
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !secret.IsValidProvider(opts.Provider) {
-				return fmt.Errorf("invalid provider: %s", opts.Provider)
-			}
 			var s secret.Secret
 			if isNotImplicitReadFromStdinSyntax(args, *opts) {
 				va, err := secret.ParseArg(args[0], *opts)
@@ -105,11 +110,12 @@ func setSecretCommand() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Provider, "provider", "", "Supported: credstore, oauth/<provider>")
+	flags.MarkDeprecated("provider", "option will be ignored")
 	return cmd
 }
 
 func isNotImplicitReadFromStdinSyntax(args []string, opts secret.SetOpts) bool {
-	return strings.Contains(args[0], "=") || len(args) > 1 || opts.Provider != ""
+	return strings.Contains(args[0], "=") || len(args) > 1
 }
 
 func exportSecretCommand(docker docker.Client) *cobra.Command {

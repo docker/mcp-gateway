@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/docker/mcp-gateway/pkg/desktop"
+	"slices"
 )
 
 type RmOpts struct {
@@ -13,24 +12,25 @@ type RmOpts struct {
 }
 
 func Remove(ctx context.Context, names []string, opts RmOpts) error {
-	c := desktop.NewSecretsClient()
-	if opts.All && len(names) == 0 {
-		l, err := c.ListJfsSecrets(ctx)
+	secrets := slices.Clone(names)
+	p := NewCredStoreProvider()
+	if opts.All && len(secrets) == 0 {
+		var err error
+		secrets, err = p.List(ctx)
 		if err != nil {
 			return err
 		}
-		for _, secret := range l {
-			names = append(names, secret.Name)
-		}
 	}
+
 	var errs []error
-	for _, name := range names {
-		if err := c.DeleteJfsSecret(ctx, name); err != nil {
+	for _, secret := range secrets {
+		if err := p.DeleteSecret(ctx, secret); err != nil {
 			errs = append(errs, err)
-			fmt.Printf("failed removing secret %s\n", name)
+			fmt.Printf("failed removing secret %s\n", secret)
 			continue
 		}
-		fmt.Printf("removed secret %s\n", name)
+		fmt.Printf("removed secret %s\n", secret)
 	}
+
 	return errors.Join(errs...)
 }

@@ -6,7 +6,11 @@ import (
 )
 
 type StoredSecret struct {
-	Name     string `json:"name"`
+	Name string `json:"name"`
+	// Provider specifies the provider under which the secret is stored
+	//
+	// Deprecated: will be removed in a future release and is not currently
+	// used by default
 	Provider string `json:"provider,omitempty"`
 }
 
