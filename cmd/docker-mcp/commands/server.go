@@ -209,11 +209,12 @@ func truncateString(s string, maxWidth int) string {
 	if maxWidth <= 0 {
 		return ""
 	}
-	if len(s) <= maxWidth {
+	runes := []rune(s)
+	if len(runes) <= maxWidth {
 		return s
 	}
 	if maxWidth > 3 {
-		return s[:maxWidth-3] + "..."
+		return string(runes[:maxWidth-3]) + "..."
 	}
-	return s[:maxWidth]
+	return string(runes[:maxWidth])
 }
