@@ -1,0 +1,36 @@
+arxiv-mcp-server:
+  storage_path: /Users/slim/arxiv
+desktop-commander:
+  paths:
+    - /Users/slim
+dockerhub:
+  username: jimclark106
+filesystem:
+  paths:
+    - /Users/slim
+gmail-mcp:
+  email_address: slimslenderslacks@gmail.com
+kubectl-mcp-server:
+  kubeconfig: /Users/slim/.kube/config
+kubernetes:
+  config_path: /Users/slim
+markdownify:
+  paths:
+    - /Users/slim
+markitdown:
+  paths:
+    - /Users/slim
+openapi-schema:
+  SchemaPath: /Users/slim
+resend:
+  reply_to: slimslenderslacks@gmail.com
+  sender: slimslenderslacks@gmail.com
+rust-mcp-filesystem:
+  allow_write: true
+  allowed_directories:
+    - /Users/slim
+slack:
+  team_id: E7UHBTE03
+  channel_ids: C08J27QSJJJ
+elevenlabs:
+  data: /Users/slim/elevenlabs

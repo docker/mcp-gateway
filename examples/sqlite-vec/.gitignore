@@ -1,0 +1,25 @@
+# Data directory
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Go build artifacts
+vector-server
+*.exe
+*.test
+*.out
+
+# Go dependencies
+go.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
