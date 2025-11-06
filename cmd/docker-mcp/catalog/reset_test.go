@@ -23,7 +23,7 @@ func TestReset(t *testing.T) {
 	// Setup test environment with user catalogs
 	setupTestCatalogsForReset(t, tempHome)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Verify initial state - should have docker-mcp and user catalogs
 	initialCfg, err := ReadConfig()
