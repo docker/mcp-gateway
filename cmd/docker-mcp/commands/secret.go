@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -40,7 +39,6 @@ func secretCommand(docker docker.Client) *cobra.Command {
 	cmd.AddCommand(rmSecretCommand())
 	cmd.AddCommand(listSecretCommand())
 	cmd.AddCommand(setSecretCommand())
-	cmd.AddCommand(exportSecretCommand(docker))
 	return cmd
 }
 
@@ -116,25 +114,4 @@ func setSecretCommand() *cobra.Command {
 
 func isNotImplicitReadFromStdinSyntax(args []string, opts secret.SetOpts) bool {
 	return strings.Contains(args[0], "=") || len(args) > 1
-}
-
-func exportSecretCommand(docker docker.Client) *cobra.Command {
-	return &cobra.Command{
-		Use:    "export [server1] [server2] ...",
-		Short:  "Export secrets for the specified servers",
-		Hidden: true,
-		Args:   cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			secrets, err := secret.Export(cmd.Context(), docker, args)
-			if err != nil {
-				return err
-			}
-
-			for name, secret := range secrets {
-				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s=%s\n", name, secret)
-			}
-
-			return nil
-		},
-	}
 }
