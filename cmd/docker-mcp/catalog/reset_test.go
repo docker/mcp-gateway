@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
