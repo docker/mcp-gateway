@@ -17,13 +17,15 @@ pkgs.mkShell {
     
     # Git for version control
     git
+
+    ko
     
     # Common development utilities
     curl
     jq
     wget
 
-    marp-cli
+    clojure
   ];
 
   shellHook = ''

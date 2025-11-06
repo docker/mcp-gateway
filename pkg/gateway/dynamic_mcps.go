@@ -28,13 +28,13 @@ import (
 func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-find",
-		Description: "Find MCP servers in the current catalog by name, title, or description. Returns matching servers with their details.",
+		Description: "Find MCP servers in the current catalog by name, title, or description. If the user is looking for new capabilities, use this tool to search the MCP catalog for servers that should potentially be enabled.  This will not enable the server but will return information about servers that could be enabled.",
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
-				"query": {
+				"prompt": {
 					Type:        "string",
-					Description: "Search query to find servers by name, title, or description (case-insensitive)",
+					Description: "describe the use case that might benefit from adding a new MCP server.",
 				},
 				"limit": {
 					Type:        "integer",
@@ -45,167 +45,224 @@ func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistrati
 		},
 	}
 
-	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Parse parameters
-		var params struct {
-			Query string `json:"query"`
-			Limit int    `json:"limit"`
-		}
+	// Select handler based on embeddings availability
+	var handler mcp.ToolHandler
 
-		if req.Params.Arguments == nil {
-			return nil, fmt.Errorf("missing arguments")
-		}
-
-		paramsBytes, err := json.Marshal(req.Params.Arguments)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
-		}
-
-		if err := json.Unmarshal(paramsBytes, &params); err != nil {
-			return nil, fmt.Errorf("failed to parse arguments: %w", err)
-		}
-
-		if params.Query == "" {
-			return nil, fmt.Errorf("query parameter is required")
-		}
-
-		if params.Limit <= 0 {
-			params.Limit = 10
-		}
-
-		// Search through the catalog servers
-		query := strings.ToLower(strings.TrimSpace(params.Query))
-		var matches []ServerMatch
-
-		for serverName, server := range configuration.servers {
-			match := false
-			score := 0
-
-			// Check server name (exact match gets higher score)
-			serverNameLower := strings.ToLower(serverName)
-			if serverNameLower == query {
-				match = true
-				score = 100
-			} else if strings.Contains(serverNameLower, query) {
-				match = true
-				score = 50
+	if g.embeddingsClient != nil {
+		// Use embeddings-based semantic search
+		handler = func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Parse parameters
+			var params struct {
+				Prompt string `json:"prompt"`
+				Limit  int    `json:"limit"`
 			}
 
-			// Check server title
-			if server.Title != "" {
-				titleLower := strings.ToLower(server.Title)
-				if titleLower == query {
+			if req.Params.Arguments == nil {
+				return nil, fmt.Errorf("missing arguments")
+			}
+
+			paramsBytes, err := json.Marshal(req.Params.Arguments)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+			}
+
+			if err := json.Unmarshal(paramsBytes, &params); err != nil {
+				return nil, fmt.Errorf("failed to parse arguments: %w", err)
+			}
+
+			if params.Prompt == "" {
+				return nil, fmt.Errorf("query parameter is required")
+			}
+
+			if params.Limit <= 0 {
+				params.Limit = 10
+			}
+
+			// Use vector similarity search to find relevant servers
+			results, err := g.findServersByEmbedding(ctx, params.Prompt, params.Limit)
+			if err != nil {
+				return nil, fmt.Errorf("failed to find servers: %w", err)
+			}
+
+			response := map[string]any{
+				"prompt":        params.Prompt,
+				"total_matches": len(results),
+				"servers":       results,
+			}
+
+			responseBytes, err := json.Marshal(response)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal response: %w", err)
+			}
+
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
+			}, nil
+		}
+	} else {
+		// Use traditional string-based search
+		handler = func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Parse parameters
+			var params struct {
+				Prompt string `json:"prompt"`
+				Limit  int    `json:"limit"`
+			}
+
+			if req.Params.Arguments == nil {
+				return nil, fmt.Errorf("missing arguments")
+			}
+
+			paramsBytes, err := json.Marshal(req.Params.Arguments)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+			}
+
+			if err := json.Unmarshal(paramsBytes, &params); err != nil {
+				return nil, fmt.Errorf("failed to parse arguments: %w", err)
+			}
+
+			if params.Prompt == "" {
+				return nil, fmt.Errorf("query parameter is required")
+			}
+
+			if params.Limit <= 0 {
+				params.Limit = 10
+			}
+
+			// Search through the catalog servers
+			query := strings.ToLower(strings.TrimSpace(params.Prompt))
+			var matches []ServerMatch
+
+			for serverName, server := range configuration.servers {
+				match := false
+				score := 0
+
+				// Check server name (exact match gets higher score)
+				serverNameLower := strings.ToLower(serverName)
+				if serverNameLower == query {
 					match = true
-					score = maxInt(score, 97)
-				} else if strings.Contains(titleLower, query) {
+					score = 100
+				} else if strings.Contains(serverNameLower, query) {
 					match = true
-					score = maxInt(score, 47)
+					score = 50
+				}
+
+				// Check server title
+				if server.Title != "" {
+					titleLower := strings.ToLower(server.Title)
+					if titleLower == query {
+						match = true
+						score = maxInt(score, 97)
+					} else if strings.Contains(titleLower, query) {
+						match = true
+						score = maxInt(score, 47)
+					}
+				}
+
+				// Check server description
+				if server.Description != "" {
+					descriptionLower := strings.ToLower(server.Description)
+					if descriptionLower == query {
+						match = true
+						score = maxInt(score, 95)
+					} else if strings.Contains(descriptionLower, query) {
+						match = true
+						score = maxInt(score, 45)
+					}
+				}
+
+				// Check if it has tools that might match
+				for _, tool := range server.Tools {
+					toolNameLower := strings.ToLower(tool.Name)
+					toolDescLower := strings.ToLower(tool.Description)
+
+					if toolNameLower == query {
+						match = true
+						score = maxInt(score, 90)
+					} else if strings.Contains(toolNameLower, query) {
+						match = true
+						score = maxInt(score, 40)
+					} else if strings.Contains(toolDescLower, query) {
+						match = true
+						score = maxInt(score, 30)
+					}
+				}
+
+				// Check image name
+				if server.Image != "" {
+					imageLower := strings.ToLower(server.Image)
+					if strings.Contains(imageLower, query) {
+						match = true
+						score = maxInt(score, 20)
+					}
+				}
+
+				if match {
+					matches = append(matches, ServerMatch{
+						Name:   serverName,
+						Server: server,
+						Score:  score,
+					})
 				}
 			}
 
-			// Check server description
-			if server.Description != "" {
-				descriptionLower := strings.ToLower(server.Description)
-				if descriptionLower == query {
-					match = true
-					score = maxInt(score, 95)
-				} else if strings.Contains(descriptionLower, query) {
-					match = true
-					score = maxInt(score, 45)
+			// Sort matches by score (higher scores first)
+			for i := range len(matches) - 1 {
+				for j := i + 1; j < len(matches); j++ {
+					if matches[i].Score < matches[j].Score {
+						matches[i], matches[j] = matches[j], matches[i]
+					}
 				}
 			}
 
-			// Check if it has tools that might match
-			for _, tool := range server.Tools {
-				toolNameLower := strings.ToLower(tool.Name)
-				toolDescLower := strings.ToLower(tool.Description)
+			// Limit results
+			if len(matches) > params.Limit {
+				matches = matches[:params.Limit]
+			}
 
-				if toolNameLower == query {
-					match = true
-					score = maxInt(score, 90)
-				} else if strings.Contains(toolNameLower, query) {
-					match = true
-					score = maxInt(score, 40)
-				} else if strings.Contains(toolDescLower, query) {
-					match = true
-					score = maxInt(score, 30)
+			// Format results
+			var results []map[string]any
+			for _, match := range matches {
+				serverInfo := map[string]any{
+					"name": match.Name,
 				}
-			}
 
-			// Check image name
-			if server.Image != "" {
-				imageLower := strings.ToLower(server.Image)
-				if strings.Contains(imageLower, query) {
-					match = true
-					score = maxInt(score, 20)
+				if match.Server.Description != "" {
+					serverInfo["description"] = match.Server.Description
 				}
-			}
 
-			if match {
-				matches = append(matches, ServerMatch{
-					Name:   serverName,
-					Server: server,
-					Score:  score,
-				})
-			}
-		}
-
-		// Sort matches by score (higher scores first)
-		for i := range len(matches) - 1 {
-			for j := i + 1; j < len(matches); j++ {
-				if matches[i].Score < matches[j].Score {
-					matches[i], matches[j] = matches[j], matches[i]
+				if len(match.Server.Secrets) > 0 {
+					var secrets []string
+					for _, secret := range match.Server.Secrets {
+						secrets = append(secrets, secret.Name)
+					}
+					serverInfo["required_secrets"] = secrets
 				}
-			}
-		}
 
-		// Limit results
-		if len(matches) > params.Limit {
-			matches = matches[:params.Limit]
-		}
-
-		// Format results
-		var results []map[string]any
-		for _, match := range matches {
-			serverInfo := map[string]any{
-				"name": match.Name,
-			}
-
-			if match.Server.Description != "" {
-				serverInfo["description"] = match.Server.Description
-			}
-
-			if len(match.Server.Secrets) > 0 {
-				var secrets []string
-				for _, secret := range match.Server.Secrets {
-					secrets = append(secrets, secret.Name)
+				if len(match.Server.Config) > 0 {
+					serverInfo["config_schema"] = match.Server.Config
 				}
-				serverInfo["required_secrets"] = secrets
+
+				serverInfo["long_lived"] = match.Server.LongLived
+
+				results = append(results, serverInfo)
 			}
 
-			if len(match.Server.Config) > 0 {
-				serverInfo["config_schema"] = match.Server.Config
+			response := map[string]any{
+				"prompt":        params.Prompt,
+				"total_matches": len(results),
+				"servers":       results,
 			}
 
-			serverInfo["long_lived"] = match.Server.LongLived
+			responseBytes, err := json.Marshal(response)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal response: %w", err)
+			}
 
-			results = append(results, serverInfo)
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
+			}, nil
 		}
-
-		response := map[string]any{
-			"query":         params.Query,
-			"total_matches": len(results),
-			"servers":       results,
-		}
-
-		responseBytes, err := json.Marshal(response)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal response: %w", err)
-		}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
-		}, nil
 	}
 
 	return &ToolRegistration{

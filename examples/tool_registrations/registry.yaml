@@ -1,0 +1,83 @@
+registry:
+  SQLite:
+    ref: ""
+  arxiv-mcp-server:
+    ref: ""
+  aws-documentation:
+    ref: ""
+  brave:
+    ref: ""
+  context7:
+    ref: ""
+  desktop-commander:
+    ref: ""
+  dockerhub:
+    ref: ""
+  duckduckgo:
+    ref: ""
+  elevenlabs:
+    ref: ""
+  everart:
+    ref: ""
+  fetch:
+    ref: ""
+  filesystem:
+    ref: ""
+  gemini-api-docs:
+    ref: ""
+  github-official:
+    ref: ""
+  gitmcp:
+    ref: ""
+  google-maps:
+    ref: ""
+  google-maps-comprehensive:
+    ref: ""
+  hugging-face:
+    ref: ""
+  linkedin-mcp-server:
+    ref: ""
+  markitdown:
+    ref: ""
+  maven-tools-mcp:
+    ref: ""
+  mcp-hackernews:
+    ref: ""
+  memory:
+    ref: ""
+  microsoft-learn:
+    ref: ""
+  minecraft-wiki:
+    ref: ""
+  node-code-sandbox:
+    ref: ""
+  notion-remote:
+    ref: ""
+  openapi:
+    ref: ""
+  openapi-schema:
+    ref: ""
+  openbnb-airbnb:
+    ref: ""
+  openweather:
+    ref: ""
+  playwright:
+    ref: ""
+  resend:
+    ref: ""
+  rust-mcp-filesystem:
+    ref: ""
+  semgrep:
+    ref: ""
+  sequentialthinking:
+    ref: ""
+  slack:
+    ref: ""
+  stripe:
+    ref: ""
+  time:
+    ref: ""
+  wikipedia-mcp:
+    ref: ""
+  youtube_transcript:
+    ref: ""

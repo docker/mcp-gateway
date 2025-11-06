@@ -111,10 +111,20 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
 
+		// Add find-tools tool only if embeddings client is configured
+		if g.embeddingsClient != nil {
+			findToolsTool := g.createFindToolsTool(clientConfig)
+			g.mcpServer.AddTool(findToolsTool.Tool, findToolsTool.Handler)
+			g.toolRegistrations[findToolsTool.Tool.Name] = *findToolsTool
+		}
+
 		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
 		log.Log("  > mcp-add: tool for adding MCP servers to the registry")
 		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
 		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
+		if g.embeddingsClient != nil {
+			log.Log("  > find-tools: AI-powered tool recommendation based on task description")
+		}
 		log.Log("  > code-mode: write code that calls other MCPs directly")
 		log.Log("  > mcp-exec: execute tools that exist in the current session")
 
