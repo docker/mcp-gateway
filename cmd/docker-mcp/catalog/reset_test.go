@@ -78,7 +78,7 @@ func TestResetEmptyCatalogs(t *testing.T) {
 	err := os.MkdirAll(mcpDir, 0o755)
 	require.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Execute reset on empty state
 	err = Reset(ctx)
