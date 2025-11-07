@@ -28,6 +28,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
 	cmd.AddCommand(removeWorkingSetCommand())
+	cmd.AddCommand(workingsetServerCommand())
 	cmd.AddCommand(configWorkingSetCommand())
 	return cmd
 }
@@ -291,6 +292,88 @@ Use --workingset to show servers only from a specific working set.`,
 	flags.StringVarP(&opts.WorkingSetID, "workingset", "w", "", "Show servers only from specified working set")
 	flags.StringVar(&opts.Filter, "filter", "", "Filter servers by image name or source URL")
 	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func workingsetServerCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "server",
+		Short: "Manage servers in working sets",
+	}
+
+	cmd.AddCommand(addServerCommand())
+	cmd.AddCommand(removeServerCommand())
+
+	return cmd
+}
+
+func addServerCommand() *cobra.Command {
+	var servers []string
+
+	cmd := &cobra.Command{
+		Use:   "add <working-set-id> --server <ref1> --server <ref2> ...",
+		Short: "Add MCP servers to a working set",
+		Long:  "Add MCP servers to a working set.",
+		Example: ` # Add servers with OCI references
+  docker mcp workingset server add my-working-set --server docker://mcp/github:latest --server docker://mcp/slack:latest
+
+  # Add servers with MCP Registry references
+  docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+  # Mix MCP Registry references and OCI references
+  docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(servers) == 0 {
+				return fmt.Errorf("at least one --server flag must be specified")
+			}
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return workingset.AddServers(cmd.Context(), dao, registryClient, ociService, args[0], servers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
+
+	return cmd
+}
+
+func removeServerCommand() *cobra.Command {
+	var servers []string
+
+	cmd := &cobra.Command{
+		Use:   "remove <working-set-id> --server <ref1> --server <ref2> ...",
+		Short: "Remove MCP servers from a working set",
+		Long:  "Remove MCP servers from a working set by server reference.",
+		Example: ` # Remove servers with OCI references
+  docker mcp workingset server remove my-working-set --server docker://mcp/github:latest --server docker://mcp/slack:latest
+
+  # Remove servers with MCP Registry references
+  docker mcp workingset server remove my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+  # Mix MCP Registry references and OCI references
+  docker mcp workingset server remove my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(servers) == 0 {
+				return fmt.Errorf("at least one --server flag must be specified")
+			}
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.RemoveServers(cmd.Context(), dao, args[0], servers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to remove: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
 
 	return cmd
 }
