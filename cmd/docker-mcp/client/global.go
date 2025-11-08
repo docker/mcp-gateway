@@ -4,12 +4,30 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 )
 
 const (
 	DockerMCPCatalog = "MCP_DOCKER"
 )
+
+var envVarRegex = regexp.MustCompile(`\$([A-Za-z_][A-Za-z0-9_]*)`)
+
+// isPathValid checks if all environment variables in a path are defined and non-empty
+func isPathValid(path string) bool {
+	matches := envVarRegex.FindAllStringSubmatch(path, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			varName := match[1]
+			value, ok := os.LookupEnv(varName)
+			if !ok || value == "" {
+				return false
+			}
+		}
+	}
+	return true
+}
 
 type globalCfg struct {
 	DisplayName       string   `yaml:"displayName"`
@@ -125,9 +143,21 @@ func (c *GlobalCfgProcessor) Update(key string, server *MCPServerSTDIO) error {
 		return fmt.Errorf("unknown config path for OS %s", runtime.GOOS)
 	}
 
-	// Use first existing path, or first path if none exist
-	var targetPath string
+	// Filter out paths with undefined environment variables
+	var validPaths []string
 	for _, path := range paths {
+		if isPathValid(path) {
+			validPaths = append(validPaths, path)
+		}
+	}
+
+	if len(validPaths) == 0 {
+		return fmt.Errorf("no valid config paths found (all paths contain undefined environment variables)")
+	}
+
+	// Use first existing path, or first valid path if none exist
+	var targetPath string
+	for _, path := range validPaths {
 		fullPath := os.ExpandEnv(path)
 		if _, err := os.Stat(fullPath); err == nil {
 			targetPath = fullPath
@@ -135,7 +165,7 @@ func (c *GlobalCfgProcessor) Update(key string, server *MCPServerSTDIO) error {
 		}
 	}
 	if targetPath == "" {
-		targetPath = os.ExpandEnv(paths[0])
+		targetPath = os.ExpandEnv(validPaths[0])
 	}
 
 	return updateConfig(targetPath, c.p.Add, c.p.Del, key, server)

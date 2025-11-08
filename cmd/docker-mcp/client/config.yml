@@ -24,12 +24,16 @@ system:
     installCheckPaths:
       - $HOME/.claude
       - $USERPROFILE\.claude
+      - $CLAUDE_CONFIG_DIR
     paths:
       linux:
+        - $CLAUDE_CONFIG_DIR/.claude.json
         - $HOME/.claude.json
       darwin:
+        - $CLAUDE_CONFIG_DIR/.claude.json
         - $HOME/.claude.json
       windows:
+        - $CLAUDE_CONFIG_DIR\.claude.json
         - $USERPROFILE\.claude.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
