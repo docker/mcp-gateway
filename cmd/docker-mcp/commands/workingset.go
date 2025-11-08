@@ -29,6 +29,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(createWorkingSetCommand())
 	cmd.AddCommand(removeWorkingSetCommand())
 	cmd.AddCommand(configWorkingSetCommand())
+	cmd.AddCommand(toolsWorkingSetCommand())
 	return cmd
 }
 
@@ -63,6 +64,49 @@ func configWorkingSetCommand() *cobra.Command {
 	flags.StringArrayVar(&del, "del", []string{}, "Delete configuration values: <key> (can be specified multiple times)")
 	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func toolsWorkingSetCommand() *cobra.Command {
+	var add []string
+	var remove []string
+
+	cmd := &cobra.Command{
+		Use:   "tools <working-set-id> [--add <tool> ...] [--remove <tool> ...]",
+		Short: "Manage tool allowlist for servers in a working set",
+		Long: `Manage the tool allowlist for servers in a working set.
+Tools are specified using dot notation: <serverName>.<toolName>
+
+Use --add to enable tools for a server (can be specified multiple times).
+Use --remove to disable tools for a server (can be specified multiple times).
+
+To view enabled tools, use: docker mcp workingset show <working-set-id>`,
+		Example: `  # Add tools to a server's allowlist
+  docker mcp workingset tools my-set --add github.create_issue --add github.list_repos
+
+  # Remove tools from a server's allowlist
+  docker mcp workingset tools my-set --remove github.create_issue --remove github.search_code
+
+  # Add and remove in one command
+  docker mcp workingset tools my-set --add github.create_issue --remove github.search_code
+
+  # View all enabled tools in the working set
+  docker mcp workingset show my-set`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			ociService := oci.NewService()
+			return workingset.UpdateTools(cmd.Context(), dao, ociService, args[0], add, remove)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&add, "add", []string{}, "Add tools to allowlist: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&remove, "remove", []string{}, "Remove tools from allowlist: <serverName>.<toolName> (repeatable)")
 
 	return cmd
 }
