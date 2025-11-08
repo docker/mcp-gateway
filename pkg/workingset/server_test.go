@@ -3,9 +3,10 @@ package workingset
 import (
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 var oneServerError = "at least one server must be specified"
@@ -22,7 +23,7 @@ func TestAddOneServerToWorkingSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 	}
 
@@ -47,7 +48,7 @@ func TestAddMultipleServersToWorkingSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
 	}
@@ -74,7 +75,7 @@ func TestAddRegistryServerToWorkingSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var servers = []string{
+	servers := []string{
 		"https://example.com/v0/servers/server1",
 	}
 
@@ -99,7 +100,7 @@ func TestAddMixTypeServerToWorkingSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
 	}
@@ -126,7 +127,7 @@ func TestAddNoServersToWorkingSet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	var servers = []string{}
+	servers := []string{}
 
 	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", servers)
 	require.Error(t, err)
@@ -137,74 +138,77 @@ func TestRemoveOneServerFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	var serverName = "https://example.com/v0/servers/server1"
-	var setId = "test-set"
+	serverName := "https://example.com/v0/servers/server1"
+	setID := "test-set"
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "test-set", []string{
 		serverName,
 	})
 	require.NoError(t, err)
 
-	dbSet, err := dao.GetWorkingSet(ctx, setId)
+	dbSet, err := dao.GetWorkingSet(ctx, setID)
+	require.NoError(t, err)
 	assert.Len(t, dbSet.Servers, 1)
 
-	err = RemoveServers(ctx, dao, setId, []string{
+	err = RemoveServers(ctx, dao, setID, []string{
 		"https://example.com/v0/servers/server1/versions/0.1.0",
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	dbSet, err = dao.GetWorkingSet(ctx, setId)
-	assert.NoError(t, err)
+	dbSet, err = dao.GetWorkingSet(ctx, setID)
+	require.NoError(t, err)
 
-	assert.Len(t, dbSet.Servers, 0)
+	assert.Empty(t, dbSet.Servers)
 }
 
 func TestRemoveMultipleServersFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	var workingSetId = "test-set"
+	workingSetID := "test-set"
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetId, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
 	require.NoError(t, err)
 
-	dbSet, err := dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
+	require.NoError(t, err)
 	assert.Len(t, dbSet.Servers, 2)
 
-	err = RemoveServers(ctx, dao, workingSetId, servers)
+	err = RemoveServers(ctx, dao, workingSetID, servers)
 	require.NoError(t, err)
 
-	dbSet, err = dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err = dao.GetWorkingSet(ctx, workingSetID)
 	require.NoError(t, err)
-	assert.Len(t, dbSet.Servers, 0)
+	assert.Empty(t, dbSet.Servers)
 }
 
 func TestRemoveOneOfManyServerFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	var workingSetId = "test-set"
+	workingSetID := "test-set"
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetId, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
 	require.NoError(t, err)
 
-	dbSet, err := dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
+	require.NoError(t, err)
 	assert.Len(t, dbSet.Servers, 2)
 
-	err = RemoveServers(ctx, dao, workingSetId, []string{servers[0]})
+	err = RemoveServers(ctx, dao, workingSetID, []string{servers[0]})
 	require.NoError(t, err)
 
-	dbSet, err = dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err = dao.GetWorkingSet(ctx, workingSetID)
 	require.NoError(t, err)
 	assert.Len(t, dbSet.Servers, 1)
 	assert.Equal(t, "anotherimage:v1.0", dbSet.Servers[0].Image)
@@ -214,45 +218,46 @@ func TestRemoveMixTypeServerFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	var workingSetId = "test-set"
+	workingSetID := "test-set"
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetId, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
 	require.NoError(t, err)
 
-	dbSet, err := dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
+	require.NoError(t, err)
 	assert.Len(t, dbSet.Servers, 2)
 
-	err = RemoveServers(ctx, dao, workingSetId, []string{
+	err = RemoveServers(ctx, dao, workingSetID, []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1/versions/0.1.0",
 	})
 	require.NoError(t, err)
 
-	dbSet, err = dao.GetWorkingSet(ctx, workingSetId)
+	dbSet, err = dao.GetWorkingSet(ctx, workingSetID)
 	require.NoError(t, err)
-	assert.Len(t, dbSet.Servers, 0)
+	assert.Empty(t, dbSet.Servers)
 }
 
 func TestRemoveNoServersFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	var workingSetId = "test-set"
+	workingSetID := "test-set"
 
-	var servers = []string{
+	servers := []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetId, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
 	require.NoError(t, err)
 
-	err = RemoveServers(ctx, dao, workingSetId, []string{})
+	err = RemoveServers(ctx, dao, workingSetID, []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), oneServerError)
 }
