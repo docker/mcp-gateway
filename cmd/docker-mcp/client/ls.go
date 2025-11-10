@@ -17,6 +17,7 @@ const (
 	vendorGordon        = "gordon"
 	vendorZed           = "zed"
 	vendorCodex         = "codex"
+	vendorAmazonQ       = "amazon-q"
 )
 
 const (
