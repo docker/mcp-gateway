@@ -99,8 +99,7 @@ To view enabled tools, use: docker mcp workingset show <working-set-id>`,
 			if err != nil {
 				return err
 			}
-			ociService := oci.NewService()
-			return workingset.UpdateTools(cmd.Context(), dao, ociService, args[0], add, remove)
+			return workingset.UpdateTools(cmd.Context(), dao, args[0], add, remove)
 		},
 	}
 
