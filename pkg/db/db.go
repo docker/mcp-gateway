@@ -12,6 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/user"
 
 	// This enables to sqlite driver
@@ -20,6 +21,7 @@ import (
 
 type DAO interface {
 	WorkingSetDAO
+	CatalogDAO
 }
 
 type dao struct {
@@ -98,4 +100,14 @@ func DefaultDatabaseFilename() (string, error) {
 		return "", err
 	}
 	return filepath.Join(homeDir, ".docker", "mcp", "mcp-toolkit.db"), nil
+}
+
+func txClose(tx *sqlx.Tx, err *error) {
+	if err == nil || *err == nil {
+		return
+	}
+
+	if txerr := tx.Rollback(); txerr != nil {
+		log.Logf("failed to rollback transaction: %v", txerr)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -45,7 +46,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	for i, server := range servers {
 		s, err := resolveServerFromString(ctx, registryClient, ociService, server)
 		if err != nil {
-			return fmt.Errorf("invalid server value: %w", err)
+			return err
 		}
 		workingSet.Servers[i] = s
 	}
@@ -62,4 +63,35 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	fmt.Printf("Created working set %s with %d servers\n", id, len(workingSet.Servers))
 
 	return nil
+}
+
+func resolveServerFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, value string) (Server, error) {
+	if v, ok := strings.CutPrefix(value, "docker://"); ok {
+		fullRef, err := ResolveImageRef(ctx, ociService, v)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve image ref: %w", err)
+		}
+		serverSnapshot, err := ResolveImageSnapshot(ctx, ociService, fullRef)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve image snapshot: %w", err)
+		}
+		return Server{
+			Type:     ServerTypeImage,
+			Image:    fullRef,
+			Secrets:  "default",
+			Snapshot: serverSnapshot,
+		}, nil
+	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
+		url, err := ResolveRegistry(ctx, registryClient, value)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve registry: %w", err)
+		}
+		return Server{
+			Type:    ServerTypeRegistry,
+			Source:  url,
+			Secrets: "default",
+			// TODO(cody): add snapshot
+		}, nil
+	}
+	return Server{}, fmt.Errorf("invalid server value: %s", value)
 }
