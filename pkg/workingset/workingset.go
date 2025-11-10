@@ -228,6 +228,37 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	return "", fmt.Errorf("failed to create working set id")
 }
 
+func resolveServerFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, value string) (Server, error) {
+	if v, ok := strings.CutPrefix(value, "docker://"); ok {
+		fullRef, err := ResolveImageRef(ctx, ociService, v)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve image ref: %w", err)
+		}
+		serverSnapshot, err := ResolveImageSnapshot(ctx, ociService, fullRef)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve image snapshot: %w", err)
+		}
+		return Server{
+			Type:     ServerTypeImage,
+			Image:    fullRef,
+			Secrets:  "default",
+			Snapshot: serverSnapshot,
+		}, nil
+	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
+		url, err := ResolveRegistry(ctx, registryClient, value)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to resolve registry: %w", err)
+		}
+		return Server{
+			Type:    ServerTypeRegistry,
+			Source:  url,
+			Secrets: "default",
+			// TODO(cody): add snapshot
+		}, nil
+	}
+	return Server{}, fmt.Errorf("invalid server value: %s", value)
+}
+
 func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) (string, error) {
 	ref, err := name.ParseReference(value)
 	if err != nil {
