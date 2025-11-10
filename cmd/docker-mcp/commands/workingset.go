@@ -325,9 +325,6 @@ func addServerCommand() *cobra.Command {
   docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(servers) == 0 {
-				return fmt.Errorf("at least one --server flag must be specified")
-			}
 			dao, err := db.New()
 			if err != nil {
 				return err
@@ -345,35 +342,29 @@ func addServerCommand() *cobra.Command {
 }
 
 func removeServerCommand() *cobra.Command {
-	var servers []string
+	var names []string
 
 	cmd := &cobra.Command{
-		Use:   "remove <working-set-id> --server <ref1> --server <ref2> ...",
+		Use:   "remove <working-set-id> --name <name1> --name <name2> ...",
 		Short: "Remove MCP servers from a working set",
-		Long:  "Remove MCP servers from a working set by server reference.",
-		Example: ` # Remove servers with OCI references
-  docker mcp workingset server remove my-working-set --server docker://mcp/github:latest --server docker://mcp/slack:latest
+		Long:  "Remove MCP servers from a working set by server name.",
+		Example: ` # Remove servers by name
+  docker mcp workingset server remove my-working-set --name github --name slack
 
-  # Remove servers with MCP Registry references
-  docker mcp workingset server remove my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
-
-  # Mix MCP Registry references and OCI references
-  docker mcp workingset server remove my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest`,
+  # Remove a single server
+  docker mcp workingset server remove my-working-set --name github`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(servers) == 0 {
-				return fmt.Errorf("at least one --server flag must be specified")
-			}
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return workingset.RemoveServers(cmd.Context(), dao, args[0], servers)
+			return workingset.RemoveServers(cmd.Context(), dao, args[0], names)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&servers, "server", []string{}, "Server to remove: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
+	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
 
 	return cmd
 }

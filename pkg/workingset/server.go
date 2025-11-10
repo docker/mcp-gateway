@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -26,10 +25,6 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 	}
 
 	workingSet := NewFromDb(dbWorkingSet)
-
-	if err := workingSet.EnsureSnapshotsResolved(ctx, ociService); err != nil {
-		return fmt.Errorf("failed to resolve snapshots: %w", err)
-	}
 
 	newServers := make([]Server, len(servers))
 	for i, server := range servers {
@@ -56,8 +51,8 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 	return nil
 }
 
-func RemoveServers(ctx context.Context, dao db.DAO, id string, serverRefs []string) error {
-	if len(serverRefs) == 0 {
+func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []string) error {
+	if len(serverNames) == 0 {
 		return fmt.Errorf("at least one server must be specified")
 	}
 
@@ -71,31 +66,16 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverRefs []stri
 
 	workingSet := NewFromDb(dbWorkingSet)
 
-	// Build a set of servers to remove (strip protocol scheme for comparison)
-	refsToRemove := make(map[string]bool)
-	for _, ref := range serverRefs {
-		normalized := stripProtocol(ref)
-		refsToRemove[normalized] = true
+	namesToRemove := make(map[string]bool)
+	for _, name := range serverNames {
+		namesToRemove[name] = true
 	}
 
-	// Filter out the servers to remove
 	originalCount := len(workingSet.Servers)
 	filtered := make([]Server, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
-		shouldKeep := true
-
-		switch server.Type {
-		case ServerTypeImage:
-			if refsToRemove[stripProtocol(server.Image)] {
-				shouldKeep = false
-			}
-		case ServerTypeRegistry:
-			if refsToRemove[stripProtocol(server.Source)] {
-				shouldKeep = false
-			}
-		}
-
-		if shouldKeep {
+		// TODO: Remove when Snapshot is required
+		if server.Snapshot == nil || !namesToRemove[server.Snapshot.Server.Name] {
 			filtered = append(filtered, server)
 		}
 	}
@@ -119,12 +99,4 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverRefs []stri
 	fmt.Printf("Removed %d server(s) from working set %s\n", removedCount, id)
 
 	return nil
-}
-
-// stripProtocol removes the protocol scheme (everything before and including "://") from a URI
-func stripProtocol(uri string) string {
-	if idx := strings.Index(uri, "://"); idx != -1 {
-		return uri[idx+3:]
-	}
-	return uri
 }

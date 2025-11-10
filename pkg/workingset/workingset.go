@@ -150,7 +150,27 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 }
 
 func (workingSet *WorkingSet) Validate() error {
-	return validate.Get().Struct(workingSet)
+	err := validate.Get().Struct(workingSet)
+	if err != nil {
+		return err
+	}
+	return workingSet.validateUniqueServerNames()
+}
+
+func (workingSet *WorkingSet) validateUniqueServerNames() error {
+	seen := make(map[string]bool)
+	for _, server := range workingSet.Servers {
+		// TODO: Update when Snapshot is required
+		if server.Snapshot == nil {
+			continue
+		}
+		name := server.Snapshot.Server.Name
+		if seen[name] {
+			return fmt.Errorf("duplicate server name %s", name)
+		}
+		seen[name] = true
+	}
+	return nil
 }
 
 func (workingSet *WorkingSet) FindServer(serverName string) *Server {
