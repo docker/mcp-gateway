@@ -38,7 +38,7 @@ func (c *MCPServerSTDIO) String() string {
 }
 
 func (c *MCPServerSTDIO) GetWorkingSet() string {
-	for i := 0; i < len(c.Args); i++ {
+	for i := range len(c.Args) {
 		arg := c.Args[i]
 		if arg == "--working-set" || arg == "-w" {
 			if i+1 < len(c.Args) {
