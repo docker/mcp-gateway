@@ -37,7 +37,7 @@ func Push(ctx context.Context, dao db.DAO, digest string, refStr string) error {
 
 	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, catalog, nil)
 	if err != nil {
-		return fmt.Errorf("failed to push working set artifact: %w", err)
+		return fmt.Errorf("failed to push catalog artifact: %w", err)
 	}
 
 	fmt.Printf("Pushed catalog to %s@sha256:%s\n", oci.FullName(ref), hash)
