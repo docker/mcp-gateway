@@ -18,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -78,9 +79,7 @@ type Gateway struct {
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	var configurator Configurator
 	if config.WorkingSet != "" {
-		configurator = &WorkingSetConfiguration{
-			WorkingSet: config.WorkingSet,
-		}
+		configurator = NewWorkingSetConfiguration(config.WorkingSet, oci.NewService(), docker)
 	} else {
 		// Prepend session-specific paths if SessionName is set
 		registryPath := config.RegistryPath

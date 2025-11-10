@@ -7,11 +7,13 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/validate"
@@ -151,6 +153,49 @@ func (workingSet *WorkingSet) Validate() error {
 	return validate.Get().Struct(workingSet)
 }
 
+func (workingSet *WorkingSet) FindServer(serverName string) *Server {
+	for i := range len(workingSet.Servers) {
+		if workingSet.Servers[i].Snapshot == nil {
+			// TODO(cody): Can happen with registry (for now)
+			continue
+		}
+		if workingSet.Servers[i].Snapshot.Server.Name == serverName {
+			return &workingSet.Servers[i]
+		}
+	}
+	return nil
+}
+
+func (workingSet *WorkingSet) EnsureSnapshotsResolved(ctx context.Context, ociService oci.Service) error {
+	// Ensure all snapshots are resolved
+	for i := range len(workingSet.Servers) {
+		if workingSet.Servers[i].Snapshot != nil {
+			continue
+		}
+		log.Log(fmt.Sprintf("Server %s has no snapshot, lazy loading the snapshot...\n", workingSet.Servers[i].BasicName()))
+		snapshot, err := ResolveSnapshot(ctx, ociService, workingSet.Servers[i])
+		if err != nil {
+			return fmt.Errorf("failed to resolve snapshot for server[%d]: %w", i, err)
+		}
+		// TODO(cody): Can be nil with registry (for now)
+		if snapshot != nil {
+			workingSet.Servers[i].Snapshot = snapshot
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) BasicName() string {
+	switch s.Type {
+	case ServerTypeImage:
+		return s.Image
+	case ServerTypeRegistry:
+		return s.Source
+	}
+	return "unknown"
+}
+
 func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, error) {
 	// Replace all non-alphanumeric characters with a hyphen and make all uppercase lowercase
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
@@ -197,30 +242,42 @@ func resolveImage(ctx context.Context, ociService oci.Service, value string) (Se
 	if err != nil {
 		return Server{}, fmt.Errorf("failed to parse reference: %w", err)
 	}
-	digest, err := ociService.GetImageDigest(ctx, ref)
-	if err != nil {
-		return Server{}, fmt.Errorf("failed to get image digest: %w", err)
+	isRemote := false
+	img, err := ociService.GetLocalImage(ctx, ref)
+	if oci.IsNoSuchImageError(err) {
+		img, err = ociService.GetRemoteImage(ctx, ref)
+		isRemote = true
 	}
-	var refWithDigest string
-	if hasDigest(ref) {
-		refWithDigest = ref.String()
+	if err != nil {
+		return Server{}, fmt.Errorf("failed to get image: %w", err)
+	}
+	var fullRef string
+	if !isRemote || hasDigest(ref) {
+		// Local images shouldn't be referenced by a digest
+		fullRef = ref.String()
 	} else {
-		refWithDigest = fmt.Sprintf("%s@%s", ref, digest)
+		// Remotes should be pinned to a digest
+		digest, err := ociService.GetImageDigest(img)
+		if err != nil {
+			return Server{}, fmt.Errorf("failed to get image digest: %w", err)
+		}
+		fullRef = fmt.Sprintf("%s@%s", ref.String(), digest)
 	}
 
-	serverSnapshot, err := getCatalogServerFromImage(ctx, ociService, ref)
-	if err != nil {
-		return Server{}, fmt.Errorf("failed to validate self-contained image: %w", err)
-	}
-
-	return Server{
+	server := Server{
 		Type:    ServerTypeImage,
-		Image:   refWithDigest,
+		Image:   fullRef,
 		Secrets: "default",
-		Snapshot: &ServerSnapshot{
-			Server: serverSnapshot,
-		},
-	}, nil
+	}
+
+	serverSnapshot, err := resolveImageSnapshot(ctx, ociService, server)
+	if err != nil {
+		return Server{}, fmt.Errorf("failed to resolve image snapshot: %w", err)
+	}
+
+	server.Snapshot = serverSnapshot
+
+	return server, nil
 }
 
 func resolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (Server, error) {
@@ -293,7 +350,22 @@ func resolveImageSnapshot(ctx context.Context, ociService oci.Service, server Se
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse reference: %w", err)
 	}
-	serverSnapshot, err := getCatalogServerFromImage(ctx, ociService, ref)
+
+	var img v1.Image
+	// Anything with a digest should be a remote image
+	if hasDigest(ref) {
+		img, err = ociService.GetRemoteImage(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get remote image: %w", err)
+		}
+	} else {
+		img, err = ociService.GetLocalImage(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get local image: %w", err)
+		}
+	}
+
+	serverSnapshot, err := getCatalogServerFromImage(ociService, img, server.Image)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get catalog server from image: %w", err)
 	}
@@ -312,21 +384,24 @@ func resolveLatestVersion(versions v0.ServerListResponse) (string, error) {
 	return "", fmt.Errorf("no latest version found")
 }
 
-func getCatalogServerFromImage(ctx context.Context, ociService oci.Service, ref name.Reference) (catalog.Server, error) {
-	labels, err := ociService.GetImageLabels(ctx, ref)
+func getCatalogServerFromImage(ociService oci.Service, img v1.Image, name string) (catalog.Server, error) {
+	labels, err := ociService.GetImageLabels(img)
 	if err != nil {
 		return catalog.Server{}, fmt.Errorf("failed to get image labels: %w", err)
 	}
 	metadataLabel := labels["io.docker.server.metadata"]
 	if metadataLabel == "" {
-		return catalog.Server{}, fmt.Errorf("image %s is not a self-describing image", fullName(ref))
+		return catalog.Server{}, fmt.Errorf("image %s is not a self-describing image", name)
 	}
 
 	// Basic parsing validation
 	var server catalog.Server
 	if err := yaml.Unmarshal([]byte(metadataLabel), &server); err != nil {
-		return catalog.Server{}, fmt.Errorf("failed to parse metadata label for %s: %w", fullName(ref), err)
+		return catalog.Server{}, fmt.Errorf("failed to parse metadata label for %s: %w", name, err)
 	}
+
+	server.Type = "server"
+	server.Image = name
 
 	return server, nil
 }

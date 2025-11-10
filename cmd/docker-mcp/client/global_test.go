@@ -211,3 +211,37 @@ func TestGlobalCfgProcessor_SinglePath(t *testing.T) {
 	assert.True(t, result.IsOsSupported)
 	assert.Nil(t, result.Err)
 }
+
+func TestGlobalCfgProcessor_SingleWorkingSet(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--working-set", "test-set"]}}}`), 0o644))
+
+	cfg := newTestGlobalCfg()
+	setPathsForCurrentOS(&cfg, []string{configPath})
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	result := processor.ParseConfig()
+	assert.True(t, result.IsMCPCatalogConnected)
+	assert.Equal(t, "test-set", result.WorkingSet)
+}
+
+func TestGlobalCfgProcessor_NoWorkingSet(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run"]}}}`), 0o644))
+
+	cfg := newTestGlobalCfg()
+	setPathsForCurrentOS(&cfg, []string{configPath})
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	result := processor.ParseConfig()
+	assert.True(t, result.IsMCPCatalogConnected)
+	assert.Empty(t, result.WorkingSet)
+}

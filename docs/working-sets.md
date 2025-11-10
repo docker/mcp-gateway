@@ -123,6 +123,76 @@ docker mcp workingset rm my-working-set
 
 **Note:** This only removes the working set definition, not the actual server images or registry entries.
 
+### Configuring Working Set Servers
+
+Manage configuration values for servers within a working set:
+
+```bash
+# Set a single configuration value
+docker mcp workingset config my-working-set --set github.timeout=30
+
+# Set multiple configuration values
+docker mcp workingset config my-working-set \
+  --set github.timeout=30 \
+  --set github.maxRetries=3 \
+  --set slack.channel=general
+
+# Get a specific configuration value
+docker mcp workingset config my-working-set --get github.timeout
+
+# Get multiple configuration values
+docker mcp workingset config my-working-set \
+  --get github.timeout \
+  --get github.maxRetries
+
+# Get all configuration values
+docker mcp workingset config my-working-set --get-all
+
+# Delete configuration values
+docker mcp workingset config my-working-set --del github.maxRetries
+
+# Combine operations (set new values and get existing ones)
+docker mcp workingset config my-working-set \
+  --set github.timeout=60 \
+  --get github.maxRetries
+
+# Output in JSON format
+docker mcp workingset config my-working-set --get-all --format json
+
+# Output in YAML format
+docker mcp workingset config my-working-set --get-all --format yaml
+```
+
+**Configuration format:**
+- `--set`: Format is `<server-name>.<config-key>=<value>` (can be specified multiple times)
+- `--get`: Format is `<server-name>.<config-key>` (can be specified multiple times)
+- `--del`: Format is `<server-name>.<config-key>` (can be specified multiple times)
+- `--get-all`: Retrieves all configuration values from all servers in the working set
+- `--format`: Output format - `human` (default), `json`, or `yaml`
+
+**Important notes:**
+- The server name must match the name from the server's snapshot (not the image or source URL)
+- Use `docker mcp workingset show <working-set-id> --format yaml` to see available server names
+- Configuration changes are persisted immediately to the working set
+- You cannot both `--set` and `--del` the same key in a single command
+- **Note**: Config is for non-sensitive settings. Use secrets management for API keys, tokens, and passwords.
+
+### Managing Secrets for Working Set Servers
+
+Secrets provide secure storage for sensitive values like API keys, tokens, and passwords. Unlike configuration values, secrets are stored securely and never displayed in plain text.
+
+```bash
+# Set a secret for a server in a working set
+docker mcp secret set github.pat=ghp_xxxxx
+```
+
+**Secret format:**
+- Format is `<server-name>.<secret-key>=<value>`
+- The server name must match the name from the server's snapshot
+- Secrets are stored in Docker Desktop's secure secret store
+
+**Current Limitation**: Secrets are scoped across all servers rather than for each working set. We plan to address this.
+
 ### Exporting Working Sets
 
 Export a working set to a file for backup or sharing:
@@ -407,8 +477,9 @@ docker mcp workingset pull docker.io/myorg/my-tools:1.1
 
 ### Security Considerations
 
-- Working sets use Docker Desktop's secret store by default
-- Don't commit exported working sets with sensitive config to version control
+- Always use `docker mcp secret set` for sensitive values (API keys, tokens, passwords)
+- Never use `docker mcp workingset config` for secrets - it's for non-sensitive settings only
+- Secrets are stored in Docker Desktop's secure secret store
 - Use private OCI registries for proprietary server configurations
 - Review server references before importing from external sources
 
@@ -467,18 +538,54 @@ Error: unsupported file extension: .txt, must be .yaml or .json
 
 **Solution**: Use `.yaml` or `.json` file extensions
 
+### Invalid Config Format
+
+```bash
+Error: invalid config argument: myconfig, expected <serverName>.<configName>=<value>
+```
+
+**Solution**: Ensure config arguments follow the correct format:
+- For `--set`: `<server-name>.<config-key>=<value>` (e.g., `github.timeout=30`)
+- For `--get`: `<server-name>.<config-key>` (e.g., `github.timeout`)
+- For `--del`: `<server-name>.<config-key>` (e.g., `github.timeout`)
+
+### Server Not Found in Config Command
+
+```bash
+Error: server github not found in working set
+```
+
+**Solution**: 
+- Use `docker mcp workingset show <working-set-id>` to see available server names
+- Ensure you're using the server's name from its snapshot, not the image name or source URL
+- Server names are case-sensitive
+
+### Cannot Delete and Set Same Config
+
+```bash
+Error: cannot both delete and set the same config value: github.timeout
+```
+
+**Solution**: Don't use `--set` and `--del` for the same key in a single command. Run them separately:
+```bash
+# First delete
+docker mcp workingset config my-set --del github.timeout
+# Then set (if needed)
+docker mcp workingset config my-set --set github.timeout=60
+```
+
 ## Limitations and Future Enhancements
 
 ### Current Limitations
 
-- Gateway support is limited to image-only servers (no config/secrets yet)
+- Gateway support is limited to image-only servers
 - No automatic watch/reload when working sets are updated
 - Limited to Docker Desktop's secret store for secrets
 - No built-in conflict resolution for duplicate server names
 
 ### Planned Enhancements
 
-- Full config and secrets support in gateway
+- Full registry support in the gateway
 - Integration with catalog management
 - Search and discovery features
 
