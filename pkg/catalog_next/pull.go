@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/google/go-containerregistry/pkg/name"
 )
 
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {

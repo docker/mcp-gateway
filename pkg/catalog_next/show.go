@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goccy/go-yaml"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/goccy/go-yaml"
 )
 
 func Show(ctx context.Context, dao db.DAO, digest string, format workingset.OutputFormat) error {

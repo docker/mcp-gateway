@@ -152,7 +152,7 @@ func (d *dao) ListCatalogs(ctx context.Context) ([]Catalog, error) {
 
 	catalogs := make([]Catalog, len(rows))
 	for i, row := range rows {
-		if err := json.Unmarshal([]byte(row.ServerJSON), &row.Catalog.Servers); err != nil {
+		if err := json.Unmarshal([]byte(row.ServerJSON), &row.Servers); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal servers: %w", err)
 		}
 		catalogs[i] = row.Catalog

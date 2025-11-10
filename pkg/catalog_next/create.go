@@ -10,11 +10,11 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func CreateFromWorkingSet(ctx context.Context, dao db.DAO, workingSetId string, name string) error {
-	dbWorkingSet, err := dao.GetWorkingSet(ctx, workingSetId)
+func CreateFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID string, name string) error {
+	dbWorkingSet, err := dao.GetWorkingSet(ctx, workingSetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", workingSetId)
+			return fmt.Errorf("working set %s not found", workingSetID)
 		}
 		return fmt.Errorf("failed to get working set: %w", err)
 	}
@@ -40,7 +40,7 @@ func CreateFromWorkingSet(ctx context.Context, dao db.DAO, workingSetId string, 
 	catalog := Catalog{
 		Name:    catalogName,
 		Servers: servers,
-		Source:  "working-set:" + workingSetId,
+		Source:  "working-set:" + workingSetID,
 	}
 
 	if err := catalog.Validate(); err != nil {

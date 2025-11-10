@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
 func TestCreateCatalogAndGetCatalog(t *testing.T) {

@@ -3,9 +3,10 @@ package catalognext
 import (
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func TestRemove(t *testing.T) {

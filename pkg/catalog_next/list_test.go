@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func captureStdout(t *testing.T, fn func()) string {

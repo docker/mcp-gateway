@@ -5,11 +5,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	catalognext "github.com/docker/mcp-gateway/pkg/catalog_next"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/spf13/cobra"
 )
 
 func catalogNextCommand() *cobra.Command {
@@ -38,7 +39,7 @@ func createCatalogNextCommand() *cobra.Command {
 		Use:   "create --from-working-set <working-set-id> [--name <name>]",
 		Short: "Create a new catalog from a working set",
 		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			dao, err := db.New()
 			if err != nil {
 				return err
@@ -90,7 +91,7 @@ func listCatalogNextCommand() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List catalogs",
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			supported := slices.Contains(workingset.SupportedFormats(), format)
 			if !supported {
 				return fmt.Errorf("unsupported format: %s", format)

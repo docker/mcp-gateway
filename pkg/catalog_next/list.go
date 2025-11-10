@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goccy/go-yaml"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/goccy/go-yaml"
 )
 
 func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error {
