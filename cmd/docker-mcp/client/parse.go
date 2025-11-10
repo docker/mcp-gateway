@@ -37,18 +37,16 @@ func (c *MCPServerSTDIO) String() string {
 	return result
 }
 
-func (c *MCPServerSTDIO) GetWorkingSets() []string {
-	var workingSets []string
+func (c *MCPServerSTDIO) GetWorkingSet() string {
 	for i := 0; i < len(c.Args); i++ {
 		arg := c.Args[i]
 		if arg == "--working-set" || arg == "-w" {
 			if i+1 < len(c.Args) {
-				workingSets = append(workingSets, c.Args[i+1])
-				i++
+				return c.Args[i+1]
 			}
 		}
 	}
-	return workingSets
+	return ""
 }
 
 type MCPServerSSE struct {

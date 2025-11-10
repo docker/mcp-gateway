@@ -141,7 +141,7 @@ type MCPClientCfgBase struct {
 	Icon                  string    `json:"icon"`
 	ConfigName            string    `json:"configName"`
 	IsMCPCatalogConnected bool      `json:"dockerMCPCatalogConnected"`
-	WorkingSets           []string  `json:"workingsets"`
+	WorkingSet            string    `json:"workingset"`
 	Err                   *CfgError `json:"error"`
 
 	cfg *MCPJSONLists
@@ -153,7 +153,7 @@ func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
 		server := containsMCPDocker(lists.STDIOServers)
 		if server.Name != "" {
 			c.IsMCPCatalogConnected = true
-			c.WorkingSets = server.GetWorkingSets()
+			c.WorkingSet = server.GetWorkingSet()
 		}
 	}
 	c.cfg = lists

@@ -226,27 +226,7 @@ func TestGlobalCfgProcessor_SingleWorkingSet(t *testing.T) {
 
 	result := processor.ParseConfig()
 	assert.True(t, result.IsMCPCatalogConnected)
-	require.Len(t, result.WorkingSets, 1)
-	assert.Equal(t, "test-set", result.WorkingSets[0])
-}
-
-func TestGlobalCfgProcessor_MultipleWorkingSets(t *testing.T) {
-	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "config.json")
-
-	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--working-set", "ws1", "--working-set", "ws2"]}}}`), 0o644))
-
-	cfg := newTestGlobalCfg()
-	setPathsForCurrentOS(&cfg, []string{configPath})
-
-	processor, err := NewGlobalCfgProcessor(cfg)
-	require.NoError(t, err)
-
-	result := processor.ParseConfig()
-	assert.True(t, result.IsMCPCatalogConnected)
-	require.Len(t, result.WorkingSets, 2)
-	assert.Equal(t, "ws1", result.WorkingSets[0])
-	assert.Equal(t, "ws2", result.WorkingSets[1])
+	assert.Equal(t, "test-set", result.WorkingSet)
 }
 
 func TestGlobalCfgProcessor_NoWorkingSet(t *testing.T) {
@@ -263,5 +243,5 @@ func TestGlobalCfgProcessor_NoWorkingSet(t *testing.T) {
 
 	result := processor.ParseConfig()
 	assert.True(t, result.IsMCPCatalogConnected)
-	assert.Empty(t, result.WorkingSets)
+	assert.Empty(t, result.WorkingSet)
 }
