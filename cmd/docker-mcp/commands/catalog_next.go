@@ -31,28 +31,37 @@ func catalogNextCommand() *cobra.Command {
 
 func createCatalogNextCommand() *cobra.Command {
 	var opts struct {
-		Name           string
-		FromWorkingSet string
+		Name              string
+		FromWorkingSet    string
+		FromLegacyCatalog string
+		RemoveExisting    bool
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create --from-working-set <working-set-id> [--name <name>]",
-		Short: "Create a new catalog from a working set",
+		Use:   "create [--from-working-set <working-set-id>] [--from-legacy-catalog <url>] [--name <name>] [--remove-existing]",
+		Short: "Create a new catalog from a working set or legacy catalog",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if opts.FromWorkingSet == "" && opts.FromLegacyCatalog == "" {
+				return fmt.Errorf("either --from-working-set or --from-legacy-catalog must be provided")
+			}
+			if opts.FromWorkingSet != "" && opts.FromLegacyCatalog != "" {
+				return fmt.Errorf("cannot use both --from-working-set and --from-legacy-catalog")
+			}
+
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return catalognext.CreateFromWorkingSet(cmd.Context(), dao, opts.FromWorkingSet, opts.Name)
+			return catalognext.Create(cmd.Context(), dao, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Name, opts.RemoveExisting)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&opts.FromWorkingSet, "from-working-set", "", "Working set ID to create the catalog from (required)")
-	flags.StringVar(&opts.Name, "name", "", "Name of the catalog (defaults to the working set name)")
-
-	_ = cmd.MarkFlagRequired("from-working-set")
+	flags.StringVar(&opts.FromWorkingSet, "from-working-set", "", "Working set ID to create the catalog from")
+	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
+	flags.StringVar(&opts.Name, "name", "", "Name of the catalog")
+	flags.BoolVar(&opts.RemoveExisting, "remove-existing", false, "Remove existing catalogs that come from the same source or have the same digest")
 
 	return cmd
 }
