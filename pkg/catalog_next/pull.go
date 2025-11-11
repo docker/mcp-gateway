@@ -14,7 +14,7 @@ import (
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse OCI reference %s: %w", ref, err)
+		return fmt.Errorf("failed to parse OCI reference %s: %w", refStr, err)
 	}
 	source := oci.FullName(ref)
 
