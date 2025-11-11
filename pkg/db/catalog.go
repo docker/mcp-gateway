@@ -16,6 +16,7 @@ type CatalogDAO interface {
 	GetCatalog(ctx context.Context, digest string) (*Catalog, error)
 	CreateCatalog(ctx context.Context, catalog Catalog) error
 	DeleteCatalog(ctx context.Context, digest string) error
+	DeleteCatalogBySource(ctx context.Context, source string) error
 	ListCatalogs(ctx context.Context) ([]Catalog, error)
 }
 
@@ -123,6 +124,20 @@ func (d *dao) DeleteCatalog(ctx context.Context, digest string) error {
 	const query = `DELETE FROM catalog WHERE digest = $1`
 
 	_, err := d.db.ExecContext(ctx, query, digest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *dao) DeleteCatalogBySource(ctx context.Context, source string) error {
+	if source == "" {
+		return fmt.Errorf("source should not be empty when deleting a catalog")
+	}
+
+	const query = `DELETE FROM catalog WHERE source = $1`
+
+	_, err := d.db.ExecContext(ctx, query, source)
 	if err != nil {
 		return err
 	}

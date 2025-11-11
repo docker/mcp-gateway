@@ -19,7 +19,7 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	}
 
 	if len(dbCatalogs) == 0 && format == workingset.OutputFormatHumanReadable {
-		fmt.Println("No catalogs found. Use `docker mcp catalog-next create --from-working-set <working-set-id>` or `docker mcp catalog-next pull <oci-reference>` to create a catalog.")
+		fmt.Println("No catalogs found. Use `docker mcp catalog-next create` or `docker mcp catalog-next pull <oci-reference>` to create a catalog.")
 		return nil
 	}
 
