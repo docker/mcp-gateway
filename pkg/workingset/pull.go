@@ -9,12 +9,10 @@ import (
 )
 
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) error {
-	ociCatalog, err := oci.ReadArtifact[Catalog](ref, MCPCatalogArtifactType)
+	workingSet, err := oci.ReadArtifact[WorkingSet](ref, MCPWorkingSetArtifactType)
 	if err != nil {
 		return fmt.Errorf("failed to read OCI working set: %w", err)
 	}
-
-	workingSet := ociCatalog.ToWorkingSet()
 
 	id, err := createWorkingSetID(ctx, workingSet.Name, dao)
 	if err != nil {
