@@ -335,7 +335,8 @@ func TestCreateFromLegacyCatalog(t *testing.T) {
 	tempDir := t.TempDir()
 	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
 
-	legacyCatalogYAML := `registry:
+	legacyCatalogYAML := `name: test-catalog
+registry:
   server1:
     title: "Test Server 1"
     type: "server"
@@ -367,7 +368,7 @@ func TestCreateFromLegacyCatalog(t *testing.T) {
 
 	catalog := NewFromDb(&catalogs[0])
 	assert.Equal(t, "Imported Catalog", catalog.Name)
-	assert.Equal(t, "legacy-catalog:"+catalogFile, catalog.Source)
+	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
 	// Verify servers are sorted by name (name is the map key, not the name field)
@@ -424,7 +425,8 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) 
 	tempDir := t.TempDir()
 	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
 
-	legacyCatalogYAML := `registry:
+	legacyCatalogYAML := `name: test-catalog
+registry:
   server1:
     name: "Test Server 1"
     type: "server"
@@ -464,7 +466,7 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) 
 	catalog := NewFromDb(&catalogs[0])
 	assert.Equal(t, firstDigest, catalog.Digest)
 	assert.Equal(t, "Test Catalog", catalog.Name)
-	assert.Equal(t, "legacy-catalog:"+catalogFile, catalog.Source)
+	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 }
 
 func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testing.T) {
@@ -475,7 +477,8 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testin
 	tempDir := t.TempDir()
 	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
 
-	legacyCatalogYAML := `registry:
+	legacyCatalogYAML := `name: test-catalog
+registry:
   server1:
     title: "Test Server 1"
     type: "server"
@@ -498,7 +501,8 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testin
 	require.Len(t, catalogs, 1)
 	firstDigest := catalogs[0].Digest
 
-	legacyCatalogYAML = `registry:
+	legacyCatalogYAML = `name: test-catalog
+registry:
   server1:
     title: "Test Server 1"
     type: "server"
@@ -525,5 +529,5 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testin
 	catalog := NewFromDb(&catalogs[0])
 	assert.NotEqual(t, firstDigest, catalog.Digest)
 	assert.Equal(t, "Test Catalog", catalog.Name)
-	assert.Equal(t, "legacy-catalog:"+catalogFile, catalog.Source)
+	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 }
