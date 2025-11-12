@@ -5,10 +5,20 @@ long: Enable a server or multiple servers
 usage: docker mcp server enable
 pname: docker mcp server
 plink: docker_mcp_server.yaml
+options:
+  - option: skip-config
+    value_type: bool
+    default_value: "false"
+    description: Skip interactive configuration prompts
+    deprecated: false
+    hidden: false
+    experimental: false
+    experimentalcli: false
+    kubernetes: false
+    swarm: false
 deprecated: false
 hidden: false
 experimental: false
 experimentalcli: false
 kubernetes: false
 swarm: false
-

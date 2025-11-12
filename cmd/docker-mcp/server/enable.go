@@ -21,14 +21,14 @@ import (
 )
 
 func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
-	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled)
+	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled, false)
 }
 
-func Enable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
-	return update(ctx, docker, dockerCli, serverNames, nil, mcpOAuthDcrEnabled)
+func Enable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool, skipConfig bool) error {
+	return update(ctx, docker, dockerCli, serverNames, nil, mcpOAuthDcrEnabled, skipConfig)
 }
 
-func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, add []string, remove []string, mcpOAuthDcrEnabled bool) error {
+func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, add []string, remove []string, mcpOAuthDcrEnabled bool, skipConfig bool) error {
 	// Read registry.yaml that contains which servers are enabled.
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
@@ -94,7 +94,7 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 			}
 
 			// Check if server has secrets requirements and prompt for them
-			if len(server.Secrets) > 0 {
+			if !skipConfig && len(server.Secrets) > 0 {
 				missingSecrets := getMissingSecrets(ctx, server.Secrets)
 
 				if len(missingSecrets) > 0 {
@@ -154,7 +154,7 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 			}
 
 			// Check if server has config requirements and prompt for them
-			if len(server.Config) > 0 {
+			if !skipConfig && len(server.Config) > 0 {
 				// Get required fields that are not yet configured
 				missingConfigs := getMissingConfigs(server.Config, tile.Config)
 
