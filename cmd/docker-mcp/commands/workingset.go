@@ -345,7 +345,7 @@ func addServerCommand() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringArrayVar(&servers, "server", []string{}, "Server to include: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
-	flags.StringVar(&catalog, "catalog", "", "Catalog name to pull servers from (optional)")
+	flags.StringVar(&catalog, "catalog", "", "Catalog's digest to add servers from (optional)")
 	flags.StringArrayVar(&catalogServers, "catalog-server", []string{}, "Server names from the catalog to add (can be specified multiple times, requires --catalog)")
 
 	return cmd
