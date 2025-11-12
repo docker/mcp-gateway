@@ -355,9 +355,10 @@ func removeServerCommand() *cobra.Command {
 	var names []string
 
 	cmd := &cobra.Command{
-		Use:   "remove <working-set-id> --name <name1> --name <name2> ...",
-		Short: "Remove MCP servers from a working set",
-		Long:  "Remove MCP servers from a working set by server name.",
+		Use:     "remove <working-set-id> --name <name1> --name <name2> ...",
+		Aliases: []string{"rm"},
+		Short:   "Remove MCP servers from a working set",
+		Long:    "Remove MCP servers from a working set by server name.",
 		Example: ` # Remove servers by name
   docker mcp workingset server remove my-working-set --name github --name slack
 
