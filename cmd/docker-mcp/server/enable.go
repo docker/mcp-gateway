@@ -3,7 +3,11 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"math"
+	"slices"
+	"strings"
 
 	"github.com/docker/cli/cli/command"
 	"gopkg.in/yaml.v3"
@@ -56,8 +60,15 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 	// Enable servers.
 	for _, serverName := range add {
 		if server, found := catalog.Servers[serverName]; found {
-			updatedRegistry.Servers[serverName] = config.Tile{
-				Ref: "",
+			tile := config.Tile{
+				Ref:    "",
+				Config: make(map[string]any),
+			}
+
+			// Check if server has existing config in registry
+			if existingTile, hasExisting := registry.Servers[serverName]; hasExisting && existingTile.Config != nil {
+				// Deep copy the existing config
+				tile.Config = deepCopyMap(existingTile.Config)
 			}
 
 			// DCR flag enabled AND type="remote" AND oauth present
@@ -80,6 +91,39 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")
 				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
 			}
+
+			// Check if server has config requirements and prompt for them
+			if len(server.Config) > 0 {
+				// Get required fields that are not yet configured
+				missingConfigs := getMissingConfigs(server.Config, tile.Config)
+
+				if len(missingConfigs) > 0 {
+					fmt.Printf("\nServer %s requires configuration. Please provide the following:\n\n", serverName)
+					fmt.Println("Press Ctrl+C to cancel configuration.")
+
+					// Prompt for each missing config
+					for _, field := range missingConfigs {
+						value, err := promptForConfigField(ctx, dockerCli, field)
+						if err != nil {
+							if errors.Is(err, command.ErrPromptTerminated) {
+								fmt.Println("\nConfiguration cancelled.")
+								return fmt.Errorf("configuration cancelled by user")
+							}
+							return fmt.Errorf("prompting for config %s: %w", field.Key, err)
+						}
+
+						// Only save non-empty values (skip if user pressed Enter with no default)
+						if !isEmptyValue(value) {
+							// Store the value in the config map (handling nested keys)
+							setNestedConfig(tile.Config, field.Key, value)
+						}
+					}
+
+					fmt.Println()
+				}
+			}
+
+			updatedRegistry.Servers[serverName] = tile
 		} else {
 			return fmt.Errorf("server %s not found in catalog", serverName)
 		}
@@ -119,4 +163,273 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 	}
 
 	return nil
+}
+
+// configField represents a missing config field that needs to be prompted
+type configField struct {
+	Key         string
+	Description string
+	Type        string
+	Default     any
+	Enum        []any
+	Format      string
+}
+
+// skipConfigValue is a sentinel value indicating the user wants to skip this config field
+var skipConfigValue = struct{}{}
+
+// getMissingConfigs returns a list of config fields that are required but not yet configured
+func getMissingConfigs(configSchema []any, userConfig map[string]any) []configField {
+	// Collect all required fields from the schema
+	requiredFields := collectRequiredFields(configSchema)
+
+	// Flatten user config for comparison
+	flattened := flattenMap("", userConfig)
+
+	// Build a map of property metadata for each field
+	propertyMap := buildPropertyMap(configSchema)
+
+	var missing []configField
+	for key := range requiredFields {
+		// Check if this field is already configured
+		if _, ok := flattened[key]; ok {
+			continue
+		}
+
+		// Get property metadata
+		prop, ok := propertyMap[key]
+		if !ok {
+			// If we can't find the property, still add it with minimal info
+			missing = append(missing, configField{
+				Key: key,
+			})
+			continue
+		}
+
+		missing = append(missing, prop)
+	}
+
+	// Sort by key for consistent ordering
+	slices.SortFunc(missing, func(a, b configField) int {
+		if a.Key < b.Key {
+			return -1
+		}
+		if a.Key > b.Key {
+			return 1
+		}
+		return 0
+	})
+
+	return missing
+}
+
+// buildPropertyMap builds a map of dot-notation keys to property metadata
+func buildPropertyMap(configSchema []any) map[string]configField {
+	result := make(map[string]configField)
+
+	for _, schemaItem := range configSchema {
+		schemaMap, ok := schemaItem.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		properties, ok := schemaMap["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		walkPropertiesForMetadata("", properties, result)
+	}
+
+	return result
+}
+
+// recursively walks properties and builds metadata map
+func walkPropertiesForMetadata(prefix string, properties map[string]any, out map[string]configField) {
+	for propName, propDef := range properties {
+		key := propName
+		if prefix != "" {
+			key = prefix + "." + propName
+		}
+
+		propMap, ok := propDef.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		// Check if this property has nested properties
+		if nestedProps, hasNested := propMap["properties"].(map[string]any); hasNested {
+			walkPropertiesForMetadata(key, nestedProps, out)
+			continue
+		}
+
+		// This is a leaf property, extract metadata
+		field := configField{
+			Key: key,
+		}
+
+		if desc, ok := propMap["description"].(string); ok {
+			field.Description = desc
+		}
+
+		if typ, ok := propMap["type"].(string); ok {
+			field.Type = typ
+		}
+
+		if def, ok := propMap["default"]; ok {
+			field.Default = def
+		}
+
+		if enum, ok := propMap["enum"].([]any); ok {
+			field.Enum = enum
+		}
+
+		if format, ok := propMap["format"].(string); ok {
+			field.Format = format
+		}
+
+		out[key] = field
+	}
+}
+
+// promptForConfigField prompts the user for a config field value
+func promptForConfigField(ctx context.Context, dockerCli command.Cli, field configField) (any, error) {
+	// Build the prompt message
+	var prompt strings.Builder
+	prompt.WriteString(fmt.Sprintf("  %s", field.Key))
+
+	if field.Description != "" {
+		prompt.WriteString(fmt.Sprintf(" (%s)", field.Description))
+	}
+
+	if field.Default != nil {
+		prompt.WriteString(fmt.Sprintf(" [default: %v]", field.Default))
+	}
+
+	if len(field.Enum) > 0 {
+		prompt.WriteString(fmt.Sprintf(" (options: %v)", field.Enum))
+	}
+
+	prompt.WriteString(": ")
+
+	// Read user input using Docker CLI's prompt which handles Ctrl+C properly
+	input, err := command.PromptForInput(ctx, dockerCli.In(), dockerCli.Out(), prompt.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// Sanitize input: trim whitespace (already done by PromptForInput, but be explicit)
+	input = strings.TrimSpace(input)
+
+	// If input is empty and there's a default, use the default
+	if input == "" && field.Default != nil {
+		return field.Default, nil
+	}
+
+	// If input is empty and no default, return sentinel value to indicate skip
+	if input == "" {
+		return skipConfigValue, nil
+	}
+
+	// Validate input length to prevent extremely long values (DoS protection)
+	const maxInputLength = 10000 // Reasonable limit for config values
+	if len(input) > maxInputLength {
+		return nil, fmt.Errorf("input too long (max %d characters)", maxInputLength)
+	}
+
+	// Validate enum if present
+	if len(field.Enum) > 0 {
+		valid := false
+		for _, enumVal := range field.Enum {
+			if fmt.Sprintf("%v", enumVal) == input {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return nil, fmt.Errorf("invalid value %q. Expected one of: %v", input, field.Enum)
+		}
+	}
+
+	// Convert to appropriate type if needed
+	if field.Type == "number" || field.Type == "integer" {
+		// Validate and parse as number
+		var num float64
+		if _, err := fmt.Sscanf(input, "%f", &num); err != nil {
+			return nil, fmt.Errorf("invalid number: %q", input)
+		}
+		// Check for integer overflow
+		if field.Type == "integer" {
+			if num > math.MaxInt || num < math.MinInt {
+				return nil, fmt.Errorf("number out of range for integer: %v", num)
+			}
+			return int(num), nil
+		}
+		return num, nil
+	}
+
+	if field.Type == "boolean" {
+		lower := strings.ToLower(input)
+		if lower == "true" || lower == "yes" || lower == "y" || lower == "1" {
+			return true, nil
+		}
+		if lower == "false" || lower == "no" || lower == "n" || lower == "0" {
+			return false, nil
+		}
+	}
+
+	// Default to string
+	return input, nil
+}
+
+// setNestedConfig sets a value in a nested map using dot-notation key (e.g., "a.b.c" => map["a"]["b"]["c"])
+func setNestedConfig(config map[string]any, key string, value any) {
+	parts := strings.Split(key, ".")
+
+	current := config
+	for i := range len(parts) - 1 {
+		part := parts[i]
+		if _, ok := current[part]; !ok {
+			current[part] = make(map[string]any)
+		}
+
+		next, ok := current[part].(map[string]any)
+		if !ok {
+			// If it's not a map, we need to replace it
+			current[part] = make(map[string]any)
+			next = current[part].(map[string]any)
+		}
+		current = next
+	}
+
+	// Set the final value
+	current[parts[len(parts)-1]] = value
+}
+
+// deepCopyMap creates a deep copy of a map[string]any
+func deepCopyMap(m map[string]any) map[string]any {
+	result := make(map[string]any)
+	for k, v := range m {
+		if subMap, ok := v.(map[string]any); ok {
+			result[k] = deepCopyMap(subMap)
+		} else {
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// isEmptyValue checks if a value is considered "empty" and should be skipped
+func isEmptyValue(v any) bool {
+	if v == nil {
+		return true
+	}
+	// Check for sentinel skip value
+	if v == skipConfigValue {
+		return true
+	}
+	if s, ok := v.(string); ok {
+		return s == ""
+	}
+	return false
 }
