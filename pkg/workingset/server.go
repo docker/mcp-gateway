@@ -5,15 +5,20 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/sliceutil"
 )
 
-func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string) error {
-	if len(servers) == 0 {
+func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string, catalogDigest string, catalogServers []string) error {
+	if len(servers) == 0 && len(catalogServers) == 0 {
 		return fmt.Errorf("at least one server must be specified")
+	}
+	if len(catalogServers) > 0 && catalogDigest == "" {
+		return fmt.Errorf("catalog digest must be specified when adding catalog servers")
 	}
 
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
@@ -26,6 +31,13 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 
 	workingSet := NewFromDb(dbWorkingSet)
 
+	defaultSecret := "default"
+	_, defaultFound := workingSet.Secrets[defaultSecret]
+	if workingSet.Secrets == nil || !defaultFound {
+		defaultSecret = ""
+	}
+
+	// Handle direct server references
 	newServers := make([]Server, len(servers))
 	for i, server := range servers {
 		s, err := resolveServerFromString(ctx, registryClient, ociService, server)
@@ -37,6 +49,29 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 
 	workingSet.Servers = append(workingSet.Servers, newServers...)
 
+	// Handle catalog server references
+	if catalogDigest != "" && len(catalogServers) > 0 {
+		dbCatalog, err := dao.GetCatalog(ctx, catalogDigest)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("catalog %s not found", catalogDigest)
+			}
+			return fmt.Errorf("failed to get catalog: %w", err)
+		}
+		filteredServers := make([]db.CatalogServer, 0, len(dbCatalog.Servers))
+		for _, server := range dbCatalog.Servers {
+			if slices.Contains(catalogServers, server.Snapshot.Server.Name) {
+				filteredServers = append(filteredServers, server)
+			}
+		}
+		if len(filteredServers) != len(catalogServers) {
+			missingServers := sliceutil.Difference(catalogServers, sliceutil.Map(filteredServers, func(server db.CatalogServer) string { return server.Snapshot.Server.Name }))
+			return fmt.Errorf("servers were not found in catalog: %v", missingServers)
+		}
+		catalogServers := mapCatalogServersToWorkingSetServers(filteredServers, defaultSecret)
+		workingSet.Servers = append(workingSet.Servers, catalogServers...)
+	}
+
 	if err := workingSet.Validate(); err != nil {
 		return fmt.Errorf("invalid working set: %w", err)
 	}
@@ -46,7 +81,7 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("failed to update working set: %w", err)
 	}
 
-	fmt.Printf("Added %d server(s) to working set %s\n", len(newServers), id)
+	fmt.Printf("Added %d server(s) to working set %s\n", len(newServers)+len(catalogServers), id)
 
 	return nil
 }
@@ -99,4 +134,22 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	fmt.Printf("Removed %d server(s) from working set %s\n", removedCount, id)
 
 	return nil
+}
+
+func mapCatalogServersToWorkingSetServers(dbServers []db.CatalogServer, defaultSecret string) []Server {
+	servers := make([]Server, len(dbServers))
+	for i, server := range dbServers {
+		servers[i] = Server{
+			Type:   ServerType(server.ServerType),
+			Tools:  server.Tools,
+			Config: map[string]any{},
+			Source: server.Source,
+			Image:  server.Image,
+			Snapshot: &ServerSnapshot{
+				Server: server.Snapshot.Server,
+			},
+			Secrets: defaultSecret,
+		}
+	}
+	return servers
 }

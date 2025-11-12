@@ -1,5 +1,7 @@
 package sliceutil
 
+import "slices"
+
 // Map returns a new slice with the results of applying the given function to
 // each item in the input slice.
 //
@@ -21,6 +23,16 @@ func Filter[S ~[]In, In any](s S, predicate func(In) bool) S {
 	var res S
 	for _, v := range s {
 		if predicate(v) {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func Difference[S ~[]In, In comparable](s1 S, s2 S) S {
+	res := make(S, 0)
+	for _, v := range s1 {
+		if !slices.Contains(s2, v) {
 			res = append(res, v)
 		}
 	}
