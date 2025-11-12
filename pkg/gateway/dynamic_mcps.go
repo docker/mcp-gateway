@@ -743,6 +743,7 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 					Description: "Configuration key to set. This is not to be prefixed by the server name.",
 				},
 				"value": {
+					Types:       []string{"string", "number", "boolean", "object", "array"},
 					Description: "Configuration value to set (can be string, number, boolean, object, or array)",
 				},
 			},
