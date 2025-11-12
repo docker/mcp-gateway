@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/docker/cli/cli/command"
-	"github.com/fatih/color"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
@@ -20,9 +19,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
-
-// WarningColor is used for warning messages
-var WarningColor = color.New(color.FgYellow)
 
 func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
 	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled)
@@ -116,16 +112,16 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 							// For validation errors, show warning but continue
 							fmt.Fprintf(dockerCli.Out(), "\n")
 							if strings.Contains(err.Error(), "too long") {
-								WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
-								WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
-								WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+								hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+								hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+								hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
 								hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
 								continue
 							}
 							// For other errors, also continue with warning
-							WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
-							WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
-							WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+							hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+							hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
 							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
 							continue
 						}
@@ -133,8 +129,8 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 						// If secret is empty, warn but continue
 						if value == "" {
 							fmt.Fprintf(dockerCli.Out(), "\n")
-							WarningColor.Fprintf(dockerCli.Err(), "Warning: Secret %s is required but was left empty.\n", secret.Name)
-							WarningColor.Fprintf(dockerCli.Err(), "The server may not work without it. You can set it later with: ")
+							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Secret %s is required but was left empty.\n", secret.Name)
+							hints.WarningColor.Fprintf(dockerCli.Err(), "The server may not work without it. You can set it later with: ")
 							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
 							continue
 						}
@@ -146,8 +142,8 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 							Value: value,
 						}); err != nil {
 							fmt.Fprintf(dockerCli.Out(), "\n")
-							WarningColor.Fprintf(dockerCli.Err(), "Warning: Failed to save secret %s: %v\n", secret.Name, err)
-							WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Failed to save secret %s: %v\n", secret.Name, err)
+							hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
 							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
 							continue
 						}

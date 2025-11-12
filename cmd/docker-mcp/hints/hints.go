@@ -28,4 +28,5 @@ var (
 	TipCyan           = color.New(color.FgCyan)
 	TipCyanBoldItalic = color.New(color.FgCyan, color.Bold, color.Italic)
 	TipGreen          = color.New(color.FgGreen)
+	WarningColor      = color.New(color.FgYellow)
 )
