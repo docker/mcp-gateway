@@ -92,7 +92,7 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 }
 
 func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string) (Catalog, error) {
-	legacyCatalog, err := legacycatalog.ReadFrom(ctx, []string{legacyCatalogURL})
+	legacyCatalog, name, err := legacycatalog.ReadOne(ctx, legacyCatalogURL)
 	if err != nil {
 		return Catalog{}, fmt.Errorf("failed to read legacy catalog: %w", err)
 	}
@@ -120,6 +120,6 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 	return Catalog{
 		Name:    "Legacy Catalog",
 		Servers: servers,
-		Source:  SourcePrefixLegacyCatalog + legacyCatalogURL,
+		Source:  SourcePrefixLegacyCatalog + name,
 	}, nil
 }
