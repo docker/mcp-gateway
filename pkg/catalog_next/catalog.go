@@ -28,6 +28,7 @@ type CatalogWithDigest struct {
 const (
 	SourcePrefixWorkingSet    = "working-set:"
 	SourcePrefixLegacyCatalog = "legacy-catalog:"
+	SourcePrefixOCI           = "oci:"
 )
 
 type Server struct {
