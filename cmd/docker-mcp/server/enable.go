@@ -10,14 +10,19 @@ import (
 	"strings"
 
 	"github.com/docker/cli/cli/command"
+	"github.com/fatih/color"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
+
+// WarningColor is used for warning messages
+var WarningColor = color.New(color.FgYellow)
 
 func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
 	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled)
@@ -92,6 +97,66 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
 			}
 
+			// Check if server has secrets requirements and prompt for them
+			if len(server.Secrets) > 0 {
+				missingSecrets := getMissingSecrets(ctx, server.Secrets)
+
+				if len(missingSecrets) > 0 {
+					fmt.Printf("\nServer %s requires secrets. Please provide the following:\n\n", serverName)
+					fmt.Println("Press Ctrl+C to cancel configuration.")
+
+					// Prompt for each missing secret
+					for _, secret := range missingSecrets {
+						value, err := promptForSecret(ctx, dockerCli, secret)
+						if err != nil {
+							if errors.Is(err, command.ErrPromptTerminated) {
+								fmt.Println("\nConfiguration cancelled.")
+								return fmt.Errorf("configuration cancelled by user")
+							}
+							// For validation errors, show warning but continue
+							fmt.Fprintf(dockerCli.Out(), "\n")
+							if strings.Contains(err.Error(), "too long") {
+								WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+								WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+								WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+								hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+								continue
+							}
+							// For other errors, also continue with warning
+							WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+							WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+							WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+							continue
+						}
+
+						// If secret is empty, warn but continue
+						if value == "" {
+							fmt.Fprintf(dockerCli.Out(), "\n")
+							WarningColor.Fprintf(dockerCli.Err(), "Warning: Secret %s is required but was left empty.\n", secret.Name)
+							WarningColor.Fprintf(dockerCli.Err(), "The server may not work without it. You can set it later with: ")
+							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+							continue
+						}
+
+						// Save the secret
+						secretsClient := desktop.NewSecretsClient()
+						if err := secretsClient.SetJfsSecret(ctx, desktop.Secret{
+							Name:  secret.Name,
+							Value: value,
+						}); err != nil {
+							fmt.Fprintf(dockerCli.Out(), "\n")
+							WarningColor.Fprintf(dockerCli.Err(), "Warning: Failed to save secret %s: %v\n", secret.Name, err)
+							WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+							continue
+						}
+					}
+
+					fmt.Println()
+				}
+			}
+
 			// Check if server has config requirements and prompt for them
 			if len(server.Config) > 0 {
 				// Get required fields that are not yet configured
@@ -103,13 +168,23 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 
 					// Prompt for each missing config
 					for _, field := range missingConfigs {
-						value, err := promptForConfigField(ctx, dockerCli, field)
-						if err != nil {
-							if errors.Is(err, command.ErrPromptTerminated) {
-								fmt.Println("\nConfiguration cancelled.")
-								return fmt.Errorf("configuration cancelled by user")
+						var value any
+						var err error
+
+						// Retry loop for validation errors
+						for {
+							value, err = promptForConfigField(ctx, dockerCli, field)
+							if err != nil {
+								if errors.Is(err, command.ErrPromptTerminated) {
+									fmt.Println("\nConfiguration cancelled.")
+									return fmt.Errorf("configuration cancelled by user")
+								}
+								// Show validation error and retry
+								fmt.Fprintf(dockerCli.Err(), "Error: %v\n", err)
+								fmt.Fprintf(dockerCli.Out(), "Please try again.\n\n")
+								continue
 							}
-							return fmt.Errorf("prompting for config %s: %w", field.Key, err)
+							break
 						}
 
 						// Only save non-empty values (skip if user pressed Enter with no default)
@@ -432,4 +507,71 @@ func isEmptyValue(v any) bool {
 		return s == ""
 	}
 	return false
+}
+
+// getMissingSecrets returns a list of secrets that are required but not yet configured
+func getMissingSecrets(ctx context.Context, requiredSecrets []catalog.Secret) []catalog.Secret {
+	// Get the list of configured secrets
+	secretsClient := desktop.NewSecretsClient()
+	configuredSecrets, err := secretsClient.ListJfsSecrets(ctx)
+	if err != nil {
+		// If we can't get secrets, assume none are configured
+		return requiredSecrets
+	}
+
+	// Create a map of configured secret names for quick lookup
+	configuredSecretNames := make(map[string]struct{})
+	for _, secret := range configuredSecrets {
+		configuredSecretNames[secret.Name] = struct{}{}
+	}
+
+	var missing []catalog.Secret
+	for _, secret := range requiredSecrets {
+		if _, ok := configuredSecretNames[secret.Name]; !ok {
+			missing = append(missing, secret)
+		}
+	}
+
+	return missing
+}
+
+// promptForSecret prompts the user for a secret value with password masking
+func promptForSecret(ctx context.Context, dockerCli command.Cli, secret catalog.Secret) (string, error) {
+	// Build the prompt message
+	prompt := fmt.Sprintf("  %s", secret.Name)
+	if secret.Env != "" {
+		prompt += fmt.Sprintf(" (env: %s)", secret.Env)
+	}
+	prompt += ": "
+
+	// Disable input echo for password masking
+	restore, err := command.DisableInputEcho(dockerCli.In())
+	if err == nil {
+		defer func() {
+			if restoreErr := restore(); restoreErr != nil {
+				// Log but don't fail if restore fails
+				_ = restoreErr
+			}
+		}()
+	}
+	// If we can't disable echo, continue anyway (non-terminal or unsupported)
+
+	// Read user input
+	input, err := command.PromptForInput(ctx, dockerCli.In(), dockerCli.Out(), prompt)
+	if err != nil {
+		return "", err
+	}
+
+	// Sanitize input: trim whitespace
+	input = strings.TrimSpace(input)
+
+	// Validate input length to prevent extremely long values (DoS protection)
+	const maxInputLength = 10000 // Reasonable limit for secret values
+	if len(input) > maxInputLength {
+		return "", fmt.Errorf("secret too long (max %d characters)", maxInputLength)
+	}
+
+	// Allow empty secrets (user can skip, but will be warned)
+	// Return empty string - caller will handle the warning
+	return input, nil
 }
