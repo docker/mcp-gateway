@@ -2,9 +2,11 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -23,7 +25,7 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 	sseHandler := mcp.NewSSEHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
-	mux.Handle("/sse", sseHandler)
+	mux.Handle("/sse", originSecurityHandler(sseHandler))
 
 	// Wrap with authentication middleware
 	var handler http.Handler = mux
@@ -48,7 +50,7 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
 	}, nil)
-	mux.Handle("/mcp", streamHandler)
+	mux.Handle("/mcp", originSecurityHandler(streamHandler))
 
 	// Wrap with authentication middleware
 	var handler http.Handler = mux
@@ -81,4 +83,43 @@ func healthHandler(state *health.State) http.HandlerFunc {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
 	}
+}
+
+// isAllowedOrigin validates that the origin is from localhost.
+// Returns true if the origin's hostname is "localhost", "127.0.0.1", or "::1" (IPv6 localhost).
+func isAllowedOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false // Invalid URL format
+	}
+
+	// Only allow http or https schemes
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+
+	// Extract hostname (without port)
+	host := u.Hostname()
+
+	// Only allow localhost, IPv4 loopback, or IPv6 loopback
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+// originSecurityHandler validates Origin header to prevent DNS rebinding attacks.
+func originSecurityHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		// Allow requests with no Origin header
+		// This handles:
+		// - Non-browser clients (curl, SDKs) - no Origin header sent
+		// - Same-origin requests - browsers don't send Origin for same-origin
+		if origin != "" && !isAllowedOrigin(origin) {
+			msg := fmt.Sprintf("Forbidden: Origin, if set, must be localhost, 127.0.0.1, or ::1, got: %s", origin)
+			http.Error(w, msg, http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

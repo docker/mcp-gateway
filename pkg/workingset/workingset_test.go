@@ -2,12 +2,19 @@ package workingset
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"github.com/modelcontextprotocol/registry/pkg/model"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 // setupTestDB creates a temporary database for testing
@@ -244,6 +251,35 @@ func TestWorkingSetValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name: "duplicate server name",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:latest",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:previous",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -320,34 +356,75 @@ func TestCreateWorkingSetID(t *testing.T) {
 
 func TestResolveServerFromString(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		expected    Server
-		expectError bool
+		name            string
+		input           string
+		expected        Server
+		expectedVersion string
+		expectError     bool
 	}{
 		{
-			name:  "docker image",
+			name:  "local docker image",
 			input: "docker://myimage:latest",
 			expected: Server{
 				Type:  ServerTypeImage,
 				Image: "myimage:latest",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:  "My Image",
+						Type:  "server",
+						Image: "myimage:latest",
+					},
+				},
+				Secrets: "default",
 			},
+			expectedVersion: "latest",
+		},
+		{
+			name:  "remote docker image",
+			input: "docker://bobbarker/myimage:latest",
+			expected: Server{
+				Type:  ServerTypeImage,
+				Image: "bobbarker/myimage:latest@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:  "My Image",
+						Type:  "server",
+						Image: "bobbarker/myimage:latest@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				},
+				Secrets: "default",
+			},
+			expectedVersion: "latest",
 		},
 		{
 			name:  "http registry",
-			input: "http://example.com/server",
+			input: "http://example.com/v0/servers/my-server",
 			expected: Server{
-				Type:   ServerTypeRegistry,
-				Source: "http://example.com/server",
+				Type:    ServerTypeRegistry,
+				Source:  "http://example.com/v0/servers/my-server/versions/latest",
+				Secrets: "default",
 			},
+			expectedVersion: "latest",
 		},
 		{
 			name:  "https registry",
-			input: "https://example.com/server",
+			input: "https://example.com/v0/servers/my-server",
 			expected: Server{
-				Type:   ServerTypeRegistry,
-				Source: "https://example.com/server",
+				Type:    ServerTypeRegistry,
+				Source:  "https://example.com/v0/servers/my-server/versions/latest",
+				Secrets: "default",
 			},
+			expectedVersion: "latest",
+		},
+		{
+			name:  "specific version registry",
+			input: "https://example.com/v0/servers/my-server/versions/0.1.0",
+			expected: Server{
+				Type:    ServerTypeRegistry,
+				Source:  "https://example.com/v0/servers/my-server/versions/0.1.0",
+				Secrets: "default",
+			},
+			expectedVersion: "0.1.0",
 		},
 		{
 			name:        "invalid format",
@@ -358,12 +435,242 @@ func TestResolveServerFromString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := resolveServerFromString(tt.input)
+			serverResponse := v0.ServerResponse{
+				Server: v0.ServerJSON{
+					Version: tt.expectedVersion,
+					Packages: []model.Package{
+						{
+							RegistryType: "oci",
+						},
+					},
+				},
+				Meta: v0.ResponseMeta{
+					Official: &v0.RegistryExtensions{
+						IsLatest: true,
+					},
+				},
+			}
+			registryClient := mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
+				"http://example.com/v0/servers/my-server/versions": {
+					Servers: []v0.ServerResponse{serverResponse},
+				},
+				"https://example.com/v0/servers/my-server/versions": {
+					Servers: []v0.ServerResponse{serverResponse},
+				},
+			}), mocks.WithServerResponses(map[string]v0.ServerResponse{
+				"http://example.com/v0/servers/my-server/versions/" + tt.expectedVersion: serverResponse,
+			}))
+
+			ociService := mocks.NewMockOCIService(
+				mocks.WithLocalImages([]mocks.MockImage{
+					{
+						Ref: "myimage:latest",
+						Labels: map[string]string{
+							"io.docker.server.metadata": "name: My Image",
+						},
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}),
+				mocks.WithRemoteImages([]mocks.MockImage{
+					{
+						Ref: "bobbarker/myimage:latest",
+						Labels: map[string]string{
+							"io.docker.server.metadata": "name: My Image",
+						},
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}))
+
+			server, err := resolveServerFromString(t.Context(), registryClient, ociService, tt.input)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expected, server)
+			}
+		})
+	}
+}
+
+func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
+	serverResponse := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Version: "0.2.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+				},
+			},
+		},
+		Meta: v0.ResponseMeta{
+			Official: &v0.RegistryExtensions{
+				IsLatest: true,
+			},
+		},
+	}
+	oldServerResponse := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Version: "0.1.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+				},
+			},
+		},
+		Meta: v0.ResponseMeta{
+			Official: &v0.RegistryExtensions{
+				IsLatest: false,
+			},
+		},
+	}
+	registryClient := mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
+		"http://example.com/v0/servers/my-server/versions": {
+			Servers: []v0.ServerResponse{serverResponse, oldServerResponse},
+		},
+	}), mocks.WithServerResponses(map[string]v0.ServerResponse{
+		"http://example.com/v0/servers/my-server/versions/0.1.0": oldServerResponse,
+		"http://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
+	}))
+
+	server, err := resolveServerFromString(t.Context(), registryClient, mocks.NewMockOCIService(), "http://example.com/v0/servers/my-server")
+	require.NoError(t, err)
+	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server.Source)
+}
+
+func TestResolveSnapshot(t *testing.T) {
+	tests := []struct {
+		name        string
+		server      Server
+		labels      map[string]string
+		expectError bool
+		expected    *ServerSnapshot
+	}{
+		{
+			name: "valid image with metadata",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "testimage:v1.0",
+			},
+			labels: map[string]string{
+				"io.docker.server.metadata": `name: Test Server
+type: remote
+image: testimage:v1.0
+description: A test server for unit tests
+title: Test Server Title`,
+			},
+			expectError: false,
+			expected: &ServerSnapshot{
+				Server: catalog.Server{
+					Name:        "Test Server",
+					Type:        "server",
+					Image:       "testimage:v1.0",
+					Description: "A test server for unit tests",
+					Title:       "Test Server Title",
+				},
+			},
+		},
+		{
+			name: "image with minimal metadata",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "minimalimage:latest",
+			},
+			labels: map[string]string{
+				"io.docker.server.metadata": `name: Minimal
+type: remote`,
+			},
+			expectError: false,
+			expected: &ServerSnapshot{
+				Server: catalog.Server{
+					Name: "Minimal",
+					Type: "server",
+				},
+			},
+		},
+		{
+			name: "invalid image reference",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "invalid::reference",
+			},
+			labels:      map[string]string{},
+			expectError: true,
+		},
+		{
+			name: "missing metadata label",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "nometadata:latest",
+			},
+			labels:      map[string]string{},
+			expectError: true,
+		},
+		{
+			name: "invalid yaml in metadata",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "badyaml:latest",
+			},
+			labels: map[string]string{
+				"io.docker.server.metadata": "invalid: yaml: [syntax",
+			},
+			expectError: true,
+		},
+		{
+			name: "image with digest",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "registry.example.com/myimage@sha256:abcdef123456abcdef123456abcdef123456abcdef123456abcdef123456abcd",
+			},
+			labels: map[string]string{
+				"io.docker.server.metadata": `name: Digested Image
+type: remote`,
+			},
+			expectError: false,
+			expected: &ServerSnapshot{
+				Server: catalog.Server{
+					Name: "Digested Image",
+					Type: "server",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, d, hasDigest := strings.Cut(tt.server.Image, "@")
+			var ociService oci.Service
+			if hasDigest {
+				ociService = mocks.NewMockOCIService(mocks.WithRemoteImages([]mocks.MockImage{
+					{
+						Ref:          r,
+						Labels:       tt.labels,
+						DigestString: d,
+					},
+				}))
+			} else {
+				ociService = mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+					{
+						Ref:          r,
+						Labels:       tt.labels,
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}))
+			}
+			ctx := t.Context()
+
+			snapshot, err := ResolveSnapshot(ctx, ociService, tt.server)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, snapshot)
+				assert.Equal(t, tt.expected.Server.Name, snapshot.Server.Name)
+				assert.Equal(t, tt.expected.Server.Type, snapshot.Server.Type)
+				if tt.expected.Server.Description != "" {
+					assert.Equal(t, tt.expected.Server.Description, snapshot.Server.Description)
+				}
 			}
 		})
 	}

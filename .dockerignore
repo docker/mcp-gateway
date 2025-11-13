@@ -11,3 +11,4 @@
 !/server.go
 !/test/servers
 !/test/testdata
+!/test/mocks

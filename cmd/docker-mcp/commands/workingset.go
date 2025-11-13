@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -21,10 +23,103 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(importWorkingSetCommand())
 	cmd.AddCommand(showWorkingSetCommand())
 	cmd.AddCommand(listWorkingSetsCommand())
+	cmd.AddCommand(serversCommand())
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
 	cmd.AddCommand(removeWorkingSetCommand())
+	cmd.AddCommand(workingsetServerCommand())
+	cmd.AddCommand(configWorkingSetCommand())
+	cmd.AddCommand(toolsWorkingSetCommand())
+	return cmd
+}
+
+func configWorkingSetCommand() *cobra.Command {
+	format := string(workingset.OutputFormatHumanReadable)
+	getAll := false
+	var set []string
+	var get []string
+	var del []string
+
+	cmd := &cobra.Command{
+		Use:   "config <working-set-id> [--set <config-arg1> <config-arg2> ...] [--get <config-key1> <config-key2> ...] [--del <config-arg1> <config-arg2> ...]",
+		Short: "Update the configuration of a working set",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", format)
+			}
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			ociService := oci.NewService()
+			return workingset.UpdateConfig(cmd.Context(), dao, ociService, args[0], set, get, del, getAll, workingset.OutputFormat(format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&set, "set", []string{}, "Set configuration values: <key>=<value> (can be specified multiple times)")
+	flags.StringArrayVar(&get, "get", []string{}, "Get configuration values: <key> (can be specified multiple times)")
+	flags.StringArrayVar(&del, "del", []string{}, "Delete configuration values: <key> (can be specified multiple times)")
+	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")
+	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func toolsWorkingSetCommand() *cobra.Command {
+	var enable []string
+	var disable []string
+	var enableAll []string
+	var disableAll []string
+
+	cmd := &cobra.Command{
+		Use:   "tools <working-set-id> [--enable <tool> ...] [--disable <tool> ...] [--enable-all <server> ...] [--disable-all <server> ...]",
+		Short: "Manage tool allowlist for servers in a working set",
+		Long: `Manage the tool allowlist for servers in a working set.
+Tools are specified using dot notation: <serverName>.<toolName>
+
+Use --enable to enable specific tools for a server (can be specified multiple times).
+Use --disable to disable specific tools for a server (can be specified multiple times).
+Use --enable-all to enable all tools for a server (can be specified multiple times).
+Use --disable-all to disable all tools for a server (can be specified multiple times).
+
+To view enabled tools, use: docker mcp workingset show <working-set-id>`,
+		Example: `  # Enable specific tools for a server
+  docker mcp workingset tools my-set --enable github.create_issue --enable github.list_repos
+
+  # Disable specific tools for a server
+  docker mcp workingset tools my-set --disable github.create_issue --disable github.search_code
+
+  # Enable and disable in one command
+  docker mcp workingset tools my-set --enable github.create_issue --disable github.search_code
+
+  # Enable all tools for a server
+  docker mcp workingset tools my-set --enable-all github
+
+  # Disable all tools for a server
+  docker mcp workingset tools my-set --disable-all github
+
+  # View all enabled tools in the working set
+  docker mcp workingset show my-set`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.UpdateTools(cmd.Context(), dao, args[0], enable, disable, enableAll, disableAll)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&enable, "enable", []string{}, "Enable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&disable, "disable", []string{}, "Disable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&enableAll, "enable-all", []string{}, "Enable all tools for a server: <serverName> (repeatable)")
+	flags.StringArrayVar(&disableAll, "disable-all", []string{}, "Disable all tools for a server: <serverName> (repeatable)")
+
 	return cmd
 }
 
@@ -57,7 +152,9 @@ Working sets are decoupled from catalogs. Servers can be:
 			if err != nil {
 				return err
 			}
-			return workingset.Create(cmd.Context(), dao, opts.ID, opts.Name, opts.Servers)
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers)
 		},
 	}
 
@@ -134,7 +231,8 @@ func pullWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Pull(cmd.Context(), dao, args[0])
+			ociService := oci.NewService()
+			return workingset.Pull(cmd.Context(), dao, ociService, args[0])
 		},
 	}
 }
@@ -179,7 +277,8 @@ func importWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Import(cmd.Context(), dao, args[0])
+			ociService := oci.NewService()
+			return workingset.Import(cmd.Context(), dao, ociService, args[0])
 		},
 	}
 }
@@ -198,4 +297,140 @@ func removeWorkingSetCommand() *cobra.Command {
 			return workingset.Remove(cmd.Context(), dao, args[0])
 		},
 	}
+}
+
+func serversCommand() *cobra.Command {
+	var opts struct {
+		WorkingSetID string
+		Filter       string
+		Format       string
+	}
+
+	cmd := &cobra.Command{
+		Use:   "servers",
+		Short: "List servers across working sets",
+		Long: `List all servers grouped by working set.
+
+Use --filter to search for servers matching a query (case-insensitive substring matching on image names or source URLs).
+Use --workingset to show servers only from a specific working set.`,
+		Example: `  # List all servers across all working sets
+  docker mcp workingset servers
+
+  # Filter servers by name
+  docker mcp workingset servers --filter github
+
+  # Show servers from a specific working set
+  docker mcp workingset servers --workingset my-dev-env
+
+  # Combine filter and working set
+  docker mcp workingset servers --workingset my-dev-env --filter slack
+
+  # Output in JSON format
+  docker mcp workingset servers --format json`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", opts.Format)
+			}
+
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+
+			return workingset.Servers(cmd.Context(), dao, opts.Filter, opts.WorkingSetID, workingset.OutputFormat(opts.Format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVarP(&opts.WorkingSetID, "workingset", "w", "", "Show servers only from specified working set")
+	flags.StringVar(&opts.Filter, "filter", "", "Filter servers by image name or source URL")
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func workingsetServerCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "server",
+		Short: "Manage servers in working sets",
+	}
+
+	cmd.AddCommand(addServerCommand())
+	cmd.AddCommand(removeServerCommand())
+
+	return cmd
+}
+
+func addServerCommand() *cobra.Command {
+	var servers []string
+	var catalog string
+	var catalogServers []string
+
+	cmd := &cobra.Command{
+		Use:   "add <working-set-id> [--server <ref1> --server <ref2> ...] [--catalog <name> --catalog-server <server1> --catalog-server <server2> ...]",
+		Short: "Add MCP servers to a working set",
+		Long:  "Add MCP servers to a working set.",
+		Example: ` # Add servers with OCI references
+  docker mcp workingset server add my-working-set --server docker://mcp/github:latest --server docker://mcp/slack:latest
+
+  # Add servers with MCP Registry references
+  docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+  # Mix MCP Registry references and OCI references
+  docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest
+
+  # Add servers from a catalog
+  docker mcp workingset server add my-working-set --catalog 580529328fa20c636bb49f245418901b8f92ba01f35f17e2ceb9a9573424f844 --catalog-server github --catalog-server slack
+
+  # Mix catalog servers with direct server references
+  docker mcp workingset server add my-working-set --catalog 580529328fa20c636bb49f245418901b8f92ba01f35f17e2ceb9a9573424f844 --catalog-server github --server docker://mcp/slack:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return workingset.AddServers(cmd.Context(), dao, registryClient, ociService, args[0], servers, catalog, catalogServers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
+	flags.StringVar(&catalog, "catalog", "", "Catalog's digest to add servers from (optional)")
+	flags.StringArrayVar(&catalogServers, "catalog-server", []string{}, "Server names from the catalog to add (can be specified multiple times, requires --catalog)")
+
+	return cmd
+}
+
+func removeServerCommand() *cobra.Command {
+	var names []string
+
+	cmd := &cobra.Command{
+		Use:     "remove <working-set-id> --name <name1> --name <name2> ...",
+		Aliases: []string{"rm"},
+		Short:   "Remove MCP servers from a working set",
+		Long:    "Remove MCP servers from a working set by server name.",
+		Example: ` # Remove servers by name
+  docker mcp workingset server remove my-working-set --name github --name slack
+
+  # Remove a single server
+  docker mcp workingset server remove my-working-set --name github`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.RemoveServers(cmd.Context(), dao, args[0], names)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
+
+	return cmd
 }

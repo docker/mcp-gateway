@@ -26,19 +26,18 @@ func Push(ctx context.Context, dao db.DAO, id string, refStr string) error {
 		return fmt.Errorf("failed to parse reference: %w", err)
 	}
 
-	if !isValidInputReference(ref) {
+	if !oci.IsValidInputReference(ref) {
 		return fmt.Errorf("reference must be a valid OCI reference")
 	}
 
 	workingSet := NewFromDb(dbSet)
-	catalog := NewCatalogFromWorkingSet(workingSet)
 
-	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, catalog, nil)
+	hash, err := oci.PushArtifact(ctx, ref, MCPWorkingSetArtifactType, workingSet, nil)
 	if err != nil {
 		return fmt.Errorf("failed to push working set artifact: %w", err)
 	}
 
-	fmt.Printf("Pushed working set to %s@sha256:%s\n", fullName(ref), hash)
+	fmt.Printf("Pushed working set to %s@sha256:%s\n", oci.FullName(ref), hash)
 
 	return nil
 }

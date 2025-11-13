@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 func TestImportYAML(t *testing.T) {
@@ -29,7 +30,7 @@ func TestImportYAML(t *testing.T) {
 		Servers: []Server{
 			{
 				Type:   ServerTypeRegistry,
-				Source: "https://example.com/server",
+				Source: "https://example.com/v0/servers/server1",
 				Config: map[string]any{"key": "value"},
 				Tools:  []string{"tool1"},
 			},
@@ -45,7 +46,7 @@ func TestImportYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	// Import the file
-	err = Import(ctx, dao, yamlFile)
+	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.NoError(t, err)
 
 	// Verify it was imported
@@ -74,7 +75,7 @@ func TestImportJSON(t *testing.T) {
 		Servers: []Server{
 			{
 				Type:  ServerTypeImage,
-				Image: "docker/test:latest",
+				Image: "myimage:latest",
 			},
 		},
 		Secrets: map[string]Secret{
@@ -87,8 +88,18 @@ func TestImportJSON(t *testing.T) {
 	err = os.WriteFile(jsonFile, data, 0o644)
 	require.NoError(t, err)
 
-	// Import the file
-	err = Import(ctx, dao, jsonFile)
+	// Import the file - use a mock with only labels (no digests) so images are treated as local
+	mockOci := mocks.NewMockOCIService(
+		mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "myimage:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: My Image",
+				},
+				DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			},
+		}))
+	err = Import(ctx, dao, mockOci, jsonFile)
 	require.NoError(t, err)
 
 	// Verify it was imported
@@ -128,7 +139,7 @@ func TestImportCreatesNewWorkingSet(t *testing.T) {
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
 	// Import the file
-	err = Import(ctx, dao, yamlFile)
+	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.NoError(t, err)
 
 	// Verify set was created
@@ -162,7 +173,7 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 		ID:      "existing-set",
 		Name:    "Updated Name",
 		Servers: []Server{
-			{Type: ServerTypeImage, Image: "new:latest"},
+			{Type: ServerTypeImage, Image: "myimage:latest"},
 		},
 		Secrets: map[string]Secret{
 			"default": {Provider: SecretProviderDockerDesktop},
@@ -174,8 +185,17 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
-	// Import the file
-	err = Import(ctx, dao, yamlFile)
+	// Import the file - use a mock with only labels (no digests) so images are treated as local
+	mockOci := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "myimage:latest",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: My Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+		},
+	}))
+	err = Import(ctx, dao, mockOci, yamlFile)
 	require.NoError(t, err)
 
 	// Verify set was updated
@@ -186,7 +206,7 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 	assert.Equal(t, "existing-set", dbSet.ID)
 	assert.Equal(t, "Updated Name", dbSet.Name)
 	assert.Len(t, dbSet.Servers, 1)
-	assert.Equal(t, "new:latest", dbSet.Servers[0].Image)
+	assert.Equal(t, "myimage:latest", dbSet.Servers[0].Image)
 }
 
 func TestImportInvalidFile(t *testing.T) {
@@ -194,7 +214,7 @@ func TestImportInvalidFile(t *testing.T) {
 	ctx := t.Context()
 
 	// Try to import non-existent file
-	err := Import(ctx, dao, "/nonexistent/file.yaml")
+	err := Import(ctx, dao, getMockOciService(), "/nonexistent/file.yaml")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read")
 }
@@ -211,7 +231,7 @@ func TestImportInvalidYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to import
-	err = Import(ctx, dao, yamlFile)
+	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal")
 }
@@ -228,7 +248,7 @@ func TestImportInvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to import
-	err = Import(ctx, dao, jsonFile)
+	err = Import(ctx, dao, getMockOciService(), jsonFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal")
 }
@@ -245,7 +265,7 @@ func TestImportUnsupportedExtension(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to import
-	err = Import(ctx, dao, txtFile)
+	err = Import(ctx, dao, getMockOciService(), txtFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported file extension")
 }
@@ -271,7 +291,7 @@ func TestImportValidationFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to import
-	err = Import(ctx, dao, yamlFile)
+	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid working set")
 }
@@ -288,7 +308,7 @@ func TestImportEmptyFile(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to import
-	err = Import(ctx, dao, yamlFile)
+	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.Error(t, err)
 	// Empty file will fail validation
 }

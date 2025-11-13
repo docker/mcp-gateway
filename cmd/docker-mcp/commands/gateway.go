@@ -320,12 +320,12 @@ func isMcpOAuthDcrFeatureEnabled(dockerCli command.Cli) bool {
 func isDynamicToolsFeatureEnabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
-		return false // Default disabled when no config exists
+		return true // Default enabled when no config exists
 	}
 
 	value, exists := configFile.Features["dynamic-tools"]
 	if !exists {
-		return false // Default disabled when not in config
+		return true // Default enabled when not in config
 	}
 
 	return value == "enabled"

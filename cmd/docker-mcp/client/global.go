@@ -141,13 +141,13 @@ func (c *GlobalCfgProcessor) Update(key string, server *MCPServerSTDIO) error {
 	return updateConfig(targetPath, c.p.Add, c.p.Del, key, server)
 }
 
-func containsMCPDocker(in []MCPServerSTDIO) bool {
+func containsMCPDocker(in []MCPServerSTDIO) MCPServerSTDIO {
 	for _, server := range in {
 		if server.Name == DockerMCPCatalog || server.Name == makeSimpleName(DockerMCPCatalog) {
-			return true
+			return server
 		}
 	}
-	return false
+	return MCPServerSTDIO{}
 }
 
 type (

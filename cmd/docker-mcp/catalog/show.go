@@ -11,10 +11,10 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
-	"github.com/moby/term"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
+	"github.com/docker/mcp-gateway/pkg/terminal"
 	"github.com/docker/mcp-gateway/pkg/yq"
 )
 
@@ -119,7 +119,7 @@ func Show(ctx context.Context, dockerCli command.Cli, name string, format Format
 	}
 	keys := getSortedKeys(registry.Registry)
 
-	termWidth := getTerminalWidth()
+	termWidth := terminal.GetWidth()
 	wrapWidth := termWidth - 10
 	if wrapWidth < 40 {
 		wrapWidth = 40
@@ -176,15 +176,6 @@ func getSortedKeys(m map[string]Tile) []string {
 
 func isURL(fileOrURL string) bool {
 	return strings.HasPrefix(fileOrURL, "http://") || strings.HasPrefix(fileOrURL, "https://")
-}
-
-func getTerminalWidth() int {
-	fd, _ := term.GetFdInfo(os.Stdout)
-	ws, err := term.GetWinsize(fd)
-	if err != nil {
-		return 80
-	}
-	return int(ws.Width)
 }
 
 func wrapText(text string, width int, indent string) string {
