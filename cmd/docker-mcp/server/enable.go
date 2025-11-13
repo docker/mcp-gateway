@@ -540,18 +540,10 @@ func isEmptyValue(v any) bool {
 
 // getMissingSecrets returns a list of secrets that are required but not yet configured
 func getMissingSecrets(ctx context.Context, requiredSecrets []catalog.Secret) []catalog.Secret {
-	// Get the list of configured secrets
-	secretsClient := desktop.NewSecretsClient()
-	configuredSecrets, err := secretsClient.ListJfsSecrets(ctx)
+	configuredSecretNames, err := getConfiguredSecretNames(ctx)
 	if err != nil {
 		// If we can't get secrets, assume none are configured
 		return requiredSecrets
-	}
-
-	// Create a map of configured secret names for quick lookup
-	configuredSecretNames := make(map[string]struct{})
-	for _, secret := range configuredSecrets {
-		configuredSecretNames[secret.Name] = struct{}{}
 	}
 
 	var missing []catalog.Secret

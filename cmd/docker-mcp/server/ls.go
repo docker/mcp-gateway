@@ -40,19 +40,14 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 		return nil, err
 	}
 
-	// Get the list of configured secrets
-	configuredSecrets, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
+	// Get the map of configured secret names
+	configuredSecretNames, err := getConfiguredSecretNames(ctx)
 	if err != nil {
 		// If we can't get secrets, assume none are configured
 		if !quiet {
 			fmt.Fprintf(os.Stderr, "Warning: error fetching secrets: %v\n", err)
 		}
-	}
-
-	// Create a map of configured secret names for quick lookup
-	configuredSecretNames := make(map[string]struct{})
-	for _, secret := range configuredSecrets {
-		configuredSecretNames[secret.Name] = struct{}{}
+		configuredSecretNames = make(map[string]struct{})
 	}
 
 	isSecretConfigured := func(secret catalog.Secret) bool {
