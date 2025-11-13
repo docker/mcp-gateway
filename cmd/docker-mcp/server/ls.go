@@ -179,8 +179,11 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 	}
 	configured := 0
 	for k := range flatReq {
-		if _, ok := flattened[k]; ok {
-			configured++
+		if value, ok := flattened[k]; ok {
+			// Only count as configured if the value is non-empty
+			if !isEmptyValue(value) {
+				configured++
+			}
 		}
 	}
 
@@ -191,37 +194,6 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 		return ConfigStatusPartial
 	default:
 		return ConfigStatusDone
-	}
-}
-
-// parseRequiredFields extracts all required field names from the config schema
-func parseRequiredFields(req map[string]any) map[string]bool {
-	fields := make(map[string]bool)
-	// Only consider declared properties; ignore the top-level "name" field which
-	// identifies the server and should not be treated as a required config key.
-	if properties, ok := req["properties"].(map[string]any); ok {
-		walkProperties("", properties, fields)
-	}
-	return fields
-}
-
-// walkProperties recursively collects leaf property keys into dot-notation
-func walkProperties(prefix string, properties map[string]any, out map[string]bool) {
-	for propName, propDef := range properties {
-		// compute key with prefix
-		key := propName
-		if prefix != "" {
-			key = prefix + "." + propName
-		}
-		// If this property itself has nested properties, recurse
-		if propDefMap, ok := propDef.(map[string]any); ok {
-			if nestedProps, hasNested := propDefMap["properties"].(map[string]any); hasNested {
-				walkProperties(key, nestedProps, out)
-				continue
-			}
-		}
-		// Otherwise it's a leaf
-		out[key] = true
 	}
 }
 
@@ -244,21 +216,6 @@ func flattenMap(prefix string, m map[string]any) map[string]any {
 			continue
 		}
 		out[key] = v
-	}
-	return out
-}
-
-// collectRequiredFields merges required fields from a list of requirement objects
-func collectRequiredFields(requirements []any) map[string]bool {
-	out := make(map[string]bool)
-	for _, r := range requirements {
-		reqMap, ok := r.(map[string]any)
-		if !ok {
-			continue
-		}
-		for k := range parseRequiredFields(reqMap) {
-			out[k] = true
-		}
 	}
 	return out
 }

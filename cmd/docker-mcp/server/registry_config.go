@@ -35,13 +35,12 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 		return config.Registry{}, nil, fmt.Errorf("parsing user config: %w", err)
 	}
 
-	// Populate registry tiles with user config
+	// Populate registry tiles with user config (always use config.yaml as source of truth)
 	for serverName, tile := range registry.Servers {
-		if len(tile.Config) == 0 {
-			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
-				tile.Config = userServerConfig
-				registry.Servers[serverName] = tile
-			}
+		if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
+			// Always use the config from config.yaml, which is the source of truth
+			tile.Config = userServerConfig
+			registry.Servers[serverName] = tile
 		}
 	}
 
@@ -108,6 +107,52 @@ func getMissingConfigs(configSchema []any, userConfig map[string]any) []configFi
 	})
 
 	return missing
+}
+
+// parseRequiredFields extracts all required field names from the config schema
+func parseRequiredFields(req map[string]any) map[string]bool {
+	fields := make(map[string]bool)
+	// Only consider declared properties; ignore the top-level "name" field which
+	// identifies the server and should not be treated as a required config key.
+	if properties, ok := req["properties"].(map[string]any); ok {
+		walkProperties("", properties, fields)
+	}
+	return fields
+}
+
+// walkProperties recursively collects leaf property keys into dot-notation
+func walkProperties(prefix string, properties map[string]any, out map[string]bool) {
+	for propName, propDef := range properties {
+		// compute key with prefix
+		key := propName
+		if prefix != "" {
+			key = prefix + "." + propName
+		}
+		// If this property itself has nested properties, recurse
+		if propDefMap, ok := propDef.(map[string]any); ok {
+			if nestedProps, hasNested := propDefMap["properties"].(map[string]any); hasNested {
+				walkProperties(key, nestedProps, out)
+				continue
+			}
+		}
+		// Otherwise it's a leaf
+		out[key] = true
+	}
+}
+
+// collectRequiredFields merges required fields from a list of requirement objects
+func collectRequiredFields(requirements []any) map[string]bool {
+	out := make(map[string]bool)
+	for _, r := range requirements {
+		reqMap, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		for k := range parseRequiredFields(reqMap) {
+			out[k] = true
+		}
+	}
+	return out
 }
 
 // buildPropertyMap builds a map of dot-notation keys to property metadata
@@ -227,6 +272,10 @@ func isEmptyValue(v any) bool {
 	}
 	if s, ok := v.(string); ok {
 		return s == ""
+	}
+	// Check for empty maps
+	if m, ok := v.(map[string]any); ok {
+		return len(m) == 0
 	}
 	return false
 }
