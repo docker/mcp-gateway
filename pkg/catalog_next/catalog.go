@@ -3,6 +3,7 @@ package catalognext
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -22,6 +23,12 @@ type CatalogWithDigest struct {
 	Catalog `yaml:",inline"`
 	Digest  string `yaml:"digest" json:"digest"`
 }
+
+// Source prefixes must be of the form "<prefix>:"
+const (
+	SourcePrefixWorkingSet    = "working-set:"
+	SourcePrefixLegacyCatalog = "legacy-catalog:"
+)
 
 type Server struct {
 	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image"`
@@ -116,5 +123,24 @@ func (catalog *Catalog) Digest() string {
 }
 
 func (catalog *Catalog) Validate() error {
-	return validate.Get().Struct(catalog)
+	if err := validate.Get().Struct(catalog); err != nil {
+		return err
+	}
+	return catalog.validateUniqueServerNames()
+}
+
+func (catalog *Catalog) validateUniqueServerNames() error {
+	seen := make(map[string]bool)
+	for _, server := range catalog.Servers {
+		// TODO: Update when Snapshot is required
+		if server.Snapshot == nil {
+			continue
+		}
+		name := server.Snapshot.Server.Name
+		if seen[name] {
+			return fmt.Errorf("duplicate server name %s", name)
+		}
+		seen[name] = true
+	}
+	return nil
 }

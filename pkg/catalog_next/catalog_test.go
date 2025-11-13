@@ -175,6 +175,16 @@ func TestCatalogValidateErrors(t *testing.T) {
 			},
 		},
 		{
+			name: "duplicate server name",
+			catalog: Catalog{
+				Name: "",
+				Servers: []Server{
+					{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
+					{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
+				},
+			},
+		},
+		{
 			name: "invalid server type",
 			catalog: Catalog{
 				Name:    "test",

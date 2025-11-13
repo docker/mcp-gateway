@@ -1320,6 +1320,10 @@ func (m *mockErrorDAO) DeleteCatalog(_ context.Context, _ string) error {
 	return nil
 }
 
+func (m *mockErrorDAO) DeleteCatalogBySource(_ context.Context, _ string) error {
+	return nil
+}
+
 func (m *mockErrorDAO) GetCatalog(_ context.Context, _ string) (*db.Catalog, error) {
 	return nil, fmt.Errorf("not implemented")
 }

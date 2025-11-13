@@ -334,3 +334,111 @@ func TestEmptyToolList(t *testing.T) {
 	assert.NotNil(t, retrieved.Servers[0].Tools)
 	assert.Empty(t, retrieved.Servers[0].Tools)
 }
+
+func TestDeleteCatalogBySource(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	catalog := Catalog{
+		Digest:  "sourcedelete123",
+		Name:    "To Delete By Source",
+		Source:  "https://example.com/source-delete",
+		Servers: []CatalogServer{},
+	}
+
+	err := dao.CreateCatalog(ctx, catalog)
+	require.NoError(t, err)
+
+	// Verify it exists
+	_, err = dao.GetCatalog(ctx, "sourcedelete123")
+	require.NoError(t, err)
+
+	// Delete by source
+	err = dao.DeleteCatalogBySource(ctx, "https://example.com/source-delete")
+	require.NoError(t, err)
+
+	// Verify it's gone
+	_, err = dao.GetCatalog(ctx, "sourcedelete123")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestDeleteCatalogBySourceEmpty(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Should error when source is empty
+	err := dao.DeleteCatalogBySource(ctx, "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "source should not be empty")
+}
+
+func TestDeleteCatalogBySourceNonexistent(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Should not error even if the source doesn't exist
+	err := dao.DeleteCatalogBySource(ctx, "https://example.com/nonexistent")
+	require.NoError(t, err)
+}
+
+func TestDeleteCatalogBySourceMultiple(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create multiple catalogs with the same source
+	catalog1 := Catalog{
+		Digest:  "multi1",
+		Name:    "Multi 1",
+		Source:  "https://example.com/shared-source",
+		Servers: []CatalogServer{},
+	}
+
+	catalog2 := Catalog{
+		Digest:  "multi2",
+		Name:    "Multi 2",
+		Source:  "https://example.com/shared-source",
+		Servers: []CatalogServer{},
+	}
+
+	catalog3 := Catalog{
+		Digest:  "multi3",
+		Name:    "Multi 3",
+		Source:  "https://example.com/different-source",
+		Servers: []CatalogServer{},
+	}
+
+	err := dao.CreateCatalog(ctx, catalog1)
+	require.NoError(t, err)
+
+	err = dao.CreateCatalog(ctx, catalog2)
+	require.NoError(t, err)
+
+	err = dao.CreateCatalog(ctx, catalog3)
+	require.NoError(t, err)
+
+	// Verify all exist
+	_, err = dao.GetCatalog(ctx, "multi1")
+	require.NoError(t, err)
+	_, err = dao.GetCatalog(ctx, "multi2")
+	require.NoError(t, err)
+	_, err = dao.GetCatalog(ctx, "multi3")
+	require.NoError(t, err)
+
+	// Delete by shared source
+	err = dao.DeleteCatalogBySource(ctx, "https://example.com/shared-source")
+	require.NoError(t, err)
+
+	// Verify catalogs with shared source are gone
+	_, err = dao.GetCatalog(ctx, "multi1")
+	require.Error(t, err)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	_, err = dao.GetCatalog(ctx, "multi2")
+	require.Error(t, err)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	// Verify catalog with different source still exists
+	_, err = dao.GetCatalog(ctx, "multi3")
+	require.NoError(t, err)
+}

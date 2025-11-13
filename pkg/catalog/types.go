@@ -7,6 +7,7 @@ type Catalog struct {
 // catalog.json
 
 type topLevel struct {
+	Name     string            `yaml:"name,omitempty" json:"name,omitempty"`
 	Registry map[string]Server `json:"registry"`
 }
 
