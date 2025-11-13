@@ -22,7 +22,7 @@ type SearchResult struct {
 func Servers(ctx context.Context, dao db.DAO, query string, workingSetID string, format OutputFormat) error {
 	dbSets, err := dao.SearchWorkingSets(ctx, query, workingSetID)
 	if err != nil {
-		return fmt.Errorf("failed to search working sets: %w", err)
+		return fmt.Errorf("failed to search profiles: %w", err)
 	}
 
 	results := filterResults(dbSets, query)
@@ -99,11 +99,11 @@ func outputSearchResults(results []SearchResult, format OutputFormat) error {
 
 func printSearchResultsHuman(results []SearchResult) {
 	if len(results) == 0 {
-		fmt.Println("No working sets found")
+		fmt.Println("No profiles found")
 		return
 	}
 
-	rows := [][]string{{"WORKING SET", "TYPE", "IDENTIFIER"}}
+	rows := [][]string{{"PROFILE", "TYPE", "IDENTIFIER"}}
 	totalMatches := 0
 
 	for _, result := range results {

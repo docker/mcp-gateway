@@ -16,15 +16,15 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	if id != "" {
 		_, err := dao.GetWorkingSet(ctx, id)
 		if err == nil {
-			return fmt.Errorf("working set with id %s already exists", id)
+			return fmt.Errorf("profile with id %s already exists", id)
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("failed to look for existing working set: %w", err)
+			return fmt.Errorf("failed to look for existing profile: %w", err)
 		}
 	} else {
 		id, err = createWorkingSetID(ctx, name, dao)
 		if err != nil {
-			return fmt.Errorf("failed to create working set id: %w", err)
+			return fmt.Errorf("failed to create profile id: %w", err)
 		}
 	}
 
@@ -51,15 +51,15 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	}
 
 	if err := workingSet.Validate(); err != nil {
-		return fmt.Errorf("invalid working set: %w", err)
+		return fmt.Errorf("invalid profile: %w", err)
 	}
 
 	err = dao.CreateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
-		return fmt.Errorf("failed to create working set: %w", err)
+		return fmt.Errorf("failed to create profile: %w", err)
 	}
 
-	fmt.Printf("Created working set %s with %d servers\n", id, len(workingSet.Servers))
+	fmt.Printf("Created profile %s with %d servers\n", id, len(workingSet.Servers))
 
 	return nil
 }

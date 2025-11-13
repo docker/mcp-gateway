@@ -1,58 +1,58 @@
-# Working Sets
+# Profiles
 
-Working sets allow you to organize and manage collections of MCP servers as a single unit. Unlike catalogs that serve as repositories of available servers, working sets represent specific configurations of servers you want to use together for different purposes or contexts.
+Profiles allow you to organize and manage collections of MCP servers as a single unit. Unlike catalogs that serve as repositories of available servers, profiles represent specific configurations of servers you want to use together for different purposes or contexts.
 
-## What are Working Sets?
+## What are Profiles?
 
-A working set is a named collection of MCP servers that can be:
+A profile is a named collection of MCP servers that can be:
 - Created and managed independently of catalogs
 - Shared across teams via export/import or OCI registries
 - Used to quickly switch between different server configurations
 
-Working sets are decoupled from catalogs, meaning the servers in a working set can come from:
+Profiles are decoupled from catalogs, meaning the servers in a profile can come from:
 - **MCP Registry references**: HTTP(S) URLs pointing to servers in the Model Context Protocol registry
 - **OCI image references**: Docker images with the `docker://` prefix
 
-## Enabling Working Sets
+## Enabling Profiles
 
-Working sets are a feature that must be enabled first:
+Profiles are a feature that must be enabled first:
 
 ```bash
-# Enable the working-sets feature
-docker mcp feature enable working-sets
+# Enable the profiles feature
+docker mcp feature enable profiles
 
 # Verify it's enabled
 docker mcp feature list
 ```
 
 Once enabled, you'll have access to:
-- `docker mcp workingset` commands for managing working sets
-- `--working-set` flag for `docker mcp gateway run`
-- `-w` or `--working-set` flag for `docker mcp client connect`
+- `docker mcp profile` commands for managing profiles
+- `--profile` flag for `docker mcp gateway run`
+- `-p` or `--profile` flag for `docker mcp client connect`
 
-## Working Set Commands
+## Profile Commands
 
-### Creating Working Sets
+### Creating Profiles
 
-Create a new working set with a name and list of servers:
+Create a new profile with a name and list of servers:
 
 ```bash
-# Create a working set with OCI image references
-docker mcp workingset create --name dev-tools \
+# Create a profile with OCI image references
+docker mcp profile create --name dev-tools \
   --server docker://mcp/github:latest \
   --server docker://mcp/slack:latest
 
 # Create with MCP Registry references
-docker mcp workingset create --name registry-servers \
+docker mcp profile create --name registry-servers \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
 # Mix MCP Registry and OCI references
-docker mcp workingset create --name mixed \
+docker mcp profile create --name mixed \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 \
   --server docker://mcp/github:latest
 
 # Specify a custom ID (otherwise derived from name)
-docker mcp workingset create --name "My Servers" --id my-servers \
+docker mcp profile create --name "My Servers" --id my-servers \
   --server docker://mcp/github:latest
 ```
 
@@ -64,22 +64,22 @@ docker mcp workingset create --name "My Servers" --id my-servers \
   - `docker://` prefix for OCI images
   - `http://` or `https://` URLs for MCP Registry references
 
-### Listing Working Sets
+### Listing Profiles
 
-View all working sets in your system:
+View all profiles in your system:
 
 ```bash
-# List all working sets (human-readable format)
-docker mcp workingset list
+# List all profiles (human-readable format)
+docker mcp profile list
 
 # List with aliases
-docker mcp workingset ls
+docker mcp profile ls
 
 # List in JSON format
-docker mcp workingset list --format json
+docker mcp profile list --format json
 
 # List in YAML format
-docker mcp workingset list --format yaml
+docker mcp profile list --format yaml
 ```
 
 **Output formats:**
@@ -87,102 +87,102 @@ docker mcp workingset list --format yaml
 - `json`: Complete JSON representation
 - `yaml`: Complete YAML representation
 
-### Showing Working Set Details
+### Showing Profile Details
 
-Display detailed information about a specific working set:
+Display detailed information about a specific profile:
 
 ```bash
-# Show a working set (human-readable)
-docker mcp workingset show my-working-set
+# Show a profile (human-readable)
+docker mcp profile show my-profile
 
 # Show in JSON format
-docker mcp workingset show my-working-set --format json
+docker mcp profile show my-profile --format json
 
 # Show in YAML format
-docker mcp workingset show my-working-set --format yaml
+docker mcp profile show my-profile --format yaml
 ```
 
 The output includes:
-- Working set ID and name
+- Profile ID and name
 - List of servers with their types and references
 - Configuration for each server
 - Secrets configuration
 - Tools associated with each server
 
-### Removing Working Sets
+### Removing Profiles
 
-Delete a working set from your system:
+Delete a profile from your system:
 
 ```bash
-# Remove a working set
-docker mcp workingset remove my-working-set
+# Remove a profile
+docker mcp profile remove my-profile
 
 # Using alias
-docker mcp workingset rm my-working-set
+docker mcp profile rm my-profile
 ```
 
-**Note:** This only removes the working set definition, not the actual server images or registry entries.
+**Note:** This only removes the profile definition, not the actual server images or registry entries.
 
-### Configuring Working Set Servers
+### Configuring Profile Servers
 
-Manage configuration values for servers within a working set:
+Manage configuration values for servers within a profile:
 
 ```bash
 # Set a single configuration value
-docker mcp workingset config my-working-set --set github.timeout=30
+docker mcp profile config my-profile --set github.timeout=30
 
 # Set multiple configuration values
-docker mcp workingset config my-working-set \
+docker mcp profile config my-profile \
   --set github.timeout=30 \
   --set github.maxRetries=3 \
   --set slack.channel=general
 
 # Get a specific configuration value
-docker mcp workingset config my-working-set --get github.timeout
+docker mcp profile config my-profile --get github.timeout
 
 # Get multiple configuration values
-docker mcp workingset config my-working-set \
+docker mcp profile config my-profile \
   --get github.timeout \
   --get github.maxRetries
 
 # Get all configuration values
-docker mcp workingset config my-working-set --get-all
+docker mcp profile config my-profile --get-all
 
 # Delete configuration values
-docker mcp workingset config my-working-set --del github.maxRetries
+docker mcp profile config my-profile --del github.maxRetries
 
 # Combine operations (set new values and get existing ones)
-docker mcp workingset config my-working-set \
+docker mcp profile config my-profile \
   --set github.timeout=60 \
   --get github.maxRetries
 
 # Output in JSON format
-docker mcp workingset config my-working-set --get-all --format json
+docker mcp profile config my-profile --get-all --format json
 
 # Output in YAML format
-docker mcp workingset config my-working-set --get-all --format yaml
+docker mcp profile config my-profile --get-all --format yaml
 ```
 
 **Configuration format:**
 - `--set`: Format is `<server-name>.<config-key>=<value>` (can be specified multiple times)
 - `--get`: Format is `<server-name>.<config-key>` (can be specified multiple times)
 - `--del`: Format is `<server-name>.<config-key>` (can be specified multiple times)
-- `--get-all`: Retrieves all configuration values from all servers in the working set
+- `--get-all`: Retrieves all configuration values from all servers in the profile
 - `--format`: Output format - `human` (default), `json`, or `yaml`
 
 **Important notes:**
 - The server name must match the name from the server's snapshot (not the image or source URL)
-- Use `docker mcp workingset show <working-set-id> --format yaml` to see available server names
-- Configuration changes are persisted immediately to the working set
+- Use `docker mcp profile show <profile-id> --format yaml` to see available server names
+- Configuration changes are persisted immediately to the profile
 - You cannot both `--set` and `--del` the same key in a single command
 - **Note**: Config is for non-sensitive settings. Use secrets management for API keys, tokens, and passwords.
 
-### Managing Secrets for Working Set Servers
+### Managing Secrets for Profile Servers
 
 Secrets provide secure storage for sensitive values like API keys, tokens, and passwords. Unlike configuration values, secrets are stored securely and never displayed in plain text.
 
 ```bash
-# Set a secret for a server in a working set
+# Set a secret for a server in a profile
 docker mcp secret set github.pat=ghp_xxxxx
 ```
 
@@ -191,115 +191,115 @@ docker mcp secret set github.pat=ghp_xxxxx
 - The server name must match the name from the server's snapshot
 - Secrets are stored in Docker Desktop's secure secret store
 
-**Current Limitation**: Secrets are scoped across all servers rather than for each working set. We plan to address this.
+**Current Limitation**: Secrets are scoped across all servers rather than for each profile. We plan to address this.
 
-### Exporting Working Sets
+### Exporting Profiles
 
-Export a working set to a file for backup or sharing:
+Export a profile to a file for backup or sharing:
 
 ```bash
 # Export to YAML
-docker mcp workingset export my-working-set ./my-workingset.yaml
+docker mcp profile export my-profile ./my-profile.yaml
 
 # Export to JSON
-docker mcp workingset export my-working-set ./my-workingset.json
+docker mcp profile export my-profile ./my-profile.json
 ```
 
 The file format is automatically detected from the extension (`.yaml` or `.json`).
 
-### Importing Working Sets
+### Importing Profiles
 
-Import a working set from a file:
+Import a profile from a file:
 
 ```bash
 # Import from YAML
-docker mcp workingset import ./my-workingset.yaml
+docker mcp profile import ./my-profile.yaml
 
 # Import from JSON
-docker mcp workingset import ./my-workingset.json
+docker mcp profile import ./my-profile.json
 ```
 
 **Behavior:**
-- If a working set with the same ID doesn't exist, it will be created
-- If a working set with the same ID exists, it will be updated
+- If a profile with the same ID doesn't exist, it will be created
+- If a profile with the same ID exists, it will be updated
 - The file format is automatically detected from the extension
 
-### Pushing Working Sets to OCI Registry
+### Pushing Profiles to OCI Registry
 
-Share working sets via OCI registries:
+Share profiles via OCI registries:
 
 ```bash
 # Push to a registry
-docker mcp workingset push my-working-set docker.io/myorg/my-workingset:latest
+docker mcp profile push my-profile docker.io/myorg/my-profile:latest
 
 # Push to a private registry
-docker mcp workingset push my-working-set registry.example.com/team/workingset:v1.0
+docker mcp profile push my-profile registry.example.com/team/profile:v1.0
 ```
 
 This allows you to:
-- Version control your working sets
+- Version control your profiles
 - Share with team members
 - Deploy consistent configurations across environments
 
-### Pulling Working Sets from OCI Registry
+### Pulling Profiles from OCI Registry
 
-Retrieve working sets from OCI registries:
+Retrieve profiles from OCI registries:
 
 ```bash
 # Pull from a registry
-docker mcp workingset pull docker.io/myorg/my-workingset:latest
+docker mcp profile pull docker.io/myorg/my-profile:latest
 
 # Pull from a private registry
-docker mcp workingset pull registry.example.com/team/workingset:v1.0
+docker mcp profile pull registry.example.com/team/profile:v1.0
 ```
 
-The working set will be imported into your local system and ready to use.
+The profile will be imported into your local system and ready to use.
 
-## Using Working Sets with the Gateway
+## Using Profiles with the Gateway
 
-Once you have working sets configured, you can use them to run the MCP gateway:
+Once you have profiles configured, you can use them to run the MCP gateway:
 
 ```bash
-# Run gateway with a specific working set
-docker mcp gateway run --working-set my-working-set
+# Run gateway with a specific profile
+docker mcp gateway run --profile my-profile
 
-# The gateway will start with only the servers defined in that working set
+# The gateway will start with only the servers defined in that profile
 ```
 
 **Important restrictions:**
-- `--working-set` cannot be used with `--servers` flag
-- `--working-set` cannot be used with `--enable-all-servers` flag
+- `--profile` cannot be used with `--servers` flag
+- `--profile` cannot be used with `--enable-all-servers` flag
 - These flags are mutually exclusive to ensure clear server selection
 
 **Current limitations:**
-- Working sets currently support image-only servers in the gateway
+- Profiles currently support image-only servers in the gateway
 - Configuration and secrets support is being expanded
 - Watch mode and dynamic updates are in development
 
-## Using Working Sets with MCP Clients
+## Using Profiles with MCP Clients
 
-Connect an MCP client with a specific working set:
+Connect an MCP client with a specific profile:
 
 ```bash
-# Connect client with a working set
-docker mcp client connect claude -w my-working-set
+# Connect client with a profile
+docker mcp client connect claude -p my-profile
 
 # Using long form
-docker mcp client connect cursor --working-set my-working-set
+docker mcp client connect cursor --profile my-profile
 ```
 
-This generates the appropriate client configuration using the servers from your working set.
+This generates the appropriate client configuration using the servers from your profile.
 
-## Working Set File Format
+## Profile File Format
 
-Working sets are stored in YAML or JSON with the following structure:
+Profiles are stored in YAML or JSON with the following structure:
 
 ### YAML Format
 
 ```yaml
 version: 1
-id: my-working-set
-name: My Working Set
+id: my-profile
+name: My Profile
 servers:
   - type: image
     image: mcp/github:latest
@@ -321,8 +321,8 @@ secrets:
 ```json
 {
   "version": 1,
-  "id": "my-working-set",
-  "name": "My Working Set",
+  "id": "my-profile",
+  "name": "My Profile",
   "servers": [
     {
       "type": "image",
@@ -348,8 +348,8 @@ secrets:
 
 ### Field Descriptions
 
-- **version**: Working set format version (currently `1`)
-- **id**: Unique identifier for the working set
+- **version**: Profile format version (currently `1`)
+- **id**: Unique identifier for the profile
 - **name**: Human-readable name
 - **servers**: Array of server definitions
   - **type**: Either `image` or `registry`
@@ -366,91 +366,91 @@ secrets:
 ### Development Workflow
 
 ```bash
-# 1. Create a development working set
-docker mcp workingset create --name dev \
+# 1. Create a development profile
+docker mcp profile create --name dev \
   --server docker://mcp/github:latest \
   --server docker://mcp/filesystem:latest
 
 # 2. Test it with the gateway
-docker mcp gateway run --working-set dev
+docker mcp gateway run --profile dev
 
 # 3. Once satisfied, export for sharing
-docker mcp workingset export dev ./dev-workingset.yaml
+docker mcp profile export dev ./dev-profile.yaml
 ```
 
 ### Team Collaboration
 
 ```bash
 # Team lead: Create and share
-docker mcp workingset create --name team-tools \
+docker mcp profile create --name team-tools \
   --server docker://mcp/github:latest \
   --server docker://mcp/slack:latest \
   --server docker://mcp/jira:latest
 
-docker mcp workingset push team-tools docker.io/myorg/team-tools:v1.0
+docker mcp profile push team-tools docker.io/myorg/team-tools:v1.0
 
 # Team members: Pull and use
-docker mcp workingset pull docker.io/myorg/team-tools:v1.0
-docker mcp gateway run --working-set team-tools
+docker mcp profile pull docker.io/myorg/team-tools:v1.0
+docker mcp gateway run --profile team-tools
 ```
 
 ### Environment-Specific Configurations
 
 ```bash
-# Create different working sets for different environments
-docker mcp workingset create --name production \
+# Create different profiles for different environments
+docker mcp profile create --name production \
   --server docker://mcp/monitoring:latest \
   --server docker://mcp/logging:latest
 
-docker mcp workingset create --name staging \
+docker mcp profile create --name staging \
   --server docker://mcp/monitoring:latest \
   --server docker://mcp/logging:latest \
   --server docker://mcp/debug:latest
 
 # Run with appropriate environment
-docker mcp gateway run --working-set production  # In production
-docker mcp gateway run --working-set staging     # In staging
+docker mcp gateway run --profile production  # In production
+docker mcp gateway run --profile staging     # In staging
 ```
 
 ### Project-Based Organization
 
 ```bash
-# Create working sets per project
-docker mcp workingset create --name project-a \
+# Create profiles per project
+docker mcp profile create --name project-a \
   --server docker://mcp/github:latest \
   --server docker://mcp/postgres:latest
 
-docker mcp workingset create --name project-b \
+docker mcp profile create --name project-b \
   --server docker://mcp/github:latest \
   --server docker://mcp/mongodb:latest
 
 # Switch between projects easily
-docker mcp gateway run --working-set project-a
+docker mcp gateway run --profile project-a
 # ... or ...
-docker mcp gateway run --working-set project-b
+docker mcp gateway run --profile project-b
 ```
 
-### Versioning Working Sets
+### Versioning Profiles
 
 ```bash
-# Create a working set
-docker mcp workingset create --name my-tools \
+# Create a profile
+docker mcp profile create --name my-tools \
   --server docker://mcp/github:v1.0
 
 # Push version 1.0
-docker mcp workingset push my-tools docker.io/myorg/my-tools:1.0
+docker mcp profile push my-tools docker.io/myorg/my-tools:1.0
 
-# Update the working set (modify via export/import)
-docker mcp workingset export my-tools ./temp.yaml
+# Update the profile (modify via export/import)
+docker mcp profile export my-tools ./temp.yaml
 # ... edit temp.yaml ...
-docker mcp workingset import ./temp.yaml
+docker mcp profile import ./temp.yaml
 
 # Push version 1.1
-docker mcp workingset push my-tools docker.io/myorg/my-tools:1.1
+docker mcp profile push my-tools docker.io/myorg/my-tools:1.1
 
 # Pull specific version when needed
-docker mcp workingset pull docker.io/myorg/my-tools:1.0
-docker mcp workingset pull docker.io/myorg/my-tools:1.1
+docker mcp profile pull docker.io/myorg/my-tools:1.0
+docker mcp profile pull docker.io/myorg/my-tools:1.1
 ```
 
 ## Best Practices
@@ -463,43 +463,43 @@ docker mcp workingset pull docker.io/myorg/my-tools:1.1
 
 ### Organization Strategies
 
-- **By Environment**: Separate working sets for dev, staging, production
+- **By Environment**: Separate profiles for dev, staging, production
 - **By Team**: Different sets for frontend, backend, devops teams
-- **By Project**: One working set per major project or application
+- **By Project**: One profile per major project or application
 - **By Use Case**: Sets for debugging, monitoring, development, etc.
 
 ### Sharing and Collaboration
 
 - Use OCI registries for team sharing rather than file exports
-- Document your working sets in team wikis or READMEs
-- Use semantic versioning for working set tags
-- Keep a "team-shared" working set for common tools
+- Document your profiles in team wikis or READMEs
+- Use semantic versioning for profile tags
+- Keep a "team-shared" profile for common tools
 
 ### Security Considerations
 
 - Always use `docker mcp secret set` for sensitive values (API keys, tokens, passwords)
-- Never use `docker mcp workingset config` for secrets - it's for non-sensitive settings only
+- Never use `docker mcp profile config` for secrets - it's for non-sensitive settings only
 - Secrets are stored in Docker Desktop's secure secret store
 - Use private OCI registries for proprietary server configurations
 - Review server references before importing from external sources
 
 ## Troubleshooting
 
-### Working Set Not Found
+### Profile Not Found
 
 ```bash
-Error: working set my-set not found
+Error: profile my-set not found
 ```
 
-**Solution**: Check available working sets with `docker mcp workingset list`
+**Solution**: Check available profiles with `docker mcp profile list`
 
 ### Feature Not Enabled
 
 ```bash
-Error: unknown command "workingset" for "docker mcp"
+Error: unknown command "profile" for "docker mcp"
 ```
 
-**Solution**: Enable the feature with `docker mcp feature enable working-sets`
+**Solution**: Enable the feature with `docker mcp feature enable profiles`
 
 ### Invalid Server Reference
 
@@ -514,20 +514,20 @@ Error: invalid server value: myserver
 ### Conflicting Flags
 
 ```bash
-Error: cannot use --working-set with --servers flag
+Error: cannot use --profile with --servers flag
 ```
 
-**Solution**: Choose either `--working-set` or `--servers`, not both
+**Solution**: Choose either `--profile` or `--servers`, not both
 
 ### ID Already Exists
 
 ```bash
-Error: working set with id my-set already exists
+Error: profile with id my-set already exists
 ```
 
 **Solution**: Either:
 - Choose a different name/ID
-- Remove the existing set first with `docker mcp workingset rm my-set`
+- Remove the existing set first with `docker mcp profile rm my-set`
 - Omit the `--id` flag to auto-generate a unique ID
 
 ### Export/Import File Format
@@ -552,11 +552,11 @@ Error: invalid config argument: myconfig, expected <serverName>.<configName>=<va
 ### Server Not Found in Config Command
 
 ```bash
-Error: server github not found in working set
+Error: server github not found in profile
 ```
 
 **Solution**: 
-- Use `docker mcp workingset show <working-set-id>` to see available server names
+- Use `docker mcp profile show <profile-id>` to see available server names
 - Ensure you're using the server's name from its snapshot, not the image name or source URL
 - Server names are case-sensitive
 
@@ -569,9 +569,9 @@ Error: cannot both delete and set the same config value: github.timeout
 **Solution**: Don't use `--set` and `--del` for the same key in a single command. Run them separately:
 ```bash
 # First delete
-docker mcp workingset config my-set --del github.timeout
+docker mcp profile config my-set --del github.timeout
 # Then set (if needed)
-docker mcp workingset config my-set --set github.timeout=60
+docker mcp profile config my-set --set github.timeout=60
 ```
 
 ## Limitations and Future Enhancements
@@ -579,7 +579,7 @@ docker mcp workingset config my-set --set github.timeout=60
 ### Current Limitations
 
 - Gateway support is limited to image-only servers
-- No automatic watch/reload when working sets are updated
+- No automatic watch/reload when profiles are updated
 - Limited to Docker Desktop's secret store for secrets
 - No built-in conflict resolution for duplicate server names
 
@@ -589,16 +589,16 @@ docker mcp workingset config my-set --set github.timeout=60
 - Integration with catalog management
 - Search and discovery features
 
-## Creating Catalogs from Working Sets
+## Creating Catalogs from Profiles
 
 The `catalog-next` command allows you to create and share catalogs:
 
 ```bash
-# Create a catalog from a working set
-docker mcp catalog-next create --from-working-set my-working-set
+# Create a catalog from a profile
+docker mcp catalog-next create --from-profile my-profile
 
 # Create with a custom name
-docker mcp catalog-next create --from-working-set my-working-set --name "My Catalog"
+docker mcp catalog-next create --from-profile my-profile --name "My Catalog"
 
 # List all catalogs
 docker mcp catalog-next list
@@ -618,7 +618,7 @@ docker mcp catalog-next pull myorg/my-catalog:latest
 
 **Key points:**
 - Catalogs are an immutable collection of MCP Servers
-- When creating a catalog from a working set, only the servers are included in the catalog.
+- When creating a catalog from a profile, only the servers are included in the catalog.
 - Use catalogs to share stable server configurations across teams
 - Catalogs can be pushed to/pulled from OCI registries like Docker images
 - Output supports `--format` flag: `human` (default), `json`, or `yaml`

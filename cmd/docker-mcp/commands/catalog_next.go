@@ -38,15 +38,15 @@ func createCatalogNextCommand() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create [--from-working-set <working-set-id>] [--from-legacy-catalog <url>] [--name <name>] [--remove-existing]",
-		Short: "Create a new catalog from a working set or legacy catalog",
+		Use:   "create [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--name <name>] [--remove-existing]",
+		Short: "Create a new catalog from a profile or legacy catalog",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if opts.FromWorkingSet == "" && opts.FromLegacyCatalog == "" {
-				return fmt.Errorf("either --from-working-set or --from-legacy-catalog must be provided")
+				return fmt.Errorf("either --from-profile or --from-legacy-catalog must be provided")
 			}
 			if opts.FromWorkingSet != "" && opts.FromLegacyCatalog != "" {
-				return fmt.Errorf("cannot use both --from-working-set and --from-legacy-catalog")
+				return fmt.Errorf("cannot use both --from-profile and --from-legacy-catalog")
 			}
 
 			dao, err := db.New()
@@ -58,7 +58,7 @@ func createCatalogNextCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&opts.FromWorkingSet, "from-working-set", "", "Working set ID to create the catalog from")
+	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.Name, "name", "", "Name of the catalog")
 	flags.BoolVar(&opts.RemoveExisting, "remove-existing", false, "Remove existing catalogs that come from the same source or have the same digest")

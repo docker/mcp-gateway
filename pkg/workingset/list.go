@@ -14,11 +14,11 @@ import (
 func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 	dbSets, err := dao.ListWorkingSets(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list working sets: %w", err)
+		return fmt.Errorf("failed to list profiles: %w", err)
 	}
 
 	if len(dbSets) == 0 && format == OutputFormatHumanReadable {
-		fmt.Println("No working sets found. Use `docker mcp workingset create --name <name>` to create a working set.")
+		fmt.Println("No profiles found. Use `docker mcp profile create --name <name>` to create a profile.")
 		return nil
 	}
 
@@ -39,7 +39,7 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 		return fmt.Errorf("unsupported format: %s", format)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to marshal working sets: %w", err)
+		return fmt.Errorf("failed to marshal profiles: %w", err)
 	}
 
 	fmt.Println(string(data))

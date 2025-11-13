@@ -11,12 +11,12 @@ import (
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) error {
 	workingSet, err := oci.ReadArtifact[WorkingSet](ref, MCPWorkingSetArtifactType)
 	if err != nil {
-		return fmt.Errorf("failed to read OCI working set: %w", err)
+		return fmt.Errorf("failed to read OCI profile: %w", err)
 	}
 
 	id, err := createWorkingSetID(ctx, workingSet.Name, dao)
 	if err != nil {
-		return fmt.Errorf("failed to create working set id: %w", err)
+		return fmt.Errorf("failed to create profile id: %w", err)
 	}
 	workingSet.ID = id
 
@@ -32,15 +32,15 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) e
 	}
 
 	if err := workingSet.Validate(); err != nil {
-		return fmt.Errorf("invalid working set: %w", err)
+		return fmt.Errorf("invalid profile: %w", err)
 	}
 
 	err = dao.CreateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
-		return fmt.Errorf("failed to create working set: %w", err)
+		return fmt.Errorf("failed to create profile: %w", err)
 	}
 
-	fmt.Printf("Working set %s imported as %s\n", workingSet.Name, id)
+	fmt.Printf("Profile %s imported as %s\n", workingSet.Name, id)
 
 	return nil
 }
