@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
@@ -30,36 +29,9 @@ type ListEntry struct {
 }
 
 func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
-	// Read the registry to get enabled servers
-	registryYAML, err := config.ReadRegistry(ctx, docker)
+	registry, _, err := loadRegistryWithConfig(ctx, docker)
 	if err != nil {
 		return nil, err
-	}
-
-	registry, err := config.ParseRegistryConfig(registryYAML)
-	if err != nil {
-		return nil, err
-	}
-
-	// Read user's configuration to populate registry tiles
-	userConfigYAML, err := config.ReadConfig(ctx, docker)
-	if err != nil {
-		return nil, fmt.Errorf("reading user config: %w", err)
-	}
-
-	userConfig, err := config.ParseConfig(userConfigYAML)
-	if err != nil {
-		return nil, fmt.Errorf("parsing user config: %w", err)
-	}
-
-	// Populate registry tiles with user config
-	for serverName, tile := range registry.Servers {
-		if len(tile.Config) == 0 {
-			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
-				tile.Config = userServerConfig
-				registry.Servers[serverName] = tile
-			}
-		}
 	}
 
 	// Read the catalog to get server metadata (descriptions, etc.)

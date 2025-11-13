@@ -29,36 +29,9 @@ func Enable(ctx context.Context, docker docker.Client, dockerCli command.Cli, se
 }
 
 func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, add []string, remove []string, mcpOAuthDcrEnabled bool, skipConfig bool) error {
-	// Read registry.yaml that contains which servers are enabled.
-	registryYAML, err := config.ReadRegistry(ctx, docker)
+	registry, userConfig, err := loadRegistryWithConfig(ctx, docker)
 	if err != nil {
-		return fmt.Errorf("reading registry config: %w", err)
-	}
-
-	registry, err := config.ParseRegistryConfig(registryYAML)
-	if err != nil {
-		return fmt.Errorf("parsing registry config: %w", err)
-	}
-
-	// Read user's configuration to populate registry tiles (same as ls.go)
-	userConfigYAML, err := config.ReadConfig(ctx, docker)
-	if err != nil {
-		return fmt.Errorf("reading user config: %w", err)
-	}
-
-	userConfig, err := config.ParseConfig(userConfigYAML)
-	if err != nil {
-		return fmt.Errorf("parsing user config: %w", err)
-	}
-
-	// Populate registry tiles with user config
-	for serverName, tile := range registry.Servers {
-		if len(tile.Config) == 0 {
-			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
-				tile.Config = userServerConfig
-				registry.Servers[serverName] = tile
-			}
-		}
+		return err
 	}
 
 	catalog, err := catalog.GetWithOptions(ctx, true, nil)
