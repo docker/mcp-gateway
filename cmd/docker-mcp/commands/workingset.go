@@ -30,6 +30,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(removeWorkingSetCommand())
 	cmd.AddCommand(workingsetServerCommand())
 	cmd.AddCommand(configWorkingSetCommand())
+	cmd.AddCommand(toolsWorkingSetCommand())
 	return cmd
 }
 
@@ -64,6 +65,60 @@ func configWorkingSetCommand() *cobra.Command {
 	flags.StringArrayVar(&del, "del", []string{}, "Delete configuration values: <key> (can be specified multiple times)")
 	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func toolsWorkingSetCommand() *cobra.Command {
+	var enable []string
+	var disable []string
+	var enableAll []string
+	var disableAll []string
+
+	cmd := &cobra.Command{
+		Use:   "tools <working-set-id> [--enable <tool> ...] [--disable <tool> ...] [--enable-all <server> ...] [--disable-all <server> ...]",
+		Short: "Manage tool allowlist for servers in a working set",
+		Long: `Manage the tool allowlist for servers in a working set.
+Tools are specified using dot notation: <serverName>.<toolName>
+
+Use --enable to enable specific tools for a server (can be specified multiple times).
+Use --disable to disable specific tools for a server (can be specified multiple times).
+Use --enable-all to enable all tools for a server (can be specified multiple times).
+Use --disable-all to disable all tools for a server (can be specified multiple times).
+
+To view enabled tools, use: docker mcp workingset show <working-set-id>`,
+		Example: `  # Enable specific tools for a server
+  docker mcp workingset tools my-set --enable github.create_issue --enable github.list_repos
+
+  # Disable specific tools for a server
+  docker mcp workingset tools my-set --disable github.create_issue --disable github.search_code
+
+  # Enable and disable in one command
+  docker mcp workingset tools my-set --enable github.create_issue --disable github.search_code
+
+  # Enable all tools for a server
+  docker mcp workingset tools my-set --enable-all github
+
+  # Disable all tools for a server
+  docker mcp workingset tools my-set --disable-all github
+
+  # View all enabled tools in the working set
+  docker mcp workingset show my-set`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return workingset.UpdateTools(cmd.Context(), dao, args[0], enable, disable, enableAll, disableAll)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&enable, "enable", []string{}, "Enable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&disable, "disable", []string{}, "Disable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&enableAll, "enable-all", []string{}, "Enable all tools for a server: <serverName> (repeatable)")
+	flags.StringArrayVar(&disableAll, "disable-all", []string{}, "Disable all tools for a server: <serverName> (repeatable)")
 
 	return cmd
 }
