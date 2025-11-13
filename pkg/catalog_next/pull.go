@@ -23,7 +23,7 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return fmt.Errorf("failed to read OCI catalog: %w", err)
 	}
 
-	catalog.Source = "oci:" + source
+	catalog.Source = SourcePrefixOCI + source
 
 	// Resolve any unresolved snapshots first
 	for i := range len(catalog.Servers) {
