@@ -45,7 +45,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	for i, server := range servers {
 		s, err := resolveServerFromString(ctx, registryClient, ociService, server)
 		if err != nil {
-			return fmt.Errorf("invalid server value: %w", err)
+			return err
 		}
 		workingSet.Servers[i] = s
 	}

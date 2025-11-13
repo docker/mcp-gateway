@@ -1,4 +1,4 @@
-package workingset
+package oci
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestFullNameWithDockerHub(t *testing.T) {
 	ref, err := name.ParseReference("docker.io/library/nginx:latest")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// Docker Hub domain should be stripped
 	assert.Equal(t, "library/nginx:latest", fullNameStr)
@@ -22,7 +22,7 @@ func TestFullNameWithDockerHubIndexDomain(t *testing.T) {
 	ref, err := name.ParseReference("index.docker.io/library/nginx:latest")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// index.docker.io domain should be stripped
 	assert.Equal(t, "library/nginx:latest", fullNameStr)
@@ -32,7 +32,7 @@ func TestFullNameWithCustomRegistry(t *testing.T) {
 	ref, err := name.ParseReference("myregistry.example.com/myrepo/myimage:v1.0")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// Custom registry domain should be preserved
 	assert.Equal(t, "myregistry.example.com/myrepo/myimage:v1.0", fullNameStr)
@@ -42,7 +42,7 @@ func TestFullNameWithGCR(t *testing.T) {
 	ref, err := name.ParseReference("gcr.io/my-project/my-image:latest")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// GCR domain should be preserved
 	assert.Equal(t, "gcr.io/my-project/my-image:latest", fullNameStr)
@@ -52,7 +52,7 @@ func TestFullNameWithDigest(t *testing.T) {
 	ref, err := name.ParseReference("myregistry.example.com/myrepo/myimage@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// Should include digest
 	assert.Contains(t, fullNameStr, "@sha256:")
@@ -63,7 +63,7 @@ func TestFullNameWithNoTag(t *testing.T) {
 	ref, err := name.ParseReference("nginx")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// Docker Hub should be stripped
 	// Default tag handling depends on the library
@@ -74,7 +74,7 @@ func TestFullNameWithPort(t *testing.T) {
 	ref, err := name.ParseReference("localhost:5000/myimage:v1.0")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	// localhost:5000 should be preserved
 	assert.Equal(t, "localhost:5000/myimage:v1.0", fullNameStr)
@@ -84,7 +84,7 @@ func TestFullNameWithMultiplePathComponents(t *testing.T) {
 	ref, err := name.ParseReference("myregistry.example.com/org/team/project/image:tag")
 	require.NoError(t, err)
 
-	fullNameStr := fullName(ref)
+	fullNameStr := FullName(ref)
 
 	assert.Equal(t, "myregistry.example.com/org/team/project/image:tag", fullNameStr)
 }
@@ -122,7 +122,7 @@ func TestIsValidInputReferenceWithTag(t *testing.T) {
 			ref, err := name.ParseReference(tt.reference)
 			require.NoError(t, err)
 
-			result := isValidInputReference(ref)
+			result := IsValidInputReference(ref)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -133,10 +133,6 @@ func TestIsValidInputReferenceRejectsDigests(t *testing.T) {
 	ref, err := name.ParseReference(digest)
 	require.NoError(t, err)
 
-	result := isValidInputReference(ref)
+	result := IsValidInputReference(ref)
 	assert.False(t, result, "digest references should not be valid input references")
-}
-
-func TestMCPCatalogArtifactType(t *testing.T) {
-	assert.Equal(t, "application/vnd.docker.mcp.catalog.v1+json", MCPCatalogArtifactType)
 }

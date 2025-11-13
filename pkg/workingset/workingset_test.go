@@ -251,6 +251,35 @@ func TestWorkingSetValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name: "duplicate server name",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:latest",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:previous",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {

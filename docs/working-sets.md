@@ -589,6 +589,40 @@ docker mcp workingset config my-set --set github.timeout=60
 - Integration with catalog management
 - Search and discovery features
 
+## Creating Catalogs from Working Sets
+
+The `catalog-next` command allows you to create and share catalogs:
+
+```bash
+# Create a catalog from a working set
+docker mcp catalog-next create --from-working-set my-working-set
+
+# Create with a custom name
+docker mcp catalog-next create --from-working-set my-working-set --name "My Catalog"
+
+# List all catalogs
+docker mcp catalog-next list
+
+# Show catalog details
+docker mcp catalog-next show <catalog-digest>
+
+# Remove a catalog
+docker mcp catalog-next remove <catalog-digest>
+
+# Push catalog to OCI registry
+docker mcp catalog-next push <catalog-digest> myorg/my-catalog:latest
+
+# Pull catalog from OCI registry
+docker mcp catalog-next pull myorg/my-catalog:latest
+```
+
+**Key points:**
+- Catalogs are an immutable collection of MCP Servers
+- When creating a catalog from a working set, only the servers are included in the catalog.
+- Use catalogs to share stable server configurations across teams
+- Catalogs can be pushed to/pulled from OCI registries like Docker images
+- Output supports `--format` flag: `human` (default), `json`, or `yaml`
+
 ## Related Documentation
 
 - [MCP Gateway](./mcp-gateway.md) - Running the MCP gateway

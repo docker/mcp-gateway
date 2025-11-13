@@ -51,6 +51,23 @@ type ServerSnapshot struct {
 	Server catalog.Server `json:"server"`
 }
 
+// Used as a column in catalogs
+func (snapshot *ServerSnapshot) Value() (driver.Value, error) {
+	b, err := json.Marshal(snapshot)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
+func (snapshot *ServerSnapshot) Scan(value any) error {
+	str, ok := value.(string)
+	if !ok {
+		return errors.New("failed to scan server snapshot")
+	}
+	return json.Unmarshal([]byte(str), snapshot)
+}
+
 func (servers ServerList) Value() (driver.Value, error) {
 	b, err := json.Marshal(servers)
 	if err != nil {
