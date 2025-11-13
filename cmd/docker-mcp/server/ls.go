@@ -127,14 +127,9 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 
 			// Check other config requirements (non-OAuth config)
 			if len(server.Config) > 0 {
-
-				tile, hasConfig := registry.Servers[serverName]
-				if !hasConfig || len(tile.Config) == 0 {
-					entry.Config = ConfigStatusRequired
-				} else {
-					// Validate config requirements against user configuration
-					entry.Config = validateConfigRequirements(server.Config, tile.Config)
-				}
+				tile := registry.Servers[serverName]
+				// Validate config requirements against user configuration
+				entry.Config = validateConfigRequirements(server.Config, tile.Config)
 			}
 		}
 

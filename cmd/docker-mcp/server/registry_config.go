@@ -305,6 +305,16 @@ func flattenMap(prefix string, m map[string]any) map[string]any {
 
 // validateConfigRequirements validates user configuration against server requirements
 func validateConfigRequirements(requirements []any, userConfig map[string]any) ConfigStatus {
+	// If userConfig is empty, check if config is required
+	if len(userConfig) == 0 {
+		// Check if there are any requirements first
+		flatReq := collectRequiredFields(requirements)
+		if len(flatReq) == 0 {
+			return ConfigStatusDone
+		}
+		return ConfigStatusRequired
+	}
+
 	flatReq := collectRequiredFields(requirements)
 	var flatReqKeys []string
 	for k := range flatReq {
