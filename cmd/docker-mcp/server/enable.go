@@ -113,6 +113,8 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				if err := handleConfigsConfiguration(ctx, dockerCli, serverName, server.Config, tile.Config); err != nil {
 					return err
 				}
+				// Update userConfig with the modified config so we can save it later
+				userConfig[serverName] = deepCopyMap(tile.Config)
 			}
 
 			updatedRegistry.Servers[serverName] = tile
@@ -136,6 +138,20 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 
 	if err := config.WriteRegistry(buf.Bytes()); err != nil {
 		return fmt.Errorf("writing registry config: %w", err)
+	}
+
+	// Save updated config values to config.yaml
+	if len(add) > 0 {
+		var configBuf bytes.Buffer
+		configEncoder := yaml.NewEncoder(&configBuf)
+		configEncoder.SetIndent(2)
+		if err := configEncoder.Encode(userConfig); err != nil {
+			return fmt.Errorf("encoding user config: %w", err)
+		}
+
+		if err := config.WriteConfig(configBuf.Bytes()); err != nil {
+			return fmt.Errorf("writing user config: %w", err)
+		}
 	}
 
 	if len(add) > 0 && hints.Enabled(dockerCli) {
