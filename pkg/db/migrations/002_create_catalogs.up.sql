@@ -1,7 +1,7 @@
 create table catalog (
-  id integer primary key,
-  digest text not null unique,
-  name text not null,
+  ref text primary key,
+  digest text not null,
+  title text not null,
   source text
 );
 
@@ -12,7 +12,7 @@ create table catalog_server (
   source text,
   image text,
   snapshot text CHECK (json_valid(snapshot)),
-  catalog_id integer not null,
-  foreign key (catalog_id) references catalog(id) on delete cascade
+  catalog_ref text not null,
+  foreign key (catalog_ref) references catalog(ref) on delete cascade
 );
 

@@ -39,6 +39,47 @@ func CreateArtifactWithSubjectAndPush(ctx context.Context, ref name.Reference, c
 	})
 }
 
+func GetArtifactDigest[T any](artifactType string, content T) (string, error) {
+	contentBytes, err := json.Marshal(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal content: %w", err)
+	}
+
+	// Create empty config blob
+	emptyConfig := []byte("{}")
+	configDigest := digest.FromBytes(emptyConfig)
+	contentDigest := digest.FromBytes(contentBytes)
+
+	// Create OCI manifest with subject descriptor using OCI spec types
+	manifest := oci.Manifest{
+		Versioned: specs.Versioned{
+			SchemaVersion: 2,
+		},
+		MediaType:    "application/vnd.oci.image.manifest.v1+json",
+		ArtifactType: artifactType,
+		Config: oci.Descriptor{
+			MediaType: "application/vnd.oci.empty.v1+json",
+			Digest:    configDigest,
+			Size:      int64(len(emptyConfig)),
+		},
+		Layers: []oci.Descriptor{
+			{
+				MediaType: "application/json",
+				Digest:    contentDigest,
+				Size:      int64(len(contentBytes)),
+			},
+		},
+	}
+
+	manifestBytes, err := json.Marshal(manifest)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+
+	manifestDigest := sha256.Sum256(manifestBytes)
+	return fmt.Sprintf("%x", manifestDigest), nil
+}
+
 func PushArtifact[T any](ctx context.Context, ref name.Reference, artifactType string, content T, subject *oci.Descriptor) (string, error) {
 	contentBytes, err := json.Marshal(content)
 	if err != nil {

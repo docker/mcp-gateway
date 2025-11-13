@@ -314,7 +314,7 @@ func addServerCommand() *cobra.Command {
 	var catalogServers []string
 
 	cmd := &cobra.Command{
-		Use:   "add <working-set-id> [--server <ref1> --server <ref2> ...] [--catalog <name> --catalog-server <server1> --catalog-server <server2> ...]",
+		Use:   "add <working-set-id> [--server <ref1> --server <ref2> ...] [--catalog <oci-reference> --catalog-server <server1> --catalog-server <server2> ...]",
 		Short: "Add MCP servers to a working set",
 		Long:  "Add MCP servers to a working set.",
 		Example: ` # Add servers with OCI references
@@ -327,10 +327,10 @@ func addServerCommand() *cobra.Command {
   docker mcp workingset server add my-working-set --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest
 
   # Add servers from a catalog
-  docker mcp workingset server add my-working-set --catalog 580529328fa20c636bb49f245418901b8f92ba01f35f17e2ceb9a9573424f844 --catalog-server github --catalog-server slack
+  docker mcp workingset server add my-working-set --catalog my-catalog --catalog-server github --catalog-server slack
 
   # Mix catalog servers with direct server references
-  docker mcp workingset server add my-working-set --catalog 580529328fa20c636bb49f245418901b8f92ba01f35f17e2ceb9a9573424f844 --catalog-server github --server docker://mcp/slack:latest`,
+  docker mcp workingset server add my-working-set --catalog my-catalog --catalog-server github --server docker://mcp/slack:latest`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
@@ -345,7 +345,7 @@ func addServerCommand() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringArrayVar(&servers, "server", []string{}, "Server to include: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
-	flags.StringVar(&catalog, "catalog", "", "Catalog's digest to add servers from (optional)")
+	flags.StringVar(&catalog, "catalog", "", "Catalog to add servers from (optional)")
 	flags.StringArrayVar(&catalogServers, "catalog-server", []string{}, "Server names from the catalog to add (can be specified multiple times, requires --catalog)")
 
 	return cmd

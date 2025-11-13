@@ -18,25 +18,29 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	}
 	source := oci.FullName(ref)
 
-	catalog, err := oci.ReadArtifact[Catalog](refStr, MCPCatalogArtifactType)
+	catalogArtifact, err := oci.ReadArtifact[CatalogArtifact](refStr, MCPCatalogArtifactType)
 	if err != nil {
 		return fmt.Errorf("failed to read OCI catalog: %w", err)
 	}
 
-	catalog.Source = SourcePrefixOCI + source
+	catalog := Catalog{
+		CatalogArtifact: catalogArtifact,
+		Ref:             oci.FullNameWithoutDigest(ref),
+		Source:          SourcePrefixOCI + source,
+	}
 
 	// Resolve any unresolved snapshots first
-	for i := range len(catalog.Servers) {
-		if catalog.Servers[i].Snapshot != nil {
+	for i := range len(catalog.CatalogArtifact.Servers) {
+		if catalog.CatalogArtifact.Servers[i].Snapshot != nil {
 			continue
 		}
-		switch catalog.Servers[i].Type {
+		switch catalog.CatalogArtifact.Servers[i].Type {
 		case workingset.ServerTypeImage:
-			serverSnapshot, err := workingset.ResolveImageSnapshot(ctx, ociService, catalog.Servers[i].Image)
+			serverSnapshot, err := workingset.ResolveImageSnapshot(ctx, ociService, catalog.CatalogArtifact.Servers[i].Image)
 			if err != nil {
 				return fmt.Errorf("failed to resolve image snapshot: %w", err)
 			}
-			catalog.Servers[i].Snapshot = serverSnapshot
+			catalog.CatalogArtifact.Servers[i].Snapshot = serverSnapshot
 		case workingset.ServerTypeRegistry:
 			// TODO(cody): Ignore until supported
 		}
@@ -46,15 +50,17 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return fmt.Errorf("invalid catalog: %w", err)
 	}
 
-	err = dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCatalog, err := catalog.ToDb()
 	if err != nil {
-		if db.IsDuplicateDigestError(err) {
-			return fmt.Errorf("catalog with digest %s already exists", catalog.Digest())
-		}
+		return fmt.Errorf("failed to convert catalog to db: %w", err)
+	}
+
+	err = dao.UpsertCatalog(ctx, dbCatalog)
+	if err != nil {
 		return fmt.Errorf("failed to create catalog: %w", err)
 	}
 
-	fmt.Printf("Catalog %s imported with digest %s\n", catalog.Name, catalog.Digest())
+	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
 	return nil
 }

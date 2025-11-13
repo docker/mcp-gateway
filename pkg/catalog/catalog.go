@@ -28,7 +28,7 @@ func ReadFrom(ctx context.Context, fileOrURLs []string) (Catalog, error) {
 	mergedServers := map[string]Server{}
 
 	for _, fileOrURL := range fileOrURLs {
-		servers, _, err := readMCPServers(ctx, fileOrURL)
+		servers, _, _, err := readMCPServers(ctx, fileOrURL)
 		if err != nil {
 			return Catalog{}, err
 		}
@@ -47,31 +47,31 @@ func ReadFrom(ctx context.Context, fileOrURLs []string) (Catalog, error) {
 	}, nil
 }
 
-func ReadOne(ctx context.Context, fileOrURL string) (Catalog, string, error) {
-	servers, name, err := readMCPServers(ctx, fileOrURL)
+func ReadOne(ctx context.Context, fileOrURL string) (Catalog, string, string, error) {
+	servers, name, displayName, err := readMCPServers(ctx, fileOrURL)
 	if err != nil {
-		return Catalog{}, "", err
+		return Catalog{}, "", "", err
 	}
 	return Catalog{
 		Servers: servers,
-	}, name, nil
+	}, name, displayName, nil
 }
 
-func readMCPServers(ctx context.Context, fileOrURL string) (map[string]Server, string, error) {
+func readMCPServers(ctx context.Context, fileOrURL string) (map[string]Server, string, string, error) {
 	buf, err := readFileOrURL(ctx, fileOrURL)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return map[string]Server{}, "", nil
+			return map[string]Server{}, "", "", nil
 		}
-		return nil, "", err
+		return nil, "", "", err
 	}
 
 	var topLevel topLevel
 	if err := yaml.Unmarshal(buf, &topLevel); err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 
-	return topLevel.Registry, topLevel.Name, nil
+	return topLevel.Registry, topLevel.Name, topLevel.DisplayName, nil
 }
 
 func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {

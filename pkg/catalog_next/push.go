@@ -12,30 +12,29 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-func Push(ctx context.Context, dao db.DAO, digest string, refStr string) error {
-	dbCatalog, err := dao.GetCatalog(ctx, digest)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("catalog %s not found", digest)
-		}
-		return fmt.Errorf("failed to get catalog: %w", err)
-	}
-
+func Push(ctx context.Context, dao db.DAO, refStr string) error {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse reference: %w", err)
 	}
 
 	if !oci.IsValidInputReference(ref) {
-		return fmt.Errorf("reference must be a valid OCI reference")
+		return fmt.Errorf("reference must be a valid OCI reference without a digest")
+	}
+
+	refStr = oci.FullNameWithoutDigest(ref)
+
+	dbCatalog, err := dao.GetCatalog(ctx, refStr)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("catalog %s not found", refStr)
+		}
+		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 
 	catalog := NewFromDb(dbCatalog)
 
-	// Remove source from catalog, since the new source will be the oci artifact
-	catalog.Source = ""
-
-	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, catalog, nil)
+	hash, err := oci.PushArtifact(ctx, ref, MCPCatalogArtifactType, catalog.CatalogArtifact, nil)
 	if err != nil {
 		return fmt.Errorf("failed to push catalog artifact: %w", err)
 	}
