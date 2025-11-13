@@ -95,102 +95,15 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 
 			// Check if server has secrets requirements and prompt for them
 			if !skipConfig && len(server.Secrets) > 0 {
-				missingSecrets := getMissingSecrets(ctx, server.Secrets)
-
-				if len(missingSecrets) > 0 {
-					fmt.Printf("\nServer %s requires secrets. Please provide the following:\n\n", serverName)
-					fmt.Println("Press Ctrl+C to cancel configuration.")
-
-					// Prompt for each missing secret
-					for _, secret := range missingSecrets {
-						value, err := promptForSecret(ctx, dockerCli, secret)
-						if err != nil {
-							if errors.Is(err, command.ErrPromptTerminated) {
-								fmt.Println("\nConfiguration cancelled.")
-								return fmt.Errorf("configuration cancelled by user")
-							}
-							// For validation errors, show warning but continue
-							fmt.Fprintf(dockerCli.Out(), "\n")
-							if strings.Contains(err.Error(), "too long") {
-								hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
-								hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
-								hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
-								hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
-								continue
-							}
-							// For other errors, also continue with warning
-							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
-							hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
-							hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
-							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
-							continue
-						}
-
-						// If secret is empty, warn but continue
-						if value == "" {
-							fmt.Fprintf(dockerCli.Out(), "\n")
-							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Secret %s is required but was left empty.\n", secret.Name)
-							hints.WarningColor.Fprintf(dockerCli.Err(), "The server may not work without it. You can set it later with: ")
-							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
-							continue
-						}
-
-						// Save the secret
-						secretsClient := desktop.NewSecretsClient()
-						if err := secretsClient.SetJfsSecret(ctx, desktop.Secret{
-							Name:  secret.Name,
-							Value: value,
-						}); err != nil {
-							fmt.Fprintf(dockerCli.Out(), "\n")
-							hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Failed to save secret %s: %v\n", secret.Name, err)
-							hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
-							hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
-							continue
-						}
-					}
-
-					fmt.Println()
+				if err := handleSecretsConfiguration(ctx, dockerCli, serverName, server.Secrets); err != nil {
+					return err
 				}
 			}
 
 			// Check if server has config requirements and prompt for them
 			if !skipConfig && len(server.Config) > 0 {
-				// Get required fields that are not yet configured
-				missingConfigs := getMissingConfigs(server.Config, tile.Config)
-
-				if len(missingConfigs) > 0 {
-					fmt.Printf("\nServer %s requires configuration. Please provide the following:\n\n", serverName)
-					fmt.Println("Press Ctrl+C to cancel configuration.")
-
-					// Prompt for each missing config
-					for _, field := range missingConfigs {
-						var value any
-						var err error
-
-						// Retry loop for validation errors
-						for {
-							value, err = promptForConfigField(ctx, dockerCli, field)
-							if err != nil {
-								if errors.Is(err, command.ErrPromptTerminated) {
-									fmt.Println("\nConfiguration cancelled.")
-									return fmt.Errorf("configuration cancelled by user")
-								}
-								// Show validation error and retry
-								fmt.Fprintf(dockerCli.Err(), "Error: %v\n", err)
-								fmt.Fprintf(dockerCli.Out(), "Please try again.\n\n")
-								continue
-							}
-							break
-						}
-
-						// Only save non-empty values (skip if user pressed Enter with no default)
-						if !isEmptyValue(value) {
-							// Store the value in the config map (handling nested keys)
-							setNestedConfig(tile.Config, field.Key, value)
-						}
-					}
-
-					fmt.Println()
+				if err := handleConfigsConfiguration(ctx, dockerCli, serverName, server.Config, tile.Config); err != nil {
+					return err
 				}
 			}
 
@@ -233,6 +146,113 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 		fmt.Println()
 	}
 
+	return nil
+}
+
+// handleSecretsConfiguration prompts for and saves missing secrets for a server
+func handleSecretsConfiguration(ctx context.Context, dockerCli command.Cli, serverName string, requiredSecrets []catalog.Secret) error {
+	missingSecrets := getMissingSecrets(ctx, requiredSecrets)
+
+	if len(missingSecrets) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nServer %s requires secrets. Please provide the following:\n\n", serverName)
+	fmt.Println("Press Ctrl+C to cancel configuration.")
+
+	// Prompt for each missing secret
+	for _, secret := range missingSecrets {
+		value, err := promptForSecret(ctx, dockerCli, secret)
+		if err != nil {
+			if errors.Is(err, command.ErrPromptTerminated) {
+				fmt.Println("\nConfiguration cancelled.")
+				return fmt.Errorf("configuration cancelled by user")
+			}
+			// For validation errors, show warning but continue
+			fmt.Fprintf(dockerCli.Out(), "\n")
+			if strings.Contains(err.Error(), "too long") {
+				hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+				hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+				hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+				hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+				continue
+			}
+			// For other errors, also continue with warning
+			hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: %v\n", err)
+			hints.WarningColor.Fprintf(dockerCli.Err(), "Skipping secret %s. The server may not work without it.\n", secret.Name)
+			hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+			hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+			continue
+		}
+
+		// If secret is empty, warn but continue
+		if value == "" {
+			fmt.Fprintf(dockerCli.Out(), "\n")
+			hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Secret %s is required but was left empty.\n", secret.Name)
+			hints.WarningColor.Fprintf(dockerCli.Err(), "The server may not work without it. You can set it later with: ")
+			hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+			continue
+		}
+
+		// Save the secret
+		secretsClient := desktop.NewSecretsClient()
+		if err := secretsClient.SetJfsSecret(ctx, desktop.Secret{
+			Name:  secret.Name,
+			Value: value,
+		}); err != nil {
+			fmt.Fprintf(dockerCli.Out(), "\n")
+			hints.WarningColor.Fprintf(dockerCli.Err(), "Warning: Failed to save secret %s: %v\n", secret.Name, err)
+			hints.WarningColor.Fprintf(dockerCli.Err(), "You can set it later with: ")
+			hints.TipCyanBoldItalic.Fprintf(dockerCli.Err(), "docker mcp secret set %s=<value>\n\n", secret.Name)
+			continue
+		}
+	}
+
+	fmt.Println()
+	return nil
+}
+
+// handleConfigsConfiguration prompts for and saves missing config fields for a server
+func handleConfigsConfiguration(ctx context.Context, dockerCli command.Cli, serverName string, configSchema []any, userConfig map[string]any) error {
+	// Get required fields that are not yet configured
+	missingConfigs := getMissingConfigs(configSchema, userConfig)
+
+	if len(missingConfigs) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nServer %s requires configuration. Please provide the following:\n\n", serverName)
+	fmt.Println("Press Ctrl+C to cancel configuration.")
+
+	// Prompt for each missing config
+	for _, field := range missingConfigs {
+		var value any
+		var err error
+
+		// Retry loop for validation errors
+		for {
+			value, err = promptForConfigField(ctx, dockerCli, field)
+			if err != nil {
+				if errors.Is(err, command.ErrPromptTerminated) {
+					fmt.Println("\nConfiguration cancelled.")
+					return fmt.Errorf("configuration cancelled by user")
+				}
+				// Show validation error and retry
+				fmt.Fprintf(dockerCli.Err(), "Error: %v\n", err)
+				fmt.Fprintf(dockerCli.Err(), "Please try again.\n\n")
+				continue
+			}
+			break
+		}
+
+		// Only save non-empty values (skip if user pressed Enter with no default)
+		if !isEmptyValue(value) {
+			// Store the value in the config map (handling nested keys)
+			setNestedConfig(userConfig, field.Key, value)
+		}
+	}
+
+	fmt.Println()
 	return nil
 }
 
