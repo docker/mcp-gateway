@@ -40,6 +40,27 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 		return fmt.Errorf("parsing registry config: %w", err)
 	}
 
+	// Read user's configuration to populate registry tiles (same as ls.go)
+	userConfigYAML, err := config.ReadConfig(ctx, docker)
+	if err != nil {
+		return fmt.Errorf("reading user config: %w", err)
+	}
+
+	userConfig, err := config.ParseConfig(userConfigYAML)
+	if err != nil {
+		return fmt.Errorf("parsing user config: %w", err)
+	}
+
+	// Populate registry tiles with user config
+	for serverName, tile := range registry.Servers {
+		if len(tile.Config) == 0 {
+			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
+				tile.Config = userServerConfig
+				registry.Servers[serverName] = tile
+			}
+		}
+	}
+
 	catalog, err := catalog.GetWithOptions(ctx, true, nil)
 	if err != nil {
 		return err
@@ -52,8 +73,17 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 	// Keep only servers that are still in the catalog.
 	for serverName := range registry.Servers {
 		if _, found := catalog.Servers[serverName]; found {
+			existingTile := registry.Servers[serverName]
+			// Copy the existing tile, preserving Config
+			var configCopy map[string]any
+			if existingTile.Config != nil {
+				configCopy = deepCopyMap(existingTile.Config)
+			} else {
+				configCopy = make(map[string]any)
+			}
 			updatedRegistry.Servers[serverName] = config.Tile{
-				Ref: "",
+				Ref:    existingTile.Ref,
+				Config: configCopy,
 			}
 		}
 	}
@@ -66,10 +96,16 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				Config: make(map[string]any),
 			}
 
-			// Check if server has existing config in registry
-			if existingTile, hasExisting := registry.Servers[serverName]; hasExisting && existingTile.Config != nil {
-				// Deep copy the existing config
+			// Check if server has existing config in registry or updatedRegistry or userConfig
+			if existingTile, hasExisting := updatedRegistry.Servers[serverName]; hasExisting && existingTile.Config != nil && len(existingTile.Config) > 0 {
+				// Use config from updatedRegistry (which was copied from registry)
 				tile.Config = deepCopyMap(existingTile.Config)
+			} else if existingTile, hasExisting := registry.Servers[serverName]; hasExisting && existingTile.Config != nil && len(existingTile.Config) > 0 {
+				// Fallback to original registry (which should now have userConfig populated)
+				tile.Config = deepCopyMap(existingTile.Config)
+			} else if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig && len(userServerConfig) > 0 {
+				// Fallback to userConfig directly
+				tile.Config = deepCopyMap(userServerConfig)
 			}
 
 			// DCR flag enabled AND type="remote" AND oauth present
@@ -282,9 +318,13 @@ func getMissingConfigs(configSchema []any, userConfig map[string]any) []configFi
 
 	var missing []configField
 	for key := range requiredFields {
-		// Check if this field is already configured
-		if _, ok := flattened[key]; ok {
-			continue
+		// Check if this field is already configured with a non-empty value
+		if value, ok := flattened[key]; ok {
+			// Skip if the value is not empty
+			if !isEmptyValue(value) {
+				continue
+			}
+			// If the value is empty, treat it as missing and prompt for it
 		}
 
 		// Get property metadata
