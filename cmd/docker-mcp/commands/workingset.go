@@ -70,27 +70,37 @@ func configWorkingSetCommand() *cobra.Command {
 }
 
 func toolsWorkingSetCommand() *cobra.Command {
-	var add []string
-	var remove []string
+	var enable []string
+	var disable []string
+	var enableAll []string
+	var disableAll []string
 
 	cmd := &cobra.Command{
-		Use:   "tools <working-set-id> [--add <tool> ...] [--remove <tool> ...]",
+		Use:   "tools <working-set-id> [--enable <tool> ...] [--disable <tool> ...] [--enable-all <server> ...] [--disable-all <server> ...]",
 		Short: "Manage tool allowlist for servers in a working set",
 		Long: `Manage the tool allowlist for servers in a working set.
 Tools are specified using dot notation: <serverName>.<toolName>
 
-Use --add to enable tools for a server (can be specified multiple times).
-Use --remove to disable tools for a server (can be specified multiple times).
+Use --enable to enable specific tools for a server (can be specified multiple times).
+Use --disable to disable specific tools for a server (can be specified multiple times).
+Use --enable-all to enable all tools for a server (can be specified multiple times).
+Use --disable-all to disable all tools for a server (can be specified multiple times).
 
 To view enabled tools, use: docker mcp workingset show <working-set-id>`,
-		Example: `  # Add tools to a server's allowlist
-  docker mcp workingset tools my-set --add github.create_issue --add github.list_repos
+		Example: `  # Enable specific tools for a server
+  docker mcp workingset tools my-set --enable github.create_issue --enable github.list_repos
 
-  # Remove tools from a server's allowlist
-  docker mcp workingset tools my-set --remove github.create_issue --remove github.search_code
+  # Disable specific tools for a server
+  docker mcp workingset tools my-set --disable github.create_issue --disable github.search_code
 
-  # Add and remove in one command
-  docker mcp workingset tools my-set --add github.create_issue --remove github.search_code
+  # Enable and disable in one command
+  docker mcp workingset tools my-set --enable github.create_issue --disable github.search_code
+
+  # Enable all tools for a server
+  docker mcp workingset tools my-set --enable-all github
+
+  # Disable all tools for a server
+  docker mcp workingset tools my-set --disable-all github
 
   # View all enabled tools in the working set
   docker mcp workingset show my-set`,
@@ -100,13 +110,15 @@ To view enabled tools, use: docker mcp workingset show <working-set-id>`,
 			if err != nil {
 				return err
 			}
-			return workingset.UpdateTools(cmd.Context(), dao, args[0], add, remove)
+			return workingset.UpdateTools(cmd.Context(), dao, args[0], enable, disable, enableAll, disableAll)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&add, "add", []string{}, "Add tools to allowlist: <serverName>.<toolName> (repeatable)")
-	flags.StringArrayVar(&remove, "remove", []string{}, "Remove tools from allowlist: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&enable, "enable", []string{}, "Enable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&disable, "disable", []string{}, "Disable specific tools: <serverName>.<toolName> (repeatable)")
+	flags.StringArrayVar(&enableAll, "enable-all", []string{}, "Enable all tools for a server: <serverName> (repeatable)")
+	flags.StringArrayVar(&disableAll, "disable-all", []string{}, "Disable all tools for a server: <serverName> (repeatable)")
 
 	return cmd
 }
