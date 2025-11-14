@@ -13,6 +13,8 @@ Profiles are decoupled from catalogs, meaning the servers in a profile can come 
 - **MCP Registry references**: HTTP(S) URLs pointing to servers in the Model Context Protocol registry
 - **OCI image references**: Docker images with the `docker://` prefix
 
+⚠️ **Important Caveat:** MCP Registry references are not fully implemented and are not expected to work yet.
+
 ## Enabling Profiles
 
 Profiles are a feature that must be enabled first:
