@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -61,67 +60,9 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 	return registry, userConfig, nil
 }
 
-// configField represents a missing config field that needs to be prompted
-type configField struct {
-	Key         string
-	Description string
-	Type        string
-	Default     any
-	Enum        []any
-	Format      string
-}
-
 // skipConfigValue is a sentinel value indicating the user wants to skip this config field
+// Used by isEmptyValue which is used by validateConfigRequirements
 var skipConfigValue = struct{}{}
-
-// getMissingConfigs returns a list of config fields that are required but not yet configured
-func getMissingConfigs(configSchema []any, userConfig map[string]any) []configField {
-	// Collect all required fields from the schema
-	requiredFields := collectRequiredFields(configSchema)
-
-	// Flatten user config for comparison
-	flattened := flattenMap("", userConfig)
-
-	// Build a map of property metadata for each field
-	propertyMap := buildPropertyMap(configSchema)
-
-	var missing []configField
-	for key := range requiredFields {
-		// Check if this field is already configured with a non-empty value
-		if value, ok := flattened[key]; ok {
-			// Skip if the value is not empty
-			if !isEmptyValue(value) {
-				continue
-			}
-			// If the value is empty, treat it as missing and prompt for it
-		}
-
-		// Get property metadata
-		prop, ok := propertyMap[key]
-		if !ok {
-			// If we can't find the property, still add it with minimal info
-			missing = append(missing, configField{
-				Key: key,
-			})
-			continue
-		}
-
-		missing = append(missing, prop)
-	}
-
-	// Sort by key for consistent ordering
-	slices.SortFunc(missing, func(a, b configField) int {
-		if a.Key < b.Key {
-			return -1
-		}
-		if a.Key > b.Key {
-			return 1
-		}
-		return 0
-	})
-
-	return missing
-}
 
 // parseRequiredFields extracts all required field names from the config schema
 func parseRequiredFields(req map[string]any) map[string]bool {
@@ -167,112 +108,6 @@ func collectRequiredFields(requirements []any) map[string]bool {
 		}
 	}
 	return out
-}
-
-// buildPropertyMap builds a map of dot-notation keys to property metadata
-func buildPropertyMap(configSchema []any) map[string]configField {
-	result := make(map[string]configField)
-
-	for _, schemaItem := range configSchema {
-		schemaMap, ok := schemaItem.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		properties, ok := schemaMap["properties"].(map[string]any)
-		if !ok {
-			continue
-		}
-
-		walkPropertiesForMetadata("", properties, result)
-	}
-
-	return result
-}
-
-// recursively walks properties and builds metadata map
-func walkPropertiesForMetadata(prefix string, properties map[string]any, out map[string]configField) {
-	for propName, propDef := range properties {
-		key := propName
-		if prefix != "" {
-			key = prefix + "." + propName
-		}
-
-		propMap, ok := propDef.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		// Check if this property has nested properties
-		if nestedProps, hasNested := propMap["properties"].(map[string]any); hasNested {
-			walkPropertiesForMetadata(key, nestedProps, out)
-			continue
-		}
-
-		// This is a leaf property, extract metadata
-		field := configField{
-			Key: key,
-		}
-
-		if desc, ok := propMap["description"].(string); ok {
-			field.Description = desc
-		}
-
-		if typ, ok := propMap["type"].(string); ok {
-			field.Type = typ
-		}
-
-		if def, ok := propMap["default"]; ok {
-			field.Default = def
-		}
-
-		if enum, ok := propMap["enum"].([]any); ok {
-			field.Enum = enum
-		}
-
-		if format, ok := propMap["format"].(string); ok {
-			field.Format = format
-		}
-
-		out[key] = field
-	}
-}
-
-// setNestedConfig sets a value in a nested map using dot-notation key (e.g., "a.b.c" => map["a"]["b"]["c"])
-func setNestedConfig(config map[string]any, key string, value any) {
-	parts := strings.Split(key, ".")
-
-	current := config
-	for i := range len(parts) - 1 {
-		part := parts[i]
-		if _, ok := current[part]; !ok {
-			current[part] = make(map[string]any)
-		}
-
-		next, ok := current[part].(map[string]any)
-		if !ok {
-			// If it's not a map, we need to replace it
-			current[part] = make(map[string]any)
-			next = current[part].(map[string]any)
-		}
-		current = next
-	}
-
-	// Set the final value
-	current[parts[len(parts)-1]] = value
-}
-
-// deepCopyMap creates a deep copy of a map[string]any
-func deepCopyMap(m map[string]any) map[string]any {
-	result := make(map[string]any)
-	for k, v := range m {
-		if subMap, ok := v.(map[string]any); ok {
-			result[k] = deepCopyMap(subMap)
-		} else {
-			result[k] = v
-		}
-	}
-	return result
 }
 
 // isEmptyValue checks if a value is considered "empty" and should be skipped
@@ -363,3 +198,168 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 		return ConfigStatusDone
 	}
 }
+
+// configField represents a missing config field that needs to be prompted
+// type configField struct {
+// 	Key         string
+// 	Description string
+// 	Type        string
+// 	Default     any
+// 	Enum        []any
+// 	Format      string
+// }
+
+// buildPropertyMap builds a map of dot-notation keys to property metadata
+// func buildPropertyMap(configSchema []any) map[string]configField {
+// 	result := make(map[string]configField)
+//
+// 	for _, schemaItem := range configSchema {
+// 		schemaMap, ok := schemaItem.(map[string]any)
+// 		if !ok {
+// 			continue
+// 		}
+//
+// 		properties, ok := schemaMap["properties"].(map[string]any)
+// 		if !ok {
+// 			continue
+// 		}
+//
+// 		walkPropertiesForMetadata("", properties, result)
+// 	}
+//
+// 	return result
+// }
+
+// walkPropertiesForMetadata recursively walks properties and builds metadata map
+// func walkPropertiesForMetadata(prefix string, properties map[string]any, out map[string]configField) {
+// 	for propName, propDef := range properties {
+// 		key := propName
+// 		if prefix != "" {
+// 			key = prefix + "." + propName
+// 		}
+//
+// 		propMap, ok := propDef.(map[string]any)
+// 		if !ok {
+// 			continue
+// 		}
+//
+// 		// Check if this property has nested properties
+// 		if nestedProps, hasNested := propMap["properties"].(map[string]any); hasNested {
+// 			walkPropertiesForMetadata(key, nestedProps, out)
+// 			continue
+// 		}
+//
+// 		// This is a leaf property, extract metadata
+// 		field := configField{
+// 			Key: key,
+// 		}
+//
+// 		if desc, ok := propMap["description"].(string); ok {
+// 			field.Description = desc
+// 		}
+//
+// 		if typ, ok := propMap["type"].(string); ok {
+// 			field.Type = typ
+// 		}
+//
+// 		if def, ok := propMap["default"]; ok {
+// 			field.Default = def
+// 		}
+//
+// 		if enum, ok := propMap["enum"].([]any); ok {
+// 			field.Enum = enum
+// 		}
+//
+// 		if format, ok := propMap["format"].(string); ok {
+// 			field.Format = format
+// 		}
+//
+// 		out[key] = field
+// 	}
+// }
+
+// setNestedConfig sets a value in a nested map using dot-notation key (e.g., "a.b.c" => map["a"]["b"]["c"])
+// func setNestedConfig(config map[string]any, key string, value any) {
+// 	parts := strings.Split(key, ".")
+//
+// 	current := config
+// 	for i := range len(parts) - 1 {
+// 		part := parts[i]
+// 		if _, ok := current[part]; !ok {
+// 			current[part] = make(map[string]any)
+// 		}
+//
+// 		next, ok := current[part].(map[string]any)
+// 		if !ok {
+// 			// If it's not a map, we need to replace it
+// 			current[part] = make(map[string]any)
+// 			next = current[part].(map[string]any)
+// 		}
+// 		current = next
+// 	}
+//
+// 	// Set the final value
+// 	current[parts[len(parts)-1]] = value
+// }
+
+// deepCopyMap creates a deep copy of a map[string]any
+// func deepCopyMap(m map[string]any) map[string]any {
+// 	result := make(map[string]any)
+// 	for k, v := range m {
+// 		if subMap, ok := v.(map[string]any); ok {
+// 			result[k] = deepCopyMap(subMap)
+// 		} else {
+// 			result[k] = v
+// 		}
+// 	}
+// 	return result
+// }
+
+// getMissingConfigs returns a list of config fields that are required but not yet configured
+// func getMissingConfigs(configSchema []any, userConfig map[string]any) []configField {
+// 	// Collect all required fields from the schema
+// 	requiredFields := collectRequiredFields(configSchema)
+//
+// 	// Flatten user config for comparison
+// 	flattened := flattenMap("", userConfig)
+//
+// 	// Build a map of property metadata for each field
+// 	propertyMap := buildPropertyMap(configSchema)
+//
+// 	var missing []configField
+// 	for key := range requiredFields {
+// 		// Check if this field is already configured with a non-empty value
+// 		if value, ok := flattened[key]; ok {
+// 			// Skip if the value is not empty
+// 			if !isEmptyValue(value) {
+// 				continue
+// 			}
+// 			// If the value is empty, treat it as missing and prompt for it
+// 		}
+//
+// 		// Get property metadata
+// 		prop, ok := propertyMap[key]
+// 		if !ok {
+// 			// If we can't find the property, still add it with minimal info
+// 			missing = append(missing, configField{
+// 				Key: key,
+// 			})
+// 			continue
+// 		}
+//
+// 		missing = append(missing, prop)
+// 	}
+//
+// 	// Sort by key for consistent ordering
+// 	slices.SortFunc(missing, func(a, b configField) int {
+// 		if a.Key < b.Key {
+// 			return -1
+// 		}
+// 		if a.Key > b.Key {
+// 			return 1
+// 		}
+// 		return 0
+// 	})
+//
+// 	return missing
+// }
