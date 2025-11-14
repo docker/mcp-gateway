@@ -7,18 +7,20 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 )
 
-func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string, catalogDigest string, catalogServers []string) error {
+func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string, catalogRef string, catalogServers []string) error {
 	if len(servers) == 0 && len(catalogServers) == 0 {
 		return fmt.Errorf("at least one server must be specified")
 	}
-	if len(catalogServers) > 0 && catalogDigest == "" {
-		return fmt.Errorf("catalog digest must be specified when adding catalog servers")
+	if len(catalogServers) > 0 && catalogRef == "" {
+		return fmt.Errorf("catalog must be specified when adding catalog servers")
 	}
 
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
@@ -50,11 +52,17 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 	workingSet.Servers = append(workingSet.Servers, newServers...)
 
 	// Handle catalog server references
-	if catalogDigest != "" && len(catalogServers) > 0 {
-		dbCatalog, err := dao.GetCatalog(ctx, catalogDigest)
+	if catalogRef != "" && len(catalogServers) > 0 {
+		ref, err := name.ParseReference(catalogRef)
+		if err != nil {
+			return fmt.Errorf("failed to parse catalog reference %s: %w", catalogRef, err)
+		}
+		catalogRef = oci.FullNameWithoutDigest(ref)
+
+		dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("catalog %s not found", catalogDigest)
+				return fmt.Errorf("catalog %s not found", catalogRef)
 			}
 			return fmt.Errorf("failed to get catalog: %w", err)
 		}

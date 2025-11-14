@@ -8,18 +8,28 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Create(ctx context.Context, dao db.DAO, workingSetID string, legacyCatalogURL string, name string, removeExisting bool) error {
+func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string, legacyCatalogURL string, title string) error {
+	ref, err := name.ParseReference(refStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference must be a valid OCI reference without a digest")
+	}
+
 	var catalog Catalog
-	var err error
 	if workingSetID != "" {
 		catalog, err = createCatalogFromWorkingSet(ctx, dao, workingSetID)
 		if err != nil {
-			return fmt.Errorf("failed to create catalog from working set: %w", err)
+			return fmt.Errorf("failed to create catalog from profile: %w", err)
 		}
 	} else if legacyCatalogURL != "" {
 		catalog, err = createCatalogFromLegacyCatalog(ctx, legacyCatalogURL)
@@ -27,37 +37,30 @@ func Create(ctx context.Context, dao db.DAO, workingSetID string, legacyCatalogU
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
 	} else {
-		return fmt.Errorf("either working set ID or legacy catalog URL must be provided")
+		return fmt.Errorf("either profile ID or legacy catalog URL must be provided")
 	}
 
-	if name != "" {
-		catalog.Name = name
+	catalog.Ref = oci.FullNameWithoutDigest(ref)
+
+	if title != "" {
+		catalog.Title = title
 	}
 
 	if err := catalog.Validate(); err != nil {
 		return fmt.Errorf("invalid catalog: %w", err)
 	}
 
-	if removeExisting {
-		err = dao.DeleteCatalogBySource(ctx, catalog.Source)
-		if err != nil {
-			return fmt.Errorf("failed to delete existing catalog: %w", err)
-		}
-		err = dao.DeleteCatalog(ctx, catalog.Digest())
-		if err != nil {
-			return fmt.Errorf("failed to delete existing catalog: %w", err)
-		}
+	dbCatalog, err := catalog.ToDb()
+	if err != nil {
+		return fmt.Errorf("failed to convert catalog to db: %w", err)
 	}
 
-	err = dao.CreateCatalog(ctx, catalog.ToDb())
+	err = dao.UpsertCatalog(ctx, dbCatalog)
 	if err != nil {
-		if db.IsDuplicateDigestError(err) {
-			return fmt.Errorf("catalog with digest %s already exists", catalog.Digest())
-		}
 		return fmt.Errorf("failed to create catalog: %w", err)
 	}
 
-	fmt.Printf("Catalog %s created with digest %s\n", catalog.Name, catalog.Digest())
+	fmt.Printf("Catalog %s created\n", catalog.Ref)
 
 	return nil
 }
@@ -66,9 +69,9 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, workingSetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Catalog{}, fmt.Errorf("working set %s not found", workingSetID)
+			return Catalog{}, fmt.Errorf("profile %s not found", workingSetID)
 		}
-		return Catalog{}, fmt.Errorf("failed to get working set: %w", err)
+		return Catalog{}, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := workingset.NewFromDb(dbWorkingSet)
@@ -85,14 +88,16 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 	}
 
 	return Catalog{
-		Name:    workingSet.Name,
-		Servers: servers,
-		Source:  SourcePrefixWorkingSet + workingSet.ID,
+		CatalogArtifact: CatalogArtifact{
+			Title:   workingSet.Name,
+			Servers: servers,
+		},
+		Source: SourcePrefixWorkingSet + workingSet.ID,
 	}, nil
 }
 
 func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string) (Catalog, error) {
-	legacyCatalog, name, err := legacycatalog.ReadOne(ctx, legacyCatalogURL)
+	legacyCatalog, name, displayName, err := legacycatalog.ReadOne(ctx, legacyCatalogURL)
 	if err != nil {
 		return Catalog{}, fmt.Errorf("failed to read legacy catalog: %w", err)
 	}
@@ -117,9 +122,15 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 		return strings.Compare(a.Snapshot.Server.Name, b.Snapshot.Server.Name)
 	})
 
+	if displayName == "" {
+		displayName = "Legacy Catalog"
+	}
+
 	return Catalog{
-		Name:    "Legacy Catalog",
-		Servers: servers,
-		Source:  SourcePrefixLegacyCatalog + name,
+		CatalogArtifact: CatalogArtifact{
+			Title:   displayName,
+			Servers: servers,
+		},
+		Source: SourcePrefixLegacyCatalog + name,
 	}, nil
 }

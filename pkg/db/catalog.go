@@ -6,26 +6,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
-
-	"modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type CatalogDAO interface {
-	GetCatalog(ctx context.Context, digest string) (*Catalog, error)
-	CreateCatalog(ctx context.Context, catalog Catalog) error
-	DeleteCatalog(ctx context.Context, digest string) error
-	DeleteCatalogBySource(ctx context.Context, source string) error
+	GetCatalog(ctx context.Context, ref string) (*Catalog, error)
+	UpsertCatalog(ctx context.Context, catalog Catalog) error
+	DeleteCatalog(ctx context.Context, ref string) error
 	ListCatalogs(ctx context.Context) ([]Catalog, error)
 }
 
 type ToolList []string
 
 type Catalog struct {
-	ID      *int64          `db:"id"`
+	Ref     string          `db:"ref"`
 	Digest  string          `db:"digest"`
-	Name    string          `db:"name"`
+	Title   string          `db:"title"`
 	Source  string          `db:"source"`
 	Servers []CatalogServer `db:"-"`
 }
@@ -36,7 +31,7 @@ type CatalogServer struct {
 	Tools      ToolList `db:"tools" json:"tools"`
 	Source     string   `db:"source" json:"source"`
 	Image      string   `db:"image" json:"image"`
-	CatalogID  int64    `db:"catalog_id" json:"catalog_id"`
+	CatalogRef string   `db:"catalog_ref" json:"catalog_ref"`
 
 	Snapshot *ServerSnapshot `db:"snapshot" json:"snapshot"`
 }
@@ -57,19 +52,19 @@ func (tools *ToolList) Scan(value any) error {
 	return json.Unmarshal([]byte(str), tools)
 }
 
-func (d *dao) GetCatalog(ctx context.Context, digest string) (*Catalog, error) {
-	const query = `SELECT id, digest, name, source FROM catalog WHERE digest = $1`
+func (d *dao) GetCatalog(ctx context.Context, ref string) (*Catalog, error) {
+	const query = `SELECT ref, digest, title, source FROM catalog WHERE ref = $1`
 
 	var catalog Catalog
-	err := d.db.GetContext(ctx, &catalog, query, digest)
+	err := d.db.GetContext(ctx, &catalog, query, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	const serverQuery = `SELECT id, server_type, tools, source, image, catalog_id, snapshot from catalog_server where catalog_id = $1`
+	const serverQuery = `SELECT id, server_type, tools, source, image, catalog_ref, snapshot from catalog_server where catalog_ref = $1`
 
 	var servers []CatalogServer
-	err = d.db.SelectContext(ctx, &servers, serverQuery, catalog.ID)
+	err = d.db.SelectContext(ctx, &servers, serverQuery, catalog.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +73,7 @@ func (d *dao) GetCatalog(ctx context.Context, digest string) (*Catalog, error) {
 	return &catalog, nil
 }
 
-func (d *dao) CreateCatalog(ctx context.Context, catalog Catalog) error {
+func (d *dao) UpsertCatalog(ctx context.Context, catalog Catalog) error {
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
@@ -86,26 +81,28 @@ func (d *dao) CreateCatalog(ctx context.Context, catalog Catalog) error {
 
 	defer txClose(tx, &err)
 
-	const query = `INSERT INTO catalog (digest, name, source) VALUES ($1, $2, $3)`
+	const deleteQuery = `DELETE FROM catalog WHERE ref = $1`
 
-	result, err := tx.ExecContext(ctx, query, catalog.Digest, catalog.Name, catalog.Source)
+	_, err = tx.ExecContext(ctx, deleteQuery, catalog.Ref)
 	if err != nil {
 		return err
 	}
 
-	id, err := result.LastInsertId()
+	const insertQuery = `INSERT INTO catalog (ref, digest, title, source) VALUES ($1, $2, $3, $4)`
+
+	_, err = tx.ExecContext(ctx, insertQuery, catalog.Ref, catalog.Digest, catalog.Title, catalog.Source)
 	if err != nil {
 		return err
 	}
 
 	for i := range catalog.Servers {
-		catalog.Servers[i].CatalogID = id
+		catalog.Servers[i].CatalogRef = catalog.Ref
 	}
 
 	if len(catalog.Servers) > 0 {
 		const serverQuery = `INSERT INTO catalog_server (
-		server_type, tools, source, image, catalog_id, snapshot
-	) VALUES (:server_type, :tools, :source, :image, :catalog_id, :snapshot)`
+		server_type, tools, source, image, catalog_ref, snapshot
+	) VALUES (:server_type, :tools, :source, :image, :catalog_ref, :snapshot)`
 
 		_, err = tx.NamedExecContext(ctx, serverQuery, catalog.Servers)
 		if err != nil {
@@ -120,24 +117,10 @@ func (d *dao) CreateCatalog(ctx context.Context, catalog Catalog) error {
 	return nil
 }
 
-func (d *dao) DeleteCatalog(ctx context.Context, digest string) error {
-	const query = `DELETE FROM catalog WHERE digest = $1`
+func (d *dao) DeleteCatalog(ctx context.Context, ref string) error {
+	const query = `DELETE FROM catalog WHERE ref = $1`
 
-	_, err := d.db.ExecContext(ctx, query, digest)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *dao) DeleteCatalogBySource(ctx context.Context, source string) error {
-	if source == "" {
-		return fmt.Errorf("source should not be empty when deleting a catalog")
-	}
-
-	const query = `DELETE FROM catalog WHERE source = $1`
-
-	_, err := d.db.ExecContext(ctx, query, source)
+	_, err := d.db.ExecContext(ctx, query, ref)
 	if err != nil {
 		return err
 	}
@@ -150,14 +133,14 @@ func (d *dao) ListCatalogs(ctx context.Context) ([]Catalog, error) {
 		ServerJSON string `db:"server_json"`
 	}
 
-	const query = `SELECT c.id, c.digest, c.name, c.source,
+	const query = `SELECT c.ref, c.digest, c.title, c.source,
 	COALESCE(
 		json_group_array(json_object('id', s.id, 'server_type', s.server_type, 'tools', json(s.tools), 'source', s.source, 'image', s.image, 'snapshot', json(s.snapshot))),
 		'[]'
 	) AS server_json
 	FROM catalog c
-	LEFT JOIN catalog_server s ON s.catalog_id = c.id
-	GROUP BY c.id`
+	LEFT JOIN catalog_server s ON s.catalog_ref = c.ref
+	GROUP BY c.ref`
 
 	var rows []catalogRow
 	err := d.db.SelectContext(ctx, &rows, query)
@@ -174,12 +157,4 @@ func (d *dao) ListCatalogs(ctx context.Context) ([]Catalog, error) {
 	}
 
 	return catalogs, nil
-}
-
-func IsDuplicateDigestError(err error) bool {
-	var sqliteErr *sqlite.Error
-	if errors.As(err, &sqliteErr) {
-		return sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE && strings.Contains(sqliteErr.Error(), "digest")
-	}
-	return false
 }

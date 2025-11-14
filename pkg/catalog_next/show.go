@@ -9,16 +9,25 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Show(ctx context.Context, dao db.DAO, digest string, format workingset.OutputFormat) error {
-	dbCatalog, err := dao.GetCatalog(ctx, digest)
+func Show(ctx context.Context, dao db.DAO, refStr string, format workingset.OutputFormat) error {
+	ref, err := name.ParseReference(refStr)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
+	}
+
+	refStr = oci.FullNameWithoutDigest(ref)
+
+	dbCatalog, err := dao.GetCatalog(ctx, refStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("catalog %s not found", digest)
+			return fmt.Errorf("catalog %s not found", refStr)
 		}
 		return fmt.Errorf("failed to get catalog: %w", err)
 	}
@@ -57,5 +66,5 @@ func printHumanReadable(catalog CatalogWithDigest) string {
 		}
 	}
 	servers = strings.TrimSuffix(servers, "\n")
-	return fmt.Sprintf("Digest: %s\nName: %s\nSource: %s\nServers:\n%s", catalog.Digest, catalog.Name, catalog.Source, servers)
+	return fmt.Sprintf("Reference: %s\nTitle: %s\nSource: %s\nServers:\n%s", catalog.Ref, catalog.Title, catalog.Source, servers)
 }

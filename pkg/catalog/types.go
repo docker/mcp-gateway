@@ -7,8 +7,9 @@ type Catalog struct {
 // catalog.json
 
 type topLevel struct {
-	Name     string            `yaml:"name,omitempty" json:"name,omitempty"`
-	Registry map[string]Server `json:"registry"`
+	Name        string            `yaml:"name,omitempty" json:"name,omitempty"`
+	DisplayName string            `yaml:"displayName,omitempty" json:"displayName,omitempty"`
+	Registry    map[string]Server `json:"registry"`
 }
 
 // MCP Servers

@@ -41,12 +41,11 @@ func TestCreateFromWorkingSet(t *testing.T) {
 
 	// Capture stdout to verify the output message
 	output := captureStdout(t, func() {
-		err := Create(ctx, dao, "test-ws", "", "My Catalog", false)
+		err := Create(ctx, dao, "test/catalog:latest", "test-ws", "", "My Catalog")
 		require.NoError(t, err)
 	})
 
-	// Verify output message
-	assert.Contains(t, output, "Catalog My Catalog created with digest")
+	assert.Contains(t, output, "Catalog test/catalog:latest created")
 
 	// Verify the catalog was created
 	catalogs, err := dao.ListCatalogs(ctx)
@@ -54,8 +53,8 @@ func TestCreateFromWorkingSet(t *testing.T) {
 	assert.Len(t, catalogs, 1)
 
 	catalog := NewFromDb(&catalogs[0])
-	assert.Equal(t, "My Catalog", catalog.Name)
-	assert.Equal(t, "working-set:test-ws", catalog.Source)
+	assert.Equal(t, "My Catalog", catalog.Title)
+	assert.Equal(t, "profile:test-ws", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
 	// Verify servers were copied correctly
@@ -66,6 +65,59 @@ func TestCreateFromWorkingSet(t *testing.T) {
 	assert.Equal(t, workingset.ServerTypeRegistry, catalog.Servers[1].Type)
 	assert.Equal(t, "https://example.com/server", catalog.Servers[1].Source)
 	assert.Equal(t, []string{"tool3"}, catalog.Servers[1].Tools)
+}
+
+func TestCreateFromWorkingSetNormalizedRef(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set first
+	ws := db.WorkingSet{
+		ID:      "test-ws",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{},
+	}
+
+	err := dao.CreateWorkingSet(ctx, ws)
+	require.NoError(t, err)
+
+	// Capture stdout to verify the output message
+	output := captureStdout(t, func() {
+		err := Create(ctx, dao, "docker.io/test/catalog:latest", "test-ws", "", "My Catalog")
+		require.NoError(t, err)
+	})
+
+	// Verify output message - docker.io prefix is normalized away
+	assert.Contains(t, output, "Catalog test/catalog:latest created")
+
+	// Verify the catalog was created
+	catalogs, err := dao.ListCatalogs(ctx)
+	require.NoError(t, err)
+	assert.Len(t, catalogs, 1)
+
+	catalog := NewFromDb(&catalogs[0])
+	assert.Equal(t, "test/catalog:latest", catalog.Ref)
+}
+
+func TestCreateFromWorkingSetRejectsDigestReference(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	ws := db.WorkingSet{
+		ID:      "test-ws",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{},
+	}
+
+	err := dao.CreateWorkingSet(ctx, ws)
+	require.NoError(t, err)
+
+	digestRef := "test/catalog@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+	err = Create(ctx, dao, digestRef, "test-ws", "", "My Catalog")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reference must be a valid OCI reference without a digest")
 }
 
 func TestCreateFromWorkingSetWithEmptyName(t *testing.T) {
@@ -88,28 +140,28 @@ func TestCreateFromWorkingSetWithEmptyName(t *testing.T) {
 	err := dao.CreateWorkingSet(ctx, ws)
 	require.NoError(t, err)
 
-	// Create catalog without providing a name (should use working set name)
+	// Create catalog without providing a title (should use working set name)
 	captureStdout(t, func() {
-		err := Create(ctx, dao, "test-ws", "", "", false)
+		err := Create(ctx, dao, "test/catalog2:latest", "test-ws", "", "")
 		require.NoError(t, err)
 	})
 
-	// Verify the catalog was created with working set name
+	// Verify the catalog was created with working set name as title
 	catalogs, err := dao.ListCatalogs(ctx)
 	require.NoError(t, err)
 	assert.Len(t, catalogs, 1)
 
 	catalog := NewFromDb(&catalogs[0])
-	assert.Equal(t, "Original Working Set Name", catalog.Name)
+	assert.Equal(t, "Original Working Set Name", catalog.Title)
 }
 
 func TestCreateFromWorkingSetNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, "nonexistent-ws", "", "Test", false)
+	err := Create(ctx, dao, "test/catalog3:latest", "nonexistent-ws", "", "Test")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "working set nonexistent-ws not found")
+	assert.Contains(t, err.Error(), "profile nonexistent-ws not found")
 }
 
 func TestCreateFromWorkingSetDuplicate(t *testing.T) {
@@ -134,15 +186,20 @@ func TestCreateFromWorkingSetDuplicate(t *testing.T) {
 
 	// Create catalog from working set
 	captureStdout(t, func() {
-		err := Create(ctx, dao, "test-ws", "", "Test", false)
+		err := Create(ctx, dao, "test/catalog4:latest", "test-ws", "", "Test")
 		require.NoError(t, err)
 	})
 
-	// Try to create the same catalog again (same content = same digest)
-	err = Create(ctx, dao, "test-ws", "", "Test", false)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "catalog with digest")
-	assert.Contains(t, err.Error(), "already exists")
+	// Create with same ref again - should succeed and replace (upsert behavior)
+	err = Create(ctx, dao, "test/catalog4:latest", "test-ws", "", "Test Updated")
+	require.NoError(t, err)
+
+	// Verify it was updated
+	catalogs, err := dao.ListCatalogs(ctx)
+	require.NoError(t, err)
+	assert.Len(t, catalogs, 1)
+	catalog := NewFromDb(&catalogs[0])
+	assert.Equal(t, "Test Updated", catalog.Title)
 }
 
 func TestCreateFromWorkingSetWithSnapshot(t *testing.T) {
@@ -175,7 +232,7 @@ func TestCreateFromWorkingSetWithSnapshot(t *testing.T) {
 
 	// Create catalog from working set
 	captureStdout(t, func() {
-		err := Create(ctx, dao, "test-ws", "", "Test", false)
+		err := Create(ctx, dao, "test/catalog5:latest", "test-ws", "", "Test")
 		require.NoError(t, err)
 	})
 
@@ -207,17 +264,15 @@ func TestCreateFromWorkingSetEmptyServers(t *testing.T) {
 
 	// Create catalog from empty working set
 	captureStdout(t, func() {
-		err := Create(ctx, dao, "empty-ws", "", "Empty Catalog", false)
+		err := Create(ctx, dao, "test/catalog7:latest", "empty-ws", "", "Empty Catalog")
 		require.NoError(t, err)
 	})
 
-	// Verify catalog was created
-	testCatalog := Catalog{Name: "Empty Catalog", Servers: []Server{}}
-	retrieved, err := dao.GetCatalog(ctx, testCatalog.Digest())
+	retrieved, err := dao.GetCatalog(ctx, "test/catalog7:latest")
 	require.NoError(t, err)
 
 	catalog := NewFromDb(retrieved)
-	assert.Equal(t, "Empty Catalog", catalog.Name)
+	assert.Equal(t, "Empty Catalog", catalog.Title)
 	assert.Empty(t, catalog.Servers)
 }
 
@@ -254,32 +309,16 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 
 	// Create catalog
 	captureStdout(t, func() {
-		err := Create(ctx, dao, "detailed-ws", "", "Detailed Catalog", false)
+		err := Create(ctx, dao, "test/catalog8:latest", "detailed-ws", "", "Detailed Catalog")
 		require.NoError(t, err)
 	})
 
-	// Verify all fields are preserved - use GetCatalog to get exact order
-	testCatalog := Catalog{
-		Name:   "Detailed Catalog",
-		Source: "working-set:detailed-ws",
-		Servers: []Server{
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://example.com/api",
-				Tools:  []string{"read", "write", "delete"},
-			},
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "mycompany/myserver:v1.2.3",
-				Tools: []string{"deploy"},
-			},
-		},
-	}
-
-	dbCatalog, err := dao.GetCatalog(ctx, testCatalog.Digest())
+	retrieved, err := dao.GetCatalog(ctx, "test/catalog8:latest")
 	require.NoError(t, err)
-	catalog := NewFromDb(dbCatalog)
+	catalog := NewFromDb(retrieved)
 
+	assert.Equal(t, "Detailed Catalog", catalog.Title)
+	assert.Equal(t, "profile:detailed-ws", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
 	// Check registry server
@@ -291,40 +330,6 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 	assert.Equal(t, workingset.ServerTypeImage, catalog.Servers[1].Type)
 	assert.Equal(t, "mycompany/myserver:v1.2.3", catalog.Servers[1].Image)
 	assert.Equal(t, []string{"deploy"}, catalog.Servers[1].Tools)
-}
-
-func TestCreateFromWorkingSetMultipleTimes(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Create working set
-	ws := db.WorkingSet{
-		ID:   "test-ws",
-		Name: "Test",
-		Servers: db.ServerList{
-			{
-				Type:  string(workingset.ServerTypeImage),
-				Image: "docker/test:v1",
-			},
-		},
-		Secrets: db.SecretMap{},
-	}
-
-	err := dao.CreateWorkingSet(ctx, ws)
-	require.NoError(t, err)
-
-	// Create first catalog
-	captureStdout(t, func() {
-		err := Create(ctx, dao, "test-ws", "", "Catalog 1", false)
-		require.NoError(t, err)
-	})
-
-	// Create second catalog with same name (truly same digest now)
-	err = Create(ctx, dao, "test-ws", "", "Catalog 1", false)
-
-	// Should fail due to duplicate digest (name is part of digest)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already exists")
 }
 
 func TestCreateFromLegacyCatalog(t *testing.T) {
@@ -354,12 +359,11 @@ registry:
 
 	// Create catalog from legacy catalog
 	output := captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Imported Catalog", false)
+		err := Create(ctx, dao, "test/imported:latest", "", catalogFile, "Imported Catalog")
 		require.NoError(t, err)
 	})
 
-	// Verify output message
-	assert.Contains(t, output, "Catalog Imported Catalog created with digest")
+	assert.Contains(t, output, "Catalog test/imported:latest created")
 
 	// Verify the catalog was created
 	catalogs, err := dao.ListCatalogs(ctx)
@@ -367,7 +371,7 @@ registry:
 	assert.Len(t, catalogs, 1)
 
 	catalog := NewFromDb(&catalogs[0])
-	assert.Equal(t, "Imported Catalog", catalog.Name)
+	assert.Equal(t, "Imported Catalog", catalog.Title)
 	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
@@ -383,38 +387,6 @@ registry:
 	assert.Equal(t, workingset.ServerTypeImage, catalog.Servers[1].Type)
 	assert.Equal(t, "mycompany/another-server:v1.0", catalog.Servers[1].Image)
 	assert.Equal(t, "Another test server", catalog.Servers[1].Snapshot.Server.Description)
-}
-
-func TestCreateFromLegacyCatalogDuplicateDigestFails(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Create a temporary legacy catalog file
-	tempDir := t.TempDir()
-	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
-
-	legacyCatalogYAML := `registry:
-  server1:
-    name: "Test Server 1"
-    type: "server"
-    image: "docker/test-server:latest"
-`
-
-	err := os.WriteFile(catalogFile, []byte(legacyCatalogYAML), 0o644)
-	require.NoError(t, err)
-
-	// Create catalog from legacy catalog (first time)
-	captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Test Catalog", false)
-		require.NoError(t, err)
-	})
-
-	// Try to create the same catalog again with same name and source
-	// This should fail because it has the same digest and source
-	err = Create(ctx, dao, "", catalogFile, "Test Catalog", false)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "catalog with digest")
-	assert.Contains(t, err.Error(), "already exists")
 }
 
 func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) {
@@ -438,10 +410,10 @@ registry:
 
 	// Create catalog from legacy catalog (first time)
 	output1 := captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Test Catalog", false)
+		err := Create(ctx, dao, "test/legacy3:latest", "", catalogFile, "Test Catalog")
 		require.NoError(t, err)
 	})
-	assert.Contains(t, output1, "Catalog Test Catalog created with digest")
+	assert.Contains(t, output1, "test/legacy3:latest created")
 
 	// Get the first catalog's digest
 	catalogs, err := dao.ListCatalogs(ctx)
@@ -449,13 +421,12 @@ registry:
 	require.Len(t, catalogs, 1)
 	firstDigest := catalogs[0].Digest
 
-	// Try to create the same catalog again with removeExisting=true
-	// This should succeed and replace the existing catalog
+	// Create with same ref again (upsert) - should replace
 	output2 := captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Test Catalog", true)
+		err := Create(ctx, dao, "test/legacy3:latest", "", catalogFile, "Test Catalog")
 		require.NoError(t, err)
 	})
-	assert.Contains(t, output2, "Catalog Test Catalog created with digest")
+	assert.Contains(t, output2, "test/legacy3:latest created")
 
 	// Verify there's still only one catalog
 	catalogs, err = dao.ListCatalogs(ctx)
@@ -465,7 +436,7 @@ registry:
 	// Verify it has the same digest (same content)
 	catalog := NewFromDb(&catalogs[0])
 	assert.Equal(t, firstDigest, catalog.Digest)
-	assert.Equal(t, "Test Catalog", catalog.Name)
+	assert.Equal(t, "Test Catalog", catalog.Title)
 	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 }
 
@@ -490,10 +461,10 @@ registry:
 
 	// Create catalog from legacy catalog (first time)
 	output1 := captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Test Catalog", false)
+		err := Create(ctx, dao, "test/legacy4:latest", "", catalogFile, "Test Catalog")
 		require.NoError(t, err)
 	})
-	assert.Contains(t, output1, "Catalog Test Catalog created with digest")
+	assert.Contains(t, output1, "test/legacy4:latest created")
 
 	// Get the first catalog's digest
 	catalogs, err := dao.ListCatalogs(ctx)
@@ -512,22 +483,21 @@ registry:
 	err = os.WriteFile(catalogFile, []byte(legacyCatalogYAML), 0o644)
 	require.NoError(t, err)
 
-	// Try to create the same catalog again with removeExisting=true
-	// This should succeed and replace the existing catalog
+	// Create with same ref again (upsert) - should replace with new content
 	output2 := captureStdout(t, func() {
-		err := Create(ctx, dao, "", catalogFile, "Test Catalog", true)
+		err := Create(ctx, dao, "test/legacy4:latest", "", catalogFile, "Test Catalog")
 		require.NoError(t, err)
 	})
-	assert.Contains(t, output2, "Catalog Test Catalog created with digest")
+	assert.Contains(t, output2, "test/legacy4:latest created")
 
 	// Verify there's still only one catalog
 	catalogs, err = dao.ListCatalogs(ctx)
 	require.NoError(t, err)
 	assert.Len(t, catalogs, 1)
 
-	// Verify it has the same digest (same content)
+	// Verify it has a different digest (different content)
 	catalog := NewFromDb(&catalogs[0])
 	assert.NotEqual(t, firstDigest, catalog.Digest)
-	assert.Equal(t, "Test Catalog", catalog.Name)
+	assert.Equal(t, "Test Catalog", catalog.Title)
 	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 }

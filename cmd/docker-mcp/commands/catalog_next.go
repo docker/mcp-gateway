@@ -25,23 +25,23 @@ func catalogNextCommand() *cobra.Command {
 	cmd.AddCommand(removeCatalogNextCommand())
 	cmd.AddCommand(pushCatalogNextCommand())
 	cmd.AddCommand(pullCatalogNextCommand())
+	cmd.AddCommand(tagCatalogNextCommand())
 
 	return cmd
 }
 
 func createCatalogNextCommand() *cobra.Command {
 	var opts struct {
-		Name              string
+		Title             string
 		FromWorkingSet    string
 		FromLegacyCatalog string
-		RemoveExisting    bool
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--name <name>] [--remove-existing]",
+		Use:   "create <oci-reference> [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--title <title>]",
 		Short: "Create a new catalog from a profile or legacy catalog",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.FromWorkingSet == "" && opts.FromLegacyCatalog == "" {
 				return fmt.Errorf("either --from-profile or --from-legacy-catalog must be provided")
 			}
@@ -53,24 +53,38 @@ func createCatalogNextCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return catalognext.Create(cmd.Context(), dao, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Name, opts.RemoveExisting)
+			return catalognext.Create(cmd.Context(), dao, args[0], opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Title)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
-	flags.StringVar(&opts.Name, "name", "", "Name of the catalog")
-	flags.BoolVar(&opts.RemoveExisting, "remove-existing", false, "Remove existing catalogs that come from the same source or have the same digest")
+	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
 
 	return cmd
+}
+
+func tagCatalogNextCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "tag <oci-reference> <tag>",
+		Short: "Tag a catalog",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return catalognext.Tag(cmd.Context(), dao, args[0], args[1])
+		},
+	}
 }
 
 func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
 
 	cmd := &cobra.Command{
-		Use:   "show <catalog-digest>",
+		Use:   "show <oci-reference>",
 		Short: "Show a catalog",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -121,7 +135,7 @@ func listCatalogNextCommand() *cobra.Command {
 
 func removeCatalogNextCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "remove <catalog-digest>",
+		Use:     "remove <oci-reference>",
 		Aliases: []string{"rm"},
 		Short:   "Remove a catalog",
 		Args:    cobra.ExactArgs(1),
@@ -137,15 +151,15 @@ func removeCatalogNextCommand() *cobra.Command {
 
 func pushCatalogNextCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "push <catalog-digest> <oci-reference>",
+		Use:   "push <oci-reference>",
 		Short: "Push a catalog to an OCI registry",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return catalognext.Push(cmd.Context(), dao, args[0], args[1])
+			return catalognext.Push(cmd.Context(), dao, args[0])
 		},
 	}
 }

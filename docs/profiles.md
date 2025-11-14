@@ -586,7 +586,6 @@ docker mcp profile config my-set --set github.timeout=60
 ### Planned Enhancements
 
 - Full registry support in the gateway
-- Integration with catalog management
 - Search and discovery features
 
 ## Creating Catalogs from Profiles
@@ -594,23 +593,27 @@ docker mcp profile config my-set --set github.timeout=60
 The `catalog-next` command allows you to create and share catalogs:
 
 ```bash
-# Create a catalog from a profile
-docker mcp catalog-next create --from-profile my-profile
+# Create a catalog from a working set
+docker mcp catalog-next create my-catalog --from-profile my-profile
 
 # Create with a custom name
-docker mcp catalog-next create --from-profile my-profile --name "My Catalog"
+docker mcp catalog-next create my-catalog --from-profile my-profile --name "My Catalog"
+
+# Create a catalog from a legacy catalog
+docker mcp catalog-next create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 
 # List all catalogs
 docker mcp catalog-next list
 
 # Show catalog details
-docker mcp catalog-next show <catalog-digest>
+docker mcp catalog-next show my-catalog
 
 # Remove a catalog
-docker mcp catalog-next remove <catalog-digest>
+docker mcp catalog-next remove my-catalog
 
 # Push catalog to OCI registry
-docker mcp catalog-next push <catalog-digest> myorg/my-catalog:latest
+docker mcp catalog-next tag my-catalog my-org/my-catalog:latest
+docker mcp catalog-next push myorg/my-catalog:latest
 
 # Pull catalog from OCI registry
 docker mcp catalog-next pull myorg/my-catalog:latest
@@ -619,7 +622,7 @@ docker mcp catalog-next pull myorg/my-catalog:latest
 **Key points:**
 - Catalogs are an immutable collection of MCP Servers
 - When creating a catalog from a profile, only the servers are included in the catalog.
-- Use catalogs to share stable server configurations across teams
+- Use catalogs to share a stable server collection across teams
 - Catalogs can be pushed to/pulled from OCI registries like Docker images
 - Output supports `--format` flag: `human` (default), `json`, or `yaml`
 

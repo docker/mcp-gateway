@@ -1,22 +1,23 @@
 package catalognext
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/validate"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-// Any time new fields are added, make sure to include them in the Digest() method.
-// This is used to ensure that the catalog is unique and can be used as a key in a database.
-type Catalog struct {
-	Name    string   `yaml:"name" json:"name" validate:"required,min=1"`
-	Source  string   `yaml:"source,omitempty" json:"source,omitempty"`
+type CatalogArtifact struct {
+	Title   string   `yaml:"title" json:"title" validate:"required,min=1"`
 	Servers []Server `yaml:"servers" json:"servers" validate:"dive"`
+}
+
+type Catalog struct {
+	Ref             string `yaml:"ref" json:"ref" validate:"required,min=1"`
+	Source          string `yaml:"source,omitempty" json:"source,omitempty"`
+	CatalogArtifact `yaml:",inline"`
 }
 
 type CatalogWithDigest struct {
@@ -26,7 +27,7 @@ type CatalogWithDigest struct {
 
 // Source prefixes must be of the form "<prefix>:"
 const (
-	SourcePrefixWorkingSet    = "working-set:"
+	SourcePrefixWorkingSet    = "profile:"
 	SourcePrefixLegacyCatalog = "legacy-catalog:"
 	SourcePrefixOCI           = "oci:"
 )
@@ -66,9 +67,12 @@ func NewFromDb(dbCatalog *db.Catalog) CatalogWithDigest {
 
 	catalog := CatalogWithDigest{
 		Catalog: Catalog{
-			Name:    dbCatalog.Name,
-			Source:  dbCatalog.Source,
-			Servers: servers,
+			Ref:    dbCatalog.Ref,
+			Source: dbCatalog.Source,
+			CatalogArtifact: CatalogArtifact{
+				Title:   dbCatalog.Title,
+				Servers: servers,
+			},
 		},
 		Digest: dbCatalog.Digest,
 	}
@@ -76,7 +80,7 @@ func NewFromDb(dbCatalog *db.Catalog) CatalogWithDigest {
 	return catalog
 }
 
-func (catalog Catalog) ToDb() db.Catalog {
+func (catalog Catalog) ToDb() (db.Catalog, error) {
 	dbServers := make([]db.CatalogServer, len(catalog.Servers))
 	for i, server := range catalog.Servers {
 		dbServers[i] = db.CatalogServer{
@@ -96,31 +100,22 @@ func (catalog Catalog) ToDb() db.Catalog {
 		}
 	}
 
+	digest, err := catalog.Digest()
+	if err != nil {
+		return db.Catalog{}, fmt.Errorf("failed to get catalog digest: %w", err)
+	}
+
 	return db.Catalog{
-		Digest:  catalog.Digest(),
-		Name:    catalog.Name,
+		Ref:     catalog.Ref,
+		Digest:  digest,
+		Title:   catalog.Title,
 		Source:  catalog.Source,
 		Servers: dbServers,
-	}
+	}, nil
 }
 
-func (catalog *Catalog) Digest() string {
-	h := sha256.New()
-	// Exclude "Source" from digest, since it's metadata and not part of the catalog's content
-	h.Write([]byte(catalog.Name))
-	h.Write([]byte("\n"))
-	for _, server := range catalog.Servers {
-		h.Write([]byte(server.Type))
-		h.Write([]byte("\n"))
-		h.Write([]byte(server.Source))
-		h.Write([]byte("\n"))
-		h.Write([]byte(server.Image))
-		h.Write([]byte("\n"))
-		h.Write([]byte(strings.Join(server.Tools, ",")))
-		h.Write([]byte("\n"))
-	}
-	sum := h.Sum(nil)
-	return hex.EncodeToString(sum)
+func (catalogArtifact *CatalogArtifact) Digest() (string, error) {
+	return oci.GetArtifactDigest(MCPCatalogArtifactType, catalogArtifact)
 }
 
 func (catalog *Catalog) Validate() error {

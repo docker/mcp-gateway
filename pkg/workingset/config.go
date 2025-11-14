@@ -97,7 +97,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set for argument %s", serverName, delConfigArg)
+			return fmt.Errorf("server %s not found in profile for argument %s", serverName, delConfigArg)
 		}
 
 		if server.Config != nil && server.Config[configName] != nil {

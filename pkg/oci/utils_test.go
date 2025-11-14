@@ -15,7 +15,7 @@ func TestFullNameWithDockerHub(t *testing.T) {
 	fullNameStr := FullName(ref)
 
 	// Docker Hub domain should be stripped
-	assert.Equal(t, "library/nginx:latest", fullNameStr)
+	assert.Equal(t, "nginx:latest", fullNameStr)
 }
 
 func TestFullNameWithDockerHubIndexDomain(t *testing.T) {
@@ -25,7 +25,7 @@ func TestFullNameWithDockerHubIndexDomain(t *testing.T) {
 	fullNameStr := FullName(ref)
 
 	// index.docker.io domain should be stripped
-	assert.Equal(t, "library/nginx:latest", fullNameStr)
+	assert.Equal(t, "nginx:latest", fullNameStr)
 }
 
 func TestFullNameWithCustomRegistry(t *testing.T) {
@@ -135,4 +135,106 @@ func TestIsValidInputReferenceRejectsDigests(t *testing.T) {
 
 	result := IsValidInputReference(ref)
 	assert.False(t, result, "digest references should not be valid input references")
+}
+
+func TestFullNameWithoutDigestWithTag(t *testing.T) {
+	ref, err := name.ParseReference("myregistry.example.com/myrepo/myimage:v1.0")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Should preserve the tag
+	assert.Equal(t, "myregistry.example.com/myrepo/myimage:v1.0", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithDockerHub(t *testing.T) {
+	ref, err := name.ParseReference("docker.io/library/nginx:latest")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Docker Hub domain should be stripped
+	assert.Equal(t, "nginx:latest", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithDockerHubIndexDomain(t *testing.T) {
+	ref, err := name.ParseReference("index.docker.io/library/nginx:latest")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// index.docker.io domain should be stripped
+	assert.Equal(t, "nginx:latest", fullNameStr)
+}
+
+func TestFullNameWithoutDigestStripsDigest(t *testing.T) {
+	ref, err := name.ParseReference("myregistry.example.com/myrepo/myimage@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Should convert digest to :latest tag
+	assert.Equal(t, "myregistry.example.com/myrepo/myimage:latest", fullNameStr)
+	assert.NotContains(t, fullNameStr, "@sha256:")
+	assert.NotContains(t, fullNameStr, "1234567890abcdef")
+}
+
+func TestFullNameWithoutDigestStripsDigestDockerHub(t *testing.T) {
+	ref, err := name.ParseReference("docker.io/library/nginx@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Should strip Docker Hub domain and convert digest to :latest
+	assert.Equal(t, "nginx:latest", fullNameStr)
+	assert.NotContains(t, fullNameStr, "@sha256:")
+}
+
+func TestFullNameWithoutDigestWithNoTag(t *testing.T) {
+	ref, err := name.ParseReference("nginx")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Should add :latest tag
+	assert.Equal(t, "nginx:latest", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithCustomRegistry(t *testing.T) {
+	ref, err := name.ParseReference("gcr.io/my-project/my-image:v2.0")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Custom registry should be preserved with tag
+	assert.Equal(t, "gcr.io/my-project/my-image:v2.0", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithPort(t *testing.T) {
+	ref, err := name.ParseReference("localhost:5000/myimage:dev")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// localhost:5000 should be preserved
+	assert.Equal(t, "localhost:5000/myimage:dev", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithPortAndNoTag(t *testing.T) {
+	ref, err := name.ParseReference("localhost:5000/myimage")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	// Should add :latest tag
+	assert.Equal(t, "localhost:5000/myimage:latest", fullNameStr)
+}
+
+func TestFullNameWithoutDigestWithMultiplePathComponents(t *testing.T) {
+	ref, err := name.ParseReference("myregistry.example.com/org/team/project/image:tag")
+	require.NoError(t, err)
+
+	fullNameStr := FullNameWithoutDigest(ref)
+
+	assert.Equal(t, "myregistry.example.com/org/team/project/image:tag", fullNameStr)
 }

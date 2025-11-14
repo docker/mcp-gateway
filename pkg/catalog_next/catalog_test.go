@@ -28,88 +28,87 @@ func setupTestDB(t *testing.T) db.DAO {
 // Test Catalog.Digest()
 func TestCatalogDigest(t *testing.T) {
 	catalog := Catalog{
-		Name: "test-catalog",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:latest",
-				Tools: []string{"tool1", "tool2"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "test-catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:latest",
+					Tools: []string{"tool1", "tool2"},
+				},
 			},
 		},
 	}
 
-	digest1 := catalog.Digest()
+	digest1, err := catalog.Digest()
+	require.NoError(t, err)
 	assert.NotEmpty(t, digest1)
 	assert.Len(t, digest1, 64) // SHA256 hex string
 
 	// Same catalog should produce same digest
-	digest2 := catalog.Digest()
+	digest2, err := catalog.Digest()
+	require.NoError(t, err)
 	assert.Equal(t, digest1, digest2)
 }
 
 func TestCatalogDigestDifferentContent(t *testing.T) {
 	catalog1 := Catalog{
-		Name: "catalog1",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "docker/test:v1"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog1",
+			Servers: []Server{
+				{Type: workingset.ServerTypeImage, Image: "docker/test:v1"},
+			},
 		},
 	}
 
 	catalog2 := Catalog{
-		Name: "catalog2",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "docker/test:v2"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog2",
+			Servers: []Server{
+				{Type: workingset.ServerTypeImage, Image: "docker/test:v2"},
+			},
 		},
 	}
 
-	assert.NotEqual(t, catalog1.Digest(), catalog2.Digest())
-}
-
-func TestCatalogDigestExcludesSource(t *testing.T) {
-	// Source should not affect digest since it's metadata
-	catalog1 := Catalog{
-		Name:   "test",
-		Source: "source1",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "docker/test:latest"},
-		},
-	}
-
-	catalog2 := Catalog{
-		Name:   "test",
-		Source: "source2",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "docker/test:latest"},
-		},
-	}
-
-	assert.Equal(t, catalog1.Digest(), catalog2.Digest())
+	digest1, err := catalog1.Digest()
+	require.NoError(t, err)
+	digest2, err := catalog2.Digest()
+	require.NoError(t, err)
+	assert.NotEqual(t, digest1, digest2)
 }
 
 func TestCatalogDigestWithTools(t *testing.T) {
 	catalog1 := Catalog{
-		Name: "test",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:latest",
-				Tools: []string{"tool1", "tool2"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "test",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:latest",
+					Tools: []string{"tool1", "tool2"},
+				},
 			},
 		},
 	}
 
 	catalog2 := Catalog{
-		Name: "test",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:latest",
-				Tools: []string{"tool1"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "test",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:latest",
+					Tools: []string{"tool1"},
+				},
 			},
 		},
 	}
 
-	assert.NotEqual(t, catalog1.Digest(), catalog2.Digest())
+	digest1, err := catalog1.Digest()
+	require.NoError(t, err)
+	digest2, err := catalog2.Digest()
+	require.NoError(t, err)
+	assert.NotEqual(t, digest1, digest2)
 }
 
 // Test Catalog.Validate()
@@ -121,11 +120,14 @@ func TestCatalogValidateSuccess(t *testing.T) {
 		{
 			name: "valid image server",
 			catalog: Catalog{
-				Name: "test",
-				Servers: []Server{
-					{
-						Type:  workingset.ServerTypeImage,
-						Image: "docker/test:latest",
+				Ref: "test/catalog:latest",
+				CatalogArtifact: CatalogArtifact{
+					Title: "test",
+					Servers: []Server{
+						{
+							Type:  workingset.ServerTypeImage,
+							Image: "docker/test:latest",
+						},
 					},
 				},
 			},
@@ -133,11 +135,14 @@ func TestCatalogValidateSuccess(t *testing.T) {
 		{
 			name: "valid registry server",
 			catalog: Catalog{
-				Name: "test",
-				Servers: []Server{
-					{
-						Type:   workingset.ServerTypeRegistry,
-						Source: "https://example.com/server",
+				Ref: "test/catalog:latest",
+				CatalogArtifact: CatalogArtifact{
+					Title: "test",
+					Servers: []Server{
+						{
+							Type:   workingset.ServerTypeRegistry,
+							Source: "https://example.com/server",
+						},
 					},
 				},
 			},
@@ -145,10 +150,13 @@ func TestCatalogValidateSuccess(t *testing.T) {
 		{
 			name: "multiple servers",
 			catalog: Catalog{
-				Name: "test",
-				Servers: []Server{
-					{Type: workingset.ServerTypeImage, Image: "docker/test:v1"},
-					{Type: workingset.ServerTypeRegistry, Source: "https://example.com"},
+				Ref: "test/catalog:latest",
+				CatalogArtifact: CatalogArtifact{
+					Title: "test",
+					Servers: []Server{
+						{Type: workingset.ServerTypeImage, Image: "docker/test:v1"},
+						{Type: workingset.ServerTypeRegistry, Source: "https://example.com"},
+					},
 				},
 			},
 		},
@@ -168,41 +176,51 @@ func TestCatalogValidateErrors(t *testing.T) {
 		catalog Catalog
 	}{
 		{
-			name: "empty name",
+			name: "empty title",
 			catalog: Catalog{
-				Name:    "",
-				Servers: []Server{{Type: workingset.ServerTypeImage, Image: "test"}},
+				CatalogArtifact: CatalogArtifact{
+					Title:   "",
+					Servers: []Server{{Type: workingset.ServerTypeImage, Image: "test"}},
+				},
 			},
 		},
 		{
 			name: "duplicate server name",
 			catalog: Catalog{
-				Name: "",
-				Servers: []Server{
-					{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
-					{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
+				CatalogArtifact: CatalogArtifact{
+					Title: "",
+					Servers: []Server{
+						{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
+						{Type: workingset.ServerTypeImage, Image: "test", Snapshot: &workingset.ServerSnapshot{Server: catalog.Server{Name: "test"}}},
+					},
 				},
 			},
 		},
 		{
 			name: "invalid server type",
 			catalog: Catalog{
-				Name:    "test",
-				Servers: []Server{{Type: "invalid"}},
+				CatalogArtifact: CatalogArtifact{
+					Title:   "test",
+					Servers: []Server{{Type: "invalid"}},
+				},
 			},
 		},
 		{
 			name: "image server without image",
 			catalog: Catalog{
-				Name:    "test",
-				Servers: []Server{{Type: workingset.ServerTypeImage}},
+				CatalogArtifact: CatalogArtifact{
+					Title:   "test",
+					Servers: []Server{{Type: workingset.ServerTypeImage}},
+				},
 			},
 		},
 		{
 			name: "registry server without source",
 			catalog: Catalog{
-				Name:    "test",
-				Servers: []Server{{Type: workingset.ServerTypeRegistry}},
+				CatalogArtifact: CatalogArtifact{
+					Title:   "test",
+					Servers: []Server{{Type: workingset.ServerTypeRegistry}},
+				},
 			},
 		},
 	}
@@ -218,33 +236,39 @@ func TestCatalogValidateErrors(t *testing.T) {
 // Test Catalog.ToDb() and NewFromDb()
 func TestCatalogToDbAndFromDb(t *testing.T) {
 	catalog := Catalog{
-		Name:   "test-catalog",
+		Ref:    "test/catalog:latest",
 		Source: "test-source",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:latest",
-				Tools: []string{"tool1", "tool2"},
-				Snapshot: &workingset.ServerSnapshot{
-					Server: catalog.Server{
-						Name:        "test-server",
-						Description: "Test",
+		CatalogArtifact: CatalogArtifact{
+			Title: "test-catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:latest",
+					Tools: []string{"tool1", "tool2"},
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "test-server",
+							Description: "Test",
+						},
 					},
 				},
-			},
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://example.com",
-				Tools:  []string{"tool3"},
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://example.com",
+					Tools:  []string{"tool3"},
+				},
 			},
 		},
 	}
 
-	dbCatalog := catalog.ToDb()
+	dbCatalog, err := catalog.ToDb()
+	require.NoError(t, err)
 
 	// Verify conversion to DB format
-	assert.Equal(t, catalog.Digest(), dbCatalog.Digest)
-	assert.Equal(t, catalog.Name, dbCatalog.Name)
+	digest, err := catalog.Digest()
+	require.NoError(t, err)
+	assert.Equal(t, digest, dbCatalog.Digest)
+	assert.Equal(t, catalog.Title, dbCatalog.Title)
 	assert.Equal(t, catalog.Source, dbCatalog.Source)
 	assert.Len(t, dbCatalog.Servers, 2)
 
@@ -264,9 +288,9 @@ func TestCatalogToDbAndFromDb(t *testing.T) {
 	catalogWithDigest := NewFromDb(&dbCatalog)
 
 	// Verify conversion from DB format
-	assert.Equal(t, catalog.Name, catalogWithDigest.Name)
+	assert.Equal(t, catalog.Title, catalogWithDigest.Title)
 	assert.Equal(t, catalog.Source, catalogWithDigest.Source)
-	assert.Equal(t, catalog.Digest(), catalogWithDigest.Digest)
+	assert.Equal(t, digest, catalogWithDigest.Digest)
 	assert.Len(t, catalogWithDigest.Servers, 2)
 
 	// Check first server roundtrip

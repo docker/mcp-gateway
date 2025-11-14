@@ -1312,15 +1312,11 @@ func (m *mockErrorDAO) RemoveWorkingSet(_ context.Context, _ string) error {
 	return nil
 }
 
-func (m *mockErrorDAO) CreateCatalog(_ context.Context, _ db.Catalog) error {
+func (m *mockErrorDAO) UpsertCatalog(_ context.Context, _ db.Catalog) error {
 	return nil
 }
 
 func (m *mockErrorDAO) DeleteCatalog(_ context.Context, _ string) error {
-	return nil
-}
-
-func (m *mockErrorDAO) DeleteCatalogBySource(_ context.Context, _ string) error {
 	return nil
 }
 

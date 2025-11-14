@@ -15,8 +15,9 @@ func TestCreateCatalogAndGetCatalog(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
+		Ref:    "docker.io/test/catalog:latest",
 		Digest: "abc123",
-		Name:   "test-catalog",
+		Title:  "test-catalog",
 		Source: "https://example.com/catalog",
 		Servers: []CatalogServer{
 			{
@@ -28,14 +29,14 @@ func TestCreateCatalogAndGetCatalog(t *testing.T) {
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog)
+	err := dao.UpsertCatalog(ctx, catalog)
 	require.NoError(t, err)
 
 	// Verify it was created
-	retrieved, err := dao.GetCatalog(ctx, "abc123")
+	retrieved, err := dao.GetCatalog(ctx, "docker.io/test/catalog:latest")
 	require.NoError(t, err)
 	assert.Equal(t, catalog.Digest, retrieved.Digest)
-	assert.Equal(t, catalog.Name, retrieved.Name)
+	assert.Equal(t, catalog.Title, retrieved.Title)
 	assert.Equal(t, catalog.Source, retrieved.Source)
 	assert.Len(t, retrieved.Servers, 1)
 	assert.Equal(t, "registry", retrieved.Servers[0].ServerType)
@@ -46,44 +47,53 @@ func TestCreateCatalogWithEmptyServers(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
+		Ref:     "docker.io/test/empty:latest",
 		Digest:  "empty123",
-		Name:    "empty-catalog",
+		Title:   "empty-catalog",
 		Source:  "https://example.com/empty",
 		Servers: []CatalogServer{},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog)
+	err := dao.UpsertCatalog(ctx, catalog)
 	require.NoError(t, err)
 
 	// Verify it was created
-	retrieved, err := dao.GetCatalog(ctx, "empty123")
+	retrieved, err := dao.GetCatalog(ctx, "docker.io/test/empty:latest")
 	require.NoError(t, err)
 	assert.Equal(t, catalog.Digest, retrieved.Digest)
-	assert.Equal(t, catalog.Name, retrieved.Name)
+	assert.Equal(t, catalog.Title, retrieved.Title)
 	// The Servers slice will be empty (not nil) when there are no servers
 	assert.Empty(t, retrieved.Servers)
 }
 
-func TestCreateCatalogDuplicateDigest(t *testing.T) {
+func TestUpsertCatalogReplaceExisting(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	catalog := Catalog{
+		Ref:     "docker.io/test/duplicate:latest",
 		Digest:  "duplicate",
-		Name:    "First",
+		Title:   "First",
 		Source:  "https://example.com/first",
 		Servers: []CatalogServer{},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog)
+	err := dao.UpsertCatalog(ctx, catalog)
 	require.NoError(t, err)
 
-	// Try to create another with the same digest
-	catalog.Name = "Second"
+	// Upsert another with the same ref but different digest
+	catalog.Digest = "duplicate2"
+	catalog.Title = "Second"
 	catalog.Source = "https://example.com/second"
-	err = dao.CreateCatalog(ctx, catalog)
-	require.Error(t, err)
-	assert.True(t, IsDuplicateDigestError(err))
+	err = dao.UpsertCatalog(ctx, catalog)
+	require.NoError(t, err)
+
+	// Verify it was updated
+	retrieved, err := dao.GetCatalog(ctx, "docker.io/test/duplicate:latest")
+	require.NoError(t, err)
+	assert.Equal(t, "duplicate2", retrieved.Digest)
+	assert.Equal(t, "Second", retrieved.Title)
+	assert.Equal(t, "https://example.com/second", retrieved.Source)
 }
 
 func TestGetCatalogNotFound(t *testing.T) {
@@ -100,25 +110,26 @@ func TestDeleteCatalog(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
+		Ref:     "docker.io/test/delete:latest",
 		Digest:  "delete123",
-		Name:    "To Delete",
+		Title:   "To Delete",
 		Source:  "https://example.com/delete",
 		Servers: []CatalogServer{},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog)
+	err := dao.UpsertCatalog(ctx, catalog)
 	require.NoError(t, err)
 
 	// Verify it exists
-	_, err = dao.GetCatalog(ctx, "delete123")
+	_, err = dao.GetCatalog(ctx, "docker.io/test/delete:latest")
 	require.NoError(t, err)
 
 	// Delete it
-	err = dao.DeleteCatalog(ctx, "delete123")
+	err = dao.DeleteCatalog(ctx, "docker.io/test/delete:latest")
 	require.NoError(t, err)
 
 	// Verify it's gone
-	_, err = dao.GetCatalog(ctx, "delete123")
+	_, err = dao.GetCatalog(ctx, "docker.io/test/delete:latest")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -139,27 +150,30 @@ func TestListCatalogs(t *testing.T) {
 	// Create multiple catalogs
 	catalogs := []Catalog{
 		{
+			Ref:     "docker.io/test/first:latest",
 			Digest:  "list1",
-			Name:    "First",
+			Title:   "First",
 			Source:  "https://example.com/first",
 			Servers: []CatalogServer{},
 		},
 		{
+			Ref:     "docker.io/test/second:latest",
 			Digest:  "list2",
-			Name:    "Second",
+			Title:   "Second",
 			Source:  "https://example.com/second",
 			Servers: []CatalogServer{},
 		},
 		{
+			Ref:     "docker.io/test/third:latest",
 			Digest:  "list3",
-			Name:    "Third",
+			Title:   "Third",
 			Source:  "https://example.com/third",
 			Servers: []CatalogServer{},
 		},
 	}
 
 	for _, catalog := range catalogs {
-		err := dao.CreateCatalog(ctx, catalog)
+		err := dao.UpsertCatalog(ctx, catalog)
 		require.NoError(t, err)
 	}
 
@@ -192,8 +206,9 @@ func TestListCatalogsWithServersAndSnapshots(t *testing.T) {
 	ctx := t.Context()
 
 	catalog1 := Catalog{
+		Ref:    "docker.io/test/catalog1:latest",
 		Digest: "withservers1",
-		Name:   "Catalog 1",
+		Title:  "Catalog 1",
 		Source: "https://example.com/cat1",
 		Servers: []CatalogServer{
 			{
@@ -213,8 +228,9 @@ func TestListCatalogsWithServersAndSnapshots(t *testing.T) {
 	}
 
 	catalog2 := Catalog{
+		Ref:    "docker.io/test/catalog2:latest",
 		Digest: "withservers2",
-		Name:   "Catalog 2",
+		Title:  "Catalog 2",
 		Source: "https://example.com/cat2",
 		Servers: []CatalogServer{
 			{
@@ -246,10 +262,10 @@ func TestListCatalogsWithServersAndSnapshots(t *testing.T) {
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog1)
+	err := dao.UpsertCatalog(ctx, catalog1)
 	require.NoError(t, err)
 
-	err = dao.CreateCatalog(ctx, catalog2)
+	err = dao.UpsertCatalog(ctx, catalog2)
 	require.NoError(t, err)
 
 	retrieved, err := dao.ListCatalogs(ctx)
@@ -285,35 +301,14 @@ func TestListCatalogsWithServersAndSnapshots(t *testing.T) {
 	assert.Len(t, cat2.Servers, 2)
 }
 
-func TestIsDuplicateDigestError(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	catalog := Catalog{
-		Digest:  "errortest",
-		Name:    "Error Test",
-		Source:  "https://example.com/error",
-		Servers: []CatalogServer{},
-	}
-
-	err := dao.CreateCatalog(ctx, catalog)
-	require.NoError(t, err)
-
-	// Try to create duplicate
-	err = dao.CreateCatalog(ctx, catalog)
-	require.Error(t, err)
-
-	// Test the helper function
-	assert.True(t, IsDuplicateDigestError(err))
-}
-
 func TestEmptyToolList(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
 	catalog := Catalog{
+		Ref:    "docker.io/test/emptytools:latest",
 		Digest: "emptytools",
-		Name:   "Empty Tools",
+		Title:  "Empty Tools",
 		Source: "https://example.com/emptytools",
 		Servers: []CatalogServer{
 			{
@@ -325,120 +320,12 @@ func TestEmptyToolList(t *testing.T) {
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog)
+	err := dao.UpsertCatalog(ctx, catalog)
 	require.NoError(t, err)
 
-	retrieved, err := dao.GetCatalog(ctx, "emptytools")
+	retrieved, err := dao.GetCatalog(ctx, "docker.io/test/emptytools:latest")
 	require.NoError(t, err)
 	assert.Len(t, retrieved.Servers, 1)
 	assert.NotNil(t, retrieved.Servers[0].Tools)
 	assert.Empty(t, retrieved.Servers[0].Tools)
-}
-
-func TestDeleteCatalogBySource(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	catalog := Catalog{
-		Digest:  "sourcedelete123",
-		Name:    "To Delete By Source",
-		Source:  "https://example.com/source-delete",
-		Servers: []CatalogServer{},
-	}
-
-	err := dao.CreateCatalog(ctx, catalog)
-	require.NoError(t, err)
-
-	// Verify it exists
-	_, err = dao.GetCatalog(ctx, "sourcedelete123")
-	require.NoError(t, err)
-
-	// Delete by source
-	err = dao.DeleteCatalogBySource(ctx, "https://example.com/source-delete")
-	require.NoError(t, err)
-
-	// Verify it's gone
-	_, err = dao.GetCatalog(ctx, "sourcedelete123")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, sql.ErrNoRows)
-}
-
-func TestDeleteCatalogBySourceEmpty(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Should error when source is empty
-	err := dao.DeleteCatalogBySource(ctx, "")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "source should not be empty")
-}
-
-func TestDeleteCatalogBySourceNonexistent(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Should not error even if the source doesn't exist
-	err := dao.DeleteCatalogBySource(ctx, "https://example.com/nonexistent")
-	require.NoError(t, err)
-}
-
-func TestDeleteCatalogBySourceMultiple(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Create multiple catalogs with the same source
-	catalog1 := Catalog{
-		Digest:  "multi1",
-		Name:    "Multi 1",
-		Source:  "https://example.com/shared-source",
-		Servers: []CatalogServer{},
-	}
-
-	catalog2 := Catalog{
-		Digest:  "multi2",
-		Name:    "Multi 2",
-		Source:  "https://example.com/shared-source",
-		Servers: []CatalogServer{},
-	}
-
-	catalog3 := Catalog{
-		Digest:  "multi3",
-		Name:    "Multi 3",
-		Source:  "https://example.com/different-source",
-		Servers: []CatalogServer{},
-	}
-
-	err := dao.CreateCatalog(ctx, catalog1)
-	require.NoError(t, err)
-
-	err = dao.CreateCatalog(ctx, catalog2)
-	require.NoError(t, err)
-
-	err = dao.CreateCatalog(ctx, catalog3)
-	require.NoError(t, err)
-
-	// Verify all exist
-	_, err = dao.GetCatalog(ctx, "multi1")
-	require.NoError(t, err)
-	_, err = dao.GetCatalog(ctx, "multi2")
-	require.NoError(t, err)
-	_, err = dao.GetCatalog(ctx, "multi3")
-	require.NoError(t, err)
-
-	// Delete by shared source
-	err = dao.DeleteCatalogBySource(ctx, "https://example.com/shared-source")
-	require.NoError(t, err)
-
-	// Verify catalogs with shared source are gone
-	_, err = dao.GetCatalog(ctx, "multi1")
-	require.Error(t, err)
-	require.ErrorIs(t, err, sql.ErrNoRows)
-
-	_, err = dao.GetCatalog(ctx, "multi2")
-	require.Error(t, err)
-	require.ErrorIs(t, err, sql.ErrNoRows)
-
-	// Verify catalog with different source still exists
-	_, err = dao.GetCatalog(ctx, "multi3")
-	require.NoError(t, err)
 }

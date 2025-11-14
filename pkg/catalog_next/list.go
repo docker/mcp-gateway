@@ -49,8 +49,8 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 func printListHumanReadable(catalogs []CatalogWithDigest) string {
 	lines := ""
 	for _, catalog := range catalogs {
-		lines += fmt.Sprintf("%s\t%s\n", catalog.Digest, catalog.Name)
+		lines += fmt.Sprintf("%s\t| %s\t| %s\n", catalog.Ref, catalog.Digest, catalog.Title)
 	}
 	lines = strings.TrimSuffix(lines, "\n")
-	return fmt.Sprintf("Digest\tName\n----\t----\n%s", lines)
+	return fmt.Sprintf("Reference | Digest | Title\n%s", lines)
 }
