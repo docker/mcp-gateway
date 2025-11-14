@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
@@ -30,36 +29,9 @@ type ListEntry struct {
 }
 
 func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
-	// Read the registry to get enabled servers
-	registryYAML, err := config.ReadRegistry(ctx, docker)
+	registry, _, err := loadRegistryWithConfig(ctx, docker)
 	if err != nil {
 		return nil, err
-	}
-
-	registry, err := config.ParseRegistryConfig(registryYAML)
-	if err != nil {
-		return nil, err
-	}
-
-	// Read user's configuration to populate registry tiles
-	userConfigYAML, err := config.ReadConfig(ctx, docker)
-	if err != nil {
-		return nil, fmt.Errorf("reading user config: %w", err)
-	}
-
-	userConfig, err := config.ParseConfig(userConfigYAML)
-	if err != nil {
-		return nil, fmt.Errorf("parsing user config: %w", err)
-	}
-
-	// Populate registry tiles with user config
-	for serverName, tile := range registry.Servers {
-		if len(tile.Config) == 0 {
-			if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
-				tile.Config = userServerConfig
-				registry.Servers[serverName] = tile
-			}
-		}
 	}
 
 	// Read the catalog to get server metadata (descriptions, etc.)
@@ -68,19 +40,14 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 		return nil, err
 	}
 
-	// Get the list of configured secrets
-	configuredSecrets, err := desktop.NewSecretsClient().ListJfsSecrets(ctx)
+	// Get the map of configured secret names
+	configuredSecretNames, err := getConfiguredSecretNames(ctx)
 	if err != nil {
 		// If we can't get secrets, assume none are configured
 		if !quiet {
 			fmt.Fprintf(os.Stderr, "Warning: error fetching secrets: %v\n", err)
 		}
-	}
-
-	// Create a map of configured secret names for quick lookup
-	configuredSecretNames := make(map[string]struct{})
-	for _, secret := range configuredSecrets {
-		configuredSecretNames[secret.Name] = struct{}{}
+		configuredSecretNames = make(map[string]struct{})
 	}
 
 	isSecretConfigured := func(secret catalog.Secret) bool {
@@ -160,14 +127,9 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 
 			// Check other config requirements (non-OAuth config)
 			if len(server.Config) > 0 {
-
-				tile, hasConfig := registry.Servers[serverName]
-				if !hasConfig || len(tile.Config) == 0 {
-					entry.Config = ConfigStatusRequired
-				} else {
-					// Validate config requirements against user configuration
-					entry.Config = validateConfigRequirements(server.Config, tile.Config)
-				}
+				tile := registry.Servers[serverName]
+				// Validate config requirements against user configuration
+				entry.Config = validateConfigRequirements(server.Config, tile.Config)
 			}
 		}
 
@@ -191,107 +153,4 @@ func (cs ConfigStatus) DisplayString() string {
 	default:
 		return "-"
 	}
-}
-
-// validateConfigRequirements validates user configuration against server requirements
-func validateConfigRequirements(requirements []any, userConfig map[string]any) ConfigStatus {
-	flatReq := collectRequiredFields(requirements)
-	var flatReqKeys []string
-	for k := range flatReq {
-		flatReqKeys = append(flatReqKeys, k)
-	}
-	slices.Sort(flatReqKeys)
-
-	// Flatten user config for easier comparison (dot notation like a.b)
-	flattened := flattenMap("", userConfig)
-
-	// Determine status based on total vs configured counts across ALL requirements
-	total := len(flatReq)
-	if total == 0 {
-		return ConfigStatusDone
-	}
-	configured := 0
-	for k := range flatReq {
-		if _, ok := flattened[k]; ok {
-			configured++
-		}
-	}
-
-	switch {
-	case configured == 0:
-		return ConfigStatusRequired
-	case configured < total:
-		return ConfigStatusPartial
-	default:
-		return ConfigStatusDone
-	}
-}
-
-// parseRequiredFields extracts all required field names from the config schema
-func parseRequiredFields(req map[string]any) map[string]bool {
-	fields := make(map[string]bool)
-	// Only consider declared properties; ignore the top-level "name" field which
-	// identifies the server and should not be treated as a required config key.
-	if properties, ok := req["properties"].(map[string]any); ok {
-		walkProperties("", properties, fields)
-	}
-	return fields
-}
-
-// walkProperties recursively collects leaf property keys into dot-notation
-func walkProperties(prefix string, properties map[string]any, out map[string]bool) {
-	for propName, propDef := range properties {
-		// compute key with prefix
-		key := propName
-		if prefix != "" {
-			key = prefix + "." + propName
-		}
-		// If this property itself has nested properties, recurse
-		if propDefMap, ok := propDef.(map[string]any); ok {
-			if nestedProps, hasNested := propDefMap["properties"].(map[string]any); hasNested {
-				walkProperties(key, nestedProps, out)
-				continue
-			}
-		}
-		// Otherwise it's a leaf
-		out[key] = true
-	}
-}
-
-// flattenMap flattens a nested map (with map[string]any values) into dot-notation keys
-// Example: {"confluence": {"url": "x"}} => {"confluence.url": "x"}
-func flattenMap(prefix string, m map[string]any) map[string]any {
-	out := make(map[string]any)
-	join := func(a, b string) string {
-		if a == "" {
-			return b
-		}
-		return a + "." + b
-	}
-	for k, v := range m {
-		key := join(prefix, k)
-		if sub, ok := v.(map[string]any); ok {
-			for fk, fv := range flattenMap(key, sub) {
-				out[fk] = fv
-			}
-			continue
-		}
-		out[key] = v
-	}
-	return out
-}
-
-// collectRequiredFields merges required fields from a list of requirement objects
-func collectRequiredFields(requirements []any) map[string]bool {
-	out := make(map[string]bool)
-	for _, r := range requirements {
-		reqMap, ok := r.(map[string]any)
-		if !ok {
-			continue
-		}
-		for k := range parseRequiredFields(reqMap) {
-			out[k] = true
-		}
-	}
-	return out
 }
