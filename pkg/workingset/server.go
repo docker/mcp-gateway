@@ -7,11 +7,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
-	"github.com/google/go-containerregistry/pkg/name"
 )
 
 func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string, catalogRef string, catalogServers []string) error {

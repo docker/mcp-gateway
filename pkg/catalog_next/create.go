@@ -8,11 +8,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
-	"github.com/google/go-containerregistry/pkg/name"
 )
 
 func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string, legacyCatalogURL string, title string) error {
@@ -39,7 +40,7 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 	catalog.Ref = oci.FullNameWithoutDigest(ref)
 
 	if title != "" {
-		catalog.CatalogArtifact.Title = title
+		catalog.Title = title
 	}
 
 	if err := catalog.Validate(); err != nil {

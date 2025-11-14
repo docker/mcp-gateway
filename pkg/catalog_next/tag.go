@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/go-containerregistry/pkg/name"
+
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
-	"github.com/google/go-containerregistry/pkg/name"
 )
 
 func Tag(ctx context.Context, dao db.DAO, refStr string, tag string) error {

@@ -56,7 +56,7 @@ func Show(ctx context.Context, dao db.DAO, refStr string, format workingset.Outp
 
 func printHumanReadable(catalog CatalogWithDigest) string {
 	servers := ""
-	for _, server := range catalog.CatalogArtifact.Servers {
+	for _, server := range catalog.Servers {
 		servers += fmt.Sprintf("  - Type: %s\n", server.Type)
 		switch server.Type {
 		case workingset.ServerTypeRegistry:
@@ -66,5 +66,5 @@ func printHumanReadable(catalog CatalogWithDigest) string {
 		}
 	}
 	servers = strings.TrimSuffix(servers, "\n")
-	return fmt.Sprintf("Reference: %s\nTitle: %s\nSource: %s\nServers:\n%s", catalog.Ref, catalog.CatalogArtifact.Title, catalog.Source, servers)
+	return fmt.Sprintf("Reference: %s\nTitle: %s\nSource: %s\nServers:\n%s", catalog.Ref, catalog.Title, catalog.Source, servers)
 }

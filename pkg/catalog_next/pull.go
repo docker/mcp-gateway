@@ -30,17 +30,17 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	}
 
 	// Resolve any unresolved snapshots first
-	for i := range len(catalog.CatalogArtifact.Servers) {
-		if catalog.CatalogArtifact.Servers[i].Snapshot != nil {
+	for i := range len(catalog.Servers) {
+		if catalog.Servers[i].Snapshot != nil {
 			continue
 		}
-		switch catalog.CatalogArtifact.Servers[i].Type {
+		switch catalog.Servers[i].Type {
 		case workingset.ServerTypeImage:
-			serverSnapshot, err := workingset.ResolveImageSnapshot(ctx, ociService, catalog.CatalogArtifact.Servers[i].Image)
+			serverSnapshot, err := workingset.ResolveImageSnapshot(ctx, ociService, catalog.Servers[i].Image)
 			if err != nil {
 				return fmt.Errorf("failed to resolve image snapshot: %w", err)
 			}
-			catalog.CatalogArtifact.Servers[i].Snapshot = serverSnapshot
+			catalog.Servers[i].Snapshot = serverSnapshot
 		case workingset.ServerTypeRegistry:
 			// TODO(cody): Ignore until supported
 		}

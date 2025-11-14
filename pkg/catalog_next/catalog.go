@@ -81,8 +81,8 @@ func NewFromDb(dbCatalog *db.Catalog) CatalogWithDigest {
 }
 
 func (catalog Catalog) ToDb() (db.Catalog, error) {
-	dbServers := make([]db.CatalogServer, len(catalog.CatalogArtifact.Servers))
-	for i, server := range catalog.CatalogArtifact.Servers {
+	dbServers := make([]db.CatalogServer, len(catalog.Servers))
+	for i, server := range catalog.Servers {
 		dbServers[i] = db.CatalogServer{
 			ServerType: string(server.Type),
 			Tools:      server.Tools,
@@ -100,7 +100,7 @@ func (catalog Catalog) ToDb() (db.Catalog, error) {
 		}
 	}
 
-	digest, err := catalog.CatalogArtifact.Digest()
+	digest, err := catalog.Digest()
 	if err != nil {
 		return db.Catalog{}, fmt.Errorf("failed to get catalog digest: %w", err)
 	}
@@ -108,7 +108,7 @@ func (catalog Catalog) ToDb() (db.Catalog, error) {
 	return db.Catalog{
 		Ref:     catalog.Ref,
 		Digest:  digest,
-		Title:   catalog.CatalogArtifact.Title,
+		Title:   catalog.Title,
 		Source:  catalog.Source,
 		Servers: dbServers,
 	}, nil
@@ -127,7 +127,7 @@ func (catalog *Catalog) Validate() error {
 
 func (catalog *Catalog) validateUniqueServerNames() error {
 	seen := make(map[string]bool)
-	for _, server := range catalog.CatalogArtifact.Servers {
+	for _, server := range catalog.Servers {
 		// TODO: Update when Snapshot is required
 		if server.Snapshot == nil {
 			continue
