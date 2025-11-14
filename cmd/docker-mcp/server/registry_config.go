@@ -9,14 +9,9 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
-// loadRegistryWithConfig reads the registry and populates it with user config values.
-// It returns the populated registry and the userConfig map for further use.
 // IMPORTANT: config.yaml is the single source of truth for all config values.
 // We completely ignore any Config values that may exist in registry.yaml.
 func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.Registry, map[string]map[string]any, error) {
-	// Read registry.yaml that contains which servers are enabled.
-	// NOTE: We only use this to determine which servers are enabled (the map keys).
-	// We completely ignore any Config values in the Tile structs from registry.yaml.
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
 		return config.Registry{}, nil, fmt.Errorf("reading registry config: %w", err)
@@ -43,11 +38,7 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 		userConfig = make(map[string]map[string]any)
 	}
 
-	// Populate registry tiles with configs from config.yaml ONLY
-	// We completely ignore any Config values that were parsed from registry.yaml
 	for serverName, tile := range registry.Servers {
-		// Only populate from config.yaml (the single source of truth)
-		// We ignore any Config values that may have been parsed from registry.yaml
 		if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
 			tile.Config = userServerConfig
 		} else {
@@ -64,8 +55,8 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 // Used by isEmptyValue which is used by validateConfigRequirements
 var skipConfigValue = struct{}{}
 
-// parseRequiredFields extracts all required field names from the config schema
-func parseRequiredFields(req map[string]any) map[string]bool {
+// parseFields extracts all field names from the config schema
+func parseFields(req map[string]any) map[string]bool {
 	fields := make(map[string]bool)
 	// Only consider declared properties; ignore the top-level "name" field which
 	// identifies the server and should not be treated as a required config key.
@@ -95,15 +86,15 @@ func walkProperties(prefix string, properties map[string]any, out map[string]boo
 	}
 }
 
-// collectRequiredFields merges required fields from a list of requirement objects
-func collectRequiredFields(requirements []any) map[string]bool {
+// collectFields collects all fields from a list of requirement objects
+func collectFields(requirements []any) map[string]bool {
 	out := make(map[string]bool)
 	for _, r := range requirements {
 		reqMap, ok := r.(map[string]any)
 		if !ok {
 			continue
 		}
-		for k := range parseRequiredFields(reqMap) {
+		for k := range parseFields(reqMap) {
 			out[k] = true
 		}
 	}
@@ -157,14 +148,14 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 	// If userConfig is empty, check if config is required
 	if len(userConfig) == 0 {
 		// Check if there are any requirements first
-		flatReq := collectRequiredFields(requirements)
+		flatReq := collectFields(requirements)
 		if len(flatReq) == 0 {
 			return ConfigStatusDone
 		}
 		return ConfigStatusRequired
 	}
 
-	flatReq := collectRequiredFields(requirements)
+	flatReq := collectFields(requirements)
 	var flatReqKeys []string
 	for k := range flatReq {
 		flatReqKeys = append(flatReqKeys, k)
@@ -318,7 +309,7 @@ func validateConfigRequirements(requirements []any, userConfig map[string]any) C
 // getMissingConfigs returns a list of config fields that are required but not yet configured
 // func getMissingConfigs(configSchema []any, userConfig map[string]any) []configField {
 // 	// Collect all required fields from the schema
-// 	requiredFields := collectRequiredFields(configSchema)
+// 	requiredFields := collectFields(configSchema)
 //
 // 	// Flatten user config for comparison
 // 	flattened := flattenMap("", userConfig)
