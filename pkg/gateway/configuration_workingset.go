@@ -44,7 +44,7 @@ func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan
 
 func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, error) {
 	start := time.Now()
-	log.Log("- Reading working set configuration...")
+	log.Log("- Reading profile configuration...")
 
 	dao, err := db.New()
 	if err != nil {
@@ -54,9 +54,9 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Configuration{}, fmt.Errorf("working set %s not found", c.WorkingSet)
+			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
 		}
-		return Configuration{}, fmt.Errorf("failed to get working set: %w", err)
+		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := workingset.NewFromDb(dbWorkingSet)
@@ -130,7 +130,7 @@ func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) co
 			continue
 		}
 		if _, exists := toolsConfig.ServerTools[server.Snapshot.Server.Name]; exists {
-			log.Log(fmt.Sprintf("Warning: overlapping server tools '%s' found in working set, overwriting previous value", server.Snapshot.Server.Name))
+			log.Log(fmt.Sprintf("Warning: overlapping server tools '%s' found in profile, overwriting previous value", server.Snapshot.Server.Name))
 		}
 		toolsConfig.ServerTools[server.Snapshot.Server.Name] = server.Tools
 	}

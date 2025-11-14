@@ -27,7 +27,7 @@ type CatalogWithDigest struct {
 
 // Source prefixes must be of the form "<prefix>:"
 const (
-	SourcePrefixWorkingSet    = "working-set:"
+	SourcePrefixWorkingSet    = "profile:"
 	SourcePrefixLegacyCatalog = "legacy-catalog:"
 	SourcePrefixOCI           = "oci:"
 )

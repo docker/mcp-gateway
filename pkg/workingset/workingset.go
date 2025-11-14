@@ -224,7 +224,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 
 	existingSets, err := dao.FindWorkingSetsByIDPrefix(ctx, baseName)
 	if err != nil {
-		return "", fmt.Errorf("failed to find working sets by name prefix: %w", err)
+		return "", fmt.Errorf("failed to find profiles by name prefix: %w", err)
 	}
 
 	if len(existingSets) == 0 {
@@ -245,7 +245,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 		}
 	}
 
-	return "", fmt.Errorf("failed to create working set id")
+	return "", fmt.Errorf("failed to create profile id")
 }
 
 func resolveServerFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, value string) (Server, error) {

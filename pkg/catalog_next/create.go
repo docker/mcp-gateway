@@ -26,7 +26,7 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 	if workingSetID != "" {
 		catalog, err = createCatalogFromWorkingSet(ctx, dao, workingSetID)
 		if err != nil {
-			return fmt.Errorf("failed to create catalog from working set: %w", err)
+			return fmt.Errorf("failed to create catalog from profile: %w", err)
 		}
 	} else if legacyCatalogURL != "" {
 		catalog, err = createCatalogFromLegacyCatalog(ctx, legacyCatalogURL)
@@ -34,7 +34,7 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
 	} else {
-		return fmt.Errorf("either working set ID or legacy catalog URL must be provided")
+		return fmt.Errorf("either profile ID or legacy catalog URL must be provided")
 	}
 
 	catalog.Ref = oci.FullNameWithoutDigest(ref)
@@ -66,9 +66,9 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, workingSetID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Catalog{}, fmt.Errorf("working set %s not found", workingSetID)
+			return Catalog{}, fmt.Errorf("profile %s not found", workingSetID)
 		}
-		return Catalog{}, fmt.Errorf("failed to get working set: %w", err)
+		return Catalog{}, fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := workingset.NewFromDb(dbWorkingSet)
