@@ -40,7 +40,7 @@ func (c *MCPServerSTDIO) String() string {
 func (c *MCPServerSTDIO) GetWorkingSet() string {
 	for i := range len(c.Args) {
 		arg := c.Args[i]
-		if arg == "--working-set" || arg == "-w" {
+		if arg == "--profile" || arg == "-p" {
 			if i+1 < len(c.Args) {
 				return c.Args[i+1]
 			}

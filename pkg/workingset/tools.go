@@ -18,9 +18,9 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 	workingSet := NewFromDb(dbWorkingSet)
 
@@ -29,7 +29,7 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 	for _, serverName := range enableAll {
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set", serverName)
+			return fmt.Errorf("server %s not found in profile", serverName)
 		}
 		if server.Tools != nil {
 			server.Tools = nil
@@ -42,7 +42,7 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 	for _, serverName := range disableAll {
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set", serverName)
+			return fmt.Errorf("server %s not found in profile", serverName)
 		}
 		if server.Tools == nil || len(server.Tools) > 0 {
 			server.Tools = []string{}
@@ -75,7 +75,7 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 		}
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set for argument %s", serverName, toolArg)
+			return fmt.Errorf("server %s not found in profile for argument %s", serverName, toolArg)
 		}
 		if !slices.Contains(server.Tools, toolName) {
 			server.Tools = append(server.Tools, toolName)
@@ -91,7 +91,7 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 		}
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set for argument %s", serverName, toolArg)
+			return fmt.Errorf("server %s not found in profile for argument %s", serverName, toolArg)
 		}
 		if idx := slices.Index(server.Tools, toolName); idx != -1 {
 			server.Tools = slices.Delete(server.Tools, idx, idx+1)
@@ -101,20 +101,20 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 
 	err = dao.UpdateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
-		return fmt.Errorf("failed to update working set: %w", err)
+		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
 	if enabledCount == 0 && disabledCount == 0 && enableAllCount == 0 && disableAllCount == 0 {
-		fmt.Printf("No changes made to working set %s\n", id)
+		fmt.Printf("No changes made to profile %s\n", id)
 	} else {
 		if enableAllCount > 0 {
-			fmt.Printf("Enabled all tools for %d server(s) in working set %s\n", enableAllCount, id)
+			fmt.Printf("Enabled all tools for %d server(s) in profile %s\n", enableAllCount, id)
 		}
 		if disableAllCount > 0 {
-			fmt.Printf("Disabled all tools for %d server(s) in working set %s\n", disableAllCount, id)
+			fmt.Printf("Disabled all tools for %d server(s) in profile %s\n", disableAllCount, id)
 		}
 		if enabledCount > 0 || disabledCount > 0 {
-			fmt.Printf("Updated working set %s: %d tool(s) enabled, %d tool(s) disabled\n", id, enabledCount, disabledCount)
+			fmt.Printf("Updated profile %s: %d tool(s) enabled, %d tool(s) disabled\n", id, enabledCount, disabledCount)
 		}
 	}
 

@@ -216,7 +216,7 @@ func TestGlobalCfgProcessor_SingleWorkingSet(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "config.json")
 
-	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--working-set", "test-set"]}}}`), 0o644))
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--profile", "test-set"]}}}`), 0o644))
 
 	cfg := newTestGlobalCfg()
 	setPathsForCurrentOS(&cfg, []string{configPath})

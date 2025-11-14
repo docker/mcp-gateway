@@ -125,5 +125,5 @@ func addQuietFlag(flags *pflag.FlagSet, p *bool) {
 }
 
 func addWorkingSetFlag(flags *pflag.FlagSet, p *string) {
-	flags.StringVarP(p, "working-set", "w", "", "Working set to use for client connection.")
+	flags.StringVarP(p, "profile", "p", "", "Profile to use for client connection.")
 }

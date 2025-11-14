@@ -293,7 +293,7 @@ func TestImportValidationFailure(t *testing.T) {
 	// Try to import
 	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid working set")
+	assert.Contains(t, err.Error(), "invalid profile")
 }
 
 func TestImportEmptyFile(t *testing.T) {

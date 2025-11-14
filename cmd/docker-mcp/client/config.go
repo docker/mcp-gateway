@@ -104,7 +104,7 @@ func newMCPGatewayServer() *MCPServerSTDIO {
 
 func newMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
 	server := newMCPGatewayServer()
-	server.Args = append(server.Args, "--working-set", workingSet)
+	server.Args = append(server.Args, "--profile", workingSet)
 	return server
 }
 

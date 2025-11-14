@@ -27,7 +27,7 @@ func TestNoWorkingSetsHumanReadable(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	assert.Contains(t, output, "No working sets found")
+	assert.Contains(t, output, "No profiles found")
 }
 
 func TestNoWorkingSetsJSON(t *testing.T) {
@@ -1340,7 +1340,7 @@ func TestSearchDatabaseError(t *testing.T) {
 
 	err := Servers(ctx, mockDAO, "test", "", OutputFormatJSON)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to search working sets")
+	assert.Contains(t, err.Error(), "failed to search profiles")
 	assert.Contains(t, err.Error(), "database connection failed")
 }
 
@@ -1367,7 +1367,7 @@ func TestPrintSearchResultsHumanEmpty(t *testing.T) {
 		printSearchResultsHuman([]SearchResult{})
 	})
 
-	assert.Contains(t, output, "No working sets found")
+	assert.Contains(t, output, "No profiles found")
 }
 
 func TestPrintSearchResultsHumanSingleServer(t *testing.T) {
