@@ -100,6 +100,26 @@ func TestCreateFromWorkingSetNormalizedRef(t *testing.T) {
 	assert.Equal(t, "test/catalog:latest", catalog.Ref)
 }
 
+func TestCreateFromWorkingSetRejectsDigestReference(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	ws := db.WorkingSet{
+		ID:      "test-ws",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{},
+	}
+
+	err := dao.CreateWorkingSet(ctx, ws)
+	require.NoError(t, err)
+
+	digestRef := "test/catalog@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+	err = Create(ctx, dao, digestRef, "test-ws", "", "My Catalog")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reference must be a valid OCI reference without a digest")
+}
+
 func TestCreateFromWorkingSetWithEmptyName(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

@@ -21,6 +21,9 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
 	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference must be a valid OCI reference without a digest")
+	}
 
 	var catalog Catalog
 	if workingSetID != "" {
