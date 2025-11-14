@@ -16,9 +16,9 @@ func TestShowNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, "nonexistent-digest", workingset.OutputFormatJSON)
+	err := Show(ctx, dao, "test/nonexistent:latest", workingset.OutputFormatJSON)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "catalog nonexistent-digest not found")
+	assert.Contains(t, err.Error(), "catalog test/nonexistent:latest not found")
 }
 
 func TestShowHumanReadable(t *testing.T) {
@@ -26,33 +26,38 @@ func TestShowHumanReadable(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
-		Name:   "test-catalog",
+		Ref:    "test/catalog:latest",
 		Source: "test-source",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:v1",
-				Tools: []string{"tool1", "tool2"},
-			},
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://example.com/api",
-				Tools:  []string{"tool3"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "test-catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:v1",
+					Tools: []string{"tool1", "tool2"},
+				},
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://example.com/api",
+					Tools:  []string{"tool3"},
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalog.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Digest(), workingset.OutputFormatHumanReadable)
+		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatHumanReadable)
 		require.NoError(t, err)
 	})
 
 	// Verify human-readable format
-	assert.Contains(t, output, "Digest: "+catalog.Digest())
-	assert.Contains(t, output, "Name: test-catalog")
+	assert.Contains(t, output, "Reference: "+catalog.Ref)
+	assert.Contains(t, output, "Title: test-catalog")
 	assert.Contains(t, output, "Source: test-source")
 	assert.Contains(t, output, "Servers:")
 	assert.Contains(t, output, "Type: image")
@@ -66,22 +71,27 @@ func TestShowJSON(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
-		Name:   "json-test",
+		Ref:    "test/json-test:latest",
 		Source: "json-source",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "docker/test:json",
-				Tools: []string{"read", "write"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "json-test",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:json",
+					Tools: []string{"read", "write"},
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalog.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Digest(), workingset.OutputFormatJSON)
+		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -90,8 +100,10 @@ func TestShowJSON(t *testing.T) {
 	err = json.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
 
-	assert.Equal(t, catalog.Digest(), result.Digest)
-	assert.Equal(t, "json-test", result.Name)
+	digest, err := catalog.Digest()
+	require.NoError(t, err)
+	assert.Equal(t, digest, result.Digest)
+	assert.Equal(t, "json-test", result.Title)
 	assert.Equal(t, "json-source", result.Source)
 	assert.Len(t, result.Servers, 1)
 	assert.Equal(t, workingset.ServerTypeImage, result.Servers[0].Type)
@@ -104,22 +116,27 @@ func TestShowYAML(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
-		Name:   "yaml-test",
+		Ref:    "test/yaml-test:latest",
 		Source: "yaml-source",
-		Servers: []Server{
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://yaml.example.com",
-				Tools:  []string{"deploy"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "yaml-test",
+			Servers: []Server{
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://yaml.example.com",
+					Tools:  []string{"deploy"},
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalog.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Digest(), workingset.OutputFormatYAML)
+		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatYAML)
 		require.NoError(t, err)
 	})
 
@@ -128,8 +145,10 @@ func TestShowYAML(t *testing.T) {
 	err = yaml.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
 
-	assert.Equal(t, catalog.Digest(), result.Digest)
-	assert.Equal(t, "yaml-test", result.Name)
+	digest, err := catalog.Digest()
+	require.NoError(t, err)
+	assert.Equal(t, digest, result.Digest)
+	assert.Equal(t, "yaml-test", result.Title)
 	assert.Equal(t, "yaml-source", result.Source)
 	assert.Len(t, result.Servers, 1)
 	assert.Equal(t, workingset.ServerTypeRegistry, result.Servers[0].Type)
@@ -148,22 +167,27 @@ func TestShowWithSnapshot(t *testing.T) {
 		},
 	}
 
-	catalog := Catalog{
-		Name: "snapshot-catalog",
-		Servers: []Server{
-			{
-				Type:     workingset.ServerTypeImage,
-				Image:    "docker/snapshot:v1",
-				Snapshot: snapshot,
+	catalogObj := Catalog{
+		Ref: "test/snapshot-catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "snapshot-catalog",
+			Servers: []Server{
+				{
+					Type:     workingset.ServerTypeImage,
+					Image:    "docker/snapshot:v1",
+					Snapshot: snapshot,
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Digest(), workingset.OutputFormatJSON)
+		err := Show(ctx, dao, catalogObj.Ref, workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 

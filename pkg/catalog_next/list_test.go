@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -51,21 +50,32 @@ func TestListHumanReadable(t *testing.T) {
 
 	// Create test catalogs
 	catalog1 := Catalog{
-		Name: "catalog-one",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "test:v1"},
+		Ref: "test/catalog1:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog-one",
+			Servers: []Server{
+				{Type: workingset.ServerTypeImage, Image: "test:v1"},
+			},
 		},
 	}
 	catalog2 := Catalog{
-		Name: "catalog-two",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "test:v2"},
+		Ref: "test/catalog2:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog-two",
+			Servers: []Server{
+				{Type: workingset.ServerTypeImage, Image: "test:v2"},
+			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog1.ToDb())
+	dbCat1, err := catalog1.ToDb()
 	require.NoError(t, err)
-	err = dao.CreateCatalog(ctx, catalog2.ToDb())
+	err = dao.UpsertCatalog(ctx, dbCat1)
+	require.NoError(t, err)
+
+	dbCat2, err := catalog2.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat2)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
@@ -74,43 +84,9 @@ func TestListHumanReadable(t *testing.T) {
 	})
 
 	// Verify table format
-	assert.Contains(t, output, "Digest\tName")
-	assert.Contains(t, output, "----\t----")
-	assert.Contains(t, output, catalog1.Digest())
+	assert.Contains(t, output, "Reference | Digest | Title")
 	assert.Contains(t, output, "catalog-one")
-	assert.Contains(t, output, catalog2.Digest())
 	assert.Contains(t, output, "catalog-two")
-}
-
-func TestListHumanReadableFormat(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	catalog := Catalog{
-		Name: "test-catalog",
-		Servers: []Server{
-			{Type: workingset.ServerTypeImage, Image: "test:latest"},
-		},
-	}
-
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
-	require.NoError(t, err)
-
-	output := captureStdout(t, func() {
-		err := List(ctx, dao, workingset.OutputFormatHumanReadable)
-		require.NoError(t, err)
-	})
-
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	assert.Len(t, lines, 3) // header, separator, data
-
-	// Verify header
-	assert.Equal(t, "Digest\tName", lines[0])
-	assert.Equal(t, "----\t----", lines[1])
-
-	// Verify data line contains digest and name
-	assert.Contains(t, lines[2], catalog.Digest())
-	assert.Contains(t, lines[2], "test-catalog")
 }
 
 func TestListJSON(t *testing.T) {
@@ -118,31 +94,42 @@ func TestListJSON(t *testing.T) {
 	ctx := t.Context()
 
 	catalog1 := Catalog{
-		Name:   "catalog-one",
+		Ref:    "test/catalog4:latest",
 		Source: "source-1",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "test:v1",
-				Tools: []string{"tool1"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog-one",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "test:v1",
+					Tools: []string{"tool1"},
+				},
 			},
 		},
 	}
 	catalog2 := Catalog{
-		Name:   "catalog-two",
+		Ref:    "test/catalog5:latest",
 		Source: "source-2",
-		Servers: []Server{
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://example.com",
-				Tools:  []string{"tool2", "tool3"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog-two",
+			Servers: []Server{
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://example.com",
+					Tools:  []string{"tool2", "tool3"},
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog1.ToDb())
+	dbCat1, err := catalog1.ToDb()
 	require.NoError(t, err)
-	err = dao.CreateCatalog(ctx, catalog2.ToDb())
+	err = dao.UpsertCatalog(ctx, dbCat1)
+	require.NoError(t, err)
+
+	dbCat2, err := catalog2.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat2)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
@@ -157,8 +144,7 @@ func TestListJSON(t *testing.T) {
 	assert.Len(t, catalogs, 2)
 
 	// Verify first catalog
-	assert.Equal(t, catalog1.Digest(), catalogs[0].Digest)
-	assert.Equal(t, "catalog-one", catalogs[0].Name)
+	assert.Equal(t, "catalog-one", catalogs[0].Title)
 	assert.Equal(t, "source-1", catalogs[0].Source)
 	assert.Len(t, catalogs[0].Servers, 1)
 	assert.Equal(t, workingset.ServerTypeImage, catalogs[0].Servers[0].Type)
@@ -166,8 +152,7 @@ func TestListJSON(t *testing.T) {
 	assert.Equal(t, []string{"tool1"}, catalogs[0].Servers[0].Tools)
 
 	// Verify second catalog
-	assert.Equal(t, catalog2.Digest(), catalogs[1].Digest)
-	assert.Equal(t, "catalog-two", catalogs[1].Name)
+	assert.Equal(t, "catalog-two", catalogs[1].Title)
 	assert.Equal(t, "source-2", catalogs[1].Source)
 	assert.Len(t, catalogs[1].Servers, 1)
 	assert.Equal(t, workingset.ServerTypeRegistry, catalogs[1].Servers[0].Type)
@@ -196,18 +181,23 @@ func TestListYAML(t *testing.T) {
 	ctx := t.Context()
 
 	catalog1 := Catalog{
-		Name:   "catalog-yaml",
+		Ref:    "test/catalog6:latest",
 		Source: "yaml-source",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "test:yaml",
-				Tools: []string{"tool1", "tool2"},
+		CatalogArtifact: CatalogArtifact{
+			Title: "catalog-yaml",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "test:yaml",
+					Tools: []string{"tool1", "tool2"},
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog1.ToDb())
+	dbCat, err := catalog1.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
@@ -222,8 +212,7 @@ func TestListYAML(t *testing.T) {
 	assert.Len(t, catalogs, 1)
 
 	// Verify catalog
-	assert.Equal(t, catalog1.Digest(), catalogs[0].Digest)
-	assert.Equal(t, "catalog-yaml", catalogs[0].Name)
+	assert.Equal(t, "catalog-yaml", catalogs[0].Title)
 	assert.Equal(t, "yaml-source", catalogs[0].Source)
 	assert.Len(t, catalogs[0].Servers, 1)
 	assert.Equal(t, workingset.ServerTypeImage, catalogs[0].Servers[0].Type)
@@ -258,18 +247,23 @@ func TestListWithSnapshot(t *testing.T) {
 		},
 	}
 
-	catalog := Catalog{
-		Name: "snapshot-catalog",
-		Servers: []Server{
-			{
-				Type:     workingset.ServerTypeImage,
-				Image:    "test:snapshot",
-				Snapshot: snapshot,
+	catalogObj := Catalog{
+		Ref: "test/catalog7:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "snapshot-catalog",
+			Servers: []Server{
+				{
+					Type:     workingset.ServerTypeImage,
+					Image:    "test:snapshot",
+					Snapshot: snapshot,
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
@@ -292,27 +286,32 @@ func TestListWithMultipleServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	catalog := Catalog{
-		Name: "multi-server-catalog",
-		Servers: []Server{
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "test:v1",
-				Tools: []string{"tool1"},
-			},
-			{
-				Type:   workingset.ServerTypeRegistry,
-				Source: "https://example.com",
-				Tools:  []string{"tool2"},
-			},
-			{
-				Type:  workingset.ServerTypeImage,
-				Image: "test:v2",
+	catalogObj := Catalog{
+		Ref: "test/catalog8:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "multi-server-catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "test:v1",
+					Tools: []string{"tool1"},
+				},
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://example.com",
+					Tools:  []string{"tool2"},
+				},
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "test:v2",
+				},
 			},
 		},
 	}
 
-	err := dao.CreateCatalog(ctx, catalog.ToDb())
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {

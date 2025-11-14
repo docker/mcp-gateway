@@ -213,7 +213,7 @@ func TestAddServersFromCatalog(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add servers from catalog
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Digest, []string{"catalog-server-1", "catalog-server-2"})
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Ref, []string{"catalog-server-1", "catalog-server-2"})
 	require.NoError(t, err)
 
 	// Verify servers were added
@@ -262,7 +262,7 @@ func TestAddServersMixedDirectAndCatalog(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add both direct servers and catalog servers
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"docker://myimage:latest"}, catalog.Digest, []string{"catalog-server-1"})
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"docker://myimage:latest"}, catalog.Ref, []string{"catalog-server-1"})
 	require.NoError(t, err)
 
 	// Verify both types of servers were added
@@ -303,7 +303,7 @@ func TestAddServersFromCatalogMissingServer(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to add a server that doesn't exist in the catalog
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Digest, []string{"catalog-server-1", "nonexistent-server"})
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Ref, []string{"catalog-server-1", "nonexistent-server"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "servers were not found in catalog")
 	assert.Contains(t, err.Error(), "nonexistent-server")
@@ -325,7 +325,7 @@ func TestAddServersFromCatalogInvalidDigest(t *testing.T) {
 	// Try to add servers from a non-existent catalog
 	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, "invalid-digest", []string{"some-server"})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "catalog invalid-digest not found")
+	assert.Contains(t, err.Error(), "catalog invalid-digest:latest not found")
 }
 
 func TestAddServersFromCatalogServersWithoutCatalog(t *testing.T) {
@@ -344,7 +344,7 @@ func TestAddServersFromCatalogServersWithoutCatalog(t *testing.T) {
 	// Try to add servers from a non-existent catalog
 	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, "", []string{"some-server"})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "catalog digest must be specified when adding catalog servers")
+	assert.Contains(t, err.Error(), "catalog must be specified when adding catalog servers")
 }
 
 func TestAddServersFromCatalogWithoutDefaultSecret(t *testing.T) {
@@ -372,7 +372,7 @@ func TestAddServersFromCatalogWithoutDefaultSecret(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add server from catalog
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Digest, []string{"catalog-server-1"})
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, catalog.Ref, []string{"catalog-server-1"})
 	require.NoError(t, err)
 
 	// Verify server was added without default secret
@@ -405,8 +405,8 @@ func TestAddServersFromCatalogEmptyCatalogServers(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Try to add with catalog digest but empty server list
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, "test-digest", []string{})
+	// Try to add with catalog ref but empty server list
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{}, "docker.io/test/catalog:latest", []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), oneServerError)
 }
@@ -441,13 +441,14 @@ func createTestCatalog(t *testing.T, dao db.DAO, servers []testCatalogServer) db
 	}
 
 	catalog := db.Catalog{
+		Ref:     "test/catalog:latest",
 		Digest:  "test-digest",
-		Name:    "Test Catalog",
+		Title:   "Test Catalog",
 		Source:  "https://example.com/catalog",
 		Servers: catalogServers,
 	}
 
-	err := dao.CreateCatalog(t.Context(), catalog)
+	err := dao.UpsertCatalog(t.Context(), catalog)
 	require.NoError(t, err)
 
 	return catalog
