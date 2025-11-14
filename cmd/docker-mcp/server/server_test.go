@@ -72,14 +72,14 @@ func TestList(t *testing.T) {
 func TestEnableNotFound(t *testing.T) {
 	ctx, _, docker, dockerCli := setup(t, withEmptyRegistryYaml(), withEmptyCatalog(), withEmptyConfig())
 
-	err := Enable(ctx, docker, dockerCli, []string{"duckduckgo"}, false, true)
+	err := Enable(ctx, docker, dockerCli, []string{"duckduckgo"}, false)
 	require.ErrorContains(t, err, "server duckduckgo not found in catalog")
 }
 
 func TestEnable(t *testing.T) {
 	ctx, _, docker, dockerCli := setup(t, withEmptyRegistryYaml(), withCatalog("registry:\n  duckduckgo:\n    description: \"DuckDuckGo server\""), withEmptyConfig())
 
-	err := Enable(ctx, docker, dockerCli, []string{"duckduckgo"}, false, true)
+	err := Enable(ctx, docker, dockerCli, []string{"duckduckgo"}, false)
 	require.NoError(t, err)
 
 	entries, err := List(ctx, docker, false)
@@ -115,7 +115,7 @@ func TestDisableUnknown(t *testing.T) {
 func TestRemoveOutdatedServerOnEnable(t *testing.T) {
 	ctx, _, docker, dockerCli := setup(t, withRegistryYaml("registry:\n  outdated:\n    ref: \"\""), withCatalog("registry:\n  git:\n    description: \"Git server\""), withEmptyConfig())
 
-	err := Enable(ctx, docker, dockerCli, []string{"git"}, false, true)
+	err := Enable(ctx, docker, dockerCli, []string{"git"}, false)
 	require.NoError(t, err)
 
 	entries, err := List(ctx, docker, false)

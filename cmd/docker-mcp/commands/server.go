@@ -101,19 +101,16 @@ func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	lsCommand.Flags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
 	cmd.AddCommand(lsCommand)
 
-	enableCmd := &cobra.Command{
+	cmd.AddCommand(&cobra.Command{
 		Use:     "enable",
 		Aliases: []string{"add"},
 		Short:   "Enable a server or multiple servers",
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			skipConfig, _ := cmd.Flags().GetBool("skip-config")
-			return server.Enable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled, skipConfig)
+			return server.Enable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
 		},
-	}
-	enableCmd.Flags().Bool("skip-config", false, "Skip interactive configuration prompts")
-	cmd.AddCommand(enableCmd)
+	})
 
 	cmd.AddCommand(&cobra.Command{
 		Use:     "disable",

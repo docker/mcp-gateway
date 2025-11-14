@@ -7,12 +7,6 @@ Enable a server or multiple servers
 
 `docker mcp server enable`, `docker mcp server add`
 
-### Options
-
-| Name            | Type   | Default | Description                            |
-|:----------------|:-------|:--------|:---------------------------------------|
-| `--skip-config` | `bool` |         | Skip interactive configuration prompts |
-
 
 <!---MARKER_GEN_END-->
 
