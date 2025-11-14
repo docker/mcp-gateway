@@ -54,7 +54,7 @@ func TestCreateFromWorkingSet(t *testing.T) {
 
 	catalog := NewFromDb(&catalogs[0])
 	assert.Equal(t, "My Catalog", catalog.Title)
-	assert.Equal(t, "working-set:test-ws", catalog.Source)
+	assert.Equal(t, "profile:test-ws", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
 	// Verify servers were copied correctly
@@ -141,7 +141,7 @@ func TestCreateFromWorkingSetNotFound(t *testing.T) {
 
 	err := Create(ctx, dao, "test/catalog3:latest", "nonexistent-ws", "", "Test")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "working set nonexistent-ws not found")
+	assert.Contains(t, err.Error(), "profile nonexistent-ws not found")
 }
 
 func TestCreateFromWorkingSetDuplicate(t *testing.T) {
@@ -298,7 +298,7 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 	catalog := NewFromDb(retrieved)
 
 	assert.Equal(t, "Detailed Catalog", catalog.Title)
-	assert.Equal(t, "working-set:detailed-ws", catalog.Source)
+	assert.Equal(t, "profile:detailed-ws", catalog.Source)
 	assert.Len(t, catalog.Servers, 2)
 
 	// Check registry server
