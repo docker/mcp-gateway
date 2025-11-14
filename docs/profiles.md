@@ -133,6 +133,40 @@ docker mcp profile server rm dev-tools --name github
 - Server names are determined by the server's snapshot (not the image name or source URL)
 - Use `docker mcp profile show <profile-id>` to see available server names in a profile
 
+### Listing Servers Across Profiles
+
+View all servers grouped by profile, with filtering capabilities:
+
+```bash
+# List all servers across all profiles
+docker mcp profile servers
+
+# Filter servers by name (case-insensitive substring matching)
+docker mcp profile servers --filter github
+
+# Show servers from a specific profile only
+docker mcp profile servers --profile dev-tools
+
+# Combine filter and profile
+docker mcp profile servers --profile dev-tools --filter slack
+
+# Output in JSON format
+docker mcp profile servers --format json
+
+# Output in YAML format
+docker mcp profile servers --format yaml
+```
+
+**Output options:**
+- `--filter`: Search for servers matching a query (case-insensitive substring matching on image names or source URLs)
+- `--profile` or `-p`: Show servers only from a specific profile
+- `--format`: Output format - `human` (default), `json`, or `yaml`
+
+**Notes:**
+- This command provides a global view of all servers across your profiles
+- Useful for finding which profiles contain specific servers
+- The filter applies to both image names and source URLs
+
 ### Listing Profiles
 
 View all profiles in your system:
@@ -245,6 +279,49 @@ docker mcp profile config my-profile --get-all --format yaml
 - Configuration changes are persisted immediately to the profile
 - You cannot both `--set` and `--del` the same key in a single command
 - **Note**: Config is for non-sensitive settings. Use secrets management for API keys, tokens, and passwords.
+
+### Managing Tools for Profile Servers
+
+Control which tools are enabled or disabled for servers in a profile:
+
+```bash
+# Enable specific tools for a server
+docker mcp profile tools my-profile \
+  --enable github.create_issue \
+  --enable github.list_repos
+
+# Disable specific tools for a server
+docker mcp profile tools my-profile \
+  --disable github.create_issue \
+  --disable github.search_code
+
+# Enable and disable in one command
+docker mcp profile tools my-profile \
+  --enable github.create_issue \
+  --disable github.search_code
+
+# Enable all tools for a server
+docker mcp profile tools my-profile --enable-all github
+
+# Disable all tools for a server
+docker mcp profile tools my-profile --disable-all github
+
+# View all enabled tools in the profile
+docker mcp profile show my-profile
+```
+
+**Tool management format:**
+- `--enable`: Format is `<server-name>.<tool-name>` (can be specified multiple times)
+- `--disable`: Format is `<server-name>.<tool-name>` (can be specified multiple times)
+- `--enable-all`: Format is `<server-name>` to enable all tools for a server (can be specified multiple times)
+- `--disable-all`: Format is `<server-name>` to disable all tools for a server (can be specified multiple times)
+
+**Important notes:**
+- Tool names use dot notation: `<serverName>.<toolName>`
+- The server name must match the name from the server's snapshot
+- Use `docker mcp profile show <profile-id>` to see which tools are currently enabled
+- By default, all tools are enabled unless explicitly disabled
+- Changes take effect immediately and persist in the profile
 
 ### Managing Secrets for Profile Servers
 
@@ -450,7 +527,13 @@ docker mcp profile server add dev \
 # 4. Remove servers you don't need
 docker mcp profile server remove dev --name filesystem
 
-# 5. Once satisfied, export for sharing
+# 5. Disable dangerous tools in filesystem server for safety
+docker mcp profile tools dev --disable filesystem.delete_file
+
+# 6. View all servers across profiles to check your setup
+docker mcp profile servers
+
+# 7. Once satisfied, export for sharing
 docker mcp profile export dev ./dev-profile.yaml
 ```
 
@@ -554,6 +637,35 @@ docker mcp profile config my-workflow --set github.timeout=30
 docker mcp gateway run --profile my-workflow
 ```
 
+### Fine-Tuning Tool Access
+
+```bash
+# Create a production profile with restricted tool access
+docker mcp profile create --name production \
+  --server docker://mcp/github:latest \
+  --server docker://mcp/slack:latest
+
+# Disable all tools first, then enable only what's needed
+docker mcp profile tools production --disable-all github --disable-all slack
+
+# Enable only safe, read-only tools for GitHub
+docker mcp profile tools production \
+  --enable github.list_repos \
+  --enable github.get_file \
+  --enable github.search_code
+
+# Enable only message sending for Slack (no channel management)
+docker mcp profile tools production \
+  --enable slack.send_message \
+  --enable slack.list_channels
+
+# Verify the tool configuration
+docker mcp profile show production --format yaml
+
+# Use the restricted profile
+docker mcp gateway run --profile production
+```
+
 ## Best Practices
 
 ### Naming Conventions
@@ -583,6 +695,9 @@ docker mcp gateway run --profile my-workflow
 - Secrets are stored in Docker Desktop's secure secret store
 - Use private OCI registries for proprietary server configurations
 - Review server references before importing from external sources
+- Use `docker mcp profile tools` to disable dangerous or unnecessary tools in production
+- Apply the principle of least privilege: enable only the tools actually needed
+- Create separate profiles for different security contexts (dev vs. production)
 
 ## Troubleshooting
 
@@ -708,6 +823,43 @@ Error: server 'github' not found in profile
 - Use `docker mcp profile show <profile-id> --format yaml` to see current servers in the profile
 - Ensure you're using the correct server name in the snapshot (not the image name or source URL)
 - Server names are case-sensitive
+
+### Invalid Tool Name Format
+
+```bash
+Error: invalid tool specification: github
+```
+
+**Solution**: Tool names must use dot notation with both server and tool name:
+```bash
+# Wrong
+docker mcp profile tools my-profile --enable github
+
+# Correct
+docker mcp profile tools my-profile --enable github.create_issue
+```
+
+### Server Not Found When Managing Tools
+
+```bash
+Error: server 'github' not found in profile
+```
+
+**Solution**:
+- Ensure the server with that snapshot name exists in the profile: `docker mcp profile show <profile-id> --format yaml`
+- Server names are case-sensitive and must match the snapshot name
+- Add the server first if it doesn't exist: `docker mcp profile server add <profile-id> --server docker://my-org/my-server`
+
+### Tool Not Found in Server
+
+```bash
+Error: tool 'invalid_tool' not found in server 'github'
+```
+
+**Solution**:
+- Use `docker mcp profile show <profile-id> --format yaml` to see available tools for each server
+- Tool names are case-sensitive and must match exactly
+- Check the server's documentation for available tool names
 
 ## Limitations and Future Enhancements
 
