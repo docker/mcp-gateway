@@ -615,20 +615,28 @@ docker mcp profile pull docker.io/myorg/my-tools:1.1
 ### Building Profiles from Catalogs
 
 ```bash
-# 1. Pull a catalog from OCI registry
+# 1. Import Docker's official catalog (or pull from OCI registry)
+docker mcp catalog-next create docker-mcp-catalog \
+  --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+
+# Or pull a team catalog from OCI registry
 docker mcp catalog-next pull myorg/team-catalog:latest
 
 # 2. Create an initial profile
 docker mcp profile create --name my-workflow
 
-# 3. Add specific servers from the catalog
+# 3. Add specific servers from Docker's official catalog
+docker mcp profile server add my-workflow \
+  --catalog docker-mcp-catalog \
+  --catalog-server github \
+  --catalog-server slack
+
+# 4. Optionally add servers from another catalog or direct references
 docker mcp profile server add my-workflow \
   --catalog myorg/team-catalog \
-  --catalog-server github \
-  --catalog-server slack \
-  --catalog-server postgres
+  --catalog-server custom-tool
 
-# 4. Optionally add servers not in the catalog
+# Or add a direct OCI reference
 docker mcp profile server add my-workflow \
   --server docker://mcp/custom-tool:latest
 
@@ -912,6 +920,13 @@ docker mcp catalog-next pull myorg/my-catalog:latest
 - Use catalogs to share a stable server collection across teams
 - Catalogs can be pushed to/pulled from OCI registries like Docker images
 - Output supports `--format` flag: `human` (default), `json`, or `yaml`
+
+**💡 Tip:** You can import Docker's official MCP catalog as a starting point:
+```bash
+docker mcp catalog-next create docker-mcp-catalog \
+  --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+```
+This gives you access to Docker's curated collection of MCP servers, which you can then use to build your profiles with the `--catalog` and `--catalog-server` flags.
 
 ## Related Documentation
 
