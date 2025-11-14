@@ -13,6 +13,8 @@ Profiles are decoupled from catalogs, meaning the servers in a profile can come 
 - **MCP Registry references**: HTTP(S) URLs pointing to servers in the Model Context Protocol registry
 - **OCI image references**: Docker images with the `docker://` prefix
 
+⚠️ **Important Caveat:** MCP Registry references are not fully implemented and are not expected to work yet.
+
 ## Enabling Profiles
 
 Profiles are a feature that must be enabled first:
@@ -63,6 +65,107 @@ docker mcp profile create --name "My Servers" --id my-servers \
 - Server references must be either:
   - `docker://` prefix for OCI images
   - `http://` or `https://` URLs for MCP Registry references
+
+### Adding Servers to a Profile
+
+After creating a profile, you can add more servers to it:
+
+```bash
+# Add servers with OCI references
+docker mcp profile server add dev-tools \
+  --server docker://mcp/github:latest \
+  --server docker://mcp/slack:latest
+
+# Add servers with MCP Registry references
+docker mcp profile server add dev-tools \
+  --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+# Mix MCP Registry references and OCI references
+docker mcp profile server add dev-tools \
+  --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 \
+  --server docker://mcp/github:latest
+
+# Add servers from a catalog
+docker mcp profile server add dev-tools \
+  --catalog my-catalog \
+  --catalog-server github \
+  --catalog-server slack
+
+# Mix catalog servers with direct server references
+docker mcp profile server add dev-tools \
+  --catalog my-catalog \
+  --catalog-server github \
+  --server docker://mcp/slack:latest
+```
+
+**Server References:**
+- Use `--server` flag for direct server references (can be specified multiple times)
+- Server references must start with:
+  - `docker://` for OCI images
+  - `http://` or `https://` for MCP Registry URLs
+- Use `--catalog` with `--catalog-server` to add servers from a catalog
+- Catalog servers are referenced by their name within the catalog
+
+**Notes:**
+- You can add multiple servers in a single command
+- You can mix direct server references with catalog-based references
+- If a server already exists in the profile, the operation will skip it or update it
+
+### Removing Servers from a Profile
+
+Remove servers from a profile by their server name:
+
+```bash
+# Remove servers by name
+docker mcp profile server remove dev-tools \
+  --name github \
+  --name slack
+
+# Remove a single server
+docker mcp profile server remove dev-tools --name github
+
+# Using alias
+docker mcp profile server rm dev-tools --name github
+```
+
+**Server Names:**
+- Use `--name` flag to specify server names to remove (can be specified multiple times)
+- Server names are determined by the server's snapshot (not the image name or source URL)
+- Use `docker mcp profile show <profile-id>` to see available server names in a profile
+
+### Listing Servers Across Profiles
+
+View all servers grouped by profile, with filtering capabilities:
+
+```bash
+# List all servers across all profiles
+docker mcp profile servers
+
+# Filter servers by name (case-insensitive substring matching)
+docker mcp profile servers --filter github
+
+# Show servers from a specific profile only
+docker mcp profile servers --profile dev-tools
+
+# Combine filter and profile
+docker mcp profile servers --profile dev-tools --filter slack
+
+# Output in JSON format
+docker mcp profile servers --format json
+
+# Output in YAML format
+docker mcp profile servers --format yaml
+```
+
+**Output options:**
+- `--filter`: Search for servers matching a query (case-insensitive substring matching on image names or source URLs)
+- `--profile` or `-p`: Show servers only from a specific profile
+- `--format`: Output format - `human` (default), `json`, or `yaml`
+
+**Notes:**
+- This command provides a global view of all servers across your profiles
+- Useful for finding which profiles contain specific servers
+- The filter applies to both image names and source URLs
 
 ### Listing Profiles
 
@@ -176,6 +279,49 @@ docker mcp profile config my-profile --get-all --format yaml
 - Configuration changes are persisted immediately to the profile
 - You cannot both `--set` and `--del` the same key in a single command
 - **Note**: Config is for non-sensitive settings. Use secrets management for API keys, tokens, and passwords.
+
+### Managing Tools for Profile Servers
+
+Control which tools are enabled or disabled for servers in a profile:
+
+```bash
+# Enable specific tools for a server
+docker mcp profile tools my-profile \
+  --enable github.create_issue \
+  --enable github.list_repos
+
+# Disable specific tools for a server
+docker mcp profile tools my-profile \
+  --disable github.create_issue \
+  --disable github.search_code
+
+# Enable and disable in one command
+docker mcp profile tools my-profile \
+  --enable github.create_issue \
+  --disable github.search_code
+
+# Enable all tools for a server
+docker mcp profile tools my-profile --enable-all github
+
+# Disable all tools for a server
+docker mcp profile tools my-profile --disable-all github
+
+# View all enabled tools in the profile
+docker mcp profile show my-profile
+```
+
+**Tool management format:**
+- `--enable`: Format is `<server-name>.<tool-name>` (can be specified multiple times)
+- `--disable`: Format is `<server-name>.<tool-name>` (can be specified multiple times)
+- `--enable-all`: Format is `<server-name>` to enable all tools for a server (can be specified multiple times)
+- `--disable-all`: Format is `<server-name>` to disable all tools for a server (can be specified multiple times)
+
+**Important notes:**
+- Tool names use dot notation: `<serverName>.<toolName>`
+- The server name must match the name from the server's snapshot
+- Use `docker mcp profile show <profile-id>` to see which tools are currently enabled
+- By default, all tools are enabled unless explicitly disabled
+- Changes take effect immediately and persist in the profile
 
 ### Managing Secrets for Profile Servers
 
@@ -374,7 +520,20 @@ docker mcp profile create --name dev \
 # 2. Test it with the gateway
 docker mcp gateway run --profile dev
 
-# 3. Once satisfied, export for sharing
+# 3. Add more servers as needed
+docker mcp profile server add dev \
+  --server docker://mcp/postgres:latest
+
+# 4. Remove servers you don't need
+docker mcp profile server remove dev --name filesystem
+
+# 5. Disable dangerous tools in filesystem server for safety
+docker mcp profile tools dev --disable filesystem.delete_file
+
+# 6. View all servers across profiles to check your setup
+docker mcp profile servers
+
+# 7. Once satisfied, export for sharing
 docker mcp profile export dev ./dev-profile.yaml
 ```
 
@@ -453,6 +612,68 @@ docker mcp profile pull docker.io/myorg/my-tools:1.0
 docker mcp profile pull docker.io/myorg/my-tools:1.1
 ```
 
+### Building Profiles from Catalogs
+
+```bash
+# 1. Import Docker's official catalog (or pull from OCI registry)
+docker mcp catalog-next create docker-mcp-catalog \
+  --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+
+# Or pull a team catalog from OCI registry
+docker mcp catalog-next pull myorg/team-catalog:latest
+
+# 2. Create an initial profile
+docker mcp profile create --name my-workflow
+
+# 3. Add specific servers from Docker's official catalog
+docker mcp profile server add my-workflow \
+  --catalog docker-mcp-catalog \
+  --catalog-server github \
+  --catalog-server slack
+
+# 4. Optionally add servers from another catalog or direct references
+docker mcp profile server add my-workflow \
+  --catalog myorg/team-catalog \
+  --catalog-server custom-tool
+
+# Or add a direct OCI reference
+docker mcp profile server add my-workflow \
+  --server docker://mcp/custom-tool:latest
+
+# 5. Configure and use
+docker mcp profile config my-workflow --set github.timeout=30
+docker mcp gateway run --profile my-workflow
+```
+
+### Fine-Tuning Tool Access
+
+```bash
+# Create a production profile with restricted tool access
+docker mcp profile create --name production \
+  --server docker://mcp/github:latest \
+  --server docker://mcp/slack:latest
+
+# Disable all tools first, then enable only what's needed
+docker mcp profile tools production --disable-all github --disable-all slack
+
+# Enable only safe, read-only tools for GitHub
+docker mcp profile tools production \
+  --enable github.list_repos \
+  --enable github.get_file \
+  --enable github.search_code
+
+# Enable only message sending for Slack (no channel management)
+docker mcp profile tools production \
+  --enable slack.send_message \
+  --enable slack.list_channels
+
+# Verify the tool configuration
+docker mcp profile show production --format yaml
+
+# Use the restricted profile
+docker mcp gateway run --profile production
+```
+
 ## Best Practices
 
 ### Naming Conventions
@@ -482,6 +703,9 @@ docker mcp profile pull docker.io/myorg/my-tools:1.1
 - Secrets are stored in Docker Desktop's secure secret store
 - Use private OCI registries for proprietary server configurations
 - Review server references before importing from external sources
+- Use `docker mcp profile tools` to disable dangerous or unnecessary tools in production
+- Apply the principle of least privilege: enable only the tools actually needed
+- Create separate profiles for different security contexts (dev vs. production)
 
 ## Troubleshooting
 
@@ -574,6 +798,77 @@ docker mcp profile config my-set --del github.timeout
 docker mcp profile config my-set --set github.timeout=60
 ```
 
+### Missing Catalog Reference
+
+```bash
+Error: --catalog-server requires --catalog to be specified
+```
+
+**Solution**: When using `--catalog-server`, you must also provide `--catalog`:
+```bash
+docker mcp profile server add my-profile \
+  --catalog my-catalog \
+  --catalog-server github
+```
+
+### Server Not Found in Catalog
+
+```bash
+Error: server 'nonexistent' not found in catalog
+```
+
+**Solution**: 
+- Use `docker mcp catalog-next show <catalog-name>` to see available servers in the catalog
+- Check that the server name is spelled correctly (names are case-sensitive)
+
+### Cannot Remove Server
+
+```bash
+Error: server 'github' not found in profile
+```
+
+**Solution**:
+- Use `docker mcp profile show <profile-id> --format yaml` to see current servers in the profile
+- Ensure you're using the correct server name in the snapshot (not the image name or source URL)
+- Server names are case-sensitive
+
+### Invalid Tool Name Format
+
+```bash
+Error: invalid tool specification: github
+```
+
+**Solution**: Tool names must use dot notation with both server and tool name:
+```bash
+# Wrong
+docker mcp profile tools my-profile --enable github
+
+# Correct
+docker mcp profile tools my-profile --enable github.create_issue
+```
+
+### Server Not Found When Managing Tools
+
+```bash
+Error: server 'github' not found in profile
+```
+
+**Solution**:
+- Ensure the server with that snapshot name exists in the profile: `docker mcp profile show <profile-id> --format yaml`
+- Server names are case-sensitive and must match the snapshot name
+- Add the server first if it doesn't exist: `docker mcp profile server add <profile-id> --server docker://my-org/my-server`
+
+### Tool Not Found in Server
+
+```bash
+Error: tool 'invalid_tool' not found in server 'github'
+```
+
+**Solution**:
+- Use `docker mcp profile show <profile-id> --format yaml` to see available tools for each server
+- Tool names are case-sensitive and must match exactly
+- Check the server's documentation for available tool names
+
 ## Limitations and Future Enhancements
 
 ### Current Limitations
@@ -625,6 +920,13 @@ docker mcp catalog-next pull myorg/my-catalog:latest
 - Use catalogs to share a stable server collection across teams
 - Catalogs can be pushed to/pulled from OCI registries like Docker images
 - Output supports `--format` flag: `human` (default), `json`, or `yaml`
+
+**💡 Tip:** You can import Docker's official MCP catalog as a starting point:
+```bash
+docker mcp catalog-next create docker-mcp-catalog \
+  --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+```
+This gives you access to Docker's curated collection of MCP servers, which you can then use to build your profiles with the `--catalog` and `--catalog-server` flags.
 
 ## Related Documentation
 
