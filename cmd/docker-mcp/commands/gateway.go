@@ -125,10 +125,10 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 
 			if options.WorkingSet != "" {
 				if len(options.ServerNames) > 0 {
-					return fmt.Errorf("cannot use --working-set with --servers flag")
+					return fmt.Errorf("cannot use --profile with --servers flag")
 				}
 				if enableAllServers {
-					return fmt.Errorf("cannot use --working-set with --enable-all-servers flag")
+					return fmt.Errorf("cannot use --profile with --enable-all-servers flag")
 				}
 			}
 
@@ -170,7 +170,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
 	if isWorkingSetsFeatureEnabled(dockerCli) {
-		runCmd.Flags().StringVar(&options.WorkingSet, "working-set", "", "Working set ID to use (mutually exclusive with --servers and --enable-all-servers)")
+		runCmd.Flags().StringVar(&options.WorkingSet, "profile", "", "Profile ID to use (mutually exclusive with --servers and --enable-all-servers)")
 	}
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
@@ -346,14 +346,14 @@ func isToolNamePrefixFeatureEnabled(dockerCli command.Cli) bool {
 	return value == "enabled"
 }
 
-// isWorkingSetsFeatureEnabled checks if the working-sets feature is enabled
+// isWorkingSetsFeatureEnabled checks if the profiles feature is enabled
 func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
 	configFile := dockerCli.ConfigFile()
 	if configFile == nil || configFile.Features == nil {
 		return false
 	}
 
-	value, exists := configFile.Features["working-sets"]
+	value, exists := configFile.Features["profiles"]
 	if !exists {
 		return false
 	}

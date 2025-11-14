@@ -34,7 +34,7 @@ type Server struct {
 	Type    string         `json:"type"`
 	Config  map[string]any `json:"config,omitempty"`
 	Secrets string         `json:"secrets,omitempty"`
-	Tools   []string       `json:"tools,omitempty"`
+	Tools   []string       `json:"tools"`
 	Source  string         `json:"source,omitempty"`
 	Image   string         `json:"image,omitempty"`
 

@@ -26,9 +26,9 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := NewFromDb(dbWorkingSet)
@@ -81,15 +81,15 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 	}
 
 	if err := workingSet.Validate(); err != nil {
-		return fmt.Errorf("invalid working set: %w", err)
+		return fmt.Errorf("invalid profile: %w", err)
 	}
 
 	err = dao.UpdateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
-		return fmt.Errorf("failed to update working set: %w", err)
+		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	fmt.Printf("Added %d server(s) to working set %s\n", len(newServers)+len(catalogServers), id)
+	fmt.Printf("Added %d server(s) to profile %s\n", len(newServers)+len(catalogServers), id)
 
 	return nil
 }
@@ -102,9 +102,9 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := NewFromDb(dbWorkingSet)
@@ -131,15 +131,15 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	workingSet.Servers = filtered
 
 	if err := workingSet.Validate(); err != nil {
-		return fmt.Errorf("invalid working set: %w", err)
+		return fmt.Errorf("invalid profile: %w", err)
 	}
 
 	err = dao.UpdateWorkingSet(ctx, workingSet.ToDb())
 	if err != nil {
-		return fmt.Errorf("failed to update working set: %w", err)
+		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	fmt.Printf("Removed %d server(s) from working set %s\n", removedCount, id)
+	fmt.Printf("Removed %d server(s) from profile %s\n", removedCount, id)
 
 	return nil
 }

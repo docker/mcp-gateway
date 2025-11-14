@@ -192,6 +192,26 @@ The MCP CLI uses several configuration files:
 Configuration files are typically stored in `~/.docker/mcp/`. This is in this directory that Docker Desktop's
 MCP Toolkit with store its configuration.
 
+### Environment Variables
+
+The MCP CLI respects the following environment variables for client configuration:
+
+- **`CLAUDE_CONFIG_DIR`**: Override the default Claude Code configuration directory (`~/.claude`). When set, Claude Code will use `$CLAUDE_CONFIG_DIR/.claude.json` instead of `~/.claude.json` for its MCP server configuration. This is useful for:
+  - Maintaining separate Claude Code installations for work and personal use
+  - Testing configuration changes in isolation
+  - Managing multiple Claude Code profiles
+
+Example usage:
+```bash
+# Set custom Claude Code configuration directory
+export CLAUDE_CONFIG_DIR=/path/to/custom/config
+
+# Connect MCP Gateway to Claude Code
+docker mcp client connect claude-code --global
+
+# Claude Code will now use /path/to/custom/config/.claude.json
+```
+
 ## Architecture
 
 The Docker MCP CLI implements a gateway pattern:

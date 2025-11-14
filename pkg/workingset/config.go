@@ -28,9 +28,9 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := NewFromDb(dbWorkingSet)
@@ -56,7 +56,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 
 			server := workingSet.FindServer(serverName)
 			if server == nil {
-				return fmt.Errorf("server %s not found in working set for argument %s", serverName, configArg)
+				return fmt.Errorf("server %s not found in profile for argument %s", serverName, configArg)
 			}
 
 			if server.Config != nil && server.Config[configName] != nil {
@@ -78,7 +78,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 
 		server := workingSet.FindServer(serverName)
 		if server == nil {
-			return fmt.Errorf("server %s not found in working set for argument %s", serverName, configArg)
+			return fmt.Errorf("server %s not found in profile for argument %s", serverName, configArg)
 		}
 
 		if server.Config == nil {
@@ -109,7 +109,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 	if len(setConfigArgs) > 0 || len(delConfigArgs) > 0 {
 		err := dao.UpdateWorkingSet(ctx, workingSet.ToDb())
 		if err != nil {
-			return fmt.Errorf("failed to update working set: %w", err)
+			return fmt.Errorf("failed to update profile: %w", err)
 		}
 	}
 

@@ -16,7 +16,7 @@ func TestLocalCfgProcessor_SingleWorkingSet(t *testing.T) {
 	configPath := filepath.Join(projectRoot, projectFile)
 
 	require.NoError(t, os.MkdirAll(filepath.Dir(configPath), 0o755))
-	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--working-set", "project-ws"]}}}`), 0o644))
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--profile", "project-ws"]}}}`), 0o644))
 
 	cfg := localCfg{
 		DisplayName: "Test Client",

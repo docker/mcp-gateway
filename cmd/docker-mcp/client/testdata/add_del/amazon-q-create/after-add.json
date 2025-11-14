@@ -1,0 +1,1 @@
+{"mcpServers":{"my-server":{"command":"docker","args":["mcp","gateway","run"]}}}

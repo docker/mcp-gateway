@@ -227,7 +227,7 @@ func TestCreateWithEmptyName(t *testing.T) {
 		"docker://myimage:latest",
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid working set")
+	assert.Contains(t, err.Error(), "invalid profile")
 }
 
 func TestCreateWithEmptyServers(t *testing.T) {

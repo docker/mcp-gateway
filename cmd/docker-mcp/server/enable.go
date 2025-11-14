@@ -12,7 +12,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/oauth"
+	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
 
 func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
@@ -60,13 +60,19 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				Ref: "",
 			}
 
-			// Three-condition check: DCR flag enabled AND type="remote" AND oauth present
+			// DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
-				if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-					fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
-					fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
+				// In CE mode, skip lazy setup - DCR happens during oauth authorize
+				if pkgoauth.IsCEMode() {
+					fmt.Printf("OAuth server %s enabled. Run 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				} else {
-					fmt.Printf("OAuth provider configured for %s - use 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
+					// Desktop mode - register provider for lazy setup
+					if err := pkgoauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+						fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
+						fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
+					} else {
+						fmt.Printf("OAuth provider configured for %s - use 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
+					}
 				}
 			} else if !mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
 				// Provide guidance when DCR is needed but disabled
