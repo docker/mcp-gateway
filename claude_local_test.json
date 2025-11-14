@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "mcp-hfspace": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@llmindset/mcp-hfspace",
+        "--work-dir=/users/owner/mcp-files/",
+        "shuttleai/shuttle-jaguar",
+        "styletts2/styletts2",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "deepseek-ai/DeepSeek-V3-0324"
+      ]
+    },
+    "desktopCommander": {
+      "command": "npx",
+      "args": ["@wonderwhy-er/desktop-commander", "/users/owner/claude"]
+    },
+    "MCP_DOCKER": {
+      "command": "python3",
+      "args": [
+        "/users/owner/mcp-gateway/python_tools/remote_claude_mcp_configs.py",
+        "127.0.0.1",
+        "8080"
+      ]
+    }
+  }
+}

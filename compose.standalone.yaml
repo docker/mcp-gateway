@@ -1,0 +1,17 @@
+services:
+  standalone-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.standalone
+    ports:
+      - "3000:3000"  # UI port
+      - "8811:8811"  # MCP Gateway port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PORT=3000
+      - MCP_GATEWAY_PORT=8811
+      - MCP_ENABLE_DYNAMIC_TOOLS=true
+    restart: unless-stopped
+    labels:
+      - "com.docker.compose.project=mcp-gateway-standalone"
