@@ -12,8 +12,12 @@ import (
 
 // loadRegistryWithConfig reads the registry and populates it with user config values.
 // It returns the populated registry and the userConfig map for further use.
+// IMPORTANT: config.yaml is the single source of truth for all config values.
+// We completely ignore any Config values that may exist in registry.yaml.
 func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.Registry, map[string]map[string]any, error) {
 	// Read registry.yaml that contains which servers are enabled.
+	// NOTE: We only use this to determine which servers are enabled (the map keys).
+	// We completely ignore any Config values in the Tile structs from registry.yaml.
 	registryYAML, err := config.ReadRegistry(ctx, docker)
 	if err != nil {
 		return config.Registry{}, nil, fmt.Errorf("reading registry config: %w", err)
@@ -24,7 +28,7 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 		return config.Registry{}, nil, fmt.Errorf("parsing registry config: %w", err)
 	}
 
-	// Read user's configuration to populate registry tiles
+	// Read user's configuration from config.yaml (the single source of truth)
 	userConfigYAML, err := config.ReadConfig(ctx, docker)
 	if err != nil {
 		return config.Registry{}, nil, fmt.Errorf("reading user config: %w", err)
@@ -35,13 +39,23 @@ func loadRegistryWithConfig(ctx context.Context, docker docker.Client) (config.R
 		return config.Registry{}, nil, fmt.Errorf("parsing user config: %w", err)
 	}
 
-	// Populate registry tiles with user config (always use config.yaml as source of truth)
+	// Ensure userConfig is never nil (empty config file results in nil map)
+	if userConfig == nil {
+		userConfig = make(map[string]map[string]any)
+	}
+
+	// Populate registry tiles with configs from config.yaml ONLY
+	// We completely ignore any Config values that were parsed from registry.yaml
 	for serverName, tile := range registry.Servers {
+		// Only populate from config.yaml (the single source of truth)
+		// We ignore any Config values that may have been parsed from registry.yaml
 		if userServerConfig, hasUserConfig := userConfig[serverName]; hasUserConfig {
-			// Always use the config from config.yaml, which is the source of truth
 			tile.Config = userServerConfig
-			registry.Servers[serverName] = tile
+		} else {
+			tile.Config = nil
 		}
+
+		registry.Servers[serverName] = tile
 	}
 
 	return registry, userConfig, nil
