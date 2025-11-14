@@ -39,7 +39,7 @@ func TestListEmpty(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	assert.Contains(t, output, "No working sets found")
+	assert.Contains(t, output, "No profiles found")
 }
 
 func TestListHumanReadable(t *testing.T) {

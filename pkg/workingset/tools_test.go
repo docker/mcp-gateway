@@ -286,7 +286,7 @@ func TestErrorWorkingSetNotFound(t *testing.T) {
 
 	err = UpdateTools(ctx, dao, setid, []string{"test-server-1.tool"}, []string{}, []string{}, []string{})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("working set %s not found", setid))
+	assert.Contains(t, err.Error(), fmt.Sprintf("profile %s not found", setid))
 }
 
 func TestErrorInvalidToolFormat(t *testing.T) {
@@ -358,7 +358,7 @@ func TestErrorServerNotFound(t *testing.T) {
 
 	err = UpdateTools(ctx, dao, "test-set", []string{"bogus.tool"}, []string{}, []string{}, []string{})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("server %s not found in working set for argument %s", "bogus", "bogus.tool"))
+	assert.Contains(t, err.Error(), fmt.Sprintf("server %s not found in profile for argument %s", "bogus", "bogus.tool"))
 }
 
 func TestEnableAllTools(t *testing.T) {
@@ -459,7 +459,7 @@ func TestEnableAllToolsServerNotFound(t *testing.T) {
 
 	err = UpdateTools(ctx, dao, "test-set", []string{}, []string{}, []string{"bogus"}, []string{})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "server bogus not found in working set")
+	assert.Contains(t, err.Error(), "server bogus not found in profile")
 }
 
 func TestDisableAllTools(t *testing.T) {
@@ -563,7 +563,7 @@ func TestDisableAllToolsServerNotFound(t *testing.T) {
 
 	err = UpdateTools(ctx, dao, "test-set", []string{}, []string{}, []string{}, []string{"bogus"})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "server bogus not found in working set")
+	assert.Contains(t, err.Error(), "server bogus not found in profile")
 }
 
 func TestOutputMessages(t *testing.T) {
@@ -579,56 +579,56 @@ func TestOutputMessages(t *testing.T) {
 			initialTools:   []string{},
 			enableTools:    []string{"test-server.create_issue", "test-server.update_issue"},
 			disableTools:   []string{},
-			expectedOutput: "Updated working set test-set: 2 tool(s) enabled, 0 tool(s) disabled\n",
+			expectedOutput: "Updated profile test-set: 2 tool(s) enabled, 0 tool(s) disabled\n",
 		},
 		{
 			name:           "disable tools",
 			initialTools:   []string{"create_issue", "update_issue"},
 			enableTools:    []string{},
 			disableTools:   []string{"test-server.create_issue", "test-server.update_issue"},
-			expectedOutput: "Updated working set test-set: 0 tool(s) enabled, 2 tool(s) disabled\n",
+			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 2 tool(s) disabled\n",
 		},
 		{
 			name:           "enable and disable different tools",
 			initialTools:   []string{"create_issue"},
 			enableTools:    []string{"test-server.update_issue"},
 			disableTools:   []string{"test-server.create_issue"},
-			expectedOutput: "Updated working set test-set: 1 tool(s) enabled, 1 tool(s) disabled\n",
+			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 1 tool(s) disabled\n",
 		},
 		{
 			name:           "no changes - enable existing tool",
 			initialTools:   []string{"create_issue"},
 			enableTools:    []string{"test-server.create_issue"},
 			disableTools:   []string{},
-			expectedOutput: "No changes made to working set test-set\n",
+			expectedOutput: "No changes made to profile test-set\n",
 		},
 		{
 			name:           "no changes - disable non-existent tool",
 			initialTools:   []string{"create_issue"},
 			enableTools:    []string{},
 			disableTools:   []string{"test-server.update_issue"},
-			expectedOutput: "No changes made to working set test-set\n",
+			expectedOutput: "No changes made to profile test-set\n",
 		},
 		{
 			name:           "overlap - enable and disable same tool",
 			initialTools:   []string{},
 			enableTools:    []string{"test-server.create_issue"},
 			disableTools:   []string{"test-server.create_issue"},
-			expectedOutput: "Updated working set test-set: 1 tool(s) enabled, 1 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.create_issue\n",
+			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 1 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.create_issue\n",
 		},
 		{
 			name:           "overlap - enable and disable with partial overlap",
 			initialTools:   []string{"create_issue"},
 			enableTools:    []string{"test-server.update_issue", "test-server.delete_issue"},
 			disableTools:   []string{"test-server.create_issue", "test-server.update_issue"},
-			expectedOutput: "Updated working set test-set: 2 tool(s) enabled, 2 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.update_issue\n",
+			expectedOutput: "Updated profile test-set: 2 tool(s) enabled, 2 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.update_issue\n",
 		},
 		{
 			name:           "overlap - multiple overlapping tools",
 			initialTools:   []string{},
 			enableTools:    []string{"test-server.create_issue", "test-server.update_issue", "test-server.delete_issue"},
 			disableTools:   []string{"test-server.create_issue", "test-server.update_issue"},
-			expectedOutput: "Updated working set test-set: 3 tool(s) enabled, 2 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.create_issue, test-server.update_issue\n",
+			expectedOutput: "Updated profile test-set: 3 tool(s) enabled, 2 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.create_issue, test-server.update_issue\n",
 		},
 	}
 
