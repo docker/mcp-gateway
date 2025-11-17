@@ -63,9 +63,8 @@ func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
 	var secrets []desktop.Secret
 	for _, secret := range storedSecrets {
 		secrets = append(secrets, desktop.Secret{
-			Name:     secret.Name,
-			Provider: secret.Provider,
-			Value:    secretValues[secret.Name],
+			Name:  secret.Name,
+			Value: secretValues[secret.Name],
 		})
 	}
 

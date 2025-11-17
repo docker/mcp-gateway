@@ -32,12 +32,12 @@ Another way to inject secrets would be to use a pattern.
 > cat pwd.txt | docker mcp secret set POSTGRES_PASSWORD
 `
 
-func secretCommand(docker docker.Client) *cobra.Command {
+func secretCommand(_ docker.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "secret",
 		Short:   "Manage secrets in the local OS Keychain",
 		Example: strings.Trim(setSecretExample, "\n"),
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			err := desktop.CheckHasDockerPass(cmd.Context())
 			if err != nil {
 				return err
@@ -55,7 +55,7 @@ func rmSecretCommand() *cobra.Command {
 	var all bool
 	cmd := &cobra.Command{
 		Use:   "rm name1 name2 ...",
-		Short: "Remove secrets from the OS Keychain",
+		Short: "Remove secrets from the local OS Keychain",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateRmArgs(args, all); err != nil {
 				return err
@@ -103,10 +103,21 @@ func listSecretCommand() *cobra.Command {
 				return err
 			}
 			if outJSON {
-				if len(l) == 0 {
-					l = []secret.Envelope{} // Guarantee empty list (instead of displaying null)
+				type secretListItem struct {
+					ID       string `json:"id"`
+					Provider string `json:"provider"`
 				}
-				jsonData, err := json.MarshalIndent(l, "", "  ")
+				output := make([]secretListItem, 0, len(l))
+				for _, env := range l {
+					output = append(output, secretListItem{
+						ID:       env.ID,
+						Provider: env.Provider,
+					})
+				}
+				if len(output) == 0 {
+					output = []secretListItem{} // Guarantee empty list (instead of displaying null)
+				}
+				jsonData, err := json.MarshalIndent(output, "", "  ")
 				if err != nil {
 					return err
 				}
@@ -115,7 +126,7 @@ func listSecretCommand() *cobra.Command {
 			}
 			var rows [][]string
 			for _, v := range l {
-				rows = append(rows, []string{v.Id, v.Provider})
+				rows = append(rows, []string{v.ID, v.Provider})
 			}
 			formatting.PrettyPrintTable(rows, []int{40, 120})
 			return nil
@@ -153,10 +164,10 @@ func setSecretCommand() *cobra.Command {
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Provider, "provider", "", "Supported: credstore, oauth/<provider>")
-	flags.MarkDeprecated("provider", "option will be ignored")
+	_ = flags.MarkDeprecated("provider", "option will be ignored")
 	return cmd
 }
 
-func isNotImplicitReadFromStdinSyntax(args []string, opts secret.SetOpts) bool {
+func isNotImplicitReadFromStdinSyntax(args []string, _ secret.SetOpts) bool {
 	return strings.Contains(args[0], "=") || len(args) > 1
 }

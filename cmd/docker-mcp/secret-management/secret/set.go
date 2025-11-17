@@ -54,6 +54,6 @@ func isDirectValueProvider(provider string) bool {
 	return provider == "" || provider == Credstore
 }
 
-func Set(ctx context.Context, s Secret, opts SetOpts) error {
+func Set(ctx context.Context, s Secret, _ SetOpts) error {
 	return setSecret(ctx, s.key, s.val)
 }

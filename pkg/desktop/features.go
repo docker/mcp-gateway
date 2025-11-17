@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -38,7 +37,6 @@ func CheckFeatureIsEnabled(ctx context.Context, settingName string, label string
 		//nolint:staticcheck
 		return errors.New("Docker Desktop is not running")
 	}
-	fmt.Fprintf(os.Stdout, "DD settings: %+v\n", settings)
 	value, _ := jsonpath.Get("$.desktop."+settingName+".value", settings)
 	if value == false {
 		return errors.New("The \"" + label + "\" feature needs to be enabled in Docker Desktop Settings")

@@ -11,7 +11,7 @@ import (
 )
 
 type Envelope struct {
-	Id       string `json:"id"`
+	ID       string `json:"id"`
 	Value    []byte `json:"value"`
 	Provider string `json:"provider"`
 }
@@ -27,7 +27,7 @@ func socketPath() string {
 // client SDK imported.
 var c = http.Client{
 	Transport: &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 			d := &net.Dialer{}
 			return d.DialContext(ctx, "unix", socketPath())
 		},
@@ -36,7 +36,7 @@ var c = http.Client{
 
 func GetSecrets(ctx context.Context) ([]Envelope, error) {
 	pattern := []byte(`{"pattern": "docker/mcp/**"}`)
-	req, err := http.NewRequestWithContext(ctx, "POST", "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader(pattern))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader(pattern))
 	if err != nil {
 		return nil, err
 	}

@@ -9,25 +9,19 @@ import (
 
 func TestGetSecretKey(t *testing.T) {
 	result := getSecretKey("mykey")
-	assert.Equal(t, "sm_mykey", result)
+	assert.Equal(t, "docker/mcp/generic/mykey", result)
 }
 
 func TestParseArg(t *testing.T) {
 	// Test key=value parsing
-	secret, err := ParseArg("key=value", SetOpts{Provider: Credstore})
+	secret, err := ParseArg("key=value", SetOpts{})
 	require.NoError(t, err)
 	assert.Equal(t, "key", secret.key)
 	assert.Equal(t, "value", secret.val)
 
-	// Test key-only for non-direct providers
-	secret, err = ParseArg("keyname", SetOpts{Provider: "oauth/github"})
-	require.NoError(t, err)
-	assert.Equal(t, "keyname", secret.key)
-	assert.Empty(t, secret.val)
-
-	// Test error on key=value with non-direct provider
-	_, err = ParseArg("key=value", SetOpts{Provider: "oauth/github"})
-	assert.Error(t, err)
+	// Test invalid format (no = sign)
+	_, err = ParseArg("just-a-key", SetOpts{})
+	assert.Error(t, err, "should error when no = sign is present")
 }
 
 func TestIsDirectValueProvider(t *testing.T) {
