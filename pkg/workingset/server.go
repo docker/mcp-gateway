@@ -122,7 +122,8 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	originalCount := len(workingSet.Servers)
 	filtered := make([]Server, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
-		if !namesToRemove[server.Snapshot.Server.Name] {
+		// TODO: Remove when Snapshot is required
+		if server.Snapshot == nil || !namesToRemove[server.Snapshot.Server.Name] {
 			filtered = append(filtered, server)
 		}
 	}
@@ -247,6 +248,10 @@ func buildSearchResults(dbSets []db.WorkingSet, nameFilter string) []SearchResul
 }
 
 func matchesNameFilter(server Server, nameLower string) bool {
+	// TODO: Remove when Snapshot is required
+	if server.Snapshot == nil {
+		return false
+	}
 	if nameLower == "" {
 		return true
 	}

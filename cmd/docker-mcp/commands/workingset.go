@@ -344,7 +344,7 @@ Filters use key=value format (e.g., name=github, profile=my-dev-env).`,
 
 	flags := cmd.Flags()
 	flags.StringArrayVarP(&opts.Filters, "filter", "f", []string{}, "Filter output (e.g., name=github, profile=my-dev-env)")
-	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Output format (%s)", strings.Join(workingset.SupportedFormats(), "|")))
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 
 	return cmd
 }
