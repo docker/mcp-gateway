@@ -12,31 +12,8 @@ import (
 )
 
 func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config client.Config, vendor string, global, quiet bool, workingSet string) error {
-	if vendor == client.VendorCodex {
-		if !global {
-			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
-		}
-		if err := client.ConnectCodex(ctx); err != nil {
-			return err
-		}
-	} else if vendor == client.VendorGordon && global {
-		if err := client.ConnectGordon(ctx); err != nil {
-			return err
-		}
-	} else {
-		updater, err := client.GetUpdater(vendor, global, cwd, config)
-		if err != nil {
-			return err
-		}
-		if workingSet != "" {
-			if err := updater(client.DockerMCPCatalog, client.NewMcpGatewayServerWithWorkingSet(workingSet)); err != nil {
-				return err
-			}
-		} else {
-			if err := updater(client.DockerMCPCatalog, client.NewMCPGatewayServer()); err != nil {
-				return err
-			}
-		}
+	if err := client.Connect(ctx, cwd, config, vendor, global, workingSet); err != nil {
+		return err
 	}
 	if quiet {
 		return nil

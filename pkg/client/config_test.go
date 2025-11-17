@@ -22,7 +22,7 @@ func Test_yq_list(t *testing.T) {
 	}{
 		{
 			name:    "Cursor",
-			cfg:     config.System[VendorCursor],
+			cfg:     config.System[vendorCursor],
 			content: "list/cursor.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -38,7 +38,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Claude Desktop",
-			cfg:     config.System[VendorClaudeDesktop],
+			cfg:     config.System[vendorClaudeDesktop],
 			content: "list/claude-desktop.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -54,7 +54,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Continue.dev",
-			cfg:     config.System[VendorContinueDev],
+			cfg:     config.System[vendorContinueDev],
 			content: "list/continue-dev.yml",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -73,7 +73,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "VSCode",
-			cfg:     config.Project[VendorVSCode],
+			cfg:     config.Project[vendorVSCode],
 			content: "list/vscode.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -101,7 +101,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Zed",
-			cfg:     config.System[VendorZed],
+			cfg:     config.System[vendorZed],
 			content: "list/zed.jsonc",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -172,56 +172,56 @@ func Test_yq_add_del(t *testing.T) {
 	}{
 		{
 			name:     "Continue.dev - append",
-			cfg:      config.System[VendorContinueDev],
+			cfg:      config.System[vendorContinueDev],
 			original: "continue-dev-append/original.yml",
 			afterAdd: "continue-dev-append/after-add.yml",
 			afterDel: "continue-dev-append/after-del.yml",
 		},
 		{
 			name:     "Continue.dev - create",
-			cfg:      config.System[VendorContinueDev],
+			cfg:      config.System[vendorContinueDev],
 			original: "continue-dev-create/original.yml",
 			afterAdd: "continue-dev-create/after-add.yml",
 			afterDel: "continue-dev-create/after-del.yml",
 		},
 		{
 			name:     "Claude Desktop - append",
-			cfg:      config.System[VendorClaudeDesktop],
+			cfg:      config.System[vendorClaudeDesktop],
 			original: "claude-desktop-append/original.json",
 			afterAdd: "claude-desktop-append/after-add.json",
 			afterDel: "claude-desktop-append/after-del.json",
 		},
 		{
 			name:     "Claude Desktop - create",
-			cfg:      config.System[VendorClaudeDesktop],
+			cfg:      config.System[vendorClaudeDesktop],
 			original: "claude-desktop-create/original.json",
 			afterAdd: "claude-desktop-create/after-add.json",
 			afterDel: "claude-desktop-create/after-del.json",
 		},
 		{
 			name:     "VSCode - append",
-			cfg:      config.Project[VendorVSCode],
+			cfg:      config.Project[vendorVSCode],
 			original: "vscode-append/original.json",
 			afterAdd: "vscode-append/after-add.json",
 			afterDel: "vscode-append/after-del.json",
 		},
 		{
 			name:     "VSCode - create",
-			cfg:      config.Project[VendorVSCode],
+			cfg:      config.Project[vendorVSCode],
 			original: "vscode-create/original.json",
 			afterAdd: "vscode-create/after-add.json",
 			afterDel: "vscode-create/after-del.json",
 		},
 		{
 			name:     "Zed - append",
-			cfg:      config.System[VendorZed],
+			cfg:      config.System[vendorZed],
 			original: "zed-append/original.jsonc",
 			afterAdd: "zed-append/after-add.json",
 			afterDel: "zed-append/after-del.json",
 		},
 		{
 			name: "Zed - create",
-			cfg:  config.System[VendorZed],
+			cfg:  config.System[vendorZed],
 			// The real configuation file is .json and nothing rewrites
 			// the file extension. The .jsonc extension is only used so
 			// that IDEs do not complain that comments are invalid .json

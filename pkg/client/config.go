@@ -16,12 +16,12 @@ import (
 var configYaml string
 
 const (
-	VendorCursor        = "cursor"
-	VendorVSCode        = "vscode"
-	VendorClaudeDesktop = "claude-desktop"
-	VendorContinueDev   = "continue"
+	vendorCursor        = "cursor"
+	vendorVSCode        = "vscode"
+	vendorClaudeDesktop = "claude-desktop"
+	vendorContinueDev   = "continue"
 	VendorGordon        = "gordon"
-	VendorZed           = "zed"
+	vendorZed           = "zed"
 	VendorCodex         = "codex"
 	VendorAmazonQ       = "amazon-q"
 )
@@ -96,7 +96,7 @@ func (e *ErrVendorNotFound) Error() string {
 
 type Updater func(key string, server *MCPServerSTDIO) error
 
-func NewMCPGatewayServer() *MCPServerSTDIO {
+func newMCPGatewayServer() *MCPServerSTDIO {
 	var env map[string]string
 	if runtime.GOOS == "windows" {
 		// As of 0.9.3, Claude Desktop locks down environment variables that CLI plugins need.
@@ -113,13 +113,13 @@ func NewMCPGatewayServer() *MCPServerSTDIO {
 	}
 }
 
-func NewMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
-	server := NewMCPGatewayServer()
+func newMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
+	server := newMCPGatewayServer()
 	server.Args = append(server.Args, "--profile", workingSet)
 	return server
 }
 
-func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater, error) {
+func getUpdater(vendor string, global bool, cwd string, config Config) (Updater, error) {
 	if global {
 		cfg, ok := config.System[vendor]
 		if !ok {

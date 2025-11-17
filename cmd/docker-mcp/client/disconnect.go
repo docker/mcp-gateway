@@ -8,25 +8,8 @@ import (
 )
 
 func Disconnect(ctx context.Context, cwd string, config client.Config, vendor string, global, quiet bool) error {
-	if vendor == client.VendorCodex {
-		if !global {
-			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
-		}
-		if err := client.DisconnectCodex(ctx); err != nil {
-			return err
-		}
-	} else if vendor == client.VendorGordon && global {
-		if err := client.DisconnectGordon(ctx); err != nil {
-			return err
-		}
-	} else {
-		updater, err := client.GetUpdater(vendor, global, cwd, config)
-		if err != nil {
-			return err
-		}
-		if err := updater(client.DockerMCPCatalog, nil); err != nil {
-			return err
-		}
+	if err := client.Disconnect(ctx, cwd, config, vendor, global); err != nil {
+		return err
 	}
 	if quiet {
 		return nil
