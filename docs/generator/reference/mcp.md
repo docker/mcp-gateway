@@ -5,18 +5,18 @@ Manage MCP servers and clients
 
 ### Subcommands
 
-| Name                        | Description                   |
-|:----------------------------|:------------------------------|
-| [`catalog`](mcp_catalog.md) | Manage MCP server catalogs    |
-| [`client`](mcp_client.md)   | Manage MCP clients            |
-| [`config`](mcp_config.md)   | Manage the configuration      |
-| [`feature`](mcp_feature.md) | Manage experimental features  |
-| [`gateway`](mcp_gateway.md) | Manage the MCP Server gateway |
-| [`policy`](mcp_policy.md)   | Manage secret policies        |
-| [`secret`](mcp_secret.md)   | Manage secrets                |
-| [`server`](mcp_server.md)   | Manage servers                |
-| [`tools`](mcp_tools.md)     | Manage tools                  |
-| [`version`](mcp_version.md) | Show the version information  |
+| Name                        | Description                             |
+|:----------------------------|:----------------------------------------|
+| [`catalog`](mcp_catalog.md) | Manage MCP server catalogs              |
+| [`client`](mcp_client.md)   | Manage MCP clients                      |
+| [`config`](mcp_config.md)   | Manage the configuration                |
+| [`feature`](mcp_feature.md) | Manage experimental features            |
+| [`gateway`](mcp_gateway.md) | Manage the MCP Server gateway           |
+| [`policy`](mcp_policy.md)   | Manage secret policies                  |
+| [`secret`](mcp_secret.md)   | Manage secrets in the local OS Keychain |
+| [`server`](mcp_server.md)   | Manage servers                          |
+| [`tools`](mcp_tools.md)     | Manage tools                            |
+| [`version`](mcp_version.md) | Show the version information            |
 
 
 ### Options
