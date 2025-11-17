@@ -23,7 +23,6 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(importWorkingSetCommand())
 	cmd.AddCommand(showWorkingSetCommand())
 	cmd.AddCommand(listWorkingSetsCommand())
-	cmd.AddCommand(serversCommand())
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand())
@@ -299,34 +298,34 @@ func removeWorkingSetCommand() *cobra.Command {
 	}
 }
 
-func serversCommand() *cobra.Command {
+func listServersCommand() *cobra.Command {
 	var opts struct {
-		WorkingSetID string
-		Filter       string
-		Format       string
+		Filters []string
+		Format  string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "servers",
-		Short: "List servers across profiles",
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "List servers across profiles",
 		Long: `List all servers grouped by profile.
 
-Use --filter to search for servers matching a query (case-insensitive substring matching on image names or source URLs).
-Use --profile to show servers only from a specific profile.`,
+Use --filter to search for servers matching a query (case-insensitive substring matching on server names).
+Filters use key=value format (e.g., name=github, profile=my-dev-env).`,
 		Example: `  # List all servers across all profiles
-  docker mcp profile servers
+  docker mcp profile server ls
 
   # Filter servers by name
-  docker mcp profile servers --filter github
+  docker mcp profile server ls --filter name=github
 
   # Show servers from a specific profile
-  docker mcp profile servers --profile dev-tools
+  docker mcp profile server ls --filter profile=my-dev-env
 
-  # Combine filter and profile
-  docker mcp profile servers --profile dev-tools --filter slack
+  # Combine multiple filters (using short flag)
+  docker mcp profile server ls -f name=slack -f profile=my-dev-env
 
   # Output in JSON format
-  docker mcp profile servers --format json`,
+  docker mcp profile server ls --format json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
@@ -339,13 +338,12 @@ Use --profile to show servers only from a specific profile.`,
 				return err
 			}
 
-			return workingset.Servers(cmd.Context(), dao, opts.Filter, opts.WorkingSetID, workingset.OutputFormat(opts.Format))
+			return workingset.ListServers(cmd.Context(), dao, opts.Filters, workingset.OutputFormat(opts.Format))
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringVarP(&opts.WorkingSetID, "profile", "p", "", "Show servers only from specified profile")
-	flags.StringVar(&opts.Filter, "filter", "", "Filter servers by image name or source URL")
+	flags.StringArrayVarP(&opts.Filters, "filter", "f", []string{}, "Filter output (e.g., name=github, profile=my-dev-env)")
 	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 
 	return cmd
@@ -357,6 +355,7 @@ func workingsetServerCommand() *cobra.Command {
 		Short: "Manage servers in profiles",
 	}
 
+	cmd.AddCommand(listServersCommand())
 	cmd.AddCommand(addServerCommand())
 	cmd.AddCommand(removeServerCommand())
 

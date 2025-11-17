@@ -1,6 +1,7 @@
 package workingset
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -452,4 +453,166 @@ func createTestCatalog(t *testing.T, dao db.DAO, servers []testCatalogServer) db
 	require.NoError(t, err)
 
 	return catalog
+}
+
+func TestListServersNoFilters(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "set-1", results[0].ID)
+	assert.Len(t, results[0].Servers, 2)
+}
+
+func TestListServersFilterByName(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{"name=My"}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Len(t, results[0].Servers, 1)
+	assert.Equal(t, "My Image", results[0].Servers[0].Snapshot.Server.Name)
+}
+
+func TestListServersFilterByNameCaseInsensitive(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{"name=my image"}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Len(t, results[0].Servers, 1)
+	assert.Equal(t, "My Image", results[0].Servers[0].Snapshot.Server.Name)
+}
+
+func TestListServersFilterByWorkingSet(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
+		"docker://anotherimage:v1.0",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{"profile=set-2"}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "set-2", results[0].ID)
+	assert.Equal(t, "Another Image", results[0].Servers[0].Snapshot.Server.Name)
+}
+
+func TestListServersFilterByBothNameAndWorkingSet(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	})
+	require.NoError(t, err)
+
+	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{"profile=set-1", "name=Another"}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "set-1", results[0].ID)
+	assert.Len(t, results[0].Servers, 1)
+	assert.Equal(t, "Another Image", results[0].Servers[0].Snapshot.Server.Name)
+}
+
+func TestListServersFilterNoMatches(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := ListServers(ctx, dao, []string{"name=nonexistent"}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var results []SearchResult
+	err = json.Unmarshal([]byte(output), &results)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestListServersInvalidFilter(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := ListServers(ctx, dao, []string{"invalid"}, OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid filter format")
+}
+
+func TestListServersUnsupportedFilterKey(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := ListServers(ctx, dao, []string{"unsupported=value"}, OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported filter key")
 }
