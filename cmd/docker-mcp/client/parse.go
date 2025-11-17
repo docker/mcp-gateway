@@ -37,6 +37,18 @@ func (c *MCPServerSTDIO) String() string {
 	return result
 }
 
+func (c *MCPServerSTDIO) GetWorkingSet() string {
+	for i := range len(c.Args) {
+		arg := c.Args[i]
+		if arg == "--profile" || arg == "-p" {
+			if i+1 < len(c.Args) {
+				return c.Args[i+1]
+			}
+		}
+	}
+	return ""
+}
+
 type MCPServerSSE struct {
 	Name    string            `json:"name"`
 	URL     string            `json:"url"`

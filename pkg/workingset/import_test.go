@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 func TestImportYAML(t *testing.T) {
@@ -87,8 +88,18 @@ func TestImportJSON(t *testing.T) {
 	err = os.WriteFile(jsonFile, data, 0o644)
 	require.NoError(t, err)
 
-	// Import the file
-	err = Import(ctx, dao, getMockOciService(), jsonFile)
+	// Import the file - use a mock with only labels (no digests) so images are treated as local
+	mockOci := mocks.NewMockOCIService(
+		mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "myimage:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: My Image",
+				},
+				DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			},
+		}))
+	err = Import(ctx, dao, mockOci, jsonFile)
 	require.NoError(t, err)
 
 	// Verify it was imported
@@ -174,8 +185,17 @@ func TestImportUpdatesExistingWorkingSet(t *testing.T) {
 	err = os.WriteFile(yamlFile, data, 0o644)
 	require.NoError(t, err)
 
-	// Import the file
-	err = Import(ctx, dao, getMockOciService(), yamlFile)
+	// Import the file - use a mock with only labels (no digests) so images are treated as local
+	mockOci := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "myimage:latest",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: My Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+		},
+	}))
+	err = Import(ctx, dao, mockOci, yamlFile)
 	require.NoError(t, err)
 
 	// Verify set was updated
@@ -273,7 +293,7 @@ func TestImportValidationFailure(t *testing.T) {
 	// Try to import
 	err = Import(ctx, dao, getMockOciService(), yamlFile)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid working set")
+	assert.Contains(t, err.Error(), "invalid profile")
 }
 
 func TestImportEmptyFile(t *testing.T) {

@@ -120,6 +120,22 @@ func Test_yq_list(t *testing.T) {
 				HTTPServers: []MCPServerHTTP{},
 			},
 		},
+		{
+			name:    "Amazon Q",
+			cfg:     config.System[vendorAmazonQ],
+			content: "list/amazon-q.json",
+			result: &MCPJSONLists{
+				STDIOServers: []MCPServerSTDIO{
+					{
+						Name:    "MCP_DOCKER",
+						Command: "docker",
+						Args:    []string{"mcp", "gateway", "run"},
+					},
+				},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -212,6 +228,20 @@ func Test_yq_add_del(t *testing.T) {
 			original: "zed-create/original.jsonc",
 			afterAdd: "zed-create/after-add.json",
 			afterDel: "zed-create/after-del.json",
+		},
+		{
+			name:     "Amazon Q - append",
+			cfg:      config.System[vendorAmazonQ],
+			original: "amazon-q-append/original.json",
+			afterAdd: "amazon-q-append/after-add.json",
+			afterDel: "amazon-q-append/after-del.json",
+		},
+		{
+			name:     "Amazon Q - create",
+			cfg:      config.System[vendorAmazonQ],
+			original: "amazon-q-create/original.json",
+			afterAdd: "amazon-q-create/after-add.json",
+			afterDel: "amazon-q-create/after-del.json",
 		},
 	}
 	for _, tc := range tests {

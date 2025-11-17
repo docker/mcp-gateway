@@ -211,3 +211,193 @@ func TestGlobalCfgProcessor_SinglePath(t *testing.T) {
 	assert.True(t, result.IsOsSupported)
 	assert.Nil(t, result.Err)
 }
+
+func TestGlobalCfgProcessor_SingleWorkingSet(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run", "--profile", "test-set"]}}}`), 0o644))
+
+	cfg := newTestGlobalCfg()
+	setPathsForCurrentOS(&cfg, []string{configPath})
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	result := processor.ParseConfig()
+	assert.True(t, result.IsMCPCatalogConnected)
+	assert.Equal(t, "test-set", result.WorkingSet)
+}
+
+func TestGlobalCfgProcessor_NoWorkingSet(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config.json")
+
+	require.NoError(t, os.WriteFile(configPath, []byte(`{"mcpServers": {"MCP_DOCKER": {"command": "docker", "args": ["mcp", "gateway", "run"]}}}`), 0o644))
+
+	cfg := newTestGlobalCfg()
+	setPathsForCurrentOS(&cfg, []string{configPath})
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	result := processor.ParseConfig()
+	assert.True(t, result.IsMCPCatalogConnected)
+	assert.Empty(t, result.WorkingSet)
+}
+
+func TestIsPathValid(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		envVars  map[string]string
+		expected bool
+	}{
+		{
+			name:     "no_env_vars",
+			path:     "/absolute/path/config.json",
+			envVars:  map[string]string{},
+			expected: true,
+		},
+		{
+			name:     "defined_env_var",
+			path:     "$HOME/.config/app/config.json",
+			envVars:  map[string]string{"HOME": "/home/user"},
+			expected: true,
+		},
+		{
+			name:     "undefined_env_var",
+			path:     "$UNDEFINED_VAR/.config/app/config.json",
+			envVars:  map[string]string{},
+			expected: false,
+		},
+		{
+			name:     "empty_env_var",
+			path:     "$EMPTY_VAR/.config/app/config.json",
+			envVars:  map[string]string{"EMPTY_VAR": ""},
+			expected: false,
+		},
+		{
+			name:     "multiple_defined_env_vars",
+			path:     "$HOME/$CONFIG_DIR/config.json",
+			envVars:  map[string]string{"HOME": "/home/user", "CONFIG_DIR": ".config"},
+			expected: true,
+		},
+		{
+			name:     "multiple_mixed_env_vars",
+			path:     "$HOME/$UNDEFINED_VAR/config.json",
+			envVars:  map[string]string{"HOME": "/home/user"},
+			expected: false,
+		},
+		{
+			name:     "windows_style_defined",
+			path:     "$USERPROFILE\\.config\\app\\config.json",
+			envVars:  map[string]string{"USERPROFILE": "C:\\Users\\user"},
+			expected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set up environment variables
+			for k, v := range tc.envVars {
+				t.Setenv(k, v)
+			}
+
+			result := isPathValid(tc.path)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestGlobalCfgProcessor_Update_WithEnvVarPaths(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Set up a custom config dir
+	customConfigDir := filepath.Join(tempDir, "custom-config")
+	require.NoError(t, os.MkdirAll(customConfigDir, 0o755))
+
+	// Create existing config in custom dir
+	customConfigPath := filepath.Join(customConfigDir, ".claude.json")
+	require.NoError(t, os.WriteFile(customConfigPath, []byte(`{"mcpServers": {"existing": {"command": "test"}}}`), 0o644))
+
+	// Set CLAUDE_CONFIG_DIR environment variable
+	t.Setenv("CLAUDE_CONFIG_DIR", customConfigDir)
+
+	// Create home config path (should be ignored when CLAUDE_CONFIG_DIR is set)
+	homeDir := filepath.Join(tempDir, "home")
+	require.NoError(t, os.MkdirAll(homeDir, 0o755))
+	homeConfigPath := filepath.Join(homeDir, ".claude.json")
+	t.Setenv("HOME", homeDir)
+
+	cfg := newTestGlobalCfg()
+	paths := []string{"$CLAUDE_CONFIG_DIR/.claude.json", "$HOME/.claude.json"}
+	setPathsForCurrentOS(&cfg, paths)
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	err = processor.Update("new-server", &MCPServerSTDIO{
+		Name:    "new-server",
+		Command: "docker",
+		Args:    []string{"mcp", "gateway", "run"},
+	})
+	require.NoError(t, err)
+
+	// Verify update went to the custom config dir
+	content, err := os.ReadFile(customConfigPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "new-server")
+
+	// Verify home config was not created
+	_, err = os.ReadFile(homeConfigPath)
+	assert.True(t, os.IsNotExist(err), "home config should not be created when CLAUDE_CONFIG_DIR is set")
+}
+
+func TestGlobalCfgProcessor_Update_FallbackWhenEnvVarUndefined(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Set CLAUDE_CONFIG_DIR to empty - it should fall back to HOME
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+
+	homeDir := filepath.Join(tempDir, "home")
+	homeConfigPath := filepath.Join(homeDir, ".claude.json")
+	t.Setenv("HOME", homeDir)
+
+	cfg := newTestGlobalCfg()
+	paths := []string{"$CLAUDE_CONFIG_DIR/.claude.json", "$HOME/.claude.json"}
+	setPathsForCurrentOS(&cfg, paths)
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	err = processor.Update("new-server", &MCPServerSTDIO{
+		Name:    "new-server",
+		Command: "docker",
+		Args:    []string{"mcp", "gateway", "run"},
+	})
+	require.NoError(t, err)
+
+	// Verify update went to the home config dir
+	content, err := os.ReadFile(homeConfigPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "new-server")
+}
+
+func TestGlobalCfgProcessor_Update_AllPathsInvalid(t *testing.T) {
+	cfg := newTestGlobalCfg()
+	// Only provide paths with undefined environment variables
+	paths := []string{"$UNDEFINED_VAR1/.config.json", "$UNDEFINED_VAR2/.config.json"}
+	setPathsForCurrentOS(&cfg, paths)
+
+	processor, err := NewGlobalCfgProcessor(cfg)
+	require.NoError(t, err)
+
+	err = processor.Update("new-server", &MCPServerSTDIO{
+		Name:    "new-server",
+		Command: "docker",
+		Args:    []string{"mcp", "gateway", "run"},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "no valid config paths found")
+}

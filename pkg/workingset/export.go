@@ -18,17 +18,12 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := NewFromDb(dbSet)
-
-	// Don't export the snapshots
-	for i := range len(workingSet.Servers) {
-		workingSet.Servers[i].Snapshot = nil
-	}
 
 	var data []byte
 	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
@@ -39,15 +34,15 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 		return fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", filename)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to marshal working set: %w", err)
+		return fmt.Errorf("failed to marshal profile: %w", err)
 	}
 
 	err = os.WriteFile(filename, data, 0o644)
 	if err != nil {
-		return fmt.Errorf("failed to write working set: %w", err)
+		return fmt.Errorf("failed to write profile: %w", err)
 	}
 
-	fmt.Printf("Exported working set %s to %s\n", id, filename)
+	fmt.Printf("Exported profile %s to %s\n", id, filename)
 
 	return nil
 }

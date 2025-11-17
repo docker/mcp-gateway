@@ -14,15 +14,20 @@ import (
 )
 
 func getMockOciService() oci.Service {
-	return mocks.NewMockOCIService(mocks.WithDigests(map[string]string{
-		"myimage:latest":    "sha256:1234567890",
-		"anotherimage:v1.0": "sha256:1234567890",
-	}), mocks.WithLabels(map[string]map[string]string{
-		"myimage:latest": {
-			"io.docker.server.metadata": "name: My Image",
+	return mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "myimage:latest",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: My Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		},
-		"anotherimage:v1.0": {
-			"io.docker.server.metadata": "name: Another Image",
+		{
+			Ref: "anotherimage:v1.0",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: Another Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		},
 	}))
 }
@@ -77,10 +82,10 @@ func TestCreateWithDockerImages(t *testing.T) {
 	assert.Len(t, dbSet.Servers, 2)
 
 	assert.Equal(t, "image", dbSet.Servers[0].Type)
-	assert.Equal(t, "myimage:latest@sha256:1234567890", dbSet.Servers[0].Image)
+	assert.Equal(t, "myimage:latest", dbSet.Servers[0].Image)
 
 	assert.Equal(t, "image", dbSet.Servers[1].Type)
-	assert.Equal(t, "anotherimage:v1.0@sha256:1234567890", dbSet.Servers[1].Image)
+	assert.Equal(t, "anotherimage:v1.0", dbSet.Servers[1].Image)
 }
 
 func TestCreateWithRegistryServers(t *testing.T) {
@@ -222,7 +227,7 @@ func TestCreateWithEmptyName(t *testing.T) {
 		"docker://myimage:latest",
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid working set")
+	assert.Contains(t, err.Error(), "invalid profile")
 }
 
 func TestCreateWithEmptyServers(t *testing.T) {

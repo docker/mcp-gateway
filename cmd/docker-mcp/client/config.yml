@@ -24,12 +24,16 @@ system:
     installCheckPaths:
       - $HOME/.claude
       - $USERPROFILE\.claude
+      - $CLAUDE_CONFIG_DIR
     paths:
       linux:
+        - $CLAUDE_CONFIG_DIR/.claude.json
         - $HOME/.claude.json
       darwin:
+        - $CLAUDE_CONFIG_DIR/.claude.json
         - $HOME/.claude.json
       windows:
+        - $CLAUDE_CONFIG_DIR\.claude.json
         - $USERPROFILE\.claude.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
@@ -220,6 +224,24 @@ system:
       list: '.context_servers | to_entries | map(.value + {"name": .key})'
       set: .context_servers[$NAME] = {"source":"custom","enabled":true}+$JSON
       del: del(.context_servers[$NAME])
+  amazon-q:
+    displayName: Amazon Q Developer CLI
+    source: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-getting-started.html
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/amazon-q.svg
+    installCheckPaths:
+      - $HOME/.aws/amazonq
+      - $USERPROFILE\.aws\amazonq
+    paths:
+      linux:
+        - $HOME/.aws/amazonq/mcp.json
+      darwin:
+        - $HOME/.aws/amazonq/mcp.json
+      windows:
+        - $USERPROFILE\.aws\amazonq\mcp.json
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON
+      del: del(.mcpServers[$NAME])
 project:
   cursor:
     displayname: Cursor
@@ -245,3 +267,13 @@ project:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"type":"stdio"}
       del: del(.mcpServers[$NAME])
+  amazon-q:
+    displayName: Amazon Q Developer CLI
+    source: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-getting-started.html
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/amazon-q.svg
+    projectfile: .amazonhq/mcp.json
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON
+      del: del(.mcpServers[$NAME])
+

@@ -18,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -62,8 +63,9 @@ type Gateway struct {
 	sessionCache   map[*mcp.ServerSession]*ServerSessionCache
 
 	// Track registered capabilities per server for proper reload handling
-	capabilitiesMu     sync.RWMutex
-	serverCapabilities map[string]*ServerCapabilities
+	capabilitiesMu              sync.RWMutex
+	serverCapabilities          map[string]*ServerCapabilities
+	serverAvailableCapabilities map[string]*Capabilities
 
 	// Track all tool registrations for mcp-exec
 	toolRegistrations map[string]ToolRegistration
@@ -77,9 +79,7 @@ type Gateway struct {
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	var configurator Configurator
 	if config.WorkingSet != "" {
-		configurator = &WorkingSetConfiguration{
-			WorkingSet: config.WorkingSet,
-		}
+		configurator = NewWorkingSetConfiguration(config.WorkingSet, oci.NewService(), docker)
 	} else {
 		// Prepend session-specific paths if SessionName is set
 		registryPath := config.RegistryPath
@@ -114,13 +114,14 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	}
 
 	g := &Gateway{
-		Options:            config.Options,
-		docker:             docker,
-		oauthProviders:     make(map[string]*oauth.Provider),
-		configurator:       configurator,
-		sessionCache:       make(map[*mcp.ServerSession]*ServerSessionCache),
-		serverCapabilities: make(map[string]*ServerCapabilities),
-		toolRegistrations:  make(map[string]ToolRegistration),
+		Options:                     config.Options,
+		docker:                      docker,
+		oauthProviders:              make(map[string]*oauth.Provider),
+		configurator:                configurator,
+		sessionCache:                make(map[*mcp.ServerSession]*ServerSessionCache),
+		serverCapabilities:          make(map[string]*ServerCapabilities),
+		serverAvailableCapabilities: make(map[string]*Capabilities),
+		toolRegistrations:           make(map[string]ToolRegistration),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 
@@ -274,13 +275,16 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	if g.McpOAuthDcrEnabled && !inContainer {
 		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
-		log.Log("- Starting OAuth notification monitor")
-		monitor := oauth.NewNotificationMonitor()
-		monitor.OnOAuthEvent = func(event oauth.Event) {
-			// Route event to specific provider
-			g.routeEventToProvider(event)
+		// Skip in CE mode (no Desktop to connect to)
+		if !oauth.IsCEMode() {
+			log.Log("- Starting OAuth notification monitor")
+			monitor := oauth.NewNotificationMonitor()
+			monitor.OnOAuthEvent = func(event oauth.Event) {
+				// Route event to specific provider
+				g.routeEventToProvider(event)
+			}
+			monitor.Start(ctx)
 		}
-		monitor.Start(ctx)
 
 		// Start OAuth provider for each OAuth server
 		// Each provider runs in its own goroutine with dynamic timing based on token expiry
@@ -394,13 +398,25 @@ func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, s
 
 	log.Log("- RefreshCapabilities called for session, refreshing servers:", serverName)
 
-	err := g.reloadServerConfiguration(ctx, serverName, clientConfig)
+	oldCaps, err := g.reloadServerCapabilities(ctx, serverName, clientConfig)
 	if err != nil {
 		log.Log("! Failed to refresh capabilities:", err)
-	} else {
-		log.Log("- RefreshCapabilities completed successfully")
+		return err
 	}
-	return err
+
+	// Now update g.mcpServer with the new capabilities
+	g.capabilitiesMu.Lock()
+	newCaps := g.allCapabilities(serverName)
+	err = g.updateServerCapabilities(serverName, oldCaps, newCaps, nil)
+	g.capabilitiesMu.Unlock()
+
+	if err != nil {
+		log.Log("! Failed to update server capabilities:", err)
+		return err
+	}
+
+	log.Log("- RefreshCapabilities completed successfully")
+	return nil
 }
 
 // GetSessionCache returns the cached information for a server session
@@ -515,7 +531,18 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 		g.clientPool.InvalidateOAuthClients(name)
 
 		// Reload server configuration
-		if err := g.reloadServerConfiguration(ctx, name, nil); err != nil {
+		oldCaps, err := g.reloadServerCapabilities(ctx, name, nil)
+		if err != nil {
+			return err
+		}
+
+		// Now update g.mcpServer with the new capabilities
+		g.capabilitiesMu.Lock()
+		newCaps := g.allCapabilities(name)
+		err = g.updateServerCapabilities(name, oldCaps, newCaps, nil)
+		g.capabilitiesMu.Unlock()
+
+		if err != nil {
 			return err
 		}
 

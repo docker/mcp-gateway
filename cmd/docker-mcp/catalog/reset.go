@@ -7,7 +7,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/config"
 )
 
-func Reset(context.Context) error {
+func Reset(ctx context.Context) error {
 	catalogsDir, err := config.FilePath("catalogs")
 	if err != nil {
 		return err
@@ -16,5 +16,10 @@ func Reset(context.Context) error {
 		return err
 	}
 
-	return WriteConfig(&Config{})
+	if err := WriteConfig(&Config{}); err != nil {
+		return err
+	}
+
+	// Automatically reimport the Docker catalog
+	return Import(ctx, DockerCatalogName)
 }

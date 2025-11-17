@@ -17,9 +17,9 @@ func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat) error
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("working set %s not found", id)
+			return fmt.Errorf("profile %s not found", id)
 		}
-		return fmt.Errorf("failed to get working set: %w", err)
+		return fmt.Errorf("failed to get profile: %w", err)
 	}
 
 	workingSet := NewFromDb(dbSet)
@@ -36,7 +36,7 @@ func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat) error
 		return fmt.Errorf("unsupported format: %s", format)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to marshal working set: %w", err)
+		return fmt.Errorf("failed to marshal profile: %w", err)
 	}
 
 	fmt.Println(string(data))

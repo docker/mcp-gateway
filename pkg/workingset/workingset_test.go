@@ -2,6 +2,7 @@ package workingset
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
 
@@ -249,6 +251,35 @@ func TestWorkingSetValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name: "duplicate server name",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:latest",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+					{
+						Type:  ServerTypeImage,
+						Image: "myimage:previous",
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								Name: "mcp.docker.com/test-server",
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -332,14 +363,33 @@ func TestResolveServerFromString(t *testing.T) {
 		expectError     bool
 	}{
 		{
-			name:  "docker image",
+			name:  "local docker image",
 			input: "docker://myimage:latest",
 			expected: Server{
 				Type:  ServerTypeImage,
-				Image: "myimage:latest@sha256:1234567890",
+				Image: "myimage:latest",
 				Snapshot: &ServerSnapshot{
 					Server: catalog.Server{
-						Name: "My Image",
+						Name:  "My Image",
+						Type:  "server",
+						Image: "myimage:latest",
+					},
+				},
+				Secrets: "default",
+			},
+			expectedVersion: "latest",
+		},
+		{
+			name:  "remote docker image",
+			input: "docker://bobbarker/myimage:latest",
+			expected: Server{
+				Type:  ServerTypeImage,
+				Image: "bobbarker/myimage:latest@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:  "My Image",
+						Type:  "server",
+						Image: "bobbarker/myimage:latest@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 					},
 				},
 				Secrets: "default",
@@ -411,13 +461,25 @@ func TestResolveServerFromString(t *testing.T) {
 				"http://example.com/v0/servers/my-server/versions/" + tt.expectedVersion: serverResponse,
 			}))
 
-			ociService := mocks.NewMockOCIService(mocks.WithDigests(map[string]string{
-				"myimage:latest": "sha256:1234567890",
-			}), mocks.WithLabels(map[string]map[string]string{
-				"myimage:latest": {
-					"io.docker.server.metadata": "name: My Image",
-				},
-			}))
+			ociService := mocks.NewMockOCIService(
+				mocks.WithLocalImages([]mocks.MockImage{
+					{
+						Ref: "myimage:latest",
+						Labels: map[string]string{
+							"io.docker.server.metadata": "name: My Image",
+						},
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}),
+				mocks.WithRemoteImages([]mocks.MockImage{
+					{
+						Ref: "bobbarker/myimage:latest",
+						Labels: map[string]string{
+							"io.docker.server.metadata": "name: My Image",
+						},
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}))
 
 			server, err := resolveServerFromString(t.Context(), registryClient, ociService, tt.input)
 			if tt.expectError {
@@ -500,7 +562,7 @@ title: Test Server Title`,
 			expected: &ServerSnapshot{
 				Server: catalog.Server{
 					Name:        "Test Server",
-					Type:        "remote",
+					Type:        "server",
 					Image:       "testimage:v1.0",
 					Description: "A test server for unit tests",
 					Title:       "Test Server Title",
@@ -521,7 +583,7 @@ type: remote`,
 			expected: &ServerSnapshot{
 				Server: catalog.Server{
 					Name: "Minimal",
-					Type: "remote",
+					Type: "server",
 				},
 			},
 		},
@@ -568,7 +630,7 @@ type: remote`,
 			expected: &ServerSnapshot{
 				Server: catalog.Server{
 					Name: "Digested Image",
-					Type: "remote",
+					Type: "server",
 				},
 			},
 		},
@@ -576,9 +638,25 @@ type: remote`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ociService := mocks.NewMockOCIService(mocks.WithLabels(map[string]map[string]string{
-				tt.server.Image: tt.labels,
-			}))
+			r, d, hasDigest := strings.Cut(tt.server.Image, "@")
+			var ociService oci.Service
+			if hasDigest {
+				ociService = mocks.NewMockOCIService(mocks.WithRemoteImages([]mocks.MockImage{
+					{
+						Ref:          r,
+						Labels:       tt.labels,
+						DigestString: d,
+					},
+				}))
+			} else {
+				ociService = mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+					{
+						Ref:          r,
+						Labels:       tt.labels,
+						DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+					},
+				}))
+			}
 			ctx := t.Context()
 
 			snapshot, err := ResolveSnapshot(ctx, ociService, tt.server)
