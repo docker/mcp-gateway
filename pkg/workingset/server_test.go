@@ -462,7 +462,7 @@ func TestListServersNoFilters(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -485,7 +485,7 @@ func TestListServersFilterByName(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -507,7 +507,7 @@ func TestListServersFilterByNameCaseInsensitive(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -529,12 +529,12 @@ func TestListServersFilterByWorkingSet(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -557,12 +557,12 @@ func TestListServersFilterByBothNameAndWorkingSet(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -585,7 +585,7 @@ func TestListServersFilterNoMatches(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
