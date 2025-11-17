@@ -147,6 +147,12 @@ func getUpdater(vendor string, global bool, cwd string, config Config) (Updater,
 }
 
 func IsSupportedMCPClient(cfg Config, vendor string, global bool) bool {
+	if vendor == VendorCodex {
+		return global // only global codex is supported
+	}
+	if global && vendor == VendorGordon {
+		return true // global gordon is supported
+	}
 	if global {
 		_, ok := cfg.System[vendor]
 		return ok

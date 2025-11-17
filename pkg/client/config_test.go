@@ -333,6 +333,18 @@ func TestIsSupportedMCPClient(t *testing.T) {
 			global:   true,
 			expected: true,
 		},
+		{
+			name:     "gordon is supported as global",
+			vendor:   VendorGordon,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "codex is supported as global",
+			vendor:   VendorCodex,
+			global:   true,
+			expected: true,
+		},
 		// Valid project (local) vendors
 		{
 			name:     "vscode is supported as project",
@@ -353,6 +365,12 @@ func TestIsSupportedMCPClient(t *testing.T) {
 			expected: true, // amazon-q is in both System and Project
 		},
 		{
+			name:     "gordon is not supported as project",
+			vendor:   VendorGordon,
+			global:   false,
+			expected: false,
+		},
+		{
 			name:     "zed is not supported as project",
 			vendor:   vendorZed,
 			global:   false,
@@ -363,6 +381,12 @@ func TestIsSupportedMCPClient(t *testing.T) {
 			vendor:   vendorClaudeDesktop,
 			global:   false,
 			expected: false, // claude-desktop is only in System, not in Project
+		},
+		{
+			name:     "codex is not supported as project",
+			vendor:   VendorCodex,
+			global:   false,
+			expected: false,
 		},
 		// Invalid vendors
 		{

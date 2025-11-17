@@ -132,7 +132,7 @@ func writeCodexConfig(config map[string]any) error {
 }
 
 // ConnectCodex configures docker mcp gateway in Codex by editing config.toml
-func ConnectCodex(_ context.Context) error {
+func ConnectCodex(_ context.Context, workingSet string) error {
 	config, err := readCodexConfig()
 	if err != nil {
 		return err
@@ -151,6 +151,10 @@ func ConnectCodex(_ context.Context) error {
 		command = "docker.exe"
 	}
 	args := []string{"mcp", "gateway", "run"}
+
+	if workingSet != "" {
+		args = append(args, "--profile", workingSet)
+	}
 
 	// Add DOCKER_MCP entry
 	mcpServers[DockerMCPCatalog] = MCPServerConfig{

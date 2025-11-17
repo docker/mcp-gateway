@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var ErrCodexOnlySupportsGlobalConfiguration = errors.New("codex only supports global configuration. Re-run with --global or -g")
@@ -12,10 +13,14 @@ func Connect(ctx context.Context, cwd string, config Config, vendor string, glob
 		if !global {
 			return ErrCodexOnlySupportsGlobalConfiguration
 		}
-		if err := ConnectCodex(ctx); err != nil {
+		if err := ConnectCodex(ctx, workingSet); err != nil {
 			return err
 		}
 	} else if vendor == VendorGordon && global {
+		if workingSet != "" {
+			// Gordon doesn't support profiles yet
+			return fmt.Errorf("gordon cannot be connected to a profile")
+		}
 		if err := ConnectGordon(ctx); err != nil {
 			return err
 		}

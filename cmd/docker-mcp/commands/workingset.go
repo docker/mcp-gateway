@@ -11,6 +11,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -169,7 +170,7 @@ Profiles are decoupled from catalogs. Servers can be:
 	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include: catalog name or OCI reference with docker:// prefix (can be specified multiple times)")
-	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", strings.Join(client.GetSupportedMCPClients(*cfg), " ")))
+	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", supportedClientsList(*cfg)))
 	_ = cmd.MarkFlagRequired("name")
 
 	return cmd
@@ -440,4 +441,11 @@ func removeServerCommand() *cobra.Command {
 	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
 
 	return cmd
+}
+
+func supportedClientsList(cfg client.Config) string {
+	// Gordon doesn't support profiles yet
+	return strings.Join(sliceutil.Filter(client.GetSupportedMCPClients(cfg), func(c string) bool {
+		return c != client.VendorGordon
+	}), " ")
 }
