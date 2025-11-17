@@ -22,7 +22,7 @@ func Test_yq_list(t *testing.T) {
 	}{
 		{
 			name:    "Cursor",
-			cfg:     config.System[vendorCursor],
+			cfg:     config.System[VendorCursor],
 			content: "list/cursor.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -38,7 +38,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Claude Desktop",
-			cfg:     config.System[vendorClaudeDesktop],
+			cfg:     config.System[VendorClaudeDesktop],
 			content: "list/claude-desktop.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -54,7 +54,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Continue.dev",
-			cfg:     config.System[vendorContinueDev],
+			cfg:     config.System[VendorContinueDev],
 			content: "list/continue-dev.yml",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -73,7 +73,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "VSCode",
-			cfg:     config.Project[vendorVSCode],
+			cfg:     config.Project[VendorVSCode],
 			content: "list/vscode.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -101,7 +101,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Zed",
-			cfg:     config.System[vendorZed],
+			cfg:     config.System[VendorZed],
 			content: "list/zed.jsonc",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -122,7 +122,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Amazon Q",
-			cfg:     config.System[vendorAmazonQ],
+			cfg:     config.System[VendorAmazonQ],
 			content: "list/amazon-q.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -172,56 +172,56 @@ func Test_yq_add_del(t *testing.T) {
 	}{
 		{
 			name:     "Continue.dev - append",
-			cfg:      config.System[vendorContinueDev],
+			cfg:      config.System[VendorContinueDev],
 			original: "continue-dev-append/original.yml",
 			afterAdd: "continue-dev-append/after-add.yml",
 			afterDel: "continue-dev-append/after-del.yml",
 		},
 		{
 			name:     "Continue.dev - create",
-			cfg:      config.System[vendorContinueDev],
+			cfg:      config.System[VendorContinueDev],
 			original: "continue-dev-create/original.yml",
 			afterAdd: "continue-dev-create/after-add.yml",
 			afterDel: "continue-dev-create/after-del.yml",
 		},
 		{
 			name:     "Claude Desktop - append",
-			cfg:      config.System[vendorClaudeDesktop],
+			cfg:      config.System[VendorClaudeDesktop],
 			original: "claude-desktop-append/original.json",
 			afterAdd: "claude-desktop-append/after-add.json",
 			afterDel: "claude-desktop-append/after-del.json",
 		},
 		{
 			name:     "Claude Desktop - create",
-			cfg:      config.System[vendorClaudeDesktop],
+			cfg:      config.System[VendorClaudeDesktop],
 			original: "claude-desktop-create/original.json",
 			afterAdd: "claude-desktop-create/after-add.json",
 			afterDel: "claude-desktop-create/after-del.json",
 		},
 		{
 			name:     "VSCode - append",
-			cfg:      config.Project[vendorVSCode],
+			cfg:      config.Project[VendorVSCode],
 			original: "vscode-append/original.json",
 			afterAdd: "vscode-append/after-add.json",
 			afterDel: "vscode-append/after-del.json",
 		},
 		{
 			name:     "VSCode - create",
-			cfg:      config.Project[vendorVSCode],
+			cfg:      config.Project[VendorVSCode],
 			original: "vscode-create/original.json",
 			afterAdd: "vscode-create/after-add.json",
 			afterDel: "vscode-create/after-del.json",
 		},
 		{
 			name:     "Zed - append",
-			cfg:      config.System[vendorZed],
+			cfg:      config.System[VendorZed],
 			original: "zed-append/original.jsonc",
 			afterAdd: "zed-append/after-add.json",
 			afterDel: "zed-append/after-del.json",
 		},
 		{
 			name: "Zed - create",
-			cfg:  config.System[vendorZed],
+			cfg:  config.System[VendorZed],
 			// The real configuation file is .json and nothing rewrites
 			// the file extension. The .jsonc extension is only used so
 			// that IDEs do not complain that comments are invalid .json
@@ -231,14 +231,14 @@ func Test_yq_add_del(t *testing.T) {
 		},
 		{
 			name:     "Amazon Q - append",
-			cfg:      config.System[vendorAmazonQ],
+			cfg:      config.System[VendorAmazonQ],
 			original: "amazon-q-append/original.json",
 			afterAdd: "amazon-q-append/after-add.json",
 			afterDel: "amazon-q-append/after-del.json",
 		},
 		{
 			name:     "Amazon Q - create",
-			cfg:      config.System[vendorAmazonQ],
+			cfg:      config.System[VendorAmazonQ],
 			original: "amazon-q-create/original.json",
 			afterAdd: "amazon-q-create/after-add.json",
 			afterDel: "amazon-q-create/after-del.json",

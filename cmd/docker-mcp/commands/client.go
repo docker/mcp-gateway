@@ -9,7 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/client"
+	clientcli "github.com/docker/mcp-gateway/cmd/docker-mcp/client"
+	"github.com/docker/mcp-gateway/pkg/client"
 )
 
 func clientCommand(dockerCli command.Cli, cwd string) *cobra.Command {
@@ -35,7 +36,7 @@ func listClientCommand(cwd string, cfg client.Config) *cobra.Command {
 		Short: "List client configurations",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return client.List(cmd.Context(), cwd, cfg, opts.Global, opts.JSON)
+			return clientcli.List(cmd.Context(), cwd, cfg, opts.Global, opts.JSON)
 		},
 	}
 	flags := cmd.Flags()
@@ -55,7 +56,7 @@ func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config) 
 		Short: fmt.Sprintf("Connect the Docker MCP Toolkit to a client. Supported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return client.Connect(cmd.Context(), dockerCli, cwd, cfg, args[0], opts.Global, opts.Quiet, opts.WorkingSet)
+			return clientcli.Connect(cmd.Context(), dockerCli, cwd, cfg, args[0], opts.Global, opts.Quiet, opts.WorkingSet)
 		},
 	}
 	flags := cmd.Flags()
@@ -77,7 +78,7 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 		Short: fmt.Sprintf("Disconnect the Docker MCP Toolkit from a client. Supported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return client.Disconnect(cmd.Context(), cwd, cfg, args[0], opts.Global, opts.Quiet)
+			return clientcli.Disconnect(cmd.Context(), cwd, cfg, args[0], opts.Global, opts.Quiet)
 		},
 	}
 	flags := cmd.Flags()

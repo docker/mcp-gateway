@@ -15,9 +15,20 @@ import (
 //go:embed config.yml
 var configYaml string
 
+const (
+	VendorCursor        = "cursor"
+	VendorVSCode        = "vscode"
+	VendorClaudeDesktop = "claude-desktop"
+	VendorContinueDev   = "continue"
+	VendorGordon        = "gordon"
+	VendorZed           = "zed"
+	VendorCodex         = "codex"
+	VendorAmazonQ       = "amazon-q"
+)
+
 var (
-	getProjectRoot  = findGitProjectRoot
-	errNotInGitRepo = errors.New("could not find root project root (use --global flag to update global configuration)")
+	getProjectRoot  = FindGitProjectRoot
+	ErrNotInGitRepo = errors.New("could not find root project root (use --global flag to update global configuration)")
 )
 
 type Config struct {
@@ -34,7 +45,7 @@ func ReadConfig() *Config {
 	return &result
 }
 
-func findGitProjectRoot(dir string) string {
+func FindGitProjectRoot(dir string) string {
 	for {
 		gitPath := filepath.Join(dir, ".git")
 		if _, err := os.Stat(gitPath); err == nil {
@@ -51,8 +62,8 @@ func findGitProjectRoot(dir string) string {
 
 func GetSupportedMCPClients(cfg Config) []string {
 	tmp := map[string]struct{}{
-		vendorGordon: {},
-		vendorCodex:  {},
+		VendorGordon: {},
+		VendorCodex:  {},
 	}
 	for k := range cfg.System {
 		tmp[k] = struct{}{}
@@ -85,7 +96,7 @@ func (e *ErrVendorNotFound) Error() string {
 
 type Updater func(key string, server *MCPServerSTDIO) error
 
-func newMCPGatewayServer() *MCPServerSTDIO {
+func NewMCPGatewayServer() *MCPServerSTDIO {
 	var env map[string]string
 	if runtime.GOOS == "windows" {
 		// As of 0.9.3, Claude Desktop locks down environment variables that CLI plugins need.
@@ -102,8 +113,8 @@ func newMCPGatewayServer() *MCPServerSTDIO {
 	}
 }
 
-func newMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
-	server := newMCPGatewayServer()
+func NewMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
+	server := NewMCPGatewayServer()
 	server.Args = append(server.Args, "--profile", workingSet)
 	return server
 }
@@ -122,7 +133,7 @@ func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater,
 	}
 	projectRoot := getProjectRoot(cwd)
 	if projectRoot == "" {
-		return nil, errNotInGitRepo
+		return nil, ErrNotInGitRepo
 	}
 	cfg, ok := config.Project[vendor]
 	if !ok {
@@ -144,7 +155,7 @@ type MCPClientCfgBase struct {
 	WorkingSet            string    `json:"workingset"`
 	Err                   *CfgError `json:"error"`
 
-	cfg *MCPJSONLists
+	Cfg *MCPJSONLists
 }
 
 func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
@@ -156,5 +167,5 @@ func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
 			c.WorkingSet = server.GetWorkingSet()
 		}
 	}
-	c.cfg = lists
+	c.Cfg = lists
 }
