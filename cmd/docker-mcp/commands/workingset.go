@@ -150,9 +150,9 @@ Profiles are decoupled from catalogs. Servers can be:
 
   # Mix MCP Registry references and OCI references
   docker mcp profile create --name mixed --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest
-	
-	# Connect to clients upon creation
-	docker mcp profile create --name dev-tools --connect cursor`,
+
+  # Connect to clients upon creation
+  docker mcp profile create --name dev-tools --connect cursor`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			dao, err := db.New()
