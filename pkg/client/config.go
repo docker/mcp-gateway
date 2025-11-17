@@ -146,6 +146,15 @@ func getUpdater(vendor string, global bool, cwd string, config Config) (Updater,
 	return processor.Update, nil
 }
 
+func IsSupportedMCPClient(cfg Config, vendor string, global bool) bool {
+	if global {
+		_, ok := cfg.System[vendor]
+		return ok
+	}
+	_, ok := cfg.Project[vendor]
+	return ok
+}
+
 type MCPClientCfgBase struct {
 	DisplayName           string    `json:"displayName"`
 	Source                string    `json:"source"`

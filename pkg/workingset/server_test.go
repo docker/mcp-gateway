@@ -92,7 +92,7 @@ func TestRemoveOneServerFromWorkingSet(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "test-set", []string{
 		serverURI,
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, setID)
@@ -121,7 +121,7 @@ func TestRemoveMultipleServersFromWorkingSet(t *testing.T) {
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
@@ -147,7 +147,7 @@ func TestRemoveOneOfManyServerFromWorkingSet(t *testing.T) {
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
@@ -173,7 +173,7 @@ func TestRemoveNoServersFromWorkingSet(t *testing.T) {
 		"docker://myimage:latest",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers)
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
 	require.NoError(t, err)
 
 	err = RemoveServers(ctx, dao, workingSetID, []string{})
