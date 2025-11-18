@@ -158,34 +158,8 @@ func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet wo
 }
 
 func (c *WorkingSetConfiguration) readDockerDesktopSecrets(ctx context.Context, servers []workingset.Server) (map[string]string, error) {
-	// Use a map to deduplicate secret names
-	uniqueSecretNames := make(map[string]struct{})
-
-	for _, server := range servers {
-		serverSpec := server.Snapshot.Server
-
-		for _, s := range serverSpec.Secrets {
-			uniqueSecretNames[s.Name] = struct{}{}
-		}
-	}
-
-	if len(uniqueSecretNames) == 0 {
-		return map[string]string{}, nil
-	}
-
-	// Convert map keys to slice
-	var secretNames []string
-	for name := range uniqueSecretNames {
-		secretNames = append(secretNames, name)
-	}
-
-	log.Log("  - Reading secrets from Docker Desktop", secretNames)
-	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
-	if err != nil {
-		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
-	}
-
-	return secretsByName, nil
+	// Secrets no longer read - se:// URIs passed to containers and resolved at runtime
+	return map[string]string{}, nil
 }
 
 func getServersUsingProvider(workingSet workingset.WorkingSet, providerRef string) []workingset.Server {

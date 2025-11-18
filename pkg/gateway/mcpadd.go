@@ -84,27 +84,9 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
-		// Fetch updated secrets for the new server list
-		if g.configurator != nil {
-			if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-				updatedSecrets, err := fbc.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-				if err == nil {
-					g.configuration.secrets = updatedSecrets
-				} else {
-					log.Log("Warning: Failed to update secrets:", err)
-				}
-			}
-		}
-
-		// Check if all required secrets are set
+		// Secrets validation removed - se:// URIs are resolved at runtime by Docker Desktop
+		// Containers will fail to start if secrets are missing in the secrets engine
 		var missingSecrets []string
-		if serverConfig != nil {
-			for _, secret := range serverConfig.Spec.Secrets {
-				if value, exists := g.configuration.secrets[secret.Name]; !exists || value == "" {
-					missingSecrets = append(missingSecrets, secret.Name)
-				}
-			}
-		}
 
 		// Check if all required config values are set and validate against schema
 		var missingConfig []string

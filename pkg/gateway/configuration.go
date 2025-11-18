@@ -372,29 +372,10 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading tools: %w", err)
 	}
 
+	// Secrets no longer read during configuration load
+	// Instead, se:// URIs are passed to containers and resolved at runtime
 	var secrets map[string]string
-	if c.SecretsPath == "docker-desktop" {
-		secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
-		if err != nil {
-			return Configuration{}, fmt.Errorf("reading MCP Toolkit's secrets: %w", err)
-		}
-	} else {
-		// Unless SecretsPath is only `docker-desktop`, we don't fail if secrets can't be read.
-		// It's ok for the MCP tookit's to not be available (in Cloud Run, for example).
-		// It's ok for secrets .env file to not exist.
-		var err error
-		for secretPath := range strings.SplitSeq(c.SecretsPath, ":") {
-			if secretPath == "docker-desktop" {
-				secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
-			} else {
-				secrets, err = c.readSecretsFromFile(ctx, secretPath)
-			}
-
-			if err == nil {
-				break
-			}
-		}
-	}
+	secrets = make(map[string]string)
 
 	log.Log("- Configuration read in", time.Since(start))
 	return Configuration{
@@ -521,39 +502,8 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 }
 
 func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	// Use a map to deduplicate secret names
-	uniqueSecretNames := make(map[string]struct{})
-
-	for _, serverName := range serverNames {
-		serverName := strings.TrimSpace(serverName)
-
-		serverSpec, ok := servers[serverName]
-		if !ok {
-			continue
-		}
-
-		for _, s := range serverSpec.Secrets {
-			uniqueSecretNames[s.Name] = struct{}{}
-		}
-	}
-
-	if len(uniqueSecretNames) == 0 {
-		return map[string]string{}, nil
-	}
-
-	// Convert map keys to slice
-	var secretNames []string
-	for name := range uniqueSecretNames {
-		secretNames = append(secretNames, name)
-	}
-
-	log.Log("  - Reading secrets", secretNames)
-	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
-	if err != nil {
-		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
-	}
-
-	return secretsByName, nil
+	// Secrets no longer read - se:// URIs passed to containers and resolved at runtime
+	return map[string]string{}, nil
 }
 
 func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path string) (map[string]string, error) {
