@@ -168,7 +168,7 @@ type MCPClientCfgBase struct {
 	Icon                  string    `json:"icon"`
 	ConfigName            string    `json:"configName"`
 	IsMCPCatalogConnected bool      `json:"dockerMCPCatalogConnected"`
-	WorkingSet            string    `json:"workingset"`
+	WorkingSet            string    `json:"profile"`
 	Err                   *CfgError `json:"error"`
 
 	Cfg *MCPJSONLists
