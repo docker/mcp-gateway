@@ -634,6 +634,47 @@ type: remote`,
 				},
 			},
 		},
+		{
+			name: "image with full metadata including pulls and owner",
+			server: Server{
+				Type:  ServerTypeImage,
+				Image: "testimage:v1.0",
+			},
+			labels: map[string]string{
+				"io.docker.server.metadata": `name: GitHub Server
+type: server
+image: testimage:v1.0
+description: Official GitHub MCP Server
+title: GitHub Official
+metadata:
+  pulls: 42055
+  githubStars: 24479
+  category: devops
+  tags:
+    - github
+    - devops
+  license: MIT License
+  owner: github`,
+			},
+			expectError: false,
+			expected: &ServerSnapshot{
+				Server: catalog.Server{
+					Name:        "GitHub Server",
+					Type:        "server",
+					Image:       "testimage:v1.0",
+					Description: "Official GitHub MCP Server",
+					Title:       "GitHub Official",
+					Metadata: &catalog.Metadata{
+						Pulls:       42055,
+						GithubStars: 24479,
+						Category:    "devops",
+						Tags:        []string{"github", "devops"},
+						License:     "MIT License",
+						Owner:       "github",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -670,6 +711,15 @@ type: remote`,
 				assert.Equal(t, tt.expected.Server.Type, snapshot.Server.Type)
 				if tt.expected.Server.Description != "" {
 					assert.Equal(t, tt.expected.Server.Description, snapshot.Server.Description)
+				}
+				if tt.expected.Server.Metadata != nil {
+					require.NotNil(t, snapshot.Server.Metadata)
+					assert.Equal(t, tt.expected.Server.Metadata.Pulls, snapshot.Server.Metadata.Pulls)
+					assert.Equal(t, tt.expected.Server.Metadata.GithubStars, snapshot.Server.Metadata.GithubStars)
+					assert.Equal(t, tt.expected.Server.Metadata.Category, snapshot.Server.Metadata.Category)
+					assert.Equal(t, tt.expected.Server.Metadata.Tags, snapshot.Server.Metadata.Tags)
+					assert.Equal(t, tt.expected.Server.Metadata.License, snapshot.Server.Metadata.License)
+					assert.Equal(t, tt.expected.Server.Metadata.Owner, snapshot.Server.Metadata.Owner)
 				}
 			}
 		})
