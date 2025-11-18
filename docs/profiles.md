@@ -432,6 +432,9 @@ docker mcp client connect claude -p my-profile
 
 # Using long form
 docker mcp client connect cursor --profile my-profile
+
+# Connect upon creating the profile
+docker mcp profile create --name my-profile --connect cursor
 ```
 
 This generates the appropriate client configuration using the servers from your profile.

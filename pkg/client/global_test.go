@@ -120,7 +120,7 @@ func TestGlobalCfgProcessor_MultiplePaths(t *testing.T) {
 			if tc.expectedFound {
 				assert.True(t, result.IsInstalled)
 				assert.Nil(t, result.Err)
-				assert.NotNil(t, result.cfg)
+				assert.NotNil(t, result.Cfg)
 			} else {
 				assert.False(t, result.IsInstalled)
 			}

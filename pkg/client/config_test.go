@@ -122,7 +122,7 @@ func Test_yq_list(t *testing.T) {
 		},
 		{
 			name:    "Amazon Q",
-			cfg:     config.System[vendorAmazonQ],
+			cfg:     config.System[VendorAmazonQ],
 			content: "list/amazon-q.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
@@ -231,14 +231,14 @@ func Test_yq_add_del(t *testing.T) {
 		},
 		{
 			name:     "Amazon Q - append",
-			cfg:      config.System[vendorAmazonQ],
+			cfg:      config.System[VendorAmazonQ],
 			original: "amazon-q-append/original.json",
 			afterAdd: "amazon-q-append/after-add.json",
 			afterDel: "amazon-q-append/after-del.json",
 		},
 		{
 			name:     "Amazon Q - create",
-			cfg:      config.System[vendorAmazonQ],
+			cfg:      config.System[VendorAmazonQ],
 			original: "amazon-q-create/original.json",
 			afterAdd: "amazon-q-create/after-add.json",
 			afterDel: "amazon-q-create/after-del.json",
@@ -284,5 +284,141 @@ func getYQProcessor(t *testing.T, cfg any) yqProcessor {
 	default:
 		t.Fatalf("unknown cfg type: %T", cfg)
 		return yqProcessor{}
+	}
+}
+
+func TestIsSupportedMCPClient(t *testing.T) {
+	config := ReadConfig()
+
+	tests := []struct {
+		name     string
+		vendor   string
+		global   bool
+		expected bool
+	}{
+		// Valid global (system) vendors
+		{
+			name:     "cursor is supported as global",
+			vendor:   vendorCursor,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "vscode is supported as global",
+			vendor:   vendorVSCode,
+			global:   true,
+			expected: true, // vscode is in both System and Project
+		},
+		{
+			name:     "claude-desktop is supported as global",
+			vendor:   vendorClaudeDesktop,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "continue is supported as global",
+			vendor:   vendorContinueDev,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "zed is supported as global",
+			vendor:   vendorZed,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "amazon-q is supported as global",
+			vendor:   VendorAmazonQ,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "gordon is supported as global",
+			vendor:   VendorGordon,
+			global:   true,
+			expected: true,
+		},
+		{
+			name:     "codex is supported as global",
+			vendor:   VendorCodex,
+			global:   true,
+			expected: true,
+		},
+		// Valid project (local) vendors
+		{
+			name:     "vscode is supported as project",
+			vendor:   vendorVSCode,
+			global:   false,
+			expected: true,
+		},
+		{
+			name:     "cursor is supported as project",
+			vendor:   vendorCursor,
+			global:   false,
+			expected: true, // cursor is in both System and Project
+		},
+		{
+			name:     "amazon-q is supported as project",
+			vendor:   VendorAmazonQ,
+			global:   false,
+			expected: true, // amazon-q is in both System and Project
+		},
+		{
+			name:     "gordon is not supported as project",
+			vendor:   VendorGordon,
+			global:   false,
+			expected: false,
+		},
+		{
+			name:     "zed is not supported as project",
+			vendor:   vendorZed,
+			global:   false,
+			expected: false, // zed is only in System, not in Project
+		},
+		{
+			name:     "claude-desktop is not supported as project",
+			vendor:   vendorClaudeDesktop,
+			global:   false,
+			expected: false, // claude-desktop is only in System, not in Project
+		},
+		{
+			name:     "codex is not supported as project",
+			vendor:   VendorCodex,
+			global:   false,
+			expected: false,
+		},
+		// Invalid vendors
+		{
+			name:     "invalid vendor for global",
+			vendor:   "invalid-vendor",
+			global:   true,
+			expected: false,
+		},
+		{
+			name:     "invalid vendor for project",
+			vendor:   "invalid-vendor",
+			global:   false,
+			expected: false,
+		},
+		{
+			name:     "empty vendor for global",
+			vendor:   "",
+			global:   true,
+			expected: false,
+		},
+		{
+			name:     "empty vendor for project",
+			vendor:   "",
+			global:   false,
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := IsSupportedMCPClient(*config, tc.vendor, tc.global)
+			assert.Equal(t, tc.expected, result)
+		})
 	}
 }

@@ -6,13 +6,13 @@ import (
 	"os/exec"
 )
 
-func getGordonSetup(ctx context.Context) MCPClientCfg {
+func GetGordonSetup(ctx context.Context) MCPClientCfg {
 	result := MCPClientCfg{
 		MCPClientCfgBase: MCPClientCfgBase{
 			DisplayName: "Ask Gordon",
 			Source:      "https://docs.docker.com/ai/gordon/",
 			Icon:        "https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/gordon.png",
-			ConfigName:  vendorGordon,
+			ConfigName:  VendorGordon,
 			Err:         nil,
 		},
 		IsInstalled:   true,
@@ -36,17 +36,17 @@ func getGordonSetup(ctx context.Context) MCPClientCfg {
 	for _, feature := range temp.Features {
 		if feature.Name == "MCP Catalog" && feature.Enabled {
 			result.IsMCPCatalogConnected = true
-			result.cfg = &MCPJSONLists{STDIOServers: []MCPServerSTDIO{{Name: DockerMCPCatalog}}}
+			result.Cfg = &MCPJSONLists{STDIOServers: []MCPServerSTDIO{{Name: DockerMCPCatalog}}}
 			break
 		}
 	}
 	return result
 }
 
-func connectGordon(ctx context.Context) error {
+func ConnectGordon(ctx context.Context) error {
 	return exec.CommandContext(ctx, "docker", "ai", "config", "set-feature", "MCP Catalog", "true").Run()
 }
 
-func disconnectGordon(ctx context.Context) error {
+func DisconnectGordon(ctx context.Context) error {
 	return exec.CommandContext(ctx, "docker", "ai", "config", "set-feature", "MCP Catalog", "false").Run()
 }
