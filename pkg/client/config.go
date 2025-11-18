@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"maps"
@@ -183,4 +184,32 @@ func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
 		}
 	}
 	c.Cfg = lists
+}
+
+func FindClientsByProfile(ctx context.Context, profileID string) map[string]any {
+	clients := make(map[string]any)
+	cfg := ReadConfig()
+
+	for vendor, pathCfg := range cfg.System {
+		processor, err := NewGlobalCfgProcessor(pathCfg)
+		if err != nil {
+			continue
+		}
+		clientCfg := processor.ParseConfig()
+		if clientCfg.WorkingSet == profileID {
+			clients[vendor] = clientCfg
+		}
+	}
+
+	gordonCfg := GetGordonSetup(ctx)
+	if gordonCfg.WorkingSet == profileID {
+		clients[VendorGordon] = gordonCfg
+	}
+
+	codexCfg := GetCodexSetup(ctx)
+	if codexCfg.WorkingSet == profileID {
+		clients[VendorCodex] = codexCfg
+	}
+
+	return clients
 }
