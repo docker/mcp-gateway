@@ -10,6 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
@@ -47,10 +48,12 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		transport = c.config.Spec.Remote.Transport
 	}
 
-	// Secrets to env
+	// Secrets to env - for remote MCPs, we need actual values (not se:// URIs)
+	// because they're used in HTTP headers
 	env := map[string]string{}
-	for _, secret := range c.config.Spec.Secrets {
-		env[secret.Env] = c.config.Secrets[secret.Name]
+	for _, s := range c.config.Spec.Secrets {
+		value := getSecretValue(ctx, s.Name)
+		env[s.Env] = value
 	}
 
 	// Headers
@@ -119,6 +122,21 @@ func (c *remoteMCPClient) AddRoots(roots []*mcp.Root) {
 		c.client.AddRoots(roots...)
 	}
 	c.roots = roots
+}
+
+func getSecretValue(ctx context.Context, secretName string) string {
+	envelopes, err := secret.GetSecrets(ctx)
+	if err != nil {
+		return ""
+	}
+
+	fullID := "docker/mcp/generic/" + secretName
+	for _, env := range envelopes {
+		if env.ID == fullID {
+			return string(env.Value)
+		}
+	}
+	return ""
 }
 
 func expandEnv(value string, secrets map[string]string) string {
