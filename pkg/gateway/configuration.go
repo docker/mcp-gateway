@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -374,8 +372,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 
 	// Secrets no longer read during configuration load
 	// Instead, se:// URIs are passed to containers and resolved at runtime
-	var secrets map[string]string
-	secrets = make(map[string]string)
+	secrets := make(map[string]string)
 
 	log.Log("- Configuration read in", time.Since(start))
 	return Configuration{
@@ -499,47 +496,6 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 	}
 
 	return mergedToolsConfig, nil
-}
-
-func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	// Secrets no longer read - se:// URIs passed to containers and resolved at runtime
-	return map[string]string{}, nil
-}
-
-func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path string) (map[string]string, error) {
-	secrets := map[string]string{}
-
-	buf, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("reading secrets from %s: %w", path, err)
-	}
-
-	scanner := bufio.NewScanner(bytes.NewReader(buf))
-	for scanner.Scan() {
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
-
-		line := scanner.Text()
-		if strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		var key, value string
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			return nil, fmt.Errorf("invalid line in secrets file: %s", line)
-		}
-
-		secrets[key] = value
-	}
-
-	return secrets, nil
 }
 
 // readServersFromOci fetches and parses server definitions from OCI references

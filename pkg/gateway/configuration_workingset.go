@@ -157,7 +157,7 @@ func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet wo
 	return providerSecrets, nil
 }
 
-func (c *WorkingSetConfiguration) readDockerDesktopSecrets(ctx context.Context, servers []workingset.Server) (map[string]string, error) {
+func (c *WorkingSetConfiguration) readDockerDesktopSecrets(_ context.Context, _ []workingset.Server) (map[string]string, error) {
 	// Secrets no longer read - se:// URIs passed to containers and resolved at runtime
 	return map[string]string{}, nil
 }

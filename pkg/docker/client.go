@@ -34,7 +34,6 @@ type Client interface {
 	RemoveNetwork(ctx context.Context, name string) error
 	ConnectNetwork(ctx context.Context, networkName, container, hostname string) error
 	InspectVolume(ctx context.Context, name string) (volume.Volume, error)
-	ReadSecrets(ctx context.Context, names []string, lenient bool) (map[string]string, error)
 }
 
 type dockerClient struct {
