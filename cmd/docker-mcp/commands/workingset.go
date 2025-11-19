@@ -205,6 +205,7 @@ func listWorkingSetsCommand() *cobra.Command {
 
 func showWorkingSetCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
+	var showClients bool
 
 	cmd := &cobra.Command{
 		Use:   "show <profile-id>",
@@ -219,13 +220,13 @@ func showWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Show(cmd.Context(), dao, args[0], workingset.OutputFormat(format))
+			return workingset.Show(cmd.Context(), dao, args[0], workingset.OutputFormat(format), showClients)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
-
+	flags.BoolVar(&showClients, "clients", false, "Include client information in output")
 	return cmd
 }
 

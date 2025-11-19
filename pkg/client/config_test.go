@@ -287,6 +287,119 @@ func getYQProcessor(t *testing.T, cfg any) yqProcessor {
 	}
 }
 
+func TestFindClientsByProfile(t *testing.T) {
+	tests := []struct {
+		name            string
+		profileID       string
+		mockConfigs     map[string][]byte
+		expectedVendors []string
+	}{
+		{
+			name:      "finds all clients with matching profile",
+			profileID: "test-profile",
+			mockConfigs: map[string][]byte{
+				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
+				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-with-profile.json"),
+				vendorZed:           readTestData(t, "find-profiles/zed-with-profile.json"),
+				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-with-profile.json"),
+				vendorContinueDev:   readTestData(t, "find-profiles/continue-with-profile.yml"),
+			},
+			expectedVendors: []string{vendorCursor, vendorClaudeDesktop, vendorZed, VendorAmazonQ, vendorContinueDev},
+		},
+		{
+			name:      "finds no clients when profile doesn't match",
+			profileID: "non-existent-profile",
+			mockConfigs: map[string][]byte{
+				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
+				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-with-profile.json"),
+				vendorZed:           readTestData(t, "find-profiles/zed-without-profile.json"),
+				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorContinueDev:   readTestData(t, "find-profiles/continue-without-profile.yml"),
+			},
+			expectedVendors: []string{},
+		},
+		{
+			name:      "finds clients without profile when searching for empty string",
+			profileID: "",
+			mockConfigs: map[string][]byte{
+				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
+				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-without-profile.json"),
+				vendorZed:           readTestData(t, "find-profiles/zed-without-profile.json"),
+				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorContinueDev:   readTestData(t, "find-profiles/continue-without-profile.yml"),
+			},
+			expectedVendors: []string{vendorClaudeDesktop, vendorZed, VendorAmazonQ, vendorContinueDev},
+		},
+		{
+			name:      "finds mix of clients with and without matching profile",
+			profileID: "test-profile",
+			mockConfigs: map[string][]byte{
+				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
+				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-without-profile.json"),
+				vendorZed:           readTestData(t, "find-profiles/zed-with-profile.json"),
+				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorContinueDev:   readTestData(t, "find-profiles/continue-with-profile.yml"),
+			},
+			expectedVendors: []string{vendorCursor, vendorZed, vendorContinueDev},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			config := ReadConfig()
+
+			expectedMap := make(map[string]bool)
+			for _, vendor := range tc.expectedVendors {
+				expectedMap[vendor] = true
+			}
+
+			foundClients := 0
+			for vendor, configData := range tc.mockConfigs {
+				pathCfg, ok := config.System[vendor]
+				if !ok {
+					continue
+				}
+
+				processor, err := NewGlobalCfgProcessor(pathCfg)
+				require.NoError(t, err)
+
+				lists, err := processor.p.Parse(configData)
+				require.NoError(t, err)
+
+				clientCfg := MCPClientCfg{
+					MCPClientCfgBase: MCPClientCfgBase{
+						DisplayName: pathCfg.DisplayName,
+						Source:      pathCfg.Source,
+						Icon:        pathCfg.Icon,
+					},
+					IsInstalled:   true,
+					IsOsSupported: true,
+				}
+				clientCfg.setParseResult(lists, nil)
+
+				shouldMatch := expectedMap[vendor]
+
+				if shouldMatch {
+					assert.Equal(t, tc.profileID, clientCfg.WorkingSet,
+						"Expected vendor %s to have profile %s", vendor, tc.profileID)
+					foundClients++
+				} else {
+					assert.NotEqual(t, tc.profileID, clientCfg.WorkingSet,
+						"Expected vendor %s to NOT have profile %s", vendor, tc.profileID)
+				}
+
+				if clientCfg.WorkingSet != "" || clientCfg.IsMCPCatalogConnected {
+					assert.True(t, clientCfg.IsMCPCatalogConnected,
+						"IsMCPCatalogConnected should be true when MCP_DOCKER is configured")
+				}
+			}
+
+			assert.Equal(t, len(tc.expectedVendors), foundClients,
+				"Should find exactly %d clients with profile %s", len(tc.expectedVendors), tc.profileID)
+		})
+	}
+}
+
 func TestIsSupportedMCPClient(t *testing.T) {
 	config := ReadConfig()
 
