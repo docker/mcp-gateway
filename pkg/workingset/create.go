@@ -48,16 +48,16 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		ID:      id,
 		Name:    name,
 		Version: CurrentWorkingSetVersion,
-		Servers: make([]Server, len(servers)),
+		Servers: make([]Server, 0),
 		Secrets: secrets,
 	}
 
-	for i, server := range servers {
-		s, err := resolveServerFromString(ctx, registryClient, ociService, server)
+	for _, server := range servers {
+		ss, err := resolveServersFromString(ctx, registryClient, ociService, dao, server)
 		if err != nil {
 			return err
 		}
-		workingSet.Servers[i] = s
+		workingSet.Servers = append(workingSet.Servers, ss...)
 	}
 
 	if err := workingSet.Validate(); err != nil {

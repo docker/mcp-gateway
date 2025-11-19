@@ -141,15 +141,16 @@ func createWorkingSetCommand(cfg *client.Config) *cobra.Command {
 A profile allows you to organize and manage related servers as a single unit.
 Profiles are decoupled from catalogs. Servers can be:
   - MCP Registry references (e.g. http://registry.modelcontextprotocol.io/v0/servers/312e45a4-2216-4b21-b9a8-0f1a51425073)
-  - OCI image references with docker:// prefix (e.g., "docker://mcp/github:latest")`,
-		Example: `  # Create a profile with multiple servers (OCI references)
-  docker mcp profile create --name dev-tools --server docker://mcp/github:latest --server docker://mcp/slack:latest
+  - OCI image references with docker:// prefix (e.g., "docker://my-server:latest"). Images must be self-describing.
+	- Catalog references with catalog:// prefix (e.g., "catalog://mcp/docker-mcp-catalog/github+obsidian").`,
+		Example: `  # Create a profile with servers from a catalog
+  docker mcp profile create --name dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
+
+  # Create a profile with multiple servers (OCI references)
+  docker mcp profile create --name my-profile --server docker://my-server:latest --server docker://my-other-server:latest
 
   # Create a profile with MCP Registry references
-  docker mcp profile create --name registry-servers --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
-
-  # Mix MCP Registry references and OCI references
-  docker mcp profile create --name mixed --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest
+  docker mcp profile create --name my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
   # Connect to clients upon creation
   docker mcp profile create --name dev-tools --connect cursor`,
@@ -168,7 +169,7 @@ Profiles are decoupled from catalogs. Servers can be:
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include: catalog name or OCI reference with docker:// prefix (can be specified multiple times)")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", supportedClientsList(*cfg)))
 	_ = cmd.MarkFlagRequired("name")
 
@@ -372,27 +373,22 @@ func workingsetServerCommand() *cobra.Command {
 
 func addServerCommand() *cobra.Command {
 	var servers []string
-	var catalog string
-	var catalogServers []string
 
 	cmd := &cobra.Command{
-		Use:   "add <profile-id> [--server <ref1> --server <ref2> ...] [--catalog <oci-reference> --catalog-server <server1> --catalog-server <server2> ...]",
+		Use:   "add <profile-id> [--server <ref1> --server <ref2> ...]",
 		Short: "Add MCP servers to a profile",
 		Long:  "Add MCP servers to a profile.",
-		Example: ` # Add servers with OCI references
-  docker mcp profile server add dev-tools --server docker://mcp/github:latest --server docker://mcp/slack:latest
+		Example: `  # Add servers from a catalog
+  docker mcp profile server add dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
+
+  # Add servers with OCI references
+  docker mcp profile server add my-profile --server docker://my-server:latest
 
   # Add servers with MCP Registry references
-  docker mcp profile server add dev-tools --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+  docker mcp profile server add my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
-  # Mix MCP Registry references and OCI references
-  docker mcp profile server add dev-tools --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --server docker://mcp/github:latest
-
-  # Add servers from a catalog
-  docker mcp profile server add dev-tools --catalog my-catalog --catalog-server github --catalog-server slack
-
-  # Mix catalog servers with direct server references
-  docker mcp profile server add dev-tools --catalog my-catalog --catalog-server github --server docker://mcp/slack:latest`,
+  # Mix server references
+  docker mcp profile server add dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian --server docker://my-server:latest`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
@@ -401,14 +397,12 @@ func addServerCommand() *cobra.Command {
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return workingset.AddServers(cmd.Context(), dao, registryClient, ociService, args[0], servers, catalog, catalogServers)
+			return workingset.AddServers(cmd.Context(), dao, registryClient, ociService, args[0], servers)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&servers, "server", []string{}, "Server to include: MCP Registry reference or OCI reference with docker:// prefix (can be specified multiple times)")
-	flags.StringVar(&catalog, "catalog", "", "Catalog to add servers from (optional)")
-	flags.StringArrayVar(&catalogServers, "catalog-server", []string{}, "Server names from the catalog to add (can be specified multiple times, requires --catalog)")
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
 
 	return cmd
 }

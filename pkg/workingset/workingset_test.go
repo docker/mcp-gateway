@@ -358,14 +358,14 @@ func TestResolveServerFromString(t *testing.T) {
 	tests := []struct {
 		name            string
 		input           string
-		expected        Server
+		expected        []Server
 		expectedVersion string
 		expectError     bool
 	}{
 		{
 			name:  "local docker image",
 			input: "docker://myimage:latest",
-			expected: Server{
+			expected: []Server{{
 				Type:  ServerTypeImage,
 				Image: "myimage:latest",
 				Snapshot: &ServerSnapshot{
@@ -376,13 +376,13 @@ func TestResolveServerFromString(t *testing.T) {
 					},
 				},
 				Secrets: "default",
-			},
+			}},
 			expectedVersion: "latest",
 		},
 		{
 			name:  "remote docker image",
 			input: "docker://bobbarker/myimage:latest",
-			expected: Server{
+			expected: []Server{{
 				Type:  ServerTypeImage,
 				Image: "bobbarker/myimage:latest@sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 				Snapshot: &ServerSnapshot{
@@ -393,37 +393,37 @@ func TestResolveServerFromString(t *testing.T) {
 					},
 				},
 				Secrets: "default",
-			},
+			}},
 			expectedVersion: "latest",
 		},
 		{
 			name:  "http registry",
 			input: "http://example.com/v0/servers/my-server",
-			expected: Server{
+			expected: []Server{{
 				Type:    ServerTypeRegistry,
 				Source:  "http://example.com/v0/servers/my-server/versions/latest",
 				Secrets: "default",
-			},
+			}},
 			expectedVersion: "latest",
 		},
 		{
 			name:  "https registry",
 			input: "https://example.com/v0/servers/my-server",
-			expected: Server{
+			expected: []Server{{
 				Type:    ServerTypeRegistry,
 				Source:  "https://example.com/v0/servers/my-server/versions/latest",
 				Secrets: "default",
-			},
+			}},
 			expectedVersion: "latest",
 		},
 		{
 			name:  "specific version registry",
 			input: "https://example.com/v0/servers/my-server/versions/0.1.0",
-			expected: Server{
+			expected: []Server{{
 				Type:    ServerTypeRegistry,
 				Source:  "https://example.com/v0/servers/my-server/versions/0.1.0",
 				Secrets: "default",
-			},
+			}},
 			expectedVersion: "0.1.0",
 		},
 		{
@@ -435,6 +435,8 @@ func TestResolveServerFromString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			dao := setupTestDB(t)
+
 			serverResponse := v0.ServerResponse{
 				Server: v0.ServerJSON{
 					Version: tt.expectedVersion,
@@ -481,7 +483,7 @@ func TestResolveServerFromString(t *testing.T) {
 					},
 				}))
 
-			server, err := resolveServerFromString(t.Context(), registryClient, ociService, tt.input)
+			server, err := resolveServersFromString(t.Context(), registryClient, ociService, dao, tt.input)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -493,6 +495,8 @@ func TestResolveServerFromString(t *testing.T) {
 }
 
 func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
+	dao := setupTestDB(t)
+
 	serverResponse := v0.ServerResponse{
 		Server: v0.ServerJSON{
 			Version: "0.2.0",
@@ -532,9 +536,9 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 		"http://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
 	}))
 
-	server, err := resolveServerFromString(t.Context(), registryClient, mocks.NewMockOCIService(), "http://example.com/v0/servers/my-server")
+	server, err := resolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
 	require.NoError(t, err)
-	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server.Source)
+	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server[0].Source)
 }
 
 func TestResolveSnapshot(t *testing.T) {
