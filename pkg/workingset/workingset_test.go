@@ -646,6 +646,7 @@ type: server
 image: testimage:v1.0
 description: Official GitHub MCP Server
 title: GitHub Official
+icon: https://avatars.githubusercontent.com/u/9919?s=200&v=4
 metadata:
   pulls: 42055
   githubStars: 24479
@@ -664,6 +665,7 @@ metadata:
 					Image:       "testimage:v1.0",
 					Description: "Official GitHub MCP Server",
 					Title:       "GitHub Official",
+					Icon:        "https://avatars.githubusercontent.com/u/9919?s=200&v=4",
 					Metadata: &catalog.Metadata{
 						Pulls:       42055,
 						GithubStars: 24479,
@@ -711,6 +713,9 @@ metadata:
 				assert.Equal(t, tt.expected.Server.Type, snapshot.Server.Type)
 				if tt.expected.Server.Description != "" {
 					assert.Equal(t, tt.expected.Server.Description, snapshot.Server.Description)
+				}
+				if tt.expected.Server.Icon != "" {
+					assert.Equal(t, tt.expected.Server.Icon, snapshot.Server.Icon)
 				}
 				if tt.expected.Server.Metadata != nil {
 					require.NotNil(t, snapshot.Server.Metadata)

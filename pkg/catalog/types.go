@@ -20,6 +20,7 @@ type Server struct {
 	Image          string    `yaml:"image" json:"image"`
 	Description    string    `yaml:"description,omitempty" json:"description,omitempty"`
 	Title          string    `yaml:"title,omitempty" json:"title,omitempty"`
+	Icon           string    `yaml:"icon,omitempty" json:"icon,omitempty"`
 	LongLived      bool      `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote    `yaml:"remote" json:"remote"`
 	SSEEndpoint    string    `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
