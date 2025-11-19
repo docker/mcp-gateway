@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test functions for Codex configuration handling
+
 func TestReadCodexConfig_WithProfile(t *testing.T) {
 	config := make(map[string]any)
 
