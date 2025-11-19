@@ -51,8 +51,10 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
+				t.Helper()
 				assert.Len(t, servers[0].Tools, 1)
-				assert.Equal(t, servers[0].Tools[0], "test-tool-1")
+				assert.Equal(t, "test-tool-1", servers[0].Tools[0])
 			},
 		},
 		{
@@ -66,6 +68,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -80,6 +83,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "No changes made to profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 			},
 		},
@@ -94,6 +98,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"test-server"},
 			expectedOutput: "Disabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -108,6 +113,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.NotContains(t, servers[0].Tools, "test-tool-1")
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 				assert.Contains(t, servers[0].Tools, "test-tool-3")
@@ -125,6 +131,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "No changes made to profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 			},
 		},
@@ -139,6 +146,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 			},
@@ -154,11 +162,12 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
 		{
-			name: "one tool, disable non-existant tool",
+			name: "one tool, disable non-existent tool",
 			servers: []db.Server{
 				makeServer("test-server", []catalog.Tool{{Name: "test-tool-1"}, {Name: "test-tool-2"}}, []string{"test-tool-1"}),
 			},
@@ -168,6 +177,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "No changes made to profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Len(t, servers[0].Tools, 1)
 			},
@@ -183,6 +193,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 			},
 		},
@@ -197,6 +208,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"test-server"},
 			expectedOutput: "Disabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.NotNil(t, servers[0].Tools)
 				assert.Empty(t, servers[0].Tools)
 			},
@@ -212,6 +224,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Len(t, servers[0].Tools, 1)
 			},
@@ -227,6 +240,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "No changes made to profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -241,6 +255,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 			},
 		},
@@ -255,6 +270,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"test-server"},
 			expectedOutput: "No changes made to profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -269,6 +285,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 				assert.Contains(t, servers[0].Tools, "test-tool-3")
@@ -286,6 +303,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.NotContains(t, servers[0].Tools, "test-tool-1")
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 				assert.Len(t, servers[0].Tools, 1)
@@ -302,6 +320,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 			},
 		},
@@ -316,6 +335,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"test-server"},
 			expectedOutput: "Disabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.NotNil(t, servers[0].Tools)
 				assert.Empty(t, servers[0].Tools)
 			},
@@ -332,6 +352,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 2 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "tool-1")
 				assert.Contains(t, servers[1].Tools, "tool-2")
 			},
@@ -348,6 +369,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 				assert.NotNil(t, servers[1].Tools)
 				assert.Empty(t, servers[1].Tools)
@@ -364,6 +386,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 1 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.test-tool-1\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				// Should be empty since disable happens after enable
 				assert.Empty(t, servers[0].Tools)
 			},
@@ -380,6 +403,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"server-2"},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\nDisabled all tools for 1 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 				assert.NotNil(t, servers[1].Tools)
 				assert.Empty(t, servers[1].Tools)
@@ -397,6 +421,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\nUpdated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 				assert.Contains(t, servers[1].Tools, "tool-2")
 			},
@@ -412,6 +437,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\nUpdated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				// Enable-all sets to nil, then disable expands and removes tool-1
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 				assert.NotContains(t, servers[0].Tools, "test-tool-1")
@@ -429,6 +455,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"test-server"},
 			expectedOutput: "Disabled all tools for 1 server(s) in profile test-set\nUpdated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				// Disable-all sets to empty, then enable adds tool-2
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
 				assert.Len(t, servers[0].Tools, 1)
@@ -445,6 +472,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Len(t, servers[0].Tools, 1)
 			},
@@ -460,6 +488,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 0 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -474,6 +503,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Updated profile test-set: 2 tool(s) enabled, 2 tool(s) disabled\nWarning: The following tool(s) were both enabled and disabled in the same operation: test-server.test-tool-1, test-server.test-tool-2\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Empty(t, servers[0].Tools)
 			},
 		},
@@ -490,6 +520,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 3 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 				assert.Nil(t, servers[1].Tools)
 				assert.Nil(t, servers[2].Tools)
@@ -508,6 +539,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{"server-1", "server-2", "server-3"},
 			expectedOutput: "Disabled all tools for 2 server(s) in profile test-set\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.NotNil(t, servers[0].Tools)
 				assert.Empty(t, servers[0].Tools)
 				assert.NotNil(t, servers[1].Tools)
@@ -527,6 +559,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			disableAllArgs: []string{},
 			expectedOutput: "Enabled all tools for 1 server(s) in profile test-set\nUpdated profile test-set: 1 tool(s) enabled, 1 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
+				t.Helper()
 				assert.Contains(t, servers[0].Tools, "tool-2")
 				assert.NotContains(t, servers[0].Tools, "tool-1")
 				assert.Contains(t, servers[1].Tools, "tool-3")
