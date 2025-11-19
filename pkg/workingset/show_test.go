@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
@@ -391,4 +392,43 @@ func TestShowWithEmptyTools(t *testing.T) {
 
 	assert.Len(t, workingSet.Servers, 1)
 	assert.Empty(t, workingSet.Servers[0].Tools)
+}
+
+func TestShowSnapshotWithIcon(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "docker/test:latest",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name:        "Test Server",
+						Type:        "server",
+						Image:       "docker/test:latest",
+						Description: "Test server description",
+						Title:       "Test Server Title",
+						Icon:        "https://example.com/icon.png",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := Show(ctx, dao, "test-set", OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var workingSet WorkingSet
+	err = json.Unmarshal([]byte(output), &workingSet)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://example.com/icon.png", workingSet.Servers[0].Snapshot.Server.Icon)
 }
