@@ -17,33 +17,27 @@ func TestReadCodexConfig_WithProfile(t *testing.T) {
 		},
 	}
 
-	if mcpServers, ok := config["mcp_servers"].(map[string]any); ok {
-		if dockerMCP, exists := mcpServers[DockerMCPCatalog]; exists && dockerMCP != nil {
-			if serverConfigMap, ok := dockerMCP.(map[string]any); ok {
-				serverConfig := MCPServerSTDIO{
-					Name: DockerMCPCatalog,
-				}
+	mcpServers := config["mcp_servers"].(map[string]any)
+	dockerMCP := mcpServers[DockerMCPCatalog]
+	require.NotNil(t, dockerMCP, "dockerMCP should not be nil")
 
-				if command, ok := serverConfigMap["command"].(string); ok {
-					serverConfig.Command = command
-				}
-
-				if args, ok := serverConfigMap["args"].([]any); ok {
-					for _, arg := range args {
-						if argStr, ok := arg.(string); ok {
-							serverConfig.Args = append(serverConfig.Args, argStr)
-						}
-					}
-				}
-
-				workingSet := serverConfig.GetWorkingSet()
-
-				assert.Equal(t, "test-profile", workingSet, "WorkingSet should be extracted from config args")
-				assert.Equal(t, "docker", serverConfig.Command, "Command should be 'docker'")
-				assert.Equal(t, []string{"mcp", "gateway", "run", "--profile", "test-profile"}, serverConfig.Args, "Args should include profile")
-			}
-		}
+	serverConfigMap := dockerMCP.(map[string]any)
+	serverConfig := MCPServerSTDIO{
+		Name: DockerMCPCatalog,
 	}
+
+	serverConfig.Command = serverConfigMap["command"].(string)
+
+	args := serverConfigMap["args"].([]any)
+	for _, arg := range args {
+		serverConfig.Args = append(serverConfig.Args, arg.(string))
+	}
+
+	workingSet := serverConfig.GetWorkingSet()
+
+	assert.Equal(t, "test-profile", workingSet, "WorkingSet should be extracted from config args")
+	assert.Equal(t, "docker", serverConfig.Command, "Command should be 'docker'")
+	assert.Equal(t, []string{"mcp", "gateway", "run", "--profile", "test-profile"}, serverConfig.Args, "Args should include profile")
 }
 
 func TestReadCodexConfig_WithoutProfile(t *testing.T) {
@@ -55,33 +49,27 @@ func TestReadCodexConfig_WithoutProfile(t *testing.T) {
 		},
 	}
 
-	if mcpServers, ok := config["mcp_servers"].(map[string]any); ok {
-		if dockerMCP, exists := mcpServers[DockerMCPCatalog]; exists && dockerMCP != nil {
-			if serverConfigMap, ok := dockerMCP.(map[string]any); ok {
-				serverConfig := MCPServerSTDIO{
-					Name: DockerMCPCatalog,
-				}
+	mcpServers := config["mcp_servers"].(map[string]any)
+	dockerMCP := mcpServers[DockerMCPCatalog]
+	require.NotNil(t, dockerMCP, "dockerMCP should not be nil")
 
-				if command, ok := serverConfigMap["command"].(string); ok {
-					serverConfig.Command = command
-				}
-
-				if args, ok := serverConfigMap["args"].([]any); ok {
-					for _, arg := range args {
-						if argStr, ok := arg.(string); ok {
-							serverConfig.Args = append(serverConfig.Args, argStr)
-						}
-					}
-				}
-
-				workingSet := serverConfig.GetWorkingSet()
-
-				assert.Empty(t, workingSet, "WorkingSet should be empty when no profile in args")
-				assert.Equal(t, "docker", serverConfig.Command, "Command should be 'docker'")
-				assert.Equal(t, []string{"mcp", "gateway", "run"}, serverConfig.Args, "Args should not include profile")
-			}
-		}
+	serverConfigMap := dockerMCP.(map[string]any)
+	serverConfig := MCPServerSTDIO{
+		Name: DockerMCPCatalog,
 	}
+
+	serverConfig.Command = serverConfigMap["command"].(string)
+
+	args := serverConfigMap["args"].([]any)
+	for _, arg := range args {
+		serverConfig.Args = append(serverConfig.Args, arg.(string))
+	}
+
+	workingSet := serverConfig.GetWorkingSet()
+
+	assert.Empty(t, workingSet, "WorkingSet should be empty when no profile in args")
+	assert.Equal(t, "docker", serverConfig.Command, "Command should be 'docker'")
+	assert.Equal(t, []string{"mcp", "gateway", "run"}, serverConfig.Args, "Args should not include profile")
 }
 
 func TestConnectCodex_GeneratesCorrectConfig(t *testing.T) {
@@ -122,22 +110,22 @@ func TestConnectCodex_GeneratesCorrectConfig(t *testing.T) {
 				},
 			}
 
-			if mcpServers, ok := config["mcp_servers"].(map[string]any); ok {
-				if dockerMCP, exists := mcpServers[DockerMCPCatalog]; exists && dockerMCP != nil {
-					serverCfg := dockerMCP.(MCPServerConfig)
+			mcpServers := config["mcp_servers"].(map[string]any)
+			dockerMCP := mcpServers[DockerMCPCatalog]
+			require.NotNil(t, dockerMCP, "dockerMCP should not be nil")
 
-					serverConfig := MCPServerSTDIO{
-						Name:    DockerMCPCatalog,
-						Command: serverCfg.Command,
-						Args:    serverCfg.Args,
-					}
+			serverCfg := dockerMCP.(MCPServerConfig)
 
-					workingSet := serverConfig.GetWorkingSet()
-
-					assert.Equal(t, tc.expectedWS, workingSet, "WorkingSet should match expected")
-					assert.Equal(t, tc.expectedArgs, serverConfig.Args, "Args should match expected")
-				}
+			serverConfig := MCPServerSTDIO{
+				Name:    DockerMCPCatalog,
+				Command: serverCfg.Command,
+				Args:    serverCfg.Args,
 			}
+
+			workingSet := serverConfig.GetWorkingSet()
+
+			assert.Equal(t, tc.expectedWS, workingSet, "WorkingSet should match expected")
+			assert.Equal(t, tc.expectedArgs, serverConfig.Args, "Args should match expected")
 		})
 	}
 }
@@ -152,32 +140,23 @@ func TestCodexConfigExtraction(t *testing.T) {
 		},
 	}
 
-	if mcpServers, ok := configAfterTomlUnmarshal["mcp_servers"].(map[string]any); ok {
-		dockerMCP, exists := mcpServers["MCP_DOCKER"]
-		require.True(t, exists, "MCP_DOCKER should exist")
-		require.NotNil(t, dockerMCP, "dockerMCP should not be nil")
+	mcpServers := configAfterTomlUnmarshal["mcp_servers"].(map[string]any)
+	dockerMCP := mcpServers["MCP_DOCKER"]
+	require.NotNil(t, dockerMCP, "dockerMCP should not be nil")
 
-		serverConfigMap, ok := dockerMCP.(map[string]any)
-		require.True(t, ok, "should be able to cast to map[string]any")
+	serverConfigMap := dockerMCP.(map[string]any)
+	serverConfig := MCPServerSTDIO{Name: "MCP_DOCKER"}
 
-		serverConfig := MCPServerSTDIO{Name: "MCP_DOCKER"}
+	serverConfig.Command = serverConfigMap["command"].(string)
 
-		if command, ok := serverConfigMap["command"].(string); ok {
-			serverConfig.Command = command
-		}
-
-		if args, ok := serverConfigMap["args"].([]any); ok {
-			for _, arg := range args {
-				if argStr, ok := arg.(string); ok {
-					serverConfig.Args = append(serverConfig.Args, argStr)
-				}
-			}
-		}
-
-		workingSet := serverConfig.GetWorkingSet()
-
-		assert.Equal(t, "docker", serverConfig.Command)
-		assert.Equal(t, []string{"mcp", "gateway", "run", "--profile", "my-profile"}, serverConfig.Args)
-		assert.Equal(t, "my-profile", workingSet)
+	args := serverConfigMap["args"].([]any)
+	for _, arg := range args {
+		serverConfig.Args = append(serverConfig.Args, arg.(string))
 	}
+
+	workingSet := serverConfig.GetWorkingSet()
+
+	assert.Equal(t, "docker", serverConfig.Command)
+	assert.Equal(t, []string{"mcp", "gateway", "run", "--profile", "my-profile"}, serverConfig.Args)
+	assert.Equal(t, "my-profile", workingSet)
 }
