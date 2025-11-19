@@ -456,7 +456,7 @@ func TestShowSnapshotWithIcon(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
 		require.NoError(t, err)
 	})
 
