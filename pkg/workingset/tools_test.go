@@ -52,7 +52,6 @@ func TestToolsUpdateOperations(t *testing.T) {
 			expectedOutput: "Updated profile test-set: 1 tool(s) enabled, 0 tool(s) disabled\n",
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
-				t.Helper()
 				assert.Len(t, servers[0].Tools, 1)
 				assert.Equal(t, "test-tool-1", servers[0].Tools[0])
 			},
@@ -70,6 +69,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -100,6 +100,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -133,6 +134,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
+				assert.Len(t, servers[0].Tools, 1)
 			},
 		},
 		{
@@ -149,6 +151,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 				t.Helper()
 				assert.Contains(t, servers[0].Tools, "test-tool-1")
 				assert.Contains(t, servers[0].Tools, "test-tool-2")
+				assert.Len(t, servers[0].Tools, 2)
 			},
 		},
 		{
@@ -164,6 +167,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -242,6 +246,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -272,6 +277,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -354,7 +360,9 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Contains(t, servers[0].Tools, "tool-1")
+				assert.Len(t, servers[0].Tools, 1)
 				assert.Contains(t, servers[1].Tools, "tool-2")
+				assert.Len(t, servers[1].Tools, 1)
 			},
 		},
 		{
@@ -389,6 +397,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 				t.Helper()
 				// Should be empty since disable happens after enable
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -424,6 +433,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 				t.Helper()
 				assert.Nil(t, servers[0].Tools)
 				assert.Contains(t, servers[1].Tools, "tool-2")
+				assert.Len(t, servers[1].Tools, 1)
 			},
 		},
 		{
@@ -490,6 +500,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -505,6 +516,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 			makeAssertions: func(t *testing.T, servers db.ServerList) {
 				t.Helper()
 				assert.Empty(t, servers[0].Tools)
+				assert.NotNil(t, servers[0].Tools)
 			},
 		},
 		{
@@ -544,6 +556,7 @@ func TestToolsUpdateOperations(t *testing.T) {
 				assert.Empty(t, servers[0].Tools)
 				assert.NotNil(t, servers[1].Tools)
 				assert.Empty(t, servers[1].Tools)
+				assert.NotNil(t, servers[2].Tools)
 				assert.Empty(t, servers[2].Tools)
 			},
 		},
@@ -562,8 +575,10 @@ func TestToolsUpdateOperations(t *testing.T) {
 				t.Helper()
 				assert.Contains(t, servers[0].Tools, "tool-2")
 				assert.NotContains(t, servers[0].Tools, "tool-1")
+				assert.Len(t, servers[0].Tools, 1)
 				assert.Contains(t, servers[1].Tools, "tool-3")
 				assert.Contains(t, servers[1].Tools, "tool-4")
+				assert.Len(t, servers[1].Tools, 2)
 			},
 		},
 	}
