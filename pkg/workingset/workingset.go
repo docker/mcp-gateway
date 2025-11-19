@@ -2,8 +2,11 @@ package workingset
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -16,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/validate"
 )
 
@@ -248,35 +252,79 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	return "", fmt.Errorf("failed to create profile id")
 }
 
-func resolveServerFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, value string) (Server, error) {
+func resolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
 	if v, ok := strings.CutPrefix(value, "docker://"); ok {
 		fullRef, err := ResolveImageRef(ctx, ociService, v)
 		if err != nil {
-			return Server{}, fmt.Errorf("failed to resolve image ref: %w", err)
+			return nil, fmt.Errorf("failed to resolve image ref: %w", err)
 		}
 		serverSnapshot, err := ResolveImageSnapshot(ctx, ociService, fullRef)
 		if err != nil {
-			return Server{}, fmt.Errorf("failed to resolve image snapshot: %w", err)
+			return nil, fmt.Errorf("failed to resolve image snapshot: %w", err)
 		}
-		return Server{
+		return []Server{{
 			Type:     ServerTypeImage,
 			Image:    fullRef,
 			Secrets:  "default",
 			Snapshot: serverSnapshot,
-		}, nil
+		}}, nil
+	} else if v, ok := strings.CutPrefix(value, "catalog://"); ok {
+		return ResolveCatalogServers(ctx, dao, v)
 	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
 		url, err := ResolveRegistry(ctx, registryClient, value)
 		if err != nil {
-			return Server{}, fmt.Errorf("failed to resolve registry: %w", err)
+			return nil, fmt.Errorf("failed to resolve registry: %w", err)
 		}
-		return Server{
+		return []Server{{
 			Type:    ServerTypeRegistry,
 			Source:  url,
 			Secrets: "default",
 			// TODO(cody): add snapshot
-		}, nil
+		}}, nil
 	}
-	return Server{}, fmt.Errorf("invalid server value: %s", value)
+	return nil, fmt.Errorf("invalid server value: %s", value)
+}
+
+func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Server, error) {
+	parts := strings.Split(value, "/")
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("invalid catalog URL: catalog://%s", value)
+	}
+	catalogRef := strings.Join(parts[:len(parts)-1], "/")
+	serverList := parts[len(parts)-1]
+
+	serverNames := strings.Split(serverList, "+")
+
+	if len(serverNames) == 0 {
+		return nil, fmt.Errorf("no servers specified in catalog URL: catalog://%s", value)
+	}
+
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse catalog reference %s: %w", catalogRef, err)
+	}
+	catalogRef = oci.FullNameWithoutDigest(ref)
+
+	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("catalog %s not found", catalogRef)
+		}
+		return nil, fmt.Errorf("failed to get catalog: %w", err)
+	}
+
+	filteredServers := make([]db.CatalogServer, 0, len(dbCatalog.Servers))
+	for _, server := range dbCatalog.Servers {
+		if slices.Contains(serverNames, server.Snapshot.Server.Name) {
+			filteredServers = append(filteredServers, server)
+		}
+	}
+	if len(filteredServers) != len(serverNames) {
+		missingServers := sliceutil.Difference(serverNames, sliceutil.Map(filteredServers, func(server db.CatalogServer) string { return server.Snapshot.Server.Name }))
+		return nil, fmt.Errorf("servers were not found in catalog: %v", missingServers)
+	}
+
+	return mapCatalogServersToWorkingSetServers(filteredServers, "default"), nil
 }
 
 func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) (string, error) {
@@ -428,4 +476,22 @@ func getCatalogServerFromImage(ociService oci.Service, img v1.Image, name string
 	server.Image = name
 
 	return server, nil
+}
+
+func mapCatalogServersToWorkingSetServers(dbServers []db.CatalogServer, secrets string) []Server {
+	servers := make([]Server, len(dbServers))
+	for i, server := range dbServers {
+		servers[i] = Server{
+			Type:   ServerType(server.ServerType),
+			Tools:  server.Tools,
+			Config: map[string]any{},
+			Source: server.Source,
+			Image:  server.Image,
+			Snapshot: &ServerSnapshot{
+				Server: server.Snapshot.Server,
+			},
+			Secrets: secrets,
+		}
+	}
+	return servers
 }
