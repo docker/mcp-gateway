@@ -365,7 +365,7 @@ func TestShowWithEmptyTools(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create a working set with empty tools
+	// Create a working set with empty tools (all tools disabled)
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
 		ID:   "test-set",
 		Name: "Test Working Set",
@@ -390,5 +390,39 @@ func TestShowWithEmptyTools(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, workingSet.Servers, 1)
+	assert.NotNil(t, workingSet.Servers[0].Tools)
 	assert.Empty(t, workingSet.Servers[0].Tools)
+	assert.Contains(t, output, `"tools": []`)
+}
+
+func TestShowWithNilTools(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "docker/test:latest",
+				Tools: nil,
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := Show(ctx, dao, "test-set", OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var workingSet WorkingSet
+	err = json.Unmarshal([]byte(output), &workingSet)
+	require.NoError(t, err)
+
+	assert.Len(t, workingSet.Servers, 1)
+	assert.Nil(t, workingSet.Servers[0].Tools)
+	assert.Contains(t, output, `"tools": null`)
 }
