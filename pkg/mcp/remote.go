@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
@@ -64,8 +65,11 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
-		token := c.getOAuthToken(ctx)
-		if token != "" {
+		credHelper := oauth.NewOAuthCredentialHelper()
+		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+		if err != nil {
+			log.Logf("Failed to get OAuth token for %s: %v", c.config.Name, err)
+		} else if token != "" {
 			headers["Authorization"] = "Bearer " + token
 		}
 	}
@@ -163,21 +167,4 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 		newReq.Header.Set(key, value)
 	}
 	return h.base.RoundTrip(newReq)
-}
-
-func (c *remoteMCPClient) getOAuthToken(ctx context.Context) string {
-	if c.config.Spec.OAuth == nil || len(c.config.Spec.OAuth.Providers) == 0 {
-		return ""
-	}
-
-	// Use secure credential helper to get OAuth token directly from system credential store
-	// This bypasses the vulnerable IPC endpoint that exposes tokens
-	credHelper := oauth.NewOAuthCredentialHelper()
-	token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
-	if err != nil {
-		// Token might not exist if user hasn't authorized yet
-		return ""
-	}
-
-	return token
 }
