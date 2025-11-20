@@ -24,7 +24,7 @@ const (
 	VendorGordon        = "gordon"
 	vendorZed           = "zed"
 	VendorCodex         = "codex"
-	VendorAmazonQ       = "amazon-q"
+	vendorKiro          = "kiro"
 )
 
 var (
