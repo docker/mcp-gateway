@@ -121,9 +121,9 @@ func Test_yq_list(t *testing.T) {
 			},
 		},
 		{
-			name:    "Amazon Q",
-			cfg:     config.System[VendorAmazonQ],
-			content: "list/amazon-q.json",
+			name:    "Kiro",
+			cfg:     config.System[vendorKiro],
+			content: "list/kiro.json",
 			result: &MCPJSONLists{
 				STDIOServers: []MCPServerSTDIO{
 					{
@@ -230,18 +230,18 @@ func Test_yq_add_del(t *testing.T) {
 			afterDel: "zed-create/after-del.json",
 		},
 		{
-			name:     "Amazon Q - append",
-			cfg:      config.System[VendorAmazonQ],
-			original: "amazon-q-append/original.json",
-			afterAdd: "amazon-q-append/after-add.json",
-			afterDel: "amazon-q-append/after-del.json",
+			name:     "Kiro - append",
+			cfg:      config.System[vendorKiro],
+			original: "kiro-append/original.json",
+			afterAdd: "kiro-append/after-add.json",
+			afterDel: "kiro-append/after-del.json",
 		},
 		{
-			name:     "Amazon Q - create",
-			cfg:      config.System[VendorAmazonQ],
-			original: "amazon-q-create/original.json",
-			afterAdd: "amazon-q-create/after-add.json",
-			afterDel: "amazon-q-create/after-del.json",
+			name:     "Kiro - create",
+			cfg:      config.System[vendorKiro],
+			original: "kiro-create/original.json",
+			afterAdd: "kiro-create/after-add.json",
+			afterDel: "kiro-create/after-del.json",
 		},
 	}
 	for _, tc := range tests {
@@ -301,10 +301,10 @@ func TestFindClientsByProfile(t *testing.T) {
 				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
 				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-with-profile.json"),
 				vendorZed:           readTestData(t, "find-profiles/zed-with-profile.json"),
-				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-with-profile.json"),
+				vendorKiro:          readTestData(t, "find-profiles/kiro-with-profile.json"),
 				vendorContinueDev:   readTestData(t, "find-profiles/continue-with-profile.yml"),
 			},
-			expectedVendors: []string{vendorCursor, vendorClaudeDesktop, vendorZed, VendorAmazonQ, vendorContinueDev},
+			expectedVendors: []string{vendorCursor, vendorClaudeDesktop, vendorZed, vendorKiro, vendorContinueDev},
 		},
 		{
 			name:      "finds no clients when profile doesn't match",
@@ -313,7 +313,7 @@ func TestFindClientsByProfile(t *testing.T) {
 				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
 				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-with-profile.json"),
 				vendorZed:           readTestData(t, "find-profiles/zed-without-profile.json"),
-				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorKiro:          readTestData(t, "find-profiles/kiro-without-profile.json"),
 				vendorContinueDev:   readTestData(t, "find-profiles/continue-without-profile.yml"),
 			},
 			expectedVendors: []string{},
@@ -325,10 +325,10 @@ func TestFindClientsByProfile(t *testing.T) {
 				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
 				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-without-profile.json"),
 				vendorZed:           readTestData(t, "find-profiles/zed-without-profile.json"),
-				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorKiro:          readTestData(t, "find-profiles/kiro-without-profile.json"),
 				vendorContinueDev:   readTestData(t, "find-profiles/continue-without-profile.yml"),
 			},
-			expectedVendors: []string{vendorClaudeDesktop, vendorZed, VendorAmazonQ, vendorContinueDev},
+			expectedVendors: []string{vendorClaudeDesktop, vendorZed, vendorKiro, vendorContinueDev},
 		},
 		{
 			name:      "finds mix of clients with and without matching profile",
@@ -337,7 +337,7 @@ func TestFindClientsByProfile(t *testing.T) {
 				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
 				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-without-profile.json"),
 				vendorZed:           readTestData(t, "find-profiles/zed-with-profile.json"),
-				VendorAmazonQ:       readTestData(t, "find-profiles/amazon-q-without-profile.json"),
+				vendorKiro:          readTestData(t, "find-profiles/kiro-without-profile.json"),
 				vendorContinueDev:   readTestData(t, "find-profiles/continue-with-profile.yml"),
 			},
 			expectedVendors: []string{vendorCursor, vendorZed, vendorContinueDev},
@@ -441,8 +441,8 @@ func TestIsSupportedMCPClient(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "amazon-q is supported as global",
-			vendor:   VendorAmazonQ,
+			name:     "kiro is supported as global",
+			vendor:   vendorKiro,
 			global:   true,
 			expected: true,
 		},
@@ -472,10 +472,10 @@ func TestIsSupportedMCPClient(t *testing.T) {
 			expected: true, // cursor is in both System and Project
 		},
 		{
-			name:     "amazon-q is supported as project",
-			vendor:   VendorAmazonQ,
+			name:     "kiro is supported as project",
+			vendor:   vendorKiro,
 			global:   false,
-			expected: true, // amazon-q is in both System and Project
+			expected: true, // kiro is in both System and Project
 		},
 		{
 			name:     "gordon is not supported as project",

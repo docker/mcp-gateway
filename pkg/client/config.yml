@@ -224,20 +224,20 @@ system:
       list: '.context_servers | to_entries | map(.value + {"name": .key})'
       set: .context_servers[$NAME] = {"source":"custom","enabled":true}+$JSON
       del: del(.context_servers[$NAME])
-  amazon-q:
-    displayName: Amazon Q Developer CLI
-    source: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-getting-started.html
-    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/amazon-q.svg
+  kiro:
+    displayName: Kiro
+    source: https://kiro.dev/
+    icon: https://kiro.dev/icon.svg
     installCheckPaths:
-      - $HOME/.aws/amazonq
-      - $USERPROFILE\.aws\amazonq
+      - $HOME/.kiro
+      - $USERPROFILE\.kiro
     paths:
       linux:
-        - $HOME/.aws/amazonq/mcp.json
+        - $HOME/.kiro/settings/mcp.json
       darwin:
-        - $HOME/.aws/amazonq/mcp.json
+        - $HOME/.kiro/settings/mcp.json
       windows:
-        - $USERPROFILE\.aws\amazonq\mcp.json
+        - $USERPROFILE\.kiro\settings\mcp.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
@@ -267,11 +267,11 @@ project:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON+{"type":"stdio"}
       del: del(.mcpServers[$NAME])
-  amazon-q:
-    displayName: Amazon Q Developer CLI
-    source: https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-getting-started.html
-    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/amazon-q.svg
-    projectfile: .amazonhq/mcp.json
+  kiro:
+    displayName: Kiro
+    source: https://kiro.dev/
+    icon: https://kiro.dev/icon.svg
+    projectfile: .kiro/settings/mcp.json
     yq:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
