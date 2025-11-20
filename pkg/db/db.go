@@ -55,12 +55,13 @@ func New(opts ...Option) (DAO, error) {
 
 	if o.dbFile == "" {
 		dbFile, err := DefaultDatabaseFilename()
-		ensureDirectoryExists(dbFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get default database filename: %w", err)
 		}
 		o.dbFile = dbFile
 	}
+
+	ensureDirectoryExists(o.dbFile)
 
 	db, err := sql.Open("sqlite", "file:"+o.dbFile+"?_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")
 	if err != nil {
