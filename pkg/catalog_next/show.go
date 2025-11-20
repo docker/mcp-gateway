@@ -22,6 +22,9 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
 	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", refStr)
+	}
 
 	refStr = oci.FullNameWithoutDigest(ref)
 

@@ -199,3 +199,12 @@ func TestShowWithSnapshot(t *testing.T) {
 	assert.Equal(t, "snapshot-server", result.Servers[0].Snapshot.Server.Name)
 	assert.Equal(t, "A server with snapshot", result.Servers[0].Snapshot.Server.Description)
 }
+
+func TestShowInvalidReferenceWithDigest(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reference test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 must be a valid OCI reference without a digest")
+}
