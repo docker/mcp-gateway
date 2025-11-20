@@ -93,22 +93,18 @@ func showCatalogNextCommand() *cobra.Command {
 			if !supported {
 				return fmt.Errorf("unsupported format: %s", format)
 			}
-			supportedPullOptions := slices.Contains(catalognext.SupportedPullOptions(), pullOption)
-			if !supportedPullOptions {
-				return fmt.Errorf("unsupported pull option: %s", pullOption)
-			}
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
 			ociService := oci.NewService()
-			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), catalognext.PullOption(pullOption))
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
-	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
+	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s, or duration (e.g. '1h', '1d'). Duration represents time since last update.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
 	return cmd
 }
 

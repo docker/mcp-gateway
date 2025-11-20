@@ -147,6 +147,9 @@ const (
 	PullOptionMissing = "missing"
 	PullOptionNever   = "never"
 	PullOptionAlways  = "always"
+
+	// Special value for duration-based pull options. Don't add as supported pull option below.
+	PullOptionDuration = "duration"
 )
 
 func SupportedPullOptions() []string {
