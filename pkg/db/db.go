@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -54,6 +55,7 @@ func New(opts ...Option) (DAO, error) {
 
 	if o.dbFile == "" {
 		dbFile, err := DefaultDatabaseFilename()
+		ensureDirectoryExists(dbFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get default database filename: %w", err)
 		}
@@ -100,6 +102,13 @@ func DefaultDatabaseFilename() (string, error) {
 		return "", err
 	}
 	return filepath.Join(homeDir, ".docker", "mcp", "mcp-toolkit.db"), nil
+}
+
+func ensureDirectoryExists(path string) {
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		_ = os.MkdirAll(dir, 0o755)
+	}
 }
 
 func txClose(tx *sqlx.Tx, err *error) {
