@@ -9,7 +9,9 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 // setupTestDB creates a temporary database for testing
@@ -23,6 +25,25 @@ func setupTestDB(t *testing.T) db.DAO {
 	require.NoError(t, err)
 
 	return dao
+}
+
+func getMockOciService() oci.Service {
+	return mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "myimage:latest",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: My Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+		},
+		{
+			Ref: "anotherimage:v1.0",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: Another Image",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+		},
+	}))
 }
 
 // Test Catalog.Digest()

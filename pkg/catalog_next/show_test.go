@@ -16,7 +16,7 @@ func TestShowNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, "test/nonexistent:latest", workingset.OutputFormatJSON)
+	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "catalog test/nonexistent:latest not found")
 }
@@ -51,7 +51,7 @@ func TestShowHumanReadable(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatHumanReadable)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatHumanReadable, PullOptionNever)
 		require.NoError(t, err)
 	})
 
@@ -91,7 +91,7 @@ func TestShowJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatJSON)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatJSON, PullOptionNever)
 		require.NoError(t, err)
 	})
 
@@ -136,7 +136,7 @@ func TestShowYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalog.Ref, workingset.OutputFormatYAML)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatYAML, PullOptionNever)
 		require.NoError(t, err)
 	})
 
@@ -187,7 +187,7 @@ func TestShowWithSnapshot(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, catalogObj.Ref, workingset.OutputFormatJSON)
+		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever)
 		require.NoError(t, err)
 	})
 
@@ -198,4 +198,13 @@ func TestShowWithSnapshot(t *testing.T) {
 	require.NotNil(t, result.Servers[0].Snapshot)
 	assert.Equal(t, "snapshot-server", result.Servers[0].Snapshot.Server.Name)
 	assert.Equal(t, "A server with snapshot", result.Servers[0].Snapshot.Server.Description)
+}
+
+func TestShowInvalidReferenceWithDigest(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reference test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 must be a valid OCI reference without a digest")
 }

@@ -886,6 +886,9 @@ docker mcp catalog-next list
 # Show catalog details
 docker mcp catalog-next show my-catalog
 
+# Show a catalog, pulling it if missing (other options include 'never' and 'always')
+docker mcp catalog-next show mcp/docker-mcp-catalog --pull missing
+
 # Remove a catalog
 docker mcp catalog-next remove my-catalog
 

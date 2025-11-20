@@ -140,3 +140,15 @@ func (catalog *Catalog) validateUniqueServerNames() error {
 	}
 	return nil
 }
+
+type PullOption string
+
+const (
+	PullOptionMissing = "missing"
+	PullOptionNever   = "never"
+	PullOptionAlways  = "always"
+)
+
+func SupportedPullOptions() []string {
+	return []string{string(PullOptionMissing), string(PullOptionNever), string(PullOptionAlways)}
+}
