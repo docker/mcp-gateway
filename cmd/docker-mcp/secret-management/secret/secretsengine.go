@@ -35,22 +35,45 @@ var c = http.Client{
 }
 
 func GetSecrets(ctx context.Context) ([]Envelope, error) {
-	pattern := []byte(`{"pattern": "docker/mcp/**"}`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader(pattern))
-	if err != nil {
-		return nil, err
+	// Workaround: Query multiple patterns since docker/mcp/** double-wildcard isn't working
+	// TODO: Remove once Secrets Engine fixes pattern matching bug
+	patterns := []string{
+		`{"pattern": "docker/mcp/generic/*"}`, // Generic secrets (docker pass)
+		`{"pattern": "docker/mcp/oauth/*"}`,   // OAuth tokens
 	}
-	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	allSecrets := make(map[string]Envelope) // Use map to deduplicate by ID
 
-	var secrets map[string][]Envelope
-	if err := json.NewDecoder(resp.Body).Decode(&secrets); err != nil {
-		return nil, err
+	for _, pattern := range patterns {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader([]byte(pattern)))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Add("Content-Type", "application/json")
+
+		resp, err := c.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		var secrets map[string][]Envelope
+		if err := json.NewDecoder(resp.Body).Decode(&secrets); err != nil {
+			resp.Body.Close()
+			return nil, err
+		}
+		resp.Body.Close()
+
+		// Merge results, deduplicating by ID
+		for _, env := range secrets["envelopes"] {
+			allSecrets[env.ID] = env
+		}
 	}
-	return secrets["envelopes"], nil
+
+	// Convert map back to slice
+	result := make([]Envelope, 0, len(allSecrets))
+	for _, env := range allSecrets {
+		result = append(result, env)
+	}
+
+	return result, nil
 }

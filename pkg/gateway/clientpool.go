@@ -322,13 +322,9 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 	for _, s := range serverConfig.Spec.Secrets {
 		args = append(args, "-e", s.Env)
 
-		secretValue, ok := serverConfig.Secrets[s.Name]
-		if ok {
-			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
-		} else {
-			log.Logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
-			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
-		}
+		// Build se:// URI with full namespace path
+		secretURI := fmt.Sprintf("se://docker/mcp/generic/%s", s.Name)
+		env = append(env, fmt.Sprintf("%s=%s", s.Env, secretURI))
 	}
 
 	// Env
