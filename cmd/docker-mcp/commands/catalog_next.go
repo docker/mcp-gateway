@@ -82,9 +82,10 @@ func tagCatalogNextCommand() *cobra.Command {
 
 func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
+	pullOption := string(catalognext.PullOptionNever)
 
 	cmd := &cobra.Command{
-		Use:   "show <oci-reference>",
+		Use:   "show <oci-reference> [--pull <pull-option>]",
 		Short: "Show a catalog",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -92,17 +93,22 @@ func showCatalogNextCommand() *cobra.Command {
 			if !supported {
 				return fmt.Errorf("unsupported format: %s", format)
 			}
+			supportedPullOptions := slices.Contains(catalognext.SupportedPullOptions(), pullOption)
+			if !supportedPullOptions {
+				return fmt.Errorf("unsupported pull option: %s", pullOption)
+			}
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return catalognext.Show(cmd.Context(), dao, args[0], workingset.OutputFormat(format))
+			ociService := oci.NewService()
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), catalognext.PullOption(pullOption))
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
-
+	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
 	return cmd
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -16,7 +17,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Show(ctx context.Context, dao db.DAO, refStr string, format workingset.OutputFormat) error {
+func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOption PullOption) error {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
@@ -24,8 +25,22 @@ func Show(ctx context.Context, dao db.DAO, refStr string, format workingset.Outp
 
 	refStr = oci.FullNameWithoutDigest(ref)
 
+	if pullOption == PullOptionAlways {
+		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
+		_, err := pullCatalog(ctx, dao, ociService, refStr)
+		if err != nil {
+			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
+		}
+	}
+
 	dbCatalog, err := dao.GetCatalog(ctx, refStr)
-	if err != nil {
+	if err != nil && errors.Is(err, sql.ErrNoRows) && pullOption == PullOptionMissing {
+		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
+		dbCatalog, err = pullCatalog(ctx, dao, ociService, refStr)
+		if err != nil {
+			return fmt.Errorf("failed to pull missing catalog %s: %w", refStr, err)
+		}
+	} else if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("catalog %s not found", refStr)
 		}
