@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func setupTestDB(t *testing.T) (db.DAO, func()) {
@@ -21,7 +22,7 @@ func setupTestDB(t *testing.T) (db.DAO, func()) {
 
 	// Override newDAO to use the test database
 	originalNewDAO := newDAO
-	newDAO = func(opts ...db.Option) (db.DAO, error) {
+	newDAO = func(_ ...db.Option) (db.DAO, error) {
 		return db.New(db.WithDatabaseFile(dbFile))
 	}
 
