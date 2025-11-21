@@ -39,11 +39,12 @@ type ServerType string
 const (
 	ServerTypeRegistry ServerType = "registry"
 	ServerTypeImage    ServerType = "image"
+	ServerTypeRemote   ServerType = "remote"
 )
 
 // Server represents a server configuration in a working set
 type Server struct {
-	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image"`
+	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
 	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Tools   []string       `yaml:"tools" json:"tools"`
@@ -53,6 +54,9 @@ type Server struct {
 
 	// ServerTypeImage only
 	Image string `yaml:"image,omitempty" json:"image,omitempty" validate:"required_if=Type image"`
+
+	// ServerTypeRemote only
+	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty" validate:"required_if=Type remote"`
 
 	// Optional snapshot of the server schema
 	Snapshot *ServerSnapshot `yaml:"snapshot,omitempty" json:"snapshot,omitempty"`
@@ -87,6 +91,9 @@ func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
 		}
 		if server.Type == "image" {
 			servers[i].Image = server.Image
+		}
+		if server.Type == "remote" {
+			servers[i].Endpoint = server.Endpoint
 		}
 
 		if server.Snapshot != nil {
@@ -128,6 +135,9 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 		}
 		if server.Type == ServerTypeImage {
 			dbServers[i].Image = server.Image
+		}
+		if server.Type == ServerTypeRemote {
+			dbServers[i].Endpoint = server.Endpoint
 		}
 		if server.Snapshot != nil {
 			dbServers[i].Snapshot = &db.ServerSnapshot{
@@ -413,6 +423,9 @@ func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server)
 	case ServerTypeRegistry:
 		// TODO(cody): add snapshot
 		return nil, nil //nolint:nilnil
+	case ServerTypeRemote:
+		// TODO(bobby): add snapshot when you can add remotes directly from URL
+		return nil, nil //nolint:nilnil
 	}
 	return nil, fmt.Errorf("unsupported server type: %s", server.Type)
 }
@@ -482,11 +495,12 @@ func mapCatalogServersToWorkingSetServers(dbServers []db.CatalogServer, secrets 
 	servers := make([]Server, len(dbServers))
 	for i, server := range dbServers {
 		servers[i] = Server{
-			Type:   ServerType(server.ServerType),
-			Tools:  server.Tools,
-			Config: map[string]any{},
-			Source: server.Source,
-			Image:  server.Image,
+			Type:     ServerType(server.ServerType),
+			Tools:    server.Tools,
+			Config:   map[string]any{},
+			Source:   server.Source,
+			Image:    server.Image,
+			Endpoint: server.Endpoint,
 			Snapshot: &ServerSnapshot{
 				Server: server.Snapshot.Server,
 			},

@@ -183,59 +183,237 @@ func TestRemoveNoServersFromWorkingSet(t *testing.T) {
 }
 
 func TestAddServersFromCatalog(t *testing.T) {
-	dao := setupTestDB(t)
-	ctx := t.Context()
-
-	// Create a catalog with test servers
-	catalog := createTestCatalog(t, dao, []testCatalogServer{
+	tests := []struct {
+		name           string
+		catalogServers []testCatalogServer
+		serverNames    []string
+		validateServer func(t *testing.T, servers []db.Server)
+	}{
 		{
-			name:       "catalog-server-1",
-			serverType: "image",
-			image:      "catalog-image-1:latest",
-			tools:      []string{"tool1", "tool2"},
+			name: "image servers",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "catalog-server-1",
+					serverType: "image",
+					image:      "catalog-image-1:latest",
+					tools:      []string{"tool1", "tool2"},
+				},
+				{
+					name:       "catalog-server-2",
+					serverType: "image",
+					image:      "catalog-image-2:latest",
+					tools:      []string{"tool1"},
+				},
+			},
+			serverNames: []string{"catalog-server-1", "catalog-server-2"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "image", servers[0].Type)
+				assert.Equal(t, "catalog-image-1:latest", servers[0].Image)
+				assert.Equal(t, "catalog-server-1", servers[0].Snapshot.Server.Name)
+				assert.Equal(t, []string{"tool1", "tool2"}, servers[0].Tools)
+				assert.Equal(t, "default", servers[0].Secrets)
+				assert.Equal(t, "image", servers[1].Type)
+				assert.Equal(t, "catalog-image-2:latest", servers[1].Image)
+				assert.Equal(t, "catalog-server-2", servers[1].Snapshot.Server.Name)
+				assert.Equal(t, []string{"tool1"}, servers[1].Tools)
+				assert.Equal(t, "default", servers[1].Secrets)
+			},
 		},
 		{
-			name:       "catalog-server-2",
-			serverType: "image",
-			image:      "catalog-image-2:v1.0",
-			tools:      []string{"tool3"},
+			name: "basic remotes with SSE transport",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "ais-fleet",
+					serverType: "remote",
+					endpoint:   "https://mcp.aisfleet.com/sse",
+					tools:      []string{"tool1"},
+				},
+				{
+					name:       "ais-fleet-2",
+					serverType: "remote",
+					endpoint:   "https://mcp.aisfleet-2.com/sse",
+					tools:      []string{"tool2"},
+				},
+			},
+			serverNames: []string{"ais-fleet", "ais-fleet-2"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://mcp.aisfleet.com/sse", servers[0].Endpoint)
+				assert.Equal(t, "ais-fleet", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 1)
+				assert.Equal(t, "default", servers[0].Secrets)
+
+				assert.Equal(t, "remote", servers[1].Type)
+				assert.Equal(t, "https://mcp.aisfleet-2.com/sse", servers[1].Endpoint)
+				assert.Equal(t, "ais-fleet-2", servers[1].Snapshot.Server.Name)
+				assert.Len(t, servers[1].Tools, 1)
+				assert.Equal(t, "default", servers[1].Secrets)
+			},
 		},
-	})
-
-	// Create a working set
-	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
-		ID:      "test-set",
-		Name:    "Test Working Set",
-		Servers: db.ServerList{},
-		Secrets: db.SecretMap{
-			"default": {Provider: "docker-desktop-store"},
+		{
+			name: "remote with streamable-http and authorization header",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "apify-remote",
+					serverType: "remote",
+					endpoint:   "https://mcp.apify.com",
+					tools:      []string{"apify-tool1", "apify-tool2"},
+				},
+			},
+			serverNames: []string{"apify-remote"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://mcp.apify.com", servers[0].Endpoint)
+				assert.Equal(t, "apify-remote", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 2)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
 		},
-	})
-	require.NoError(t, err)
+		{
+			name: "remote with OAuth",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "asana",
+					serverType: "remote",
+					endpoint:   "https://asana.com/api/mcp/v1/sse",
+					tools:      []string{"asana-task-create", "asana-task-update"},
+				},
+			},
+			serverNames: []string{"asana"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://asana.com/api/mcp/v1/sse", servers[0].Endpoint)
+				assert.Equal(t, "asana", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 2)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
+		},
+		{
+			name: "remote with dynamic tools",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "cloudflare-audit-logs",
+					serverType: "remote",
+					endpoint:   "https://auditlogs.mcp.cloudflare.com/sse",
+					tools:      []string{},
+				},
+			},
+			serverNames: []string{"cloudflare-audit-logs"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://auditlogs.mcp.cloudflare.com/sse", servers[0].Endpoint)
+				assert.Equal(t, "cloudflare-audit-logs", servers[0].Snapshot.Server.Name)
+				assert.Empty(t, servers[0].Tools)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
+		},
+		{
+			name: "remote with static tools list",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "gitmcp",
+					serverType: "remote",
+					endpoint:   "https://gitmcp.io/docs",
+					tools:      []string{"match_common_libs_owner_repo_mapping", "fetch_generic_documentation"},
+				},
+			},
+			serverNames: []string{"gitmcp"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://gitmcp.io/docs", servers[0].Endpoint)
+				assert.Equal(t, "gitmcp", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 2)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
+		},
+		{
+			name: "remote with SSE, headers, and secrets",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "dodo-payments",
+					serverType: "remote",
+					endpoint:   "https://mcp.dodopayments.com/sse",
+					tools:      []string{"payment-create", "payment-refund"},
+				},
+			},
+			serverNames: []string{"dodo-payments"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://mcp.dodopayments.com/sse", servers[0].Endpoint)
+				assert.Equal(t, "dodo-payments", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 2)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
+		},
+		{
+			name: "remote documentation server (no auth)",
+			catalogServers: []testCatalogServer{
+				{
+					name:       "cloudflare-docs",
+					serverType: "remote",
+					endpoint:   "https://docs.mcp.cloudflare.com/sse",
+					tools:      []string{"search_cloudflare_documentation", "migrate_pages_to_workers_guide"},
+				},
+			},
+			serverNames: []string{"cloudflare-docs"},
+			validateServer: func(t *testing.T, servers []db.Server) {
+				t.Helper()
+				assert.Equal(t, "remote", servers[0].Type)
+				assert.Equal(t, "https://docs.mcp.cloudflare.com/sse", servers[0].Endpoint)
+				assert.Equal(t, "cloudflare-docs", servers[0].Snapshot.Server.Name)
+				assert.Len(t, servers[0].Tools, 2)
+				assert.Equal(t, "default", servers[0].Secrets)
+			},
+		},
+	}
 
-	// Add servers from catalog
-	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/catalog-server-1+catalog-server-2"})
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dao := setupTestDB(t)
+			ctx := t.Context()
 
-	// Verify servers were added
-	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
-	require.NoError(t, err)
-	require.NotNil(t, dbSet)
-	assert.Len(t, dbSet.Servers, 2)
+			// Create a catalog with test servers
+			catalog := createTestCatalog(t, dao, tt.catalogServers)
 
-	// Check first server
-	assert.Equal(t, "image", dbSet.Servers[0].Type)
-	assert.Equal(t, "catalog-image-1:latest", dbSet.Servers[0].Image)
-	assert.Equal(t, "catalog-server-1", dbSet.Servers[0].Snapshot.Server.Name)
-	assert.Equal(t, []string{"tool1", "tool2"}, dbSet.Servers[0].Tools)
-	assert.Equal(t, "default", dbSet.Servers[0].Secrets)
+			// Create a working set
+			err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+				ID:      "test-set",
+				Name:    "Test Working Set",
+				Servers: db.ServerList{},
+				Secrets: db.SecretMap{
+					"default": {Provider: "docker-desktop-store"},
+				},
+			})
+			require.NoError(t, err)
 
-	// Check second server
-	assert.Equal(t, "image", dbSet.Servers[1].Type)
-	assert.Equal(t, "catalog-image-2:v1.0", dbSet.Servers[1].Image)
-	assert.Equal(t, "catalog-server-2", dbSet.Servers[1].Snapshot.Server.Name)
-	assert.Equal(t, []string{"tool3"}, dbSet.Servers[1].Tools)
-	assert.Equal(t, "default", dbSet.Servers[1].Secrets)
+			// Build the catalog URL with server names
+			serverNamesJoined := ""
+			for i, name := range tt.serverNames {
+				if i > 0 {
+					serverNamesJoined += "+"
+				}
+				serverNamesJoined += name
+			}
+
+			// Add servers from catalog
+			err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/" + serverNamesJoined})
+			require.NoError(t, err)
+
+			// Verify servers were added
+			dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+			require.NoError(t, err)
+			require.NotNil(t, dbSet)
+			assert.Len(t, dbSet.Servers, len(tt.serverNames))
+			tt.validateServer(t, dbSet.Servers)
+		})
+	}
 }
 
 func TestAddServersMixedDirectAndCatalog(t *testing.T) {
@@ -418,7 +596,9 @@ type testCatalogServer struct {
 	serverType string
 	image      string
 	source     string
+	endpoint   string
 	tools      []string
+	snapshot   *db.ServerSnapshot
 }
 
 func createTestCatalog(t *testing.T, dao db.DAO, servers []testCatalogServer) db.Catalog {
@@ -431,13 +611,20 @@ func createTestCatalog(t *testing.T, dao db.DAO, servers []testCatalogServer) db
 			Tools:      server.tools,
 			Source:     server.source,
 			Image:      server.image,
-			Snapshot: &db.ServerSnapshot{
+			Endpoint:   server.endpoint,
+		}
+
+		// Use provided snapshot if available, otherwise create default
+		if server.snapshot != nil {
+			catalogServers[i].Snapshot = server.snapshot
+		} else {
+			catalogServers[i].Snapshot = &db.ServerSnapshot{
 				Server: catalog.Server{
 					Name:  server.name,
 					Type:  "server",
 					Image: server.image,
 				},
-			},
+			}
 		}
 	}
 
