@@ -300,6 +300,11 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 				Image: "mycompany/myserver:v1.2.3",
 				Tools: []string{"deploy"},
 			},
+			{
+				Type:     string(workingset.ServerTypeRemote),
+				Endpoint: "https://remote.example.com/sse",
+				Tools:    []string{"remote-tool1", "remote-tool2"},
+			},
 		},
 		Secrets: db.SecretMap{},
 	}
@@ -319,7 +324,7 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 
 	assert.Equal(t, "Detailed Catalog", catalog.Title)
 	assert.Equal(t, "profile:detailed-ws", catalog.Source)
-	assert.Len(t, catalog.Servers, 2)
+	assert.Len(t, catalog.Servers, 3)
 
 	// Check registry server
 	assert.Equal(t, workingset.ServerTypeRegistry, catalog.Servers[0].Type)
@@ -330,6 +335,11 @@ func TestCreateFromWorkingSetPreservesAllServerFields(t *testing.T) {
 	assert.Equal(t, workingset.ServerTypeImage, catalog.Servers[1].Type)
 	assert.Equal(t, "mycompany/myserver:v1.2.3", catalog.Servers[1].Image)
 	assert.Equal(t, []string{"deploy"}, catalog.Servers[1].Tools)
+
+	// Check remote server
+	assert.Equal(t, workingset.ServerTypeRemote, catalog.Servers[2].Type)
+	assert.Equal(t, "https://remote.example.com/sse", catalog.Servers[2].Endpoint)
+	assert.Equal(t, []string{"remote-tool1", "remote-tool2"}, catalog.Servers[2].Tools)
 }
 
 func TestCreateFromLegacyCatalog(t *testing.T) {

@@ -83,6 +83,7 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 			Tools:    server.Tools,
 			Source:   server.Source,
 			Image:    server.Image,
+			Endpoint: server.Endpoint,
 			Snapshot: server.Snapshot,
 		}
 	}
