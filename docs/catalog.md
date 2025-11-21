@@ -1,5 +1,7 @@
 # MCP Catalog Management
 
+*Important note: This method of catalog management is deprecated. Please see [Profiles](profiles.md) for more information on how to use catalogs.*
+
 Docker MCP Gateway provides comprehensive catalog management capabilities, allowing you to create, manage, and use custom MCP server catalogs alongside Docker's official catalog.
 
 ## Quick Start with Bootstrap
@@ -8,7 +10,7 @@ The easiest way to get started with custom catalogs is to use the `bootstrap` co
 
 ```bash
 # Create a starter catalog with Docker Hub and Docker CLI server examples
-docker mcp catalog bootstrap ./my-starter-catalog.yaml
+docker mcp catalog-deprecated bootstrap ./my-starter-catalog.yaml
 
 # The file now contains properly formatted server definitions you can modify
 ```
@@ -25,17 +27,17 @@ This creates a YAML file with real server definitions that you can:
 
 ```bash
 # List all configured catalogs
-docker mcp catalog ls
+docker mcp catalog-deprecated ls
 
 # List in JSON format
-docker mcp catalog ls --format=json
+docker mcp catalog-deprecated ls --format=json
 ```
 
 ### Creating Catalogs
 
 ```bash
 # Create a new empty catalog
-docker mcp catalog create my-custom-catalog
+docker mcp catalog-deprecated create my-custom-catalog
 
 # The catalog is now ready for adding servers
 ```
@@ -44,62 +46,62 @@ docker mcp catalog create my-custom-catalog
 
 ```bash
 # Show servers in the default Docker catalog
-docker mcp catalog show
+docker mcp catalog-deprecated show
 
 # Show servers in a specific catalog
-docker mcp catalog show my-custom-catalog
+docker mcp catalog-deprecated show my-custom-catalog
 
 # Show in different formats
-docker mcp catalog show docker-mcp --format json
-docker mcp catalog show docker-mcp --format yaml
+docker mcp catalog-deprecated show docker-mcp --format json
+docker mcp catalog-deprecated show docker-mcp --format yaml
 ```
 
 ### Adding Servers to Catalogs
 
 ```bash
 # Add a server from another catalog file
-docker mcp catalog add my-custom-catalog server-name ./source-catalog.yaml
+docker mcp catalog-deprecated add my-custom-catalog server-name ./source-catalog.yaml
 
 # Force overwrite if server already exists
-docker mcp catalog add my-custom-catalog server-name ./source-catalog.yaml --force
+docker mcp catalog-deprecated add my-custom-catalog server-name ./source-catalog.yaml --force
 ```
 
 ### Importing Servers from OSS MCP Community Registry
 
 ```bash
 # replace {id} in the url below
-docker mcp catalog import my-custom-catalog --mcp-registry https://registry.modelcontextprotocol.io/v0/servers/{id}
+docker mcp catalog-deprecated import my-custom-catalog --mcp-registry https://registry.modelcontextprotocol.io/v0/servers/{id}
 ```
 
 ### Importing Other Catalogs
 
 ```bash
 # Import a catalog from a local file
-docker mcp catalog import ./my-catalog.yaml
+docker mcp catalog-deprecated import ./my-catalog.yaml
 
 # Import from a URL
-docker mcp catalog import https://example.com/catalog.yaml
+docker mcp catalog-deprecated import https://example.com/catalog.yaml
 
 # Import with an alias
-docker mcp catalog import team-servers
+docker mcp catalog-deprecated import team-servers
 ```
 
 ### Exporting Catalogs
 
 ```bash
 # Export a custom catalog to a file
-docker mcp catalog export my-custom-catalog ./backup.yaml
+docker mcp catalog-deprecated export my-custom-catalog ./backup.yaml
 
 # Note: You cannot export Docker's official catalog
-docker mcp catalog export docker-mcp ./docker-backup.yaml
-# Error: Cannot export the Docker MCP catalog as it is managed by Docker
+docker mcp catalog-deprecated export docker-mcp ./docker-backup.yaml
+# Error: Cannot export the Docker MCP catalog-deprecated as it is managed by Docker
 ```
 
 ### Forking Catalogs
 
 ```bash
 # Create a copy of an existing catalog
-docker mcp catalog fork docker-mcp my-custom-version
+docker mcp catalog-deprecated fork docker-mcp my-custom-version
 
 # Now you can modify my-custom-version independently
 ```
@@ -108,7 +110,7 @@ docker mcp catalog fork docker-mcp my-custom-version
 
 ```bash
 # Remove a custom catalog
-docker mcp catalog rm my-custom-catalog
+docker mcp catalog-deprecated rm my-custom-catalog
 
 # Note: You cannot remove Docker's official catalog
 ```
@@ -117,17 +119,17 @@ docker mcp catalog rm my-custom-catalog
 
 ```bash
 # Update all catalogs
-docker mcp catalog update
+docker mcp catalog-deprecated update
 
 # Update a specific catalog
-docker mcp catalog update my-custom-catalog
+docker mcp catalog-deprecated update my-custom-catalog
 ```
 
 ### Resetting Catalogs
 
 ```bash
 # Remove all custom catalogs and reset to Docker defaults
-docker mcp catalog reset
+docker mcp catalog-deprecated reset
 ```
 
 ## Catalog YAML Format
@@ -255,13 +257,13 @@ registry:
 
 ```bash
 # 1. Create a starter catalog for reference
-docker mcp catalog bootstrap ./starter-catalog.yaml
+docker mcp catalog-deprecated bootstrap ./starter-catalog.yaml
 
 # 2. Create your own catalog
-docker mcp catalog create dev-servers
+docker mcp catalog-deprecated create dev-servers
 
 # 3. Add useful servers from the starter (optional)
-docker mcp catalog add dev-servers dockerhub ./starter-catalog.yaml
+docker mcp catalog-deprecated add dev-servers dockerhub ./starter-catalog.yaml
 
 # 4. Create a custom server definition file
 cat > my-server.yaml << EOF
@@ -276,35 +278,35 @@ registry:
 EOF
 
 # 5. Add your custom server
-docker mcp catalog add dev-servers my-dev-server ./my-server.yaml
+docker mcp catalog-deprecated add dev-servers my-dev-server ./my-server.yaml
 ```
 
 ### Importing from the OSS MCP Community Registry
 
 ```bash
 # 1. Create a destination catalog for your community servers
-docker mcp catalog create community-catalog
+docker mcp catalog-deprecated create community-catalog
 
 # 2. import the OSS MCP community server resource
-docker mcp catalog import --mcp-registry http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+docker mcp catalog-deprecated import --mcp-registry http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
 # 3. show the imported server
-docker mcp catalog show community-catalog --format=json | jq .
+docker mcp catalog-deprecated show community-catalog --format=json | jq .
 ```
 
 ### Team Sharing Workflow
 
 ```bash
 # Team lead: Create and export a team catalog
-docker mcp catalog create team-servers
-docker mcp catalog add team-servers shared-db ./shared-db-server.yaml
-docker mcp catalog add team-servers api-helper ./api-helper-server.yaml
-docker mcp catalog export team-servers ./team-catalog.yaml
+docker mcp catalog-deprecated create team-servers
+docker mcp catalog-deprecated add team-servers shared-db ./shared-db-server.yaml
+docker mcp catalog-deprecated add team-servers api-helper ./api-helper-server.yaml
+docker mcp catalog-deprecated export team-servers ./team-catalog.yaml
 
 # Share team-catalog.yaml with team members
 
 # Team members: Import the shared catalog
-docker mcp catalog import ./team-catalog.yaml
+docker mcp catalog-deprecated import ./team-catalog.yaml
 docker mcp gateway run
 ```
 
@@ -312,30 +314,30 @@ docker mcp gateway run
 
 ```bash
 # 1. Create a test catalog
-docker mcp catalog create test-servers
+docker mcp catalog-deprecated create test-servers
 
 # 2. Add your server for testing
-docker mcp catalog add test-servers test-server ./test-server.yaml
+docker mcp catalog-deprecated add test-servers test-server ./test-server.yaml
 
 # 3. Run gateway with test catalog
 docker mcp gateway run
 
 # 4. When done testing, clean up
-docker mcp catalog rm test-servers
+docker mcp catalog-deprecated rm test-servers
 ```
 
 ### Production Deployment
 
 ```bash
 # 1. Create production catalog
-docker mcp catalog create prod-servers
+docker mcp catalog-deprecated create prod-servers
 
 # 2. Add only production-ready servers
-docker mcp catalog add prod-servers monitoring ./monitoring-server.yaml
-docker mcp catalog add prod-servers logging ./logging-server.yaml
+docker mcp catalog-deprecated add prod-servers monitoring ./monitoring-server.yaml
+docker mcp catalog-deprecated add prod-servers logging ./logging-server.yaml
 
 # 3. Export for backup and deployment
-docker mcp catalog export prod-servers ./prod-catalog-backup.yaml
+docker mcp catalog-deprecated export prod-servers ./prod-catalog-backup.yaml
 
 # 4. Deploy with production catalog
 docker mcp gateway run
@@ -375,7 +377,7 @@ Error: server "server-name" not found in catalog "source.yaml"
 
 ### Cannot Export Docker Catalog
 ```bash
-Error: cannot export the Docker MCP catalog as it is managed by Docker
+Error: cannot export the Docker MCP catalog-deprecated as it is managed by Docker
 ```
 **Solution**: This is intentional - Docker's catalog cannot be exported. Use `bootstrap` to get Docker server examples instead.
 

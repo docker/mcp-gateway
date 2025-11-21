@@ -8,7 +8,7 @@ What can you do to pinpoint where the problem comes from?
 The go to command to start a fresh Gateway, plugged into Docker Desltop's Toolkit is this one:
 
 ```console
-docker mcp gateway run --verbose --dry-run
+docker mcp gateway run --profile my-profile --verbose --dry-run
 ```
 
 This will show you how the Gateway is reading the configuration, which servers are actually
@@ -18,12 +18,6 @@ It'll show you how many tools you have, in aggregate.
 
 This is usually a good way to troubleshoot missing images, invalid server names, missing config
 or secrets...
-
-You can also focus a one given server with:
-
-```console
-docker mcp gateway run --verbose --dry-run --servers=duckduckgo
-```
 
 ## Debug tool calls
 

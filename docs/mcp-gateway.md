@@ -9,29 +9,23 @@ See [Why running MCP Servers in Container is more secure](security.md)
 Start up an MCP Gateway. This can be used for one client, or to service multiple clients if using either `sse` or `streaming` transports.
 
 ```bash
-# Run the MCP gateway (stdio)
+# Run with a profile (stdio)
+docker mcp gateway run --profile my-profile
+
+# Run the MCP gateway (stdio) - uses the profile with ID "default"
 docker mcp gateway run
 
 # Run the MCP gateway (streaming)
-docker mcp gateway run --port 8080 --transport streaming
-
-# Run with specific servers only, and select all tools from server1 and just tool2 from server2
-docker mcp gateway run --servers server1,server2 --tools server1:* --tools server2:tool2
-
-# Run a fallback secret lookup - lookup desktop secret first and the fallback to a local .env file
-docker mcp gateway run --secrets=docker-desktop:./.env
+docker mcp gateway run --profile my-profile --port 8080 --transport streaming
 
 # Run with verbose logging
-docker mcp gateway run --verbose --log-calls
+docker mcp gateway run  --profile my-profile --verbose --log-calls
 
 # Run in watch mode (auto-reload on config changes)
-docker mcp gateway run --watch
+docker mcp gateway run --profile my-profile --watch
 
 # Run a standalone dockerized MCP server (no catalog required)
 docker mcp gateway run --server docker.io/namespace/repository:latest
-
-# Run with a profile (requires profiles feature to be enabled)
-docker mcp gateway run --profile my-working-set
 ```
 
 See [Profiles](profiles.md) for more information about organizing servers into reusable collections.
@@ -45,13 +39,15 @@ A typical usage looks like this Claude Desktop configuration:
     "mcpServers": {
         "MCP_DOCKER": {
             "command": "docker",
-            "args": ["mcp", "gateway", "run"]
+            "args": ["mcp", "gateway", "run", "--profile", "my-profile"]
         }
     }
 }
 ```
 
 ## How to run the MCP Gateway with Docker Compose?
+
+*Note: This is using a deprecated method of working with the gateway. Profile support in compose is coming soon.*
 
 The simplest way to tun the MCP Gateway with Docker Compose is with this kind of compose file:
 
@@ -61,8 +57,10 @@ services:
     image: docker/mcp-gateway
     command:
       - --servers=duckduckgo
+      - --catalog=/mcp/catalog.yaml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./catalog.yaml:/mcp/catalog.yaml
 ```
 
 ### What does it do?
@@ -90,6 +88,7 @@ Docker MCP Toolkit's CLI - Manage your MCP servers and clients.
 Usage: docker mcp gateway run
 
 Flags:
+      --profile string                    Profile ID to use (incompatible with --servers, --enable-all-servers, --catalog, --registry, --config, --tools-config, --secrets, --oci-ref, --mcp-registry)
       --block-network             Block tools from accessing forbidden network resources
       --block-secrets             Block secrets from being/received sent to/from tools (default true)
       --catalog string            path to the docker-mcp.yaml catalog (absolute or relative to ~/.docker/mcp/catalogs/) (default "docker-mcp.yaml")
@@ -109,10 +108,7 @@ Flags:
       --verbose                   Verbose output
       --verify-signatures         Verify signatures of the server images
       --watch                     Watch for changes and reconfigure the gateway (default true)
-      --profile string            Profile ID to use (requires working-sets feature, mutually exclusive with --servers and --enable-all-servers)
 ```
-
-**Note:** The `--profile` flag is only available when the `profiles` feature is enabled via `docker mcp feature enable profiles`.
 
 ## Troubleshooting
 

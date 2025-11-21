@@ -47,11 +47,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	} else {
 		// On-host.
 		options = gateway.Config{
-			CatalogPath:  []string{catalog.DockerCatalogFilename},
-			RegistryPath: []string{"registry.yaml"},
-			ConfigPath:   []string{"config.yaml"},
-			ToolsPath:    []string{"tools.yaml"},
-			SecretsPath:  "docker-desktop",
+			SecretsPath: "docker-desktop",
 			Options: gateway.Options{
 				Cpus:         1,
 				Memory:       "2Gb",
@@ -68,6 +64,22 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 		Short: "Run the gateway",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if len(options.CatalogPath) == 0 && len(options.RegistryPath) == 0 && len(options.ConfigPath) == 0 && len(options.ToolsPath) == 0 {
+				// We're in working set mode, so use the default profile if no profile is specified
+				if options.WorkingSet == "" {
+					options.WorkingSet = "default"
+				}
+			}
+
+			if options.WorkingSet != "" &&
+				(len(options.ServerNames) > 0 || enableAllServers ||
+					len(options.CatalogPath) > 0 || len(options.RegistryPath) > 0 || len(options.ConfigPath) > 0 || len(options.ToolsPath) > 0 ||
+					len(additionalCatalogs) > 0 || len(additionalRegistries) > 0 || len(additionalConfigs) > 0 || len(additionalToolsConfig) > 0 ||
+					len(mcpRegistryUrls) > 0 || len(options.OciRef) > 0 ||
+					options.SecretsPath != "docker-desktop") {
+				return fmt.Errorf("cannot use --profile with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry flags")
+			}
+
 			// Check if OAuth interceptor feature is enabled
 			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
 
@@ -123,15 +135,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.MCPRegistryServers = mcpServers
 			}
 
-			if options.WorkingSet != "" {
-				if len(options.ServerNames) > 0 {
-					return fmt.Errorf("cannot use --profile with --servers flag")
-				}
-				if enableAllServers {
-					return fmt.Errorf("cannot use --profile with --enable-all-servers flag")
-				}
-			}
-
 			// Handle --enable-all-servers flag
 			if enableAllServers {
 				if len(options.ServerNames) > 0 {
@@ -169,9 +172,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	}
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
-	if isWorkingSetsFeatureEnabled(dockerCli) {
-		runCmd.Flags().StringVar(&options.WorkingSet, "profile", "", "Profile ID to use (mutually exclusive with --servers and --enable-all-servers)")
-	}
+	runCmd.Flags().StringVar(&options.WorkingSet, "profile", options.WorkingSet, "Profile ID to use (incompatible with --servers, --enable-all-servers, --catalog, --registry, --config, --tools-config, --secrets, --oci-ref, --mcp-registry)")
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
 	runCmd.Flags().StringSliceVar(&additionalCatalogs, "additional-catalog", nil, "Additional catalog paths to append to the default catalogs")
@@ -343,19 +344,5 @@ func isToolNamePrefixFeatureEnabled(dockerCli command.Cli) bool {
 		return false
 	}
 
-	return value == "enabled"
-}
-
-// isWorkingSetsFeatureEnabled checks if the profiles feature is enabled
-func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
-	configFile := dockerCli.ConfigFile()
-	if configFile == nil || configFile.Features == nil {
-		return false
-	}
-
-	value, exists := configFile.Features["profiles"]
-	if !exists {
-		return false
-	}
 	return value == "enabled"
 }

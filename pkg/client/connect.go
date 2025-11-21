@@ -9,22 +9,17 @@ import (
 var ErrCodexOnlySupportsGlobalConfiguration = errors.New("codex only supports global configuration. Re-run with --global or -g")
 
 func Connect(ctx context.Context, cwd string, config Config, vendor string, global bool, workingSet string) error {
-	if vendor == VendorCodex {
+	switch vendor {
+	case VendorCodex:
 		if !global {
 			return ErrCodexOnlySupportsGlobalConfiguration
 		}
 		if err := ConnectCodex(ctx, workingSet); err != nil {
 			return err
 		}
-	} else if vendor == VendorGordon && global {
-		if workingSet != "" {
-			// Gordon doesn't support profiles yet
-			return fmt.Errorf("gordon cannot be connected to a profile")
-		}
-		if err := ConnectGordon(ctx); err != nil {
-			return err
-		}
-	} else {
+	case VendorGordon:
+		return fmt.Errorf("gordon support for profiles is not yet implemented")
+	default:
 		updater, err := getUpdater(vendor, global, cwd, config)
 		if err != nil {
 			return err

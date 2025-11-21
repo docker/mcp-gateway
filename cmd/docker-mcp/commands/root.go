@@ -70,11 +70,9 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 
 	dockerClient := docker.NewClient(dockerCli)
 
-	if isWorkingSetsFeatureEnabled(dockerCli) {
-		cmd.AddCommand(workingSetCommand())
-		cmd.AddCommand(catalogNextCommand())
-	}
-	cmd.AddCommand(catalogCommand(dockerCli))
+	cmd.AddCommand(workingSetCommand())
+	cmd.AddCommand(catalogCommand())
+	cmd.AddCommand(deprecatedCatalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(dockerCli, cwd))
 	cmd.AddCommand(configCommand(dockerClient))
 	cmd.AddCommand(featureCommand(dockerCli))
