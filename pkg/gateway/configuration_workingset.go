@@ -86,12 +86,11 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	toolsConfig := c.readTools(workingSet)
 
 	// TODO(cody): Finish making the gateway fully compatible with working sets
-	// This currently only supports image-only servers
 	serverNames := make([]string, 0)
 	servers := make(map[string]catalog.Server)
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
-		if server.Type != workingset.ServerTypeImage {
+		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
 			continue
 		}
 

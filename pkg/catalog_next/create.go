@@ -104,11 +104,20 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 
 	servers := make([]Server, 0, len(legacyCatalog.Servers))
 	for name, server := range legacyCatalog.Servers {
-		// TODO(cody): Add support for remote servers from the legacy catalog
 		if server.Type == "server" && server.Image != "" {
 			s := Server{
 				Type:  workingset.ServerTypeImage,
 				Image: server.Image,
+				Snapshot: &workingset.ServerSnapshot{
+					Server: server,
+				},
+			}
+			s.Snapshot.Server.Name = name
+			servers = append(servers, s)
+		} else if server.Type == "remote" {
+			s := Server{
+				Type:     workingset.ServerTypeRemote,
+				Endpoint: server.Remote.URL,
 				Snapshot: &workingset.ServerSnapshot{
 					Server: server,
 				},

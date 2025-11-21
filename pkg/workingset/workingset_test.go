@@ -146,6 +146,139 @@ func TestWorkingSetRoundTrip(t *testing.T) {
 	assert.Equal(t, original.Secrets, roundTripped.Secrets)
 }
 
+func TestNewFromDbWithRemoteServer(t *testing.T) {
+	dbSet := &db.WorkingSet{
+		ID:   "test-remote-id",
+		Name: "Test Remote Working Set",
+		Servers: db.ServerList{
+			{
+				Type:     "remote",
+				Endpoint: "https://mcp.example.com/sse",
+				Tools:    []string{"tool1", "tool2"},
+			},
+		},
+		Secrets: db.SecretMap{},
+	}
+
+	workingSet := NewFromDb(dbSet)
+
+	assert.Equal(t, "test-remote-id", workingSet.ID)
+	assert.Equal(t, "Test Remote Working Set", workingSet.Name)
+	assert.Equal(t, CurrentWorkingSetVersion, workingSet.Version)
+	assert.Len(t, workingSet.Servers, 1)
+
+	// Check remote server
+	assert.Equal(t, ServerTypeRemote, workingSet.Servers[0].Type)
+	assert.Equal(t, "https://mcp.example.com/sse", workingSet.Servers[0].Endpoint)
+	assert.Equal(t, []string{"tool1", "tool2"}, workingSet.Servers[0].Tools)
+}
+
+func TestWorkingSetToDbWithRemoteServer(t *testing.T) {
+	workingSet := WorkingSet{
+		Version: CurrentWorkingSetVersion,
+		ID:      "test-remote-id",
+		Name:    "Test Remote Working Set",
+		Servers: []Server{
+			{
+				Type:     ServerTypeRemote,
+				Endpoint: "https://mcp.example.com/sse",
+				Tools:    []string{"tool1", "tool2"},
+			},
+		},
+		Secrets: map[string]Secret{},
+	}
+
+	dbSet := workingSet.ToDb()
+
+	assert.Equal(t, "test-remote-id", dbSet.ID)
+	assert.Equal(t, "Test Remote Working Set", dbSet.Name)
+	assert.Len(t, dbSet.Servers, 1)
+
+	// Check remote server
+	assert.Equal(t, "remote", dbSet.Servers[0].Type)
+	assert.Equal(t, "https://mcp.example.com/sse", dbSet.Servers[0].Endpoint)
+	assert.Equal(t, []string{"tool1", "tool2"}, dbSet.Servers[0].Tools)
+}
+
+func TestWorkingSetRoundTripWithRemoteServer(t *testing.T) {
+	original := WorkingSet{
+		Version: CurrentWorkingSetVersion,
+		ID:      "test-remote-id",
+		Name:    "Test Remote Working Set",
+		Servers: []Server{
+			{
+				Type:     ServerTypeRemote,
+				Endpoint: "https://mcp.example.com/sse",
+				Tools:    []string{"tool1", "tool2"},
+				Config:   map[string]any{"timeout": 30},
+			},
+		},
+		Secrets: map[string]Secret{},
+	}
+
+	// Convert to DB and back
+	dbSet := original.ToDb()
+	roundTripped := NewFromDb(&dbSet)
+
+	assert.Equal(t, original.ID, roundTripped.ID)
+	assert.Equal(t, original.Name, roundTripped.Name)
+	assert.Equal(t, original.Version, roundTripped.Version)
+	assert.Equal(t, original.Servers, roundTripped.Servers)
+	assert.Equal(t, original.Secrets, roundTripped.Secrets)
+}
+
+func TestWorkingSetWithMixedServerTypes(t *testing.T) {
+	workingSet := WorkingSet{
+		Version: CurrentWorkingSetVersion,
+		ID:      "test-mixed-id",
+		Name:    "Test Mixed Working Set",
+		Servers: []Server{
+			{
+				Type:   ServerTypeRegistry,
+				Source: "https://registry.example.com",
+				Tools:  []string{"registry-tool"},
+			},
+			{
+				Type:  ServerTypeImage,
+				Image: "docker/test:latest",
+				Tools: []string{"image-tool"},
+			},
+			{
+				Type:     ServerTypeRemote,
+				Endpoint: "https://mcp.example.com/sse",
+				Tools:    []string{"remote-tool"},
+			},
+		},
+		Secrets: map[string]Secret{},
+	}
+
+	// Convert to DB and back
+	dbSet := workingSet.ToDb()
+	roundTripped := NewFromDb(&dbSet)
+
+	assert.Equal(t, workingSet.ID, roundTripped.ID)
+	assert.Equal(t, workingSet.Name, roundTripped.Name)
+	assert.Len(t, roundTripped.Servers, 3)
+
+	// Verify registry server
+	assert.Equal(t, ServerTypeRegistry, roundTripped.Servers[0].Type)
+	assert.Equal(t, "https://registry.example.com", roundTripped.Servers[0].Source)
+	assert.Empty(t, roundTripped.Servers[0].Image)
+	assert.Empty(t, roundTripped.Servers[0].Endpoint)
+
+	// Verify image server
+	assert.Equal(t, ServerTypeImage, roundTripped.Servers[1].Type)
+	assert.Equal(t, "docker/test:latest", roundTripped.Servers[1].Image)
+	assert.Empty(t, roundTripped.Servers[1].Source)
+	assert.Empty(t, roundTripped.Servers[1].Endpoint)
+
+	// Verify remote server
+	assert.Equal(t, ServerTypeRemote, roundTripped.Servers[2].Type)
+	assert.Equal(t, "https://mcp.example.com/sse", roundTripped.Servers[2].Endpoint)
+	assert.Empty(t, roundTripped.Servers[2].Source)
+	assert.Empty(t, roundTripped.Servers[2].Image)
+}
+
 func TestWorkingSetValidate(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -177,6 +310,21 @@ func TestWorkingSetValidate(t *testing.T) {
 					{
 						Type:  ServerTypeImage,
 						Image: "docker/test:latest",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "valid remote server",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type:     ServerTypeRemote,
+						Endpoint: "https://mcp.example.com/sse",
 					},
 				},
 			},
@@ -232,6 +380,20 @@ func TestWorkingSetValidate(t *testing.T) {
 				Servers: []Server{
 					{
 						Type: ServerTypeImage,
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "remote server missing endpoint",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type: ServerTypeRemote,
 					},
 				},
 			},

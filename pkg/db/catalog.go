@@ -33,6 +33,7 @@ type CatalogServer struct {
 	Tools      ToolList `db:"tools" json:"tools"`
 	Source     string   `db:"source" json:"source"`
 	Image      string   `db:"image" json:"image"`
+	Endpoint   string   `db:"endpoint" json:"endpoint"`
 	CatalogRef string   `db:"catalog_ref" json:"catalog_ref"`
 
 	Snapshot *ServerSnapshot `db:"snapshot" json:"snapshot"`
@@ -63,7 +64,7 @@ func (d *dao) GetCatalog(ctx context.Context, ref string) (*Catalog, error) {
 		return nil, err
 	}
 
-	const serverQuery = `SELECT id, server_type, tools, source, image, catalog_ref, snapshot from catalog_server where catalog_ref = $1`
+	const serverQuery = `SELECT id, server_type, tools, source, image, endpoint, catalog_ref, snapshot from catalog_server where catalog_ref = $1`
 
 	var servers []CatalogServer
 	err = d.db.SelectContext(ctx, &servers, serverQuery, catalog.Ref)
@@ -103,8 +104,8 @@ func (d *dao) UpsertCatalog(ctx context.Context, catalog Catalog) error {
 
 	if len(catalog.Servers) > 0 {
 		const serverQuery = `INSERT INTO catalog_server (
-		server_type, tools, source, image, catalog_ref, snapshot
-	) VALUES (:server_type, :tools, :source, :image, :catalog_ref, :snapshot)`
+		server_type, tools, source, image, endpoint, catalog_ref, snapshot
+	) VALUES (:server_type, :tools, :source, :image, :endpoint, :catalog_ref, :snapshot)`
 
 		_, err = tx.NamedExecContext(ctx, serverQuery, catalog.Servers)
 		if err != nil {
@@ -137,7 +138,7 @@ func (d *dao) ListCatalogs(ctx context.Context) ([]Catalog, error) {
 
 	const query = `SELECT c.ref, c.digest, c.title, c.source, c.last_updated,
 	COALESCE(
-		json_group_array(json_object('id', s.id, 'server_type', s.server_type, 'tools', json(s.tools), 'source', s.source, 'image', s.image, 'snapshot', json(s.snapshot))),
+		json_group_array(json_object('id', s.id, 'server_type', s.server_type, 'tools', json(s.tools), 'source', s.source, 'image', s.image, 'endpoint', s.endpoint, 'snapshot', json(s.snapshot))),
 		'[]'
 	) AS server_json
 	FROM catalog c

@@ -501,3 +501,220 @@ registry:
 	assert.Equal(t, "Test Catalog", catalog.Title)
 	assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
 }
+
+func TestCreateFromLegacyCatalogWithRemotes(t *testing.T) {
+	tests := []struct {
+		name           string
+		serverYAML     string
+		expectedType   workingset.ServerType
+		validateServer func(t *testing.T, server *catalog.Server)
+	}{
+		{
+			name: "basic remote with SSE transport",
+			serverYAML: `    title: "AIS Fleet"
+    type: remote
+    remote:
+      transport_type: sse
+      url: https://mcp.aisfleet.com/sse`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "sse", server.Remote.Transport)
+				assert.Equal(t, "https://mcp.aisfleet.com/sse", server.Remote.URL)
+				assert.Empty(t, server.Remote.Headers)
+				assert.Empty(t, server.Secrets)
+				assert.Nil(t, server.OAuth)
+			},
+		},
+		{
+			name: "remote with streamable-http and authorization header",
+			serverYAML: `    title: "Apify Remote"
+    type: remote
+    remote:
+      transport_type: streamable-http
+      url: https://mcp.apify.com
+      headers:
+        Authorization: "Bearer ${APIFY_API_KEY}"
+    secrets:
+      - name: apify.api_key
+        env: APIFY_API_KEY
+        example: <YOUR_API_KEY>`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "streamable-http", server.Remote.Transport)
+				assert.Equal(t, "https://mcp.apify.com", server.Remote.URL)
+				assert.Equal(t, "Bearer ${APIFY_API_KEY}", server.Remote.Headers["Authorization"])
+				assert.Len(t, server.Secrets, 1)
+				assert.Equal(t, "apify.api_key", server.Secrets[0].Name)
+				assert.Equal(t, "APIFY_API_KEY", server.Secrets[0].Env)
+			},
+		},
+		{
+			name: "remote with OAuth",
+			serverYAML: `    title: "Asana"
+    type: remote
+    remote:
+      transport_type: streamable-http
+      url: https://asana.com/api/mcp/v1/sse
+    oauth:
+      providers:
+        - provider: asana
+          secret: asana.personal_access_token
+          env: ASANA_PERSONAL_ACCESS_TOKEN`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "streamable-http", server.Remote.Transport)
+				assert.Equal(t, "https://asana.com/api/mcp/v1/sse", server.Remote.URL)
+				require.NotNil(t, server.OAuth)
+				assert.Len(t, server.OAuth.Providers, 1)
+				assert.Equal(t, "asana", server.OAuth.Providers[0].Provider)
+				assert.Equal(t, "asana.personal_access_token", server.OAuth.Providers[0].Secret)
+				assert.Equal(t, "ASANA_PERSONAL_ACCESS_TOKEN", server.OAuth.Providers[0].Env)
+			},
+		},
+		{
+			name: "remote with dynamic tools",
+			serverYAML: `    title: "Cloudflare Audit Logs"
+    type: remote
+    dynamic:
+      tools: true
+    remote:
+      transport_type: sse
+      url: https://auditlogs.mcp.cloudflare.com/sse
+    oauth:
+      providers:
+        - provider: cloudflare-audit-logs
+          secret: cloudflare-audit-logs.personal_access_token
+          env: CLOUDFLARE_PERSONAL_ACCESS_TOKEN`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "sse", server.Remote.Transport)
+				assert.Equal(t, "https://auditlogs.mcp.cloudflare.com/sse", server.Remote.URL)
+				require.NotNil(t, server.OAuth)
+				assert.Len(t, server.OAuth.Providers, 1)
+				assert.Equal(t, "cloudflare-audit-logs", server.OAuth.Providers[0].Provider)
+			},
+		},
+		{
+			name: "remote with static tools list (no headers/secrets)",
+			serverYAML: `    title: "GitMCP"
+    type: remote
+    remote:
+      transport_type: streamable-http
+      url: https://gitmcp.io/docs
+    tools:
+      - name: match_common_libs_owner_repo_mapping
+      - name: fetch_generic_documentation
+      - name: search_generic_documentation`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "streamable-http", server.Remote.Transport)
+				assert.Equal(t, "https://gitmcp.io/docs", server.Remote.URL)
+				assert.Empty(t, server.Remote.Headers)
+				assert.Empty(t, server.Secrets)
+				assert.Nil(t, server.OAuth)
+				assert.Len(t, server.Tools, 3)
+				assert.Equal(t, "match_common_libs_owner_repo_mapping", server.Tools[0].Name)
+			},
+		},
+		{
+			name: "remote with SSE, headers, and secrets",
+			serverYAML: `    title: "Dodo Payments"
+    type: remote
+    remote:
+      transport_type: sse
+      url: https://mcp.dodopayments.com/sse
+      headers:
+        Authorization: "Bearer ${DODO_PAYMENTS_API_KEY}"
+    secrets:
+      - name: dodo-payments.api_key
+        env: DODO_PAYMENTS_API_KEY
+        example: <YOUR_API_KEY>`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "sse", server.Remote.Transport)
+				assert.Equal(t, "https://mcp.dodopayments.com/sse", server.Remote.URL)
+				assert.Equal(t, "Bearer ${DODO_PAYMENTS_API_KEY}", server.Remote.Headers["Authorization"])
+				assert.Len(t, server.Secrets, 1)
+				assert.Equal(t, "dodo-payments.api_key", server.Secrets[0].Name)
+				assert.Equal(t, "DODO_PAYMENTS_API_KEY", server.Secrets[0].Env)
+			},
+		},
+		{
+			name: "remote documentation server (no auth)",
+			serverYAML: `    title: "Cloudflare Docs"
+    type: remote
+    remote:
+      transport_type: sse
+      url: https://docs.mcp.cloudflare.com/sse
+    tools:
+      - name: search_cloudflare_documentation
+      - name: migrate_pages_to_workers_guide`,
+			expectedType: workingset.ServerTypeRemote,
+			validateServer: func(t *testing.T, server *catalog.Server) {
+				t.Helper()
+				assert.Equal(t, "sse", server.Remote.Transport)
+				assert.Equal(t, "https://docs.mcp.cloudflare.com/sse", server.Remote.URL)
+				assert.Empty(t, server.Remote.Headers)
+				assert.Empty(t, server.Secrets)
+				assert.Nil(t, server.OAuth)
+				assert.Len(t, server.Tools, 2)
+				assert.Equal(t, "search_cloudflare_documentation", server.Tools[0].Name)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dao := setupTestDB(t)
+			ctx := t.Context()
+
+			// Create a temporary legacy catalog file
+			tempDir := t.TempDir()
+			catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+
+			legacyCatalogYAML := "name: test-catalog\nregistry:\n  test-server:\n" + tt.serverYAML + "\n"
+
+			err := os.WriteFile(catalogFile, []byte(legacyCatalogYAML), 0o644)
+			require.NoError(t, err)
+
+			// Create catalog from legacy catalog
+			output := captureStdout(t, func() {
+				err := Create(ctx, dao, "test/imported:latest", "", catalogFile, "Imported Catalog")
+				require.NoError(t, err)
+			})
+
+			assert.Contains(t, output, "Catalog test/imported:latest created")
+
+			// Verify the catalog was created
+			catalogs, err := dao.ListCatalogs(ctx)
+			require.NoError(t, err)
+			assert.Len(t, catalogs, 1)
+
+			catalog := NewFromDb(&catalogs[0])
+			assert.Equal(t, "Imported Catalog", catalog.Title)
+			assert.Equal(t, "legacy-catalog:test-catalog", catalog.Source)
+			require.Len(t, catalog.Servers, 1)
+
+			// Verify server basic properties
+			server := catalog.Servers[0]
+			assert.Equal(t, tt.expectedType, server.Type)
+			require.NotNil(t, server.Snapshot)
+			assert.Equal(t, "test-server", server.Snapshot.Server.Name)
+
+			// Verify endpoint is set for remote servers
+			if server.Type == workingset.ServerTypeRemote {
+				assert.NotEmpty(t, server.Endpoint, "Endpoint should be set for remote servers")
+				assert.Equal(t, server.Snapshot.Server.Remote.URL, server.Endpoint, "Endpoint should match the Remote.URL from snapshot")
+			}
+
+			// Run custom validation
+			tt.validateServer(t, &server.Snapshot.Server)
+		})
+	}
+}
