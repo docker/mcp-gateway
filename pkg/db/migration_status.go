@@ -29,7 +29,6 @@ func (d *dao) GetMigrationStatus(ctx context.Context) (*MigrationStatus, error) 
 }
 
 func (d *dao) UpdateMigrationStatus(ctx context.Context, status MigrationStatus) error {
-
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err

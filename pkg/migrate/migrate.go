@@ -21,6 +21,7 @@ const (
 	MigrationStatusFailed  = "failed"
 )
 
+//revive:disable
 func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
 	_, err := dao.GetMigrationStatus(ctx)
 	if err == nil {
@@ -116,7 +117,7 @@ func createDefaultProfile(ctx context.Context, dao db.DAO, registry *config.Regi
 			profileServer.Image = oldServer.Image
 		} else {
 			// TODO(cody): Support remotes
-			logs = append(logs, fmt.Sprintf("server %s is not a valid server type, skipping", server))
+			logs = append(logs, fmt.Sprintf("server %s has an invalid server type: %s, skipping", server, oldServer.Type))
 			continue // Ignore
 		}
 		profileServer.Snapshot = &workingset.ServerSnapshot{
