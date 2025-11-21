@@ -23,6 +23,10 @@ import (
 type DAO interface {
 	WorkingSetDAO
 	CatalogDAO
+	MigrationStatusDAO
+
+	// Normally unnecessary to call this
+	Close() error
 }
 
 type dao struct {
@@ -95,6 +99,10 @@ func New(opts ...Option) (DAO, error) {
 	sqlxDb := sqlx.NewDb(db, "sqlite")
 
 	return &dao{db: sqlxDb}, nil
+}
+
+func (d *dao) Close() error {
+	return d.db.Close()
 }
 
 func DefaultDatabaseFilename() (string, error) {

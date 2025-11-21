@@ -9,18 +9,29 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/client"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/migrate"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func workingSetCommand() *cobra.Command {
+func workingSetCommand(docker docker.Client) *cobra.Command {
 	cfg := client.ReadConfig()
 
 	cmd := &cobra.Command{
 		Use:   "profile",
 		Short: "Manage profiles",
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			defer dao.Close()
+			migrate.MigrateConfig(cmd.Context(), docker, dao)
+			return nil
+		},
 	}
 
 	cmd.AddCommand(exportWorkingSetCommand())
