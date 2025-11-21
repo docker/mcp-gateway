@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type CatalogDAO interface {
@@ -18,11 +19,12 @@ type CatalogDAO interface {
 type ToolList []string
 
 type Catalog struct {
-	Ref     string          `db:"ref"`
-	Digest  string          `db:"digest"`
-	Title   string          `db:"title"`
-	Source  string          `db:"source"`
-	Servers []CatalogServer `db:"-"`
+	Ref         string          `db:"ref"`
+	Digest      string          `db:"digest"`
+	Title       string          `db:"title"`
+	Source      string          `db:"source"`
+	LastUpdated *time.Time      `db:"last_updated"`
+	Servers     []CatalogServer `db:"-"`
 }
 
 type CatalogServer struct {
@@ -53,7 +55,7 @@ func (tools *ToolList) Scan(value any) error {
 }
 
 func (d *dao) GetCatalog(ctx context.Context, ref string) (*Catalog, error) {
-	const query = `SELECT ref, digest, title, source FROM catalog WHERE ref = $1`
+	const query = `SELECT ref, digest, title, source, last_updated FROM catalog WHERE ref = $1`
 
 	var catalog Catalog
 	err := d.db.GetContext(ctx, &catalog, query, ref)
@@ -88,7 +90,7 @@ func (d *dao) UpsertCatalog(ctx context.Context, catalog Catalog) error {
 		return err
 	}
 
-	const insertQuery = `INSERT INTO catalog (ref, digest, title, source) VALUES ($1, $2, $3, $4)`
+	const insertQuery = `INSERT INTO catalog (ref, digest, title, source, last_updated) VALUES ($1, $2, $3, $4, current_timestamp)`
 
 	_, err = tx.ExecContext(ctx, insertQuery, catalog.Ref, catalog.Digest, catalog.Title, catalog.Source)
 	if err != nil {
@@ -133,7 +135,7 @@ func (d *dao) ListCatalogs(ctx context.Context) ([]Catalog, error) {
 		ServerJSON string `db:"server_json"`
 	}
 
-	const query = `SELECT c.ref, c.digest, c.title, c.source,
+	const query = `SELECT c.ref, c.digest, c.title, c.source, c.last_updated,
 	COALESCE(
 		json_group_array(json_object('id', s.id, 'server_type', s.server_type, 'tools', json(s.tools), 'source', s.source, 'image', s.image, 'snapshot', json(s.snapshot))),
 		'[]'

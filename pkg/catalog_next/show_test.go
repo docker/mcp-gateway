@@ -208,3 +208,13 @@ func TestShowInvalidReferenceWithDigest(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reference test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 must be a valid OCI reference without a digest")
 }
+
+// TODO(cody): Add tests for pull once we have proper mocks in place
+func TestInvalidPullOption(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse pull option invalid: should be missing, never, always, or duration (e.g. '1h', '1d')")
+}
