@@ -233,7 +233,7 @@ func backupLegacyFiles() error {
 	_ = moveFile(catalogIndexPath, filepath.Join(backupDir, "catalog.json"))
 	_ = moveFile(oldCatalogPath, filepath.Join(backupDir, legacycatalog.DockerCatalogFilename))
 
-	// We use os.Remove to remove the directory, so only it's only removed if empty
+	// We use os.Remove to remove the directory, so it's only removed if empty
 	// We don't want to remove any custom catalog yamls the user may have added
 	_ = os.Remove(catalogsDir)
 
