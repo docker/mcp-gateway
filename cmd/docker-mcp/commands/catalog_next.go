@@ -13,10 +13,10 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func catalogNextCommand() *cobra.Command {
+func catalogCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "catalog-next",
-		Short: "Manage catalogs (next generation)",
+		Use:   "catalog",
+		Short: "Manage MCP server catalogs",
 	}
 
 	cmd.AddCommand(createCatalogNextCommand())

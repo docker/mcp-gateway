@@ -20,7 +20,7 @@ func workingSetCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "profile",
-		Short: "Manage profiles",
+		Short: "Manage MCP profiles",
 	}
 
 	cmd.AddCommand(exportWorkingSetCommand())

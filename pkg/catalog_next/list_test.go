@@ -41,7 +41,7 @@ func TestListEmpty(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "No catalogs found")
-	assert.Contains(t, output, "docker mcp catalog-next create")
+	assert.Contains(t, output, "docker mcp catalog create")
 }
 
 func TestListHumanReadable(t *testing.T) {

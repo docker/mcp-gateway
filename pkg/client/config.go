@@ -63,8 +63,8 @@ func FindGitProjectRoot(dir string) string {
 
 func GetSupportedMCPClients(cfg Config) []string {
 	tmp := map[string]struct{}{
-		VendorGordon: {},
-		VendorCodex:  {},
+		// Gordon is not supported for profiles yet
+		VendorCodex: {},
 	}
 	for k := range cfg.System {
 		tmp[k] = struct{}{}

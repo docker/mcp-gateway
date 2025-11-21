@@ -52,7 +52,7 @@ func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config) 
 		WorkingSet string
 	}
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("connect [OPTIONS] <mcp-client>\n\nSupported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
+		Use:   fmt.Sprintf("connect [OPTIONS] <mcp-client> --profile <profile-id>\n\nSupported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Short: fmt.Sprintf("Connect the Docker MCP Toolkit to a client. Supported clients: %s", strings.Join(client.GetSupportedMCPClients(cfg), " ")),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -62,9 +62,8 @@ func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config) 
 	flags := cmd.Flags()
 	addGlobalFlag(flags, &opts.Global)
 	addQuietFlag(flags, &opts.Quiet)
-	if isWorkingSetsFeatureEnabled(dockerCli) {
-		addWorkingSetFlag(flags, &opts.WorkingSet)
-	}
+	_ = cmd.MarkFlagRequired(addWorkingSetFlag(flags, &opts.WorkingSet))
+
 	return cmd
 }
 
@@ -125,6 +124,7 @@ func addQuietFlag(flags *pflag.FlagSet, p *bool) {
 	flags.BoolVarP(p, "quiet", "q", false, "Only display errors.")
 }
 
-func addWorkingSetFlag(flags *pflag.FlagSet, p *string) {
+func addWorkingSetFlag(flags *pflag.FlagSet, p *string) string {
 	flags.StringVarP(p, "profile", "p", "", "Profile to use for client connection.")
+	return "profile"
 }

@@ -40,7 +40,6 @@ Available features:
   oauth-interceptor      Enable GitHub OAuth flow interception for automatic authentication
   mcp-oauth-dcr          Enable Dynamic Client Registration (DCR) for automatic OAuth client setup
   dynamic-tools          Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)
-	profiles               Enable profile management (docker mcp profile <subcommand>)
   tool-name-prefix       Prefix all tool names with server name to avoid conflicts`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -48,7 +47,7 @@ Available features:
 
 			// Validate feature name
 			if !isKnownFeature(featureName) {
-				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  mcp-oauth-dcr          Enable Dynamic Client Registration for automatic OAuth setup\n  dynamic-tools          Enable internal MCP management tools\n  profiles               Enable profile management (docker mcp profile <subcommand>)\n  tool-name-prefix       Prefix all tool names with server name", featureName)
+				return fmt.Errorf("unknown feature: %s\n\nAvailable features:\n  oauth-interceptor      Enable GitHub OAuth flow interception\n  mcp-oauth-dcr          Enable Dynamic Client Registration for automatic OAuth setup\n  dynamic-tools          Enable internal MCP management tools\n  tool-name-prefix       Prefix all tool names with server name", featureName)
 			}
 
 			// Enable the feature
@@ -85,11 +84,6 @@ Available features:
 				fmt.Println("  - mcp-add: add MCP servers to the registry and reload configuration")
 				fmt.Println("  - mcp-remove: remove MCP servers from the registry and reload configuration")
 				fmt.Println("\nNo additional flags are needed - this applies to all gateway runs.")
-			case "profiles":
-				fmt.Println("\nThis feature enables profile management tools.")
-				fmt.Println("When enabled, the cli provides commands for managing profiles:")
-				fmt.Println("  - docker mcp profile <subcommand> ...")
-				fmt.Println("\nThis also enables the --profile flag for the docker mcp gateway run command.")
 			case "tool-name-prefix":
 				fmt.Println("\nThis feature enables automatic prefixing of tool names with server names.")
 				fmt.Println("When enabled, all tools are automatically prefixed with their server name:")
@@ -151,7 +145,7 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools", "profiles", "tool-name-prefix"}
+			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools", "tool-name-prefix"}
 			for _, feature := range knownFeatures {
 				status := "disabled"
 				if isFeatureEnabledFromCli(dockerCli, feature) {
@@ -168,8 +162,6 @@ func featureListCommand(dockerCli command.Cli) *cobra.Command {
 					fmt.Printf("  %-20s %s\n", "", "Enable Dynamic Client Registration (DCR) for automatic OAuth client setup")
 				case "dynamic-tools":
 					fmt.Printf("  %-20s %s\n", "", "Enable internal MCP management tools (mcp-find, mcp-add, mcp-remove)")
-				case "profiles":
-					fmt.Printf("  %-20s %s\n", "", "Enable profile management tools (docker mcp profile <subcommand>)")
 				case "tool-name-prefix":
 					fmt.Printf("  %-20s %s\n", "", "Prefix all tool names with server name to avoid conflicts")
 				}
@@ -240,7 +232,6 @@ func isKnownFeature(feature string) bool {
 		"oauth-interceptor",
 		"mcp-oauth-dcr",
 		"dynamic-tools",
-		"profiles",
 		"tool-name-prefix",
 	}
 

@@ -13,12 +13,13 @@ import (
 	"github.com/docker/mcp-gateway/pkg/yq"
 )
 
-func catalogCommand(dockerCli command.Cli) *cobra.Command {
+func deprecatedCatalogCommand(dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "catalog",
-		Aliases: []string{"catalogs"},
-		Short:   "Manage MCP server catalogs",
-		Long:    `Manage MCP server catalogs for organizing and configuring custom MCP servers alongside Docker's official catalog.`,
+		Use:     "catalog-deprecated",
+		Aliases: []string{"catalogs-deprecated"},
+		Short:   "Deprecated: Manage MCP server catalogs",
+		Long:    `Deprecated: Manage MCP server catalogs for organizing and configuring custom MCP servers alongside Docker's official catalog.`,
+		Hidden:  true,
 	}
 	cmd.AddCommand(bootstrapCatalogCommand())
 	cmd.AddCommand(importCatalogCommand())
