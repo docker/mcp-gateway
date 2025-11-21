@@ -75,9 +75,9 @@ func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
 	// Migration considered successful by this point
 	status = MigrationStatusSuccess
 
-	err = deleteLegacyFiles()
+	err = backupLegacyFiles()
 	if err != nil {
-		logs = append(logs, fmt.Sprintf("failed to delete legacy files: %s", err.Error()))
+		logs = append(logs, fmt.Sprintf("failed to backup legacy files: %s", err.Error()))
 		return
 	}
 }
@@ -188,7 +188,19 @@ func readLegacyDefaults(ctx context.Context, docker docker.Client) (*config.Regi
 	return &registry, cfg, &tools, &mcpCatalog, nil
 }
 
-func deleteLegacyFiles() error {
+func backupLegacyFiles() error {
+	// Create backup directory
+	backupDir, err := config.FilePath(".backup")
+	if err != nil {
+		return fmt.Errorf("failed to get backup directory path: %w", err)
+	}
+
+	err = os.MkdirAll(backupDir, 0o755)
+	if err != nil {
+		return fmt.Errorf("failed to create backup directory: %w", err)
+	}
+
+	// Get paths to legacy files
 	registryPath, err := config.FilePath("registry.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to get registry path: %w", err)
@@ -214,15 +226,27 @@ func deleteLegacyFiles() error {
 
 	oldCatalogPath := filepath.Join(catalogsDir, legacycatalog.DockerCatalogFilename)
 
-	_ = os.Remove(registryPath)
-	_ = os.Remove(configPath)
-	_ = os.Remove(toolsPath)
-	_ = os.Remove(catalogIndexPath)
-	_ = os.Remove(oldCatalogPath)
+	// Move files to backup directory
+	_ = moveFile(registryPath, filepath.Join(backupDir, "registry.yaml"))
+	_ = moveFile(configPath, filepath.Join(backupDir, "config.yaml"))
+	_ = moveFile(toolsPath, filepath.Join(backupDir, "tools.yaml"))
+	_ = moveFile(catalogIndexPath, filepath.Join(backupDir, "catalog.json"))
+	_ = moveFile(oldCatalogPath, filepath.Join(backupDir, legacycatalog.DockerCatalogFilename))
 
 	// We use os.Remove to remove the directory, so only it's only removed if empty
 	// We don't want to remove any custom catalog yamls the user may have added
 	_ = os.Remove(catalogsDir)
 
 	return nil
+}
+
+// moveFile moves a file from src to dst. If src doesn't exist, it's a no-op.
+func moveFile(src, dst string) error {
+	// Check if source file exists
+	if _, err := os.Stat(src); os.IsNotExist(err) {
+		return nil // File doesn't exist, nothing to move
+	}
+
+	// Move the file
+	return os.Rename(src, dst)
 }

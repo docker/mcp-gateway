@@ -123,8 +123,8 @@ func TestMigrateConfig_SuccessWithServers(t *testing.T) {
 	assert.Len(t, workingSets[0].Secrets, 1)
 	assert.Equal(t, "docker-desktop-store", workingSets[0].Secrets["default"].Provider)
 
-	// Verify legacy files were deleted
-	assertLegacyFilesDeleted(t, mcpDir)
+	// Verify legacy files were backed up
+	assertLegacyFilesBackedUp(t, mcpDir)
 }
 
 func TestMigrateConfig_SuccessWithSingleServer(t *testing.T) {
@@ -185,8 +185,8 @@ func TestMigrateConfig_SkipsWithNoServers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, workingSets)
 
-	// Verify legacy files were still deleted
-	assertLegacyFilesDeleted(t, mcpDir)
+	// Verify legacy files were still backed up
+	assertLegacyFilesBackedUp(t, mcpDir)
 }
 
 func TestMigrateConfig_FailureReadingLegacyFiles(t *testing.T) {
@@ -464,7 +464,7 @@ func TestMigrateConfig_MultipleServersWithPartialFailure(t *testing.T) {
 	assert.Len(t, workingSets[0].Servers, 2)
 }
 
-func TestMigrateConfig_LegacyFilesDeletedOnSuccess(t *testing.T) {
+func TestMigrateConfig_LegacyFilesBackedUpOnSuccess(t *testing.T) {
 	mcpDir := setupTestEnvironment(t)
 
 	dao := setupTestDB(t)
@@ -486,12 +486,17 @@ func TestMigrateConfig_LegacyFilesDeletedOnSuccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, MigrationStatusSuccess, status.Status)
 
-	// Verify all legacy files were deleted
-	assertLegacyFilesDeleted(t, mcpDir)
+	// Verify all legacy files were backed up
+	assertLegacyFilesBackedUp(t, mcpDir)
 
-	// Verify catalog.json was also deleted
+	// Verify catalog.json was also backed up
+	backupCatalogIndexPath := filepath.Join(mcpDir, ".backup", "catalog.json")
+	_, err = os.Stat(backupCatalogIndexPath)
+	assert.False(t, os.IsNotExist(err), "catalog.json should be backed up")
+
+	// Verify original catalog.json no longer exists
 	_, err = os.Stat(catalogIndexPath)
-	assert.True(t, os.IsNotExist(err), "catalog.json should be deleted")
+	assert.True(t, os.IsNotExist(err), "original catalog.json should be removed")
 }
 
 // Helper functions
@@ -541,24 +546,48 @@ func writeCatalogFile(t *testing.T, mcpDir string, serverNames []string) {
 	require.NoError(t, err)
 }
 
-func assertLegacyFilesDeleted(t *testing.T, mcpDir string) {
+func assertLegacyFilesBackedUp(t *testing.T, mcpDir string) {
 	t.Helper()
 
+	backupDir := filepath.Join(mcpDir, ".backup")
+
+	// Verify backup directory exists
+	_, err := os.Stat(backupDir)
+	assert.False(t, os.IsNotExist(err), "backup directory should exist")
+
+	// Verify original files no longer exist in original location
 	registryPath := filepath.Join(mcpDir, "registry.yaml")
-	_, err := os.Stat(registryPath)
-	assert.True(t, os.IsNotExist(err), "registry.yaml should be deleted")
+	_, err = os.Stat(registryPath)
+	assert.True(t, os.IsNotExist(err), "original registry.yaml should be removed")
 
 	configPath := filepath.Join(mcpDir, "config.yaml")
 	_, err = os.Stat(configPath)
-	assert.True(t, os.IsNotExist(err), "config.yaml should be deleted")
+	assert.True(t, os.IsNotExist(err), "original config.yaml should be removed")
 
 	toolsPath := filepath.Join(mcpDir, "tools.yaml")
 	_, err = os.Stat(toolsPath)
-	assert.True(t, os.IsNotExist(err), "tools.yaml should be deleted")
+	assert.True(t, os.IsNotExist(err), "original tools.yaml should be removed")
 
 	catalogPath := filepath.Join(mcpDir, "catalogs", legacycatalog.DockerCatalogFilename)
 	_, err = os.Stat(catalogPath)
-	assert.True(t, os.IsNotExist(err), "catalog file should be deleted")
+	assert.True(t, os.IsNotExist(err), "original catalog file should be removed")
+
+	// Verify files exist in backup directory
+	backupRegistryPath := filepath.Join(backupDir, "registry.yaml")
+	_, err = os.Stat(backupRegistryPath)
+	assert.False(t, os.IsNotExist(err), "registry.yaml should be backed up")
+
+	backupConfigPath := filepath.Join(backupDir, "config.yaml")
+	_, err = os.Stat(backupConfigPath)
+	assert.False(t, os.IsNotExist(err), "config.yaml should be backed up")
+
+	backupToolsPath := filepath.Join(backupDir, "tools.yaml")
+	_, err = os.Stat(backupToolsPath)
+	assert.False(t, os.IsNotExist(err), "tools.yaml should be backed up")
+
+	backupCatalogPath := filepath.Join(backupDir, legacycatalog.DockerCatalogFilename)
+	_, err = os.Stat(backupCatalogPath)
+	assert.False(t, os.IsNotExist(err), "catalog file should be backed up")
 }
 
 // mockDockerClient is a simple mock implementation of docker.Client for testing
