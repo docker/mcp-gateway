@@ -65,7 +65,8 @@ type AddVectorRequest struct {
 type SearchRequest struct {
 	Vector             []float32 `json:"vector"`
 	Limit              int       `json:"limit,omitempty"`
-	CollectionName     string    `json:"collection_name,omitempty"`     // Empty = search all (or use exclude)
+	CollectionName     string    `json:"collection_name,omitempty"`     // Deprecated: use collection_names instead
+	CollectionNames    []string  `json:"collection_names,omitempty"`    // Search in specific collections (empty = search all)
 	ExcludeCollections []string  `json:"exclude_collections,omitempty"` // Collections to exclude from search
 }
 
@@ -133,7 +134,7 @@ func main() {
 	// Create transport with logging
 	transport := &mcp.LoggingTransport{
 		Transport: &mcp.StdioTransport{},
-		Writer: os.Stderr,
+		Writer:    os.Stderr,
 	}
 
 	// Run server
@@ -303,7 +304,14 @@ func (vs *VectorServer) registerTools(server *mcp.Server) {
 					},
 					"collection_name": {
 						Type:        "string",
-						Description: "Optional: search only within this collection",
+						Description: "Optional: search only within this single collection (deprecated, use collection_names instead)",
+					},
+					"collection_names": {
+						Type:        "array",
+						Description: "Optional: search only within these collections. If empty, searches all collections.",
+						Items: &jsonschema.Schema{
+							Type: "string",
+						},
 					},
 					"exclude_collections": {
 						Type:        "array",
@@ -527,24 +535,38 @@ func (vs *VectorServer) handleSearch(ctx context.Context, req *mcp.CallToolReque
 		params.Limit = 10
 	}
 
+	// Support backward compatibility: if collection_name is set, add it to collection_names
+	if params.CollectionName != "" && len(params.CollectionNames) == 0 {
+		params.CollectionNames = []string{params.CollectionName}
+	}
+
 	vectorJSON, _ := json.Marshal(params.Vector)
 
 	var rows *sql.Rows
 	var err error
 
-	if params.CollectionName != "" {
-		// Search within a specific collection
-		rows, err = vs.db.Query(`
+	if len(params.CollectionNames) > 0 {
+		// Search within specific collections using IN clause
+		placeholders := make([]string, len(params.CollectionNames))
+		args := []any{string(vectorJSON)}
+		for i, name := range params.CollectionNames {
+			placeholders[i] = "?"
+			args = append(args, name)
+		}
+		args = append(args, params.Limit)
+
+		query := fmt.Sprintf(`
 			SELECT v.id, c.name, v.metadata, vec_distance_cosine(v.vector_blob, vec_f32(?)) as distance
 			FROM vectors v
 			JOIN collections c ON v.collection_id = c.id
-			WHERE c.name = ?
+			WHERE c.name IN (%s)
 			ORDER BY distance
 			LIMIT ?
-		`, string(vectorJSON), params.CollectionName, params.Limit)
+		`, strings.Join(placeholders, ","))
+
+		rows, err = vs.db.Query(query, args...)
 	} else if len(params.ExcludeCollections) > 0 {
 		// Search across all collections EXCEPT the excluded ones
-		// Build placeholders for the IN clause
 		placeholders := make([]string, len(params.ExcludeCollections))
 		args := []any{string(vectorJSON)}
 		for i, name := range params.ExcludeCollections {

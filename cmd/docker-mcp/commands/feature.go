@@ -217,6 +217,7 @@ func isFeatureEnabledFromConfig(configFile *configfile.ConfigFile, feature strin
 	// Features that are enabled by default
 	defaultEnabledFeatures := map[string]bool{
 		"mcp-oauth-dcr": true,
+		"dynamic-tools": true,
 	}
 
 	if configFile.Features == nil {

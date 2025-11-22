@@ -13,12 +13,12 @@
 (defn start-vector-db
   "Start the jimclark106/vector-db Docker container with interactive streams.
    Returns a map with :process, :in (stdin stream), :out (stdout stream), and :err (stderr stream)"
-  [dim]
+  [{:keys [dimension db]}]
   (let [cmd ["docker" "run" "-i" "--rm"
              "--platform" "linux/amd64"
              "-v" "./data:/data"
-             "-e" "DB_PATH=/data/vectors.db"
-             "-e" (format "VECTOR_DIMENSION=%s" dim)
+             "-e" (format "DB_PATH=/data/%s" db)
+             "-e" (format "VECTOR_DIMENSION=%s" dimension)
              "jimclark106/vector-db:latest"]
         proc (process/process cmd {:in :stream
                                    :out :stream
@@ -49,25 +49,25 @@
    First starts the vector-db container, then creates a server reading from
    the container's stdout and writing to its stdin.
    Returns a map with :server, :container, and :join (future that completes when server exits)."
-  ([] (vector-db-stdio-server {:dimension 1536}))
+  ([] (vector-db-stdio-server {:dimension 1536 :db "vectors.db"}))
   ([opts]
    (let [log-ch (or (:log-ch opts) (async/chan))
          trace-ch (or (:trace-ch opts) (async/chan))
-         container (start-vector-db (:dimension opts))
+         container (start-vector-db opts)
 
          ;; Debug: spawn a thread to monitor stderr
          _ (async/thread
              (let [reader (io/reader (:err container))]
                (loop []
-                 (when-let [line (.readLine reader)]
+                 (when-let [_ (.readLine reader)]
                    (recur)))))
 
          ;; Use keyword instead of csk/->kebab-case-keyword to keep keys as-is
          ;; The lsp4clj server expects :id, :jsonrpc, :method, :result, etc.
          mcp-in-factory (fn [in opts]
                           (io-chan/mcp-input-stream->input-chan in (assoc opts
-                                                                           :keyword-function keyword
-                                                                           :log-ch log-ch)))
+                                                                          :keyword-function keyword
+                                                                          :log-ch log-ch)))
          srv (io-server/server (merge {:trace-level "verbose"}
                                       opts
                                       {:in (:out container)
@@ -201,7 +201,7 @@
 
 (comment
   ;; Start the container
-  (def db (start-vector-db 1536))
+  (def db (start-vector-db {:dimension 1536 :db "vectors.db"}))
 
   ;; Access the raw streams
   (:in db)   ; stdin stream

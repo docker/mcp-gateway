@@ -134,12 +134,9 @@
 ;; ==================================================
 ;; Vector DB OPs
 ;; ==================================================
-;(ns-unmap *ns* 'vec-db-connection)
-(defonce vec-db-connection (vec-db/vector-db-stdio-server {:dimension 2560}))
-
-(defn search [{:keys [embedding-fn] :as options} s]
+(defn search [{:keys [embedding-fn connection] :as options} s]
   (let [vec (create-embedding embedding-fn s)]
-    (vec-db/search-vectors vec-db-connection vec options)))
+    (vec-db/search-vectors connection vec options)))
 
 ;; ==================================================
 ;; Perform Embeddings
@@ -166,28 +163,28 @@
 
 (defn embed-servers
   "embed the server descriptions"
-  [{:keys [embedding-fn summarize-fn]} collection servers]
+  [{:keys [embedding-fn summarize-fn connection]} collection servers]
   (println "> embed " (:name collection))
   (async/go
-    (async/<! (vec-db/delete-collection vec-db-connection (:name collection)))
-    (async/<! (vec-db/create-collection vec-db-connection (:name collection)))
+    (async/<! (vec-db/delete-collection connection (:name collection)))
+    (async/<! (vec-db/create-collection connection (:name collection)))
     (doseq [server servers :let [summary
                                  (summarize-fn server)]]
       (println "  > embed " (-> server :name) " -> " (count summary))
       (let [vec (create-embedding embedding-fn summary)]
-        (async/<!! (vec-db/add-vector vec-db-connection (:name collection) vec (select-keys server [:name])))))))
+        (async/<!! (vec-db/add-vector connection (:name collection) vec (select-keys server [:name])))))))
 
 (defn embed-server-tools
   "embed the server descriptions"
-  [{:keys [embedding-fn summarize-fn]} collection tool-registrations]
+  [{:keys [embedding-fn summarize-fn connection]} collection tool-registrations]
   (println "> embed " (:name collection))
   (async/go
-    (async/<! (vec-db/delete-collection vec-db-connection (:name collection)))
-    (async/<! (vec-db/create-collection vec-db-connection (:name collection)))
+    (async/<! (vec-db/delete-collection connection (:name collection)))
+    (async/<! (vec-db/create-collection connection (:name collection)))
     (doseq [tool-registration tool-registrations :let [summary (summarize-fn tool-registration)]]
       (let [vec (time (create-embedding embedding-fn summary))]
         (println "  > embed " (-> tool-registration :tool :name) " -> " (count summary))
-        (async/<!! (vec-db/add-vector vec-db-connection (:name collection) vec {:tool (select-keys (:tool tool-registration) [:name])}))))))
+        (async/<!! (vec-db/add-vector connection (:name collection) vec {:tool (select-keys (:tool tool-registration) [:name])}))))))
 
 (defn json-with-token-check [tool-registration]
   (let [json (json/generate-string tool-registration)]
@@ -237,9 +234,10 @@
        (map #(assoc % :tokens ((comp (partial tolkien/count-tokens "text-embedding-3-small") json/generate-string) %)))))
 
 (comment
-
-  (async/<!! (vec-db/create-collection vec-db-connection "hello2"))
-  (async/<!! (vec-db/list-collections vec-db-connection))
+  ;; make 3 connections
+  (def connection (vec-db/vector-db-stdio-server {:dimension 1536 :db "vectors.db"}))
+  (async/<!! (vec-db/create-collection connection "hello2"))
+  (async/<!! (vec-db/list-collections connection))
 
   (count servers)
   (reduce +

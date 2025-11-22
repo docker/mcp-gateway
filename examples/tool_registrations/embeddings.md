@@ -73,7 +73,7 @@ https://github.com/docker/mcp-gateway
 | DMR - qwen3-embedding (4B)       | 3.2 | 2560  | 40960   | 2.32G | ok | 
 | GPT (text-embedding-3-small)     | 0.3 | 1536  | 8191    |  -    | ok |
 
-Pre-summary to use smaller modlels
+Pre-summary to use smaller models
 
 * let's look at gemma3 first.
    * can't be used for embeddings - can summarize 4096 context but still too small
