@@ -25,10 +25,10 @@ import (
 )
 
 // mcpFindTool implements a tool for finding MCP servers in the catalog
-func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistration {
+func (g *Gateway) createMcpFindTool(_ Configuration, handler mcp.ToolHandler) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-find",
-		Description: "Find MCP servers in the current catalog by name, title, or description. If the user is looking for new capabilities, use this tool to search the MCP catalog for servers that should potentially be enabled.  This will not enable the server but will return information about servers that could be enabled.",
+		Description: "Find MCP servers in the current catalog by name, title, or description. If the user is looking for new capabilities, use this tool to search the MCP catalog for servers that should potentially be enabled.  This will not enable the server but will return information about servers that could be enabled. If we find an mcp server, it can be added with the mcp-add tool, and configured with mcp-config-set.",
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -45,237 +45,10 @@ func (g *Gateway) createMcpFindTool(configuration Configuration) *ToolRegistrati
 		},
 	}
 
-	// Select handler based on embeddings availability
-	var handler mcp.ToolHandler
-
-	if g.embeddingsClient != nil {
-		// Use embeddings-based semantic search
-		handler = func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// Parse parameters
-			var params struct {
-				Prompt string `json:"prompt"`
-				Limit  int    `json:"limit"`
-			}
-
-			if req.Params.Arguments == nil {
-				return nil, fmt.Errorf("missing arguments")
-			}
-
-			paramsBytes, err := json.Marshal(req.Params.Arguments)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal arguments: %w", err)
-			}
-
-			if err := json.Unmarshal(paramsBytes, &params); err != nil {
-				return nil, fmt.Errorf("failed to parse arguments: %w", err)
-			}
-
-			if params.Prompt == "" {
-				return nil, fmt.Errorf("query parameter is required")
-			}
-
-			if params.Limit <= 0 {
-				params.Limit = 10
-			}
-
-			// Use vector similarity search to find relevant servers
-			results, err := g.findServersByEmbedding(ctx, params.Prompt, params.Limit)
-			if err != nil {
-				return nil, fmt.Errorf("failed to find servers: %w", err)
-			}
-
-			response := map[string]any{
-				"prompt":        params.Prompt,
-				"total_matches": len(results),
-				"servers":       results,
-			}
-
-			responseBytes, err := json.Marshal(response)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal response: %w", err)
-			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
-			}, nil
-		}
-	} else {
-		// Use traditional string-based search
-		handler = func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// Parse parameters
-			var params struct {
-				Prompt string `json:"prompt"`
-				Limit  int    `json:"limit"`
-			}
-
-			if req.Params.Arguments == nil {
-				return nil, fmt.Errorf("missing arguments")
-			}
-
-			paramsBytes, err := json.Marshal(req.Params.Arguments)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal arguments: %w", err)
-			}
-
-			if err := json.Unmarshal(paramsBytes, &params); err != nil {
-				return nil, fmt.Errorf("failed to parse arguments: %w", err)
-			}
-
-			if params.Prompt == "" {
-				return nil, fmt.Errorf("query parameter is required")
-			}
-
-			if params.Limit <= 0 {
-				params.Limit = 10
-			}
-
-			// Search through the catalog servers
-			query := strings.ToLower(strings.TrimSpace(params.Prompt))
-			var matches []ServerMatch
-
-			for serverName, server := range configuration.servers {
-				match := false
-				score := 0
-
-				// Check server name (exact match gets higher score)
-				serverNameLower := strings.ToLower(serverName)
-				if serverNameLower == query {
-					match = true
-					score = 100
-				} else if strings.Contains(serverNameLower, query) {
-					match = true
-					score = 50
-				}
-
-				// Check server title
-				if server.Title != "" {
-					titleLower := strings.ToLower(server.Title)
-					if titleLower == query {
-						match = true
-						score = maxInt(score, 97)
-					} else if strings.Contains(titleLower, query) {
-						match = true
-						score = maxInt(score, 47)
-					}
-				}
-
-				// Check server description
-				if server.Description != "" {
-					descriptionLower := strings.ToLower(server.Description)
-					if descriptionLower == query {
-						match = true
-						score = maxInt(score, 95)
-					} else if strings.Contains(descriptionLower, query) {
-						match = true
-						score = maxInt(score, 45)
-					}
-				}
-
-				// Check if it has tools that might match
-				for _, tool := range server.Tools {
-					toolNameLower := strings.ToLower(tool.Name)
-					toolDescLower := strings.ToLower(tool.Description)
-
-					if toolNameLower == query {
-						match = true
-						score = maxInt(score, 90)
-					} else if strings.Contains(toolNameLower, query) {
-						match = true
-						score = maxInt(score, 40)
-					} else if strings.Contains(toolDescLower, query) {
-						match = true
-						score = maxInt(score, 30)
-					}
-				}
-
-				// Check image name
-				if server.Image != "" {
-					imageLower := strings.ToLower(server.Image)
-					if strings.Contains(imageLower, query) {
-						match = true
-						score = maxInt(score, 20)
-					}
-				}
-
-				if match {
-					matches = append(matches, ServerMatch{
-						Name:   serverName,
-						Server: server,
-						Score:  score,
-					})
-				}
-			}
-
-			// Sort matches by score (higher scores first)
-			for i := range len(matches) - 1 {
-				for j := i + 1; j < len(matches); j++ {
-					if matches[i].Score < matches[j].Score {
-						matches[i], matches[j] = matches[j], matches[i]
-					}
-				}
-			}
-
-			// Limit results
-			if len(matches) > params.Limit {
-				matches = matches[:params.Limit]
-			}
-
-			// Format results
-			var results []map[string]any
-			for _, match := range matches {
-				serverInfo := map[string]any{
-					"name": match.Name,
-				}
-
-				if match.Server.Description != "" {
-					serverInfo["description"] = match.Server.Description
-				}
-
-				if len(match.Server.Secrets) > 0 {
-					var secrets []string
-					for _, secret := range match.Server.Secrets {
-						secrets = append(secrets, secret.Name)
-					}
-					serverInfo["required_secrets"] = secrets
-				}
-
-				if len(match.Server.Config) > 0 {
-					serverInfo["config_schema"] = match.Server.Config
-				}
-
-				serverInfo["long_lived"] = match.Server.LongLived
-
-				results = append(results, serverInfo)
-			}
-
-			response := map[string]any{
-				"prompt":        params.Prompt,
-				"total_matches": len(results),
-				"servers":       results,
-			}
-
-			responseBytes, err := json.Marshal(response)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal response: %w", err)
-			}
-
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{&mcp.TextContent{Text: string(responseBytes)}},
-			}, nil
-		}
-	}
-
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-find", handler),
 	}
-}
-
-// ServerMatch represents a search result
-type ServerMatch struct {
-	Name   string
-	Server catalog.Server
-	Score  int
 }
 
 func (g *Gateway) createCodeModeTool(_ *clientConfig) *ToolRegistration {
@@ -742,47 +515,11 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 	return nil, fmt.Errorf("unable to parse response as OCI catalog or direct catalog format")
 }
 
-type configValue struct {
-	Server string `json:"server"`
-	Key    string `json:"key"`
-	Value  any    `json:"value"`
-}
-
-// formatConfigValue formats a config value for display, handling arrays, objects, and primitives
-func formatConfigValue(value any) string {
-	if value == nil {
-		return "null"
-	}
-
-	// Try to format as JSON for complex types
-	switch v := value.(type) {
-	case string:
-		return fmt.Sprintf("%q", v)
-	case []any:
-		// Format array with proper JSON
-		jsonBytes, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Sprintf("%v", v)
-		}
-		return string(jsonBytes)
-	case map[string]any:
-		// Format object with proper JSON
-		jsonBytes, err := json.Marshal(v)
-		if err != nil {
-			return fmt.Sprintf("%v", v)
-		}
-		return string(jsonBytes)
-	default:
-		// For numbers, booleans, etc.
-		return fmt.Sprintf("%v", v)
-	}
-}
-
 // mcpConfigSetTool implements a tool for setting configuration values for MCP servers
 func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 	tool := &mcp.Tool{
 		Name:        "mcp-config-set",
-		Description: "Set configuration values for MCP servers. Creates or updates server configuration with the specified key-value pairs. Supports strings, numbers, booleans, objects, and arrays.",
+		Description: "Set configuration for an MCP server. The config object will be validated against the server's config schema. If validation fails, the error message will include the correct schema.",
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -790,100 +527,18 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 					Type:        "string",
 					Description: "Name of the MCP server to configure",
 				},
-				"key": {
-					Type:        "string",
-					Description: "Configuration key to set. This is not to be prefixed by the server name.",
-				},
-				"value": {
-					Types:       []string{"string", "number", "boolean", "object", "array"},
-					Description: "Configuration value to set (can be string, number, boolean, object, or array)",
-					Items:       &jsonschema.Schema{Type: "object"},
+				"config": {
+					Type:        "object",
+					Description: "Configuration object for the server. This will be validated against the server's config schema.",
 				},
 			},
-			Required: []string{"server", "key", "value"},
+			Required: []string{"server", "config"},
 		},
-	}
-
-	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Parse parameters
-		var params configValue
-
-		if req.Params.Arguments == nil {
-			return nil, fmt.Errorf("missing arguments")
-		}
-
-		paramsBytes, err := json.Marshal(req.Params.Arguments)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
-		}
-
-		if err := json.Unmarshal(paramsBytes, &params); err != nil {
-			return nil, fmt.Errorf("failed to parse arguments: %w", err)
-		}
-
-		if params.Server == "" {
-			return nil, fmt.Errorf("server parameter is required")
-		}
-
-		if params.Key == "" {
-			return nil, fmt.Errorf("key parameter is required")
-		}
-
-		serverName := strings.TrimSpace(params.Server)
-		configKey := strings.TrimSpace(params.Key)
-
-		// Decode JSON-encoded values (e.g., arrays passed as strings)
-		finalValue := params.Value
-		if strValue, ok := params.Value.(string); ok {
-			// Try to JSON decode the string value
-			var decoded any
-			if err := json.Unmarshal([]byte(strValue), &decoded); err == nil {
-				// Successfully decoded - use the decoded value
-				finalValue = decoded
-			}
-			// If decoding fails, keep the original string value
-		}
-
-		// Check if server exists in catalog (optional check - we can configure servers that don't exist yet)
-		_, _, serverExists := g.configuration.Find(serverName)
-
-		// Initialize the server's config map if it doesn't exist
-		if g.configuration.config[serverName] == nil {
-			g.configuration.config[serverName] = make(map[string]any)
-		}
-
-		// Set the configuration value
-		oldValue := g.configuration.config[serverName][configKey]
-		g.configuration.config[serverName][configKey] = finalValue
-
-		// Format the value for display
-		valueStr := formatConfigValue(finalValue)
-		oldValueStr := formatConfigValue(oldValue)
-
-		// Log the configuration change
-		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %s", serverName, configKey, valueStr))
-
-		var resultMessage string
-		if oldValue != nil {
-			resultMessage = fmt.Sprintf("Successfully updated config for server '%s': %s = %s (was: %s)", serverName, configKey, valueStr, oldValueStr)
-		} else {
-			resultMessage = fmt.Sprintf("Successfully set config for server '%s': %s = %s", serverName, configKey, valueStr)
-		}
-
-		if !serverExists {
-			resultMessage += fmt.Sprintf(" (Note: server '%s' is not in the current catalog)", serverName)
-		}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: resultMessage,
-			}},
-		}, nil
 	}
 
 	return &ToolRegistration{
 		Tool:    tool,
-		Handler: withToolTelemetry("mcp-config-set", handler),
+		Handler: withToolTelemetry("mcp-config-set", configSetHandler(g)),
 	}
 }
 
