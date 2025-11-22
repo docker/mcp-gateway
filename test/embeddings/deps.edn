@@ -1,0 +1,28 @@
+{:paths ["clj"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
+        org.clojure/core.match {:mvn/version "1.1.0"}
+        clj-commons/clj-yaml {:mvn/version "1.0.28"}
+        pogonos/pogonos {:mvn/version "0.2.1"}
+        dev.weavejester/medley {:mvn/version "1.8.0"}
+        io.replikativ/hasch {:mvn/version "0.3.94"
+                             :exclusions [org.clojure/clojurescript]}
+        babashka/fs {:mvn/version "0.5.22"}
+        babashka/process {:mvn/version "0.5.22"}
+        babashka/babashka.curl {:mvn/version "0.1.2"}
+        selmer/selmer {:mvn/version "1.12.61"}
+        cheshire/cheshire {:mvn/version "5.13.0"}
+        org.clojure/core.async {:mvn/version "1.6.681"}
+        org.babashka/http-client {:mvn/version "0.4.12"}
+        com.taoensso/timbre {:mvn/version "5.2.1"}
+        io.github.slimslenderslacks/lsp4clj {:git/sha "80f8facfadc4933ae12687087d7713d134f45a96"}
+        funcool/promesa {:mvn/version "9.0.470"}
+        borkdude/dynaload {:mvn/version "0.3.5"}
+        metosin/reitit {:mvn/version "0.7.0-alpha5"}
+        aleph/aleph {:mvn/version "0.8.3"}
+        io.github.lukaszkorecki/tolkien {:git/tag "v0.2.0" :git/sha "5472597"}
+        com.github.clojure-lsp/jsonrpc4clj {:mvn/version "1.0.2"}}
+ :aliases {:main {:main-opts ["-m" "docker.main"]}
+           :build {:ns-default build
+                   :deps {io.github.clojure/tools.build {:git/tag "v0.10.8" :git/sha "2fdfd66bc3e8e78fde810515c9b8e7e21f638949"}}}
+           :main-repl {:main-opts ["-m" "docker.main"]
+                       :extra-deps {cider/cider-nrepl {:mvn/version "0.47.2"}}}}}

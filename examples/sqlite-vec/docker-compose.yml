@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  vector-db:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sqlite-vec-mcp
+    stdin_open: true  # Keep stdin open for MCP stdio protocol
+    tty: false        # No TTY needed for MCP
+    volumes:
+      - ./data:/data
+    environment:
+      - DB_PATH=/data/vectors.db
+      - VECTOR_DIMENSION=1536  # Change based on your embedding model
+    restart: unless-stopped
+    # Note: This is an MCP stdio server - it communicates via stdin/stdout
+    # No health check or ports needed for stdio-based MCP servers
+
+volumes:
+  vector-data:
