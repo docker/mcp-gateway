@@ -82,7 +82,13 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("- Adding internal tools (dynamic-tools feature enabled)")
 
 		// Add mcp-find tool
-		mcpFindTool := g.createMcpFindTool(configuration)
+		var handler mcp.ToolHandler
+		if g.embeddingsClient != nil {
+			handler = embeddingStrategy(g)
+		} else {
+			handler = keywordStrategy(configuration)
+		}
+		mcpFindTool := g.createMcpFindTool(configuration, handler)
 		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
 		g.toolRegistrations[mcpFindTool.Tool.Name] = *mcpFindTool
 
@@ -132,13 +138,6 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		// mcpRegistryImportTool := g.createMcpRegistryImportTool(configuration, clientConfig)
 		// g.mcpServer.AddTool(mcpRegistryImportTool.Tool, mcpRegistryImportTool.Handler)
 		// g.toolRegistrations[mcpRegistryImportTool.Tool.Name] = *mcpRegistryImportTool
-
-		// Add mcp-session-name tool
-		// mcpSessionNameTool := g.createMcpSessionNameTool()
-		// g.mcpServer.AddTool(mcpSessionNameTool.Tool, mcpSessionNameTool.Handler)
-		// g.toolRegistrations[mcpSessionNameTool.Tool.Name] = *mcpSessionNameTool
-		// log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
-		// log.Log("  > mcp-session-name: tool for setting session name to persist configuration")
 
 		// Add prompt
 		prompts.AddDiscoverPrompt(g.mcpServer)
