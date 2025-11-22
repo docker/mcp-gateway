@@ -21,28 +21,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-// mcpAddTool implements a tool for adding new servers to the registry
-func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
-	tool := &mcp.Tool{
-		Name:        "mcp-add",
-		Description: "Add a new MCP server to the session. The server must exist in the catalog.",
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"name": {
-					Type:        "string",
-					Description: "Name of the MCP server to add to the registry (must exist in catalog)",
-				},
-				"activate": {
-					Type:        "boolean",
-					Description: "Activate all of the server's tools in the current session",
-				},
-			},
-			Required: []string{"name"},
-		},
-	}
-
-	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params struct {
 			Name     string `json:"name"`
@@ -302,12 +282,9 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}},
 		}, nil
 	}
-
-	return &ToolRegistration{
-		Tool:    tool,
-		Handler: withToolTelemetry("mcp-add", handler),
-	}
 }
+
+// mcpAddTool implements a tool for adding new servers to the registry
 
 // shortenURL creates a shortened URL using Bitly's API
 // It returns the shortened URL or an error if the request fails

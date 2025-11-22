@@ -123,6 +123,12 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
 
+		// Add mcp-create-profile tool
+		log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
+		mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
+		g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
+		g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+
 		// Add find-tools tool only if embeddings client is configured
 		if g.embeddingsClient != nil {
 			log.Log("  > find-tools: AI-powered tool recommendation based on task description")

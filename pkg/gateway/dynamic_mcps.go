@@ -27,8 +27,11 @@ import (
 // mcpFindTool implements a tool for finding MCP servers in the catalog
 func (g *Gateway) createMcpFindTool(_ Configuration, handler mcp.ToolHandler) *ToolRegistration {
 	tool := &mcp.Tool{
-		Name:        "mcp-find",
-		Description: "Find MCP servers in the current catalog by name, title, or description. If the user is looking for new capabilities, use this tool to search the MCP catalog for servers that should potentially be enabled.  This will not enable the server but will return information about servers that could be enabled. If we find an mcp server, it can be added with the mcp-add tool, and configured with mcp-config-set.",
+		Name: "mcp-find",
+		Description: `Find MCP servers in the current catalog by name, title, or description.
+If the user is looking for new capabilities, use this tool to search the MCP catalog for servers that should potentially be enabled.
+This will not enable the server but will return information about servers that could be enabled.
+If we find an mcp server, it can be added with the mcp-add tool, and configured with mcp-config-set.`,
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
@@ -48,6 +51,85 @@ func (g *Gateway) createMcpFindTool(_ Configuration, handler mcp.ToolHandler) *T
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-find", handler),
+	}
+}
+
+func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
+	tool := &mcp.Tool{
+		Name: "mcp-add",
+		Description: `Add a new MCP server to the session. 
+The server must exist in the catalog.`,
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name": {
+					Type:        "string",
+					Description: "Name of the MCP server to add to the registry (must exist in catalog)",
+				},
+				"activate": {
+					Type:        "boolean",
+					Description: "Activate all of the server's tools in the current session",
+				},
+			},
+			Required: []string{"name"},
+		},
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-add", addServerHandler(g, clientConfig)),
+	}
+}
+
+// mcpConfigSetTool implements a tool for setting configuration values for MCP servers
+func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
+	tool := &mcp.Tool{
+		Name: "mcp-config-set",
+		Description: `Set configuration for an MCP server. 
+The config object will be validated against the server's config schema. If validation fails, the error message will include the correct schema.`,
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"server": {
+					Type:        "string",
+					Description: "Name of the MCP server to configure",
+				},
+				"config": {
+					Type:        "object",
+					Description: "Configuration object for the server. This will be validated against the server's config schema.",
+				},
+			},
+			Required: []string{"server", "config"},
+		},
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-config-set", configSetHandler(g)),
+	}
+}
+
+func (g *Gateway) createMcpCreateProfileTool(_ *clientConfig) *ToolRegistration {
+	tool := &mcp.Tool{
+		Name: "mcp-create-profile",
+		Description: `Create or update a profile with the current gateway state.
+A profile is a snapshot of all currently enabled servers and their configurations.
+If a profile with the given name already exists, it will be updated with the current state.`,
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name": {
+					Type:        "string",
+					Description: "Name of the profile to create or update",
+				},
+			},
+			Required: []string{"name"},
+		},
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-create-profile", createProfileHandler(g)),
 	}
 }
 
@@ -513,33 +595,6 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 	}
 
 	return nil, fmt.Errorf("unable to parse response as OCI catalog or direct catalog format")
-}
-
-// mcpConfigSetTool implements a tool for setting configuration values for MCP servers
-func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
-	tool := &mcp.Tool{
-		Name:        "mcp-config-set",
-		Description: "Set configuration for an MCP server. The config object will be validated against the server's config schema. If validation fails, the error message will include the correct schema.",
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"server": {
-					Type:        "string",
-					Description: "Name of the MCP server to configure",
-				},
-				"config": {
-					Type:        "object",
-					Description: "Configuration object for the server. This will be validated against the server's config schema.",
-				},
-			},
-			Required: []string{"server", "config"},
-		},
-	}
-
-	return &ToolRegistration{
-		Tool:    tool,
-		Handler: withToolTelemetry("mcp-config-set", configSetHandler(g)),
-	}
 }
 
 // createMcpExecTool implements a tool for executing tools that exist in the current session
