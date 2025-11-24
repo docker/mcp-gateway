@@ -717,11 +717,8 @@ func TestCreateFromLegacyCatalogWithRemotes(t *testing.T) {
 			require.NotNil(t, server.Snapshot)
 			assert.Equal(t, "test-server", server.Snapshot.Server.Name)
 
-			// Verify endpoint is set for remote servers
-			if server.Type == workingset.ServerTypeRemote {
-				assert.NotEmpty(t, server.Endpoint, "Endpoint should be set for remote servers")
-				assert.Equal(t, server.Snapshot.Server.Remote.URL, server.Endpoint, "Endpoint should match the Remote.URL from snapshot")
-			}
+			assert.NotEmpty(t, server.Endpoint, "Endpoint should be set for remote servers")
+			assert.Equal(t, server.Snapshot.Server.Remote.URL, server.Endpoint, "Endpoint should match the Remote.URL from snapshot")
 
 			// Run custom validation
 			tt.validateServer(t, &server.Snapshot.Server)
