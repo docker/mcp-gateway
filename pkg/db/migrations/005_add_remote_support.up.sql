@@ -15,7 +15,7 @@ CREATE TABLE catalog_server_new (
 
 -- Copy existing data
 INSERT INTO catalog_server_new (id, server_type, tools, source, image, endpoint, snapshot, catalog_ref)
-SELECT id, server_type, tools, source, image, NULL, snapshot, catalog_ref
+SELECT id, server_type, tools, source, image, "", snapshot, catalog_ref
 FROM catalog_server;
 
 DROP TABLE catalog_server;
