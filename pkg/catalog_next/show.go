@@ -106,6 +106,8 @@ func printHumanReadable(catalog CatalogWithDigest) string {
 			servers += fmt.Sprintf("    Source: %s\n", server.Source)
 		case workingset.ServerTypeImage:
 			servers += fmt.Sprintf("    Image: %s\n", server.Image)
+		case workingset.ServerTypeRemote:
+			servers += fmt.Sprintf("    Endpoint: %s\n", server.Endpoint)
 		}
 	}
 	servers = strings.TrimSuffix(servers, "\n")

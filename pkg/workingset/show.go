@@ -75,6 +75,8 @@ func printHumanReadable(workingSet WorkingSet) string {
 			servers += fmt.Sprintf("    Source: %s\n", server.Source)
 		case ServerTypeImage:
 			servers += fmt.Sprintf("    Image: %s\n", server.Image)
+		case ServerTypeRemote:
+			servers += fmt.Sprintf("    Endpoint: %s\n", server.Endpoint)
 		}
 		servers += fmt.Sprintf("    Config: %v\n", server.Config)
 		servers += fmt.Sprintf("    Secrets: %s\n", server.Secrets)
