@@ -123,6 +123,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 				options.MCPRegistryServers = mcpServers
 			}
 
+			// TODO(cody): When all commands are migrated, we should default this parameter to "default"
+			// Also need to consider the case when there is no default profile
 			if options.WorkingSet != "" {
 				if len(options.ServerNames) > 0 {
 					return fmt.Errorf("cannot use --profile with --servers flag")

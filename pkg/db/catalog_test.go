@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,6 +41,8 @@ func TestCreateCatalogAndGetCatalog(t *testing.T) {
 	assert.Equal(t, catalog.Source, retrieved.Source)
 	assert.Len(t, retrieved.Servers, 1)
 	assert.Equal(t, "registry", retrieved.Servers[0].ServerType)
+	assert.NotNil(t, retrieved.LastUpdated)
+	assert.WithinDuration(t, time.Now().UTC(), *retrieved.LastUpdated, 60*time.Second)
 }
 
 func TestCreateCatalogWithEmptyServers(t *testing.T) {
@@ -271,6 +274,11 @@ func TestListCatalogsWithServersAndSnapshots(t *testing.T) {
 	retrieved, err := dao.ListCatalogs(ctx)
 	require.NoError(t, err)
 	assert.Len(t, retrieved, 2)
+
+	assert.NotNil(t, retrieved[0].LastUpdated)
+	assert.NotNil(t, retrieved[1].LastUpdated)
+	assert.WithinDuration(t, time.Now().UTC(), *retrieved[0].LastUpdated, 60*time.Second)
+	assert.WithinDuration(t, time.Now().UTC(), *retrieved[1].LastUpdated, 60*time.Second)
 
 	// Find catalog 1 and verify
 	var cat1 *Catalog

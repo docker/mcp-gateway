@@ -69,7 +69,7 @@ func TestCreateWithDockerImages(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "My Test Set", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -95,7 +95,7 @@ func TestCreateWithRegistryServers(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Registry Set", []string{
 		"https://example.com/v0/servers/server1",
 		"https://example.com/v0/servers/server2",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -119,7 +119,7 @@ func TestCreateWithMixedServers(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Mixed Set", []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -138,7 +138,7 @@ func TestCreateWithCustomId(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "custom-id", "Test Set", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created with custom ID
@@ -157,13 +157,13 @@ func TestCreateWithExistingId(t *testing.T) {
 	// Create first working set
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "Test Set 1", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Try to create another with the same ID
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "Test Set 2", []string{
 		"docker://anotherimage:latest",
-	})
+	}, []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already exists")
 }
@@ -175,19 +175,19 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 	// Create first working set
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Create second with same name
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Create third with same name
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://anotherimage:v1.0",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// List all working sets
@@ -214,7 +214,7 @@ func TestCreateWithInvalidServerFormat(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"invalid-format",
-	})
+	}, []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid server value")
 }
@@ -225,7 +225,7 @@ func TestCreateWithEmptyName(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid profile")
 }
@@ -234,7 +234,7 @@ func TestCreateWithEmptyServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created with no servers
@@ -251,7 +251,7 @@ func TestCreateAddsDefaultSecrets(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://myimage:latest",
-	})
+	}, []string{})
 	require.NoError(t, err)
 
 	// Verify default secrets were added
@@ -300,7 +300,7 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 
 			err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", tt.inputName, []string{
 				"docker://myimage:latest",
-			})
+			}, []string{})
 			require.NoError(t, err)
 
 			// Verify the ID was generated correctly

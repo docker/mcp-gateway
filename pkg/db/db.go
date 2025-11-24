@@ -5,6 +5,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -22,6 +23,10 @@ import (
 type DAO interface {
 	WorkingSetDAO
 	CatalogDAO
+	MigrationStatusDAO
+
+	// Normally unnecessary to call this
+	Close() error
 }
 
 type dao struct {
@@ -60,6 +65,8 @@ func New(opts ...Option) (DAO, error) {
 		o.dbFile = dbFile
 	}
 
+	ensureDirectoryExists(o.dbFile)
+
 	db, err := sql.Open("sqlite", "file:"+o.dbFile+"?_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -94,12 +101,23 @@ func New(opts ...Option) (DAO, error) {
 	return &dao{db: sqlxDb}, nil
 }
 
+func (d *dao) Close() error {
+	return d.db.Close()
+}
+
 func DefaultDatabaseFilename() (string, error) {
 	homeDir, err := user.HomeDir()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(homeDir, ".docker", "mcp", "mcp-toolkit.db"), nil
+}
+
+func ensureDirectoryExists(path string) {
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		_ = os.MkdirAll(dir, 0o755)
+	}
 }
 
 func txClose(tx *sqlx.Tx, err *error) {

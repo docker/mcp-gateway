@@ -9,14 +9,25 @@ import (
 
 	catalognext "github.com/docker/mcp-gateway/pkg/catalog_next"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/migrate"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func catalogNextCommand() *cobra.Command {
+func catalogNextCommand(docker docker.Client) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "catalog-next",
 		Short: "Manage catalogs (next generation)",
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			defer dao.Close()
+			migrate.MigrateConfig(cmd.Context(), docker, dao)
+			return nil
+		},
 	}
 
 	cmd.AddCommand(createCatalogNextCommand())
@@ -82,9 +93,10 @@ func tagCatalogNextCommand() *cobra.Command {
 
 func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
+	pullOption := string(catalognext.PullOptionNever)
 
 	cmd := &cobra.Command{
-		Use:   "show <oci-reference>",
+		Use:   "show <oci-reference> [--pull <pull-option>]",
 		Short: "Show a catalog",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -96,13 +108,14 @@ func showCatalogNextCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return catalognext.Show(cmd.Context(), dao, args[0], workingset.OutputFormat(format))
+			ociService := oci.NewService()
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
-
+	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s, or duration (e.g. '1h', '1d'). Duration represents time since last update.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
 	return cmd
 }
 

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"maps"
@@ -15,9 +16,20 @@ import (
 //go:embed config.yml
 var configYaml string
 
+const (
+	vendorCursor        = "cursor"
+	vendorVSCode        = "vscode"
+	vendorClaudeDesktop = "claude-desktop"
+	vendorContinueDev   = "continue"
+	VendorGordon        = "gordon"
+	vendorZed           = "zed"
+	VendorCodex         = "codex"
+	vendorKiro          = "kiro"
+)
+
 var (
-	getProjectRoot  = findGitProjectRoot
-	errNotInGitRepo = errors.New("could not find root project root (use --global flag to update global configuration)")
+	getProjectRoot  = FindGitProjectRoot
+	ErrNotInGitRepo = errors.New("could not find root project root (use --global flag to update global configuration)")
 )
 
 type Config struct {
@@ -34,7 +46,7 @@ func ReadConfig() *Config {
 	return &result
 }
 
-func findGitProjectRoot(dir string) string {
+func FindGitProjectRoot(dir string) string {
 	for {
 		gitPath := filepath.Join(dir, ".git")
 		if _, err := os.Stat(gitPath); err == nil {
@@ -51,8 +63,8 @@ func findGitProjectRoot(dir string) string {
 
 func GetSupportedMCPClients(cfg Config) []string {
 	tmp := map[string]struct{}{
-		vendorGordon: {},
-		vendorCodex:  {},
+		VendorGordon: {},
+		VendorCodex:  {},
 	}
 	for k := range cfg.System {
 		tmp[k] = struct{}{}
@@ -108,7 +120,7 @@ func newMcpGatewayServerWithWorkingSet(workingSet string) *MCPServerSTDIO {
 	return server
 }
 
-func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater, error) {
+func getUpdater(vendor string, global bool, cwd string, config Config) (Updater, error) {
 	if global {
 		cfg, ok := config.System[vendor]
 		if !ok {
@@ -122,7 +134,7 @@ func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater,
 	}
 	projectRoot := getProjectRoot(cwd)
 	if projectRoot == "" {
-		return nil, errNotInGitRepo
+		return nil, ErrNotInGitRepo
 	}
 	cfg, ok := config.Project[vendor]
 	if !ok {
@@ -135,16 +147,31 @@ func GetUpdater(vendor string, global bool, cwd string, config Config) (Updater,
 	return processor.Update, nil
 }
 
+func IsSupportedMCPClient(cfg Config, vendor string, global bool) bool {
+	if vendor == VendorCodex {
+		return global // only global codex is supported
+	}
+	if global && vendor == VendorGordon {
+		return true // global gordon is supported
+	}
+	if global {
+		_, ok := cfg.System[vendor]
+		return ok
+	}
+	_, ok := cfg.Project[vendor]
+	return ok
+}
+
 type MCPClientCfgBase struct {
 	DisplayName           string    `json:"displayName"`
 	Source                string    `json:"source"`
 	Icon                  string    `json:"icon"`
 	ConfigName            string    `json:"configName"`
 	IsMCPCatalogConnected bool      `json:"dockerMCPCatalogConnected"`
-	WorkingSet            string    `json:"workingset"`
+	WorkingSet            string    `json:"profile"`
 	Err                   *CfgError `json:"error"`
 
-	cfg *MCPJSONLists
+	Cfg *MCPJSONLists
 }
 
 func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
@@ -156,5 +183,34 @@ func (c *MCPClientCfgBase) setParseResult(lists *MCPJSONLists, err error) {
 			c.WorkingSet = server.GetWorkingSet()
 		}
 	}
-	c.cfg = lists
+	c.Cfg = lists
+}
+
+func FindClientsByProfile(ctx context.Context, profileID string) map[string]any {
+	clients := make(map[string]any)
+	cfg := ReadConfig()
+
+	for vendor, pathCfg := range cfg.System {
+		processor, err := NewGlobalCfgProcessor(pathCfg)
+		if err != nil {
+			continue
+		}
+		clientCfg := processor.ParseConfig()
+		if clientCfg.WorkingSet == profileID {
+			clients[vendor] = clientCfg
+		}
+	}
+
+	// TODO: Add support for Gordon with flags
+	// gordonCfg := GetGordonSetup(ctx)
+	// if gordonCfg.WorkingSet == profileID {
+	// 	clients[VendorGordon] = gordonCfg
+	// }
+
+	codexCfg := GetCodexSetup(ctx)
+	if codexCfg.WorkingSet == profileID {
+		clients[VendorCodex] = codexCfg
+	}
+
+	return clients
 }

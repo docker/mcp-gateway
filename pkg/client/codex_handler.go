@@ -28,14 +28,14 @@ func isCodexInstalled(_ context.Context) bool {
 	return false
 }
 
-// getCodexSetup returns the configuration status for Codex
-func getCodexSetup(ctx context.Context) MCPClientCfg {
+// GetCodexSetup returns the configuration status for Codex
+func GetCodexSetup(ctx context.Context) MCPClientCfg {
 	result := MCPClientCfg{
 		MCPClientCfgBase: MCPClientCfgBase{
 			DisplayName:           "Codex",
 			Source:                "https://openai.com/codex/",
 			Icon:                  "https://www.svgrepo.com/show/306500/openai.svg",
-			ConfigName:            vendorCodex,
+			ConfigName:            VendorCodex,
 			Err:                   nil,
 			IsMCPCatalogConnected: false,
 		},
@@ -59,7 +59,31 @@ func getCodexSetup(ctx context.Context) MCPClientCfg {
 	if mcpServers, ok := config["mcp_servers"].(map[string]any); ok {
 		if dockerMCP, exists := mcpServers[DockerMCPCatalog]; exists && dockerMCP != nil {
 			result.IsMCPCatalogConnected = true
-			result.cfg = &MCPJSONLists{STDIOServers: []MCPServerSTDIO{{Name: DockerMCPCatalog}}}
+
+			// Extract the server config to get the args and populate WorkingSet
+			if serverConfigMap, ok := dockerMCP.(map[string]any); ok {
+				serverConfig := MCPServerSTDIO{
+					Name: DockerMCPCatalog,
+				}
+
+				// Extract command
+				if command, ok := serverConfigMap["command"].(string); ok {
+					serverConfig.Command = command
+				}
+
+				// Extract args
+				if args, ok := serverConfigMap["args"].([]any); ok {
+					for _, arg := range args {
+						if argStr, ok := arg.(string); ok {
+							serverConfig.Args = append(serverConfig.Args, argStr)
+						}
+					}
+				}
+
+				// Use GetWorkingSet to extract the profile from args
+				result.WorkingSet = serverConfig.GetWorkingSet()
+				result.Cfg = &MCPJSONLists{STDIOServers: []MCPServerSTDIO{serverConfig}}
+			}
 		}
 	}
 
@@ -131,8 +155,8 @@ func writeCodexConfig(config map[string]any) error {
 	return nil
 }
 
-// connectCodex configures docker mcp gateway in Codex by editing config.toml
-func connectCodex(_ context.Context) error {
+// ConnectCodex configures docker mcp gateway in Codex by editing config.toml
+func ConnectCodex(_ context.Context, workingSet string) error {
 	config, err := readCodexConfig()
 	if err != nil {
 		return err
@@ -152,6 +176,10 @@ func connectCodex(_ context.Context) error {
 	}
 	args := []string{"mcp", "gateway", "run"}
 
+	if workingSet != "" {
+		args = append(args, "--profile", workingSet)
+	}
+
 	// Add DOCKER_MCP entry
 	mcpServers[DockerMCPCatalog] = MCPServerConfig{
 		Command: command,
@@ -161,8 +189,8 @@ func connectCodex(_ context.Context) error {
 	return writeCodexConfig(config)
 }
 
-// disconnectCodex removes docker mcp gateway from Codex by editing config.toml
-func disconnectCodex(_ context.Context) error {
+// DisconnectCodex removes docker mcp gateway from Codex by editing config.toml
+func DisconnectCodex(_ context.Context) error {
 	config, err := readCodexConfig()
 	if err != nil {
 		return err

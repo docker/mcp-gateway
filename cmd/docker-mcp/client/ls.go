@@ -6,18 +6,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
-)
+	"github.com/docker/mcp-gateway/pkg/client"
 
-const (
-	vendorCursor        = "cursor"
-	vendorVSCode        = "vscode"
-	vendorClaudeDesktop = "claude-desktop"
-	vendorContinueDev   = "continue"
-	vendorGordon        = "gordon"
-	vendorZed           = "zed"
-	vendorCodex         = "codex"
-	vendorAmazonQ       = "amazon-q"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 const (
@@ -33,14 +24,14 @@ var (
 	orangeCircle = fmt.Sprintf("%s\u25CF%s", orangeYellowColor, resetColor)
 )
 
-func List(ctx context.Context, cwd string, config Config, global, outputJSON bool) error {
+func List(ctx context.Context, cwd string, config client.Config, global, outputJSON bool) error {
 	var result Configs
 	if global {
 		result = parseGlobalConfigs(ctx, config)
 	} else {
-		projectRoot := findGitProjectRoot(cwd)
+		projectRoot := client.FindGitProjectRoot(cwd)
 		if projectRoot == "" {
-			return errNotInGitRepo
+			return client.ErrNotInGitRepo
 		}
 		result = parseLocalProjectConfigs(projectRoot, config)
 	}
@@ -70,7 +61,7 @@ func prettifyCommand(name, cmd string) string {
 
 type ProjectConfigs struct {
 	root string
-	data map[string]ProjectMCPClientCfg
+	data map[string]client.ProjectMCPClientCfg
 }
 
 func (cfg ProjectConfigs) HumanPrint() {
@@ -96,10 +87,10 @@ func (cfg ProjectConfigs) GetData() any {
 	return cfg.data
 }
 
-func parseLocalProjectConfigs(projectRoot string, config Config) ProjectConfigs {
-	result := ProjectConfigs{root: projectRoot, data: make(map[string]ProjectMCPClientCfg)}
+func parseLocalProjectConfigs(projectRoot string, config client.Config) ProjectConfigs {
+	result := ProjectConfigs{root: projectRoot, data: make(map[string]client.ProjectMCPClientCfg)}
 	for v, pathCfg := range config.Project {
-		processor, err := NewLocalCfgProcessor(pathCfg, projectRoot)
+		processor, err := client.NewLocalCfgProcessor(pathCfg, projectRoot)
 		if err != nil {
 			continue
 		}
@@ -110,7 +101,7 @@ func parseLocalProjectConfigs(projectRoot string, config Config) ProjectConfigs 
 	return result
 }
 
-type GlobalConfig map[string]MCPClientCfg
+type GlobalConfig map[string]client.MCPClientCfg
 
 func (cfg GlobalConfig) HumanPrint() {
 	// Make sure to always display things with the same order.
@@ -130,15 +121,15 @@ func (cfg GlobalConfig) HumanPrint() {
 	}
 }
 
-func prettyPrintBaseData(vendor string, data MCPClientCfgBase) {
+func prettyPrintBaseData(vendor string, data client.MCPClientCfgBase) {
 	if data.Err != nil {
 		fmt.Printf(" %s %s: %s\n", redCircle, vendor, data.Err.Err)
 		return
 	}
 	circle := redCircle
 	nrServers := 0
-	if data.cfg != nil {
-		nrServers = len(data.cfg.STDIOServers) + len(data.cfg.SSEServers) + len(data.cfg.HTTPServers)
+	if data.Cfg != nil {
+		nrServers = len(data.Cfg.STDIOServers) + len(data.Cfg.SSEServers) + len(data.Cfg.HTTPServers)
 	}
 	if nrServers > 0 {
 		circle = orangeCircle
@@ -149,16 +140,16 @@ func prettyPrintBaseData(vendor string, data MCPClientCfgBase) {
 		connected = "connected"
 	}
 	fmt.Printf(" %s %s: %s\n", circle, vendor, connected)
-	if data.cfg == nil {
+	if data.Cfg == nil {
 		return
 	}
-	for _, server := range data.cfg.STDIOServers {
+	for _, server := range data.Cfg.STDIOServers {
 		fmt.Printf("   %s: %s (stdio)\n", server.Name, prettifyCommand(server.Name, server.String()))
 	}
-	for _, server := range data.cfg.SSEServers {
+	for _, server := range data.Cfg.SSEServers {
 		fmt.Printf("   %s: %s (sse)\n", server.Name, server.String())
 	}
-	for _, server := range data.cfg.HTTPServers {
+	for _, server := range data.Cfg.HTTPServers {
 		fmt.Printf("   %s: %s (http)\n", server.Name, server.String())
 	}
 }
@@ -167,10 +158,10 @@ func (cfg GlobalConfig) GetData() any {
 	return cfg
 }
 
-func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
-	result := make(map[string]MCPClientCfg)
+func parseGlobalConfigs(ctx context.Context, config client.Config) GlobalConfig {
+	result := make(map[string]client.MCPClientCfg)
 	for v, pathCfg := range config.System {
-		processor, err := NewGlobalCfgProcessor(pathCfg)
+		processor, err := client.NewGlobalCfgProcessor(pathCfg)
 		if err != nil {
 			continue
 		}
@@ -180,8 +171,8 @@ func parseGlobalConfigs(ctx context.Context, config Config) GlobalConfig {
 	}
 	err := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")
 	if err == nil {
-		result[vendorGordon] = getGordonSetup(ctx)
+		result[client.VendorGordon] = client.GetGordonSetup(ctx)
 	}
-	result[vendorCodex] = getCodexSetup(ctx)
+	result[client.VendorCodex] = client.GetCodexSetup(ctx)
 	return result
 }

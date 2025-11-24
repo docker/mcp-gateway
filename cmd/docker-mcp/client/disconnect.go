@@ -3,28 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
+
+	"github.com/docker/mcp-gateway/pkg/client"
 )
 
-func Disconnect(ctx context.Context, cwd string, config Config, vendor string, global, quiet bool) error {
-	if vendor == vendorCodex {
-		if !global {
-			return fmt.Errorf("codex only supports global configuration. Re-run with --global or -g")
-		}
-		if err := disconnectCodex(ctx); err != nil {
-			return err
-		}
-	} else if vendor == vendorGordon && global {
-		if err := disconnectGordon(ctx); err != nil {
-			return err
-		}
-	} else {
-		updater, err := GetUpdater(vendor, global, cwd, config)
-		if err != nil {
-			return err
-		}
-		if err := updater(DockerMCPCatalog, nil); err != nil {
-			return err
-		}
+func Disconnect(ctx context.Context, cwd string, config client.Config, vendor string, global, quiet bool) error {
+	if err := client.Disconnect(ctx, cwd, config, vendor, global); err != nil {
+		return err
 	}
 	if quiet {
 		return nil

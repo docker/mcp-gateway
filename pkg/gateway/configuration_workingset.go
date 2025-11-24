@@ -12,6 +12,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/migrate"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
@@ -31,7 +32,15 @@ func NewWorkingSetConfiguration(workingSet string, ociService oci.Service, docke
 }
 
 func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
-	configuration, err := c.readOnce(ctx)
+	dao, err := db.New()
+	if err != nil {
+		return Configuration{}, nil, nil, fmt.Errorf("failed to create database client: %w", err)
+	}
+
+	// Do migration from legacy files
+	migrate.MigrateConfig(ctx, c.docker, dao)
+
+	configuration, err := c.readOnce(ctx, dao)
 	if err != nil {
 		return Configuration{}, nil, nil, err
 	}
@@ -42,14 +51,9 @@ func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan
 	return configuration, updates, func() error { return nil }, nil
 }
 
-func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, error) {
+func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Configuration, error) {
 	start := time.Now()
 	log.Log("- Reading profile configuration...")
-
-	dao, err := db.New()
-	if err != nil {
-		return Configuration{}, fmt.Errorf("failed to create database client: %w", err)
-	}
 
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
 	if err != nil {
@@ -82,12 +86,11 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context) (Configuration, 
 	toolsConfig := c.readTools(workingSet)
 
 	// TODO(cody): Finish making the gateway fully compatible with working sets
-	// This currently only supports image-only servers
 	serverNames := make([]string, 0)
 	servers := make(map[string]catalog.Server)
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
-		if server.Type != workingset.ServerTypeImage {
+		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
 			continue
 		}
 

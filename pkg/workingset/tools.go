@@ -93,6 +93,15 @@ func UpdateTools(ctx context.Context, dao db.DAO, id string, enable, disable, en
 		if server == nil {
 			return fmt.Errorf("server %s not found in profile for argument %s", serverName, toolArg)
 		}
+
+		// If Tools is nil (all tools enabled), expand it to include all tools from snapshot
+		if server.Tools == nil && server.Snapshot != nil {
+			server.Tools = make([]string, 0, len(server.Snapshot.Server.Tools))
+			for _, tool := range server.Snapshot.Server.Tools {
+				server.Tools = append(server.Tools, tool.Name)
+			}
+		}
+
 		if idx := slices.Index(server.Tools, toolName); idx != -1 {
 			server.Tools = slices.Delete(server.Tools, idx, idx+1)
 			disabledCount++

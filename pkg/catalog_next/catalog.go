@@ -33,7 +33,7 @@ const (
 )
 
 type Server struct {
-	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image"`
+	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
 	Tools []string              `yaml:"tools,omitempty" json:"tools,omitempty"`
 
 	// ServerTypeRegistry only
@@ -41,6 +41,9 @@ type Server struct {
 
 	// ServerTypeImage only
 	Image string `yaml:"image,omitempty" json:"image,omitempty" validate:"required_if=Type image"`
+
+	// ServerTypeRemote only
+	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty" validate:"required_if=Type remote"`
 
 	Snapshot *workingset.ServerSnapshot `yaml:"snapshot,omitempty" json:"snapshot,omitempty"`
 }
@@ -57,6 +60,9 @@ func NewFromDb(dbCatalog *db.Catalog) CatalogWithDigest {
 		}
 		if server.ServerType == "image" {
 			servers[i].Image = server.Image
+		}
+		if server.ServerType == "remote" {
+			servers[i].Endpoint = server.Endpoint
 		}
 		if server.Snapshot != nil {
 			servers[i].Snapshot = &workingset.ServerSnapshot{
@@ -92,6 +98,9 @@ func (catalog Catalog) ToDb() (db.Catalog, error) {
 		}
 		if server.Type == workingset.ServerTypeImage {
 			dbServers[i].Image = server.Image
+		}
+		if server.Type == workingset.ServerTypeRemote {
+			dbServers[i].Endpoint = server.Endpoint
 		}
 		if server.Snapshot != nil {
 			dbServers[i].Snapshot = &db.ServerSnapshot{
@@ -139,4 +148,19 @@ func (catalog *Catalog) validateUniqueServerNames() error {
 		seen[name] = true
 	}
 	return nil
+}
+
+type PullOption string
+
+const (
+	PullOptionMissing = "missing"
+	PullOptionNever   = "never"
+	PullOptionAlways  = "always"
+
+	// Special value for duration-based pull options. Don't add as supported pull option below.
+	PullOptionDuration = "duration"
+)
+
+func SupportedPullOptions() []string {
+	return []string{string(PullOptionMissing), string(PullOptionNever), string(PullOptionAlways)}
 }

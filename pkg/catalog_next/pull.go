@@ -12,15 +12,26 @@ import (
 )
 
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {
+	catalog, err := pullCatalog(ctx, dao, ociService, refStr)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
+
+	return nil
+}
+
+func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) (*db.Catalog, error) {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse OCI reference %s: %w", refStr, err)
+		return nil, fmt.Errorf("failed to parse OCI reference %s: %w", refStr, err)
 	}
 	source := oci.FullName(ref)
 
 	catalogArtifact, err := oci.ReadArtifact[CatalogArtifact](refStr, MCPCatalogArtifactType)
 	if err != nil {
-		return fmt.Errorf("failed to read OCI catalog: %w", err)
+		return nil, fmt.Errorf("failed to read OCI catalog: %w", err)
 	}
 
 	catalog := Catalog{
@@ -38,7 +49,7 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		case workingset.ServerTypeImage:
 			serverSnapshot, err := workingset.ResolveImageSnapshot(ctx, ociService, catalog.Servers[i].Image)
 			if err != nil {
-				return fmt.Errorf("failed to resolve image snapshot: %w", err)
+				return nil, fmt.Errorf("failed to resolve image snapshot: %w", err)
 			}
 			catalog.Servers[i].Snapshot = serverSnapshot
 		case workingset.ServerTypeRegistry:
@@ -47,20 +58,18 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	}
 
 	if err := catalog.Validate(); err != nil {
-		return fmt.Errorf("invalid catalog: %w", err)
+		return nil, fmt.Errorf("invalid catalog: %w", err)
 	}
 
 	dbCatalog, err := catalog.ToDb()
 	if err != nil {
-		return fmt.Errorf("failed to convert catalog to db: %w", err)
+		return nil, fmt.Errorf("failed to convert catalog to db: %w", err)
 	}
 
 	err = dao.UpsertCatalog(ctx, dbCatalog)
 	if err != nil {
-		return fmt.Errorf("failed to create catalog: %w", err)
+		return nil, fmt.Errorf("failed to create catalog: %w", err)
 	}
 
-	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
-
-	return nil
+	return &dbCatalog, nil
 }

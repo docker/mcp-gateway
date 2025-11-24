@@ -15,25 +15,37 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
-	Name           string   `yaml:"name,omitempty" json:"name,omitempty"`
-	Type           string   `yaml:"type" json:"type"`
-	Image          string   `yaml:"image" json:"image"`
-	Description    string   `yaml:"description,omitempty" json:"description,omitempty"`
-	Title          string   `yaml:"title,omitempty" json:"title,omitempty"`
-	LongLived      bool     `yaml:"longLived,omitempty" json:"longLived,omitempty"`
-	Remote         Remote   `yaml:"remote" json:"remote"`
-	SSEEndpoint    string   `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
-	OAuth          *OAuth   `yaml:"oauth,omitempty" json:"oauth,omitempty"`
-	Secrets        []Secret `yaml:"secrets,omitempty" json:"secrets,omitempty"`
-	Env            []Env    `yaml:"env,omitempty" json:"env,omitempty"`
-	Command        []string `yaml:"command,omitempty" json:"command,omitempty"`
-	Volumes        []string `yaml:"volumes,omitempty" json:"volumes,omitempty"`
-	User           string   `yaml:"user,omitempty" json:"user,omitempty"`
-	DisableNetwork bool     `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
-	AllowHosts     []string `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
-	Tools          []Tool   `yaml:"tools,omitempty" json:"tools,omitempty"`
-	Config         []any    `yaml:"config,omitempty" json:"config,omitempty"`
-	Prefix         string   `yaml:"prefix,omitempty" json:"prefix,omitempty"`
+	Name           string    `yaml:"name,omitempty" json:"name,omitempty"`
+	Type           string    `yaml:"type" json:"type"`
+	Image          string    `yaml:"image" json:"image"`
+	Description    string    `yaml:"description,omitempty" json:"description,omitempty"`
+	Title          string    `yaml:"title,omitempty" json:"title,omitempty"`
+	Icon           string    `yaml:"icon,omitempty" json:"icon,omitempty"`
+	LongLived      bool      `yaml:"longLived,omitempty" json:"longLived,omitempty"`
+	Remote         Remote    `yaml:"remote" json:"remote"`
+	SSEEndpoint    string    `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
+	OAuth          *OAuth    `yaml:"oauth,omitempty" json:"oauth,omitempty"`
+	Secrets        []Secret  `yaml:"secrets,omitempty" json:"secrets,omitempty"`
+	Env            []Env     `yaml:"env,omitempty" json:"env,omitempty"`
+	Command        []string  `yaml:"command,omitempty" json:"command,omitempty"`
+	Volumes        []string  `yaml:"volumes,omitempty" json:"volumes,omitempty"`
+	User           string    `yaml:"user,omitempty" json:"user,omitempty"`
+	DisableNetwork bool      `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
+	AllowHosts     []string  `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
+	Tools          []Tool    `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
+	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
+	Metadata       *Metadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+}
+
+type Metadata struct {
+	Pulls       int      `yaml:"pulls,omitempty" json:"pulls,omitempty"`
+	Stars       int      `yaml:"stars,omitempty" json:"stars,omitempty"`
+	GithubStars int      `yaml:"githubStars,omitempty" json:"githubStars,omitempty"`
+	Category    string   `yaml:"category,omitempty" json:"category,omitempty"`
+	Tags        []string `yaml:"tags,omitempty" json:"tags,omitempty"`
+	License     string   `yaml:"license,omitempty" json:"license,omitempty"`
+	Owner       string   `yaml:"owner,omitempty" json:"owner,omitempty"`
 }
 
 func (s *Server) IsOAuthServer() bool {

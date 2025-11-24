@@ -10,10 +10,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/docker/mcp-gateway/pkg/client"
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
-func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat) error {
+type WithOptions struct {
+	WorkingSet `yaml:",inline"`
+	Clients    map[string]any `json:"clients" yaml:"clients"`
+}
+
+func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat, showClients bool) error {
 	dbSet, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -29,9 +35,25 @@ func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat) error
 	case OutputFormatHumanReadable:
 		data = []byte(printHumanReadable(workingSet))
 	case OutputFormatJSON:
-		data, err = json.MarshalIndent(workingSet, "", "  ")
+		if showClients {
+			outputData := WithOptions{
+				WorkingSet: workingSet,
+				Clients:    client.FindClientsByProfile(ctx, id),
+			}
+			data, err = json.MarshalIndent(outputData, "", "  ")
+		} else {
+			data, err = json.MarshalIndent(workingSet, "", "  ")
+		}
 	case OutputFormatYAML:
-		data, err = yaml.Marshal(workingSet)
+		if showClients {
+			outputData := WithOptions{
+				WorkingSet: workingSet,
+				Clients:    client.FindClientsByProfile(ctx, id),
+			}
+			data, err = yaml.Marshal(outputData)
+		} else {
+			data, err = yaml.Marshal(workingSet)
+		}
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
@@ -53,6 +75,8 @@ func printHumanReadable(workingSet WorkingSet) string {
 			servers += fmt.Sprintf("    Source: %s\n", server.Source)
 		case ServerTypeImage:
 			servers += fmt.Sprintf("    Image: %s\n", server.Image)
+		case ServerTypeRemote:
+			servers += fmt.Sprintf("    Endpoint: %s\n", server.Endpoint)
 		}
 		servers += fmt.Sprintf("    Config: %v\n", server.Config)
 		servers += fmt.Sprintf("    Secrets: %s\n", server.Secrets)
