@@ -111,7 +111,7 @@ func listSecretCommand() *cobra.Command {
 				for _, env := range l {
 					output = append(output, secretListItem{
 						Name:     secret.StripNamespace(env.ID),
-						Provider: string(env.Value),
+						Provider: env.Provider,
 					})
 				}
 				if len(output) == 0 {
