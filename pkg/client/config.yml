@@ -39,6 +39,30 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  cline:
+    displayName: Cline
+    source: https://github.com/cline/cline
+    icon: https://raw.githubusercontent.com/cline/cline/main/assets/icons/icon.png
+    installCheckPaths:
+      - $HOME/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev
+      - $HOME/Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev
+      - $HOME/.config/Code/User/globalStorage/saoudrizwan.claude-dev
+      - $APPDATA\Code\User\globalStorage\saoudrizwan.claude-dev
+      - $APPDATA\Cursor\User\globalStorage\saoudrizwan.claude-dev
+    paths:
+      linux:
+        - $HOME/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+        - $HOME/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+      darwin:
+        - $HOME/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+        - $HOME/Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+      windows:
+        - $APPDATA\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json
+        - $APPDATA\Cursor\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON
+      del: del(.mcpServers[$NAME])
   continue:
     displayName: Continue.dev
     source: https://www.continue.dev/
