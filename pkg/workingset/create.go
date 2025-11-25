@@ -71,7 +71,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 
 	if len(connectClients) > 0 {
 		for _, c := range connectClients {
-			if err := client.Connect(ctx, "", cfg, c, true, workingSet.ID); err != nil {
+			if err := client.Connect(ctx, dao, "", cfg, c, true, workingSet.ID); err != nil {
 				return fmt.Errorf("profile created, but failed to connect to client %s: %w", c, err)
 			}
 		}

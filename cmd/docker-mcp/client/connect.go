@@ -6,13 +6,19 @@ import (
 
 	"github.com/docker/cli/cli/command"
 
-	"github.com/docker/mcp-gateway/pkg/client"
-
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/hints"
+	"github.com/docker/mcp-gateway/pkg/client"
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 func Connect(ctx context.Context, dockerCli command.Cli, cwd string, config client.Config, vendor string, global, quiet bool, workingSet string) error {
-	if err := client.Connect(ctx, cwd, config, vendor, global, workingSet); err != nil {
+	dao, err := db.New()
+	if err != nil {
+		return err
+	}
+	defer dao.Close()
+
+	if err := client.Connect(ctx, dao, cwd, config, vendor, global, workingSet); err != nil {
 		return err
 	}
 	if quiet {
