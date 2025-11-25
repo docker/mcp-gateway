@@ -14,7 +14,6 @@ cname:
     - docker mcp config
     - docker mcp feature
     - docker mcp gateway
-    - docker mcp policy
     - docker mcp secret
     - docker mcp server
     - docker mcp tools
@@ -25,7 +24,6 @@ clink:
     - docker_mcp_config.yaml
     - docker_mcp_feature.yaml
     - docker_mcp_gateway.yaml
-    - docker_mcp_policy.yaml
     - docker_mcp_secret.yaml
     - docker_mcp_server.yaml
     - docker_mcp_tools.yaml
