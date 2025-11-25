@@ -9,25 +9,14 @@ import (
 
 	catalognext "github.com/docker/mcp-gateway/pkg/catalog_next"
 	"github.com/docker/mcp-gateway/pkg/db"
-	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/migrate"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func catalogNextCommand(docker docker.Client) *cobra.Command {
+func catalogNextCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "catalog-next",
 		Short: "Manage catalogs (next generation)",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			dao, err := db.New()
-			if err != nil {
-				return err
-			}
-			defer dao.Close()
-			migrate.MigrateConfig(cmd.Context(), docker, dao)
-			return nil
-		},
 	}
 
 	cmd.AddCommand(createCatalogNextCommand())
