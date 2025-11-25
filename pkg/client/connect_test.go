@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
-func setupTestDB(t *testing.T) (db.DAO, func()) {
+func setupTestDB(t *testing.T) db.DAO {
 	t.Helper()
 
 	tempDir := t.TempDir()
@@ -20,34 +19,25 @@ func setupTestDB(t *testing.T) (db.DAO, func()) {
 	dao, err := db.New(db.WithDatabaseFile(dbFile))
 	require.NoError(t, err)
 
-	// Override newDAO to use the test database
-	originalNewDAO := newDAO
-	newDAO = func(_ ...db.Option) (db.DAO, error) {
-		return db.New(db.WithDatabaseFile(dbFile))
-	}
-
-	cleanup := func() {
+	t.Cleanup(func() {
 		dao.Close()
-		newDAO = originalNewDAO
-	}
+	})
 
-	return dao, cleanup
+	return dao
 }
 
 func TestConnectWithNonExistingProfile(t *testing.T) {
-	_, cleanup := setupTestDB(t)
-	defer cleanup()
-	ctx := context.Background()
+	dao := setupTestDB(t)
+	ctx := t.Context()
 
-	err := Connect(ctx, "/tmp", Config{}, "cursor", false, "nonexistent-profile")
+	err := Connect(ctx, dao, "/tmp", Config{}, "cursor", false, "nonexistent-profile")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "profile 'nonexistent-profile' not found")
+	assert.Contains(t, err.Error(), "failed to get profile: nonexistent-profile")
 }
 
 func TestConnectWithExistingProfile(t *testing.T) {
-	dao, cleanup := setupTestDB(t)
-	defer cleanup()
-	ctx := context.Background()
+	dao := setupTestDB(t)
+	ctx := t.Context()
 
 	workingSet := db.WorkingSet{
 		ID:      "test-profile",
@@ -59,8 +49,6 @@ func TestConnectWithExistingProfile(t *testing.T) {
 	err := dao.CreateWorkingSet(ctx, workingSet)
 	require.NoError(t, err)
 
-	err = Connect(ctx, "/tmp", Config{}, "cursor", false, "test-profile")
-	if err != nil {
-		assert.NotContains(t, err.Error(), "profile 'test-profile' not found")
-	}
+	err = Connect(ctx, dao, "/tmp", Config{}, "cursor", true, "test-profile")
+	assert.NotContains(t, err.Error(), "failed to get profile: test")
 }
