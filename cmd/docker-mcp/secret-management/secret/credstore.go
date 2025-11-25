@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+const (
+	// Namespace prefixes for different secret types
+	NamespaceGeneric  = "docker/mcp/generic/"
+	NamespaceOAuth    = "docker/mcp/oauth/"
+	NamespaceOAuthDCR = "docker/mcp/oauth-dcr/"
+)
+
 type CredStoreProvider struct{}
 
 func cmd(ctx context.Context, args ...string) *exec.Cmd {
@@ -35,7 +42,30 @@ func cmd(ctx context.Context, args ...string) *exec.Cmd {
 //	# specific to mysecret
 //	pattern = "docker/mcp/generic/mysecret/application/**"
 func getSecretKey(secretName string) string {
-	return path.Join("docker/mcp/generic/", secretName)
+	return path.Join(NamespaceGeneric, secretName)
+}
+
+// GetSecretKey constructs the full namespaced ID for a generic MCP secret
+func GetSecretKey(secretName string) string {
+	return getSecretKey(secretName)
+}
+
+// GetOAuthKey constructs the full namespaced ID for an OAuth token
+func GetOAuthKey(provider string) string {
+	return path.Join(NamespaceOAuth, provider)
+}
+
+// GetDCRKey constructs the full namespaced ID for a DCR client config
+func GetDCRKey(serverName string) string {
+	return path.Join(NamespaceOAuthDCR, serverName)
+}
+
+// StripNamespace removes the namespace prefix from a secret ID to get the simple name
+func StripNamespace(secretID string) string {
+	name := strings.TrimPrefix(secretID, NamespaceGeneric)
+	name = strings.TrimPrefix(name, NamespaceOAuth)
+	name = strings.TrimPrefix(name, NamespaceOAuthDCR)
+	return name
 }
 
 func List(ctx context.Context) ([]string, error) {

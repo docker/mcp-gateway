@@ -104,14 +104,14 @@ func listSecretCommand() *cobra.Command {
 			}
 			if outJSON {
 				type secretListItem struct {
-					ID       string `json:"id"`
-					Provider string `json:"provider"`
+					Name     string `json:"name"`
+					Provider string `json:"provider,omitempty"`
 				}
 				output := make([]secretListItem, 0, len(l))
 				for _, env := range l {
 					output = append(output, secretListItem{
-						ID:       env.ID,
-						Provider: env.Provider,
+						Name:     secret.StripNamespace(env.ID),
+						Provider: string(env.Value),
 					})
 				}
 				if len(output) == 0 {

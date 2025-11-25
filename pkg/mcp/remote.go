@@ -49,8 +49,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		transport = c.config.Spec.Remote.Transport
 	}
 
-	// Secrets to env - for remote MCPs, we need actual values (not se:// URIs)
-	// because they're used in HTTP headers
+	// Secrets to env
 	env := map[string]string{}
 	for _, s := range c.config.Spec.Secrets {
 		value := getSecretValue(ctx, s.Name)
@@ -134,7 +133,7 @@ func getSecretValue(ctx context.Context, secretName string) string {
 		return ""
 	}
 
-	fullID := "docker/mcp/generic/" + secretName
+	fullID := secret.GetSecretKey(secretName)
 	for _, env := range envelopes {
 		if env.ID == fullID {
 			return string(env.Value)

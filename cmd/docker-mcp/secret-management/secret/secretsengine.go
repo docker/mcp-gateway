@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -38,8 +39,9 @@ func GetSecrets(ctx context.Context) ([]Envelope, error) {
 	// Workaround: Query multiple patterns since docker/mcp/** double-wildcard isn't working
 	// TODO: Remove once Secrets Engine fixes pattern matching bug
 	patterns := []string{
-		`{"pattern": "docker/mcp/generic/*"}`, // Generic secrets (docker pass)
-		`{"pattern": "docker/mcp/oauth/*"}`,   // OAuth tokens
+		fmt.Sprintf(`{"pattern": "%s*"}`, NamespaceGeneric),  // Generic secrets (docker pass)
+		fmt.Sprintf(`{"pattern": "%s*"}`, NamespaceOAuth),    // OAuth tokens
+		fmt.Sprintf(`{"pattern": "%s*"}`, NamespaceOAuthDCR), // DCR configs
 	}
 
 	allSecrets := make(map[string]Envelope) // Use map to deduplicate by ID

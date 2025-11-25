@@ -68,8 +68,8 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 			return "", fmt.Errorf("failed to query Secrets Engine: %w", err)
 		}
 
-		// Look for OAuth token (namespace: docker/mcp/oauth/{provider})
-		oauthID := "docker/mcp/oauth/" + serverName
+		// Look for OAuth token using centralized namespace helper
+		oauthID := secret.GetOAuthKey(serverName)
 
 		found := false
 		for _, env := range envelopes {
@@ -138,8 +138,8 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 			return TokenStatus{Valid: false}, fmt.Errorf("failed to query Secrets Engine: %w", err)
 		}
 
-		// Look for OAuth token (namespace: docker/mcp/oauth/{provider})
-		oauthID := "docker/mcp/oauth/" + serverName
+		// Look for OAuth token using centralized namespace helper
+		oauthID := secret.GetOAuthKey(serverName)
 
 		found := false
 		for _, env := range envelopes {
