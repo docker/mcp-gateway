@@ -51,13 +51,15 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 			}
 
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
-				if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
-					dao, err := db.New()
-					if err != nil {
-						return err
+				if isWorkingSetsFeatureEnabled(dockerCli) {
+					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
+						dao, err := db.New()
+						if err != nil {
+							return err
+						}
+						defer dao.Close()
+						migrate.MigrateConfig(cmd.Context(), dockerClient, dao)
 					}
-					defer dao.Close()
-					migrate.MigrateConfig(cmd.Context(), dockerClient, dao)
 				}
 
 				runningInDockerCE, err := docker.RunningInDockerCE(ctx, dockerCli)
