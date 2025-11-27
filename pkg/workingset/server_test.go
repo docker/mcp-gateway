@@ -803,3 +803,117 @@ func TestListServersUnsupportedFilterKey(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported filter key")
 }
+
+func TestResolveServerURIsToNames(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	tests := []struct {
+		name          string
+		uris          []string
+		expectedNames []string
+		expectError   bool
+	}{
+		{
+			name:          "single docker image",
+			uris:          []string{"docker://myimage:latest"},
+			expectedNames: []string{"My Image"},
+			expectError:   false,
+		},
+		{
+			name:          "multiple docker images",
+			uris:          []string{"docker://myimage:latest", "docker://anotherimage:v1.0"},
+			expectedNames: []string{"My Image", "Another Image"},
+			expectError:   false,
+		},
+		{
+			name:          "catalog with multiple servers",
+			uris:          []string{"catalog://test/catalog:latest/catalog-server-1+catalog-server-2"},
+			expectedNames: []string{"catalog-server-1", "catalog-server-2"},
+			expectError:   false,
+		},
+		{
+			name:          "invalid URI",
+			uris:          []string{"invalid://uri"},
+			expectedNames: nil,
+			expectError:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup: Create catalog if needed for catalog tests
+			if tt.name == "catalog with multiple servers" {
+				createTestCatalog(t, dao, []testCatalogServer{
+					{
+						name:       "catalog-server-1",
+						serverType: "image",
+						image:      "catalog-image-1:latest",
+					},
+					{
+						name:       "catalog-server-2",
+						serverType: "image",
+						image:      "catalog-image-2:latest",
+					},
+				})
+			}
+
+			names, err := ResolveServerURIsToNames(ctx, dao, getMockRegistryClient(), getMockOciService(), tt.uris)
+
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedNames, names)
+			}
+		})
+	}
+}
+
+func TestRemoveServersByURI(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with test servers
+	catalog := createTestCatalog(t, dao, []testCatalogServer{
+		{
+			name:       "github",
+			serverType: "image",
+			image:      "mcp/github:latest",
+		},
+		{
+			name:       "slack",
+			serverType: "image",
+			image:      "mcp/slack:latest",
+		},
+	})
+
+	// Create a working set with servers from both catalog and direct image
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test Set", []string{
+		"catalog://" + catalog.Ref + "/github+slack",
+		"docker://myimage:latest",
+	}, []string{})
+	require.NoError(t, err)
+
+	// Verify we have 3 servers
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 3)
+
+	// Resolve URIs to names
+	names, err := ResolveServerURIsToNames(ctx, dao, getMockRegistryClient(), getMockOciService(), []string{
+		"catalog://" + catalog.Ref + "/github+slack",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"github", "slack"}, names)
+
+	// Remove servers by resolved names
+	err = RemoveServers(ctx, dao, "test-set", names)
+	require.NoError(t, err)
+
+	// Verify only the direct image server remains
+	dbSet, err = dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 1)
+	assert.Equal(t, "My Image", dbSet.Servers[0].Snapshot.Server.Name)
+}

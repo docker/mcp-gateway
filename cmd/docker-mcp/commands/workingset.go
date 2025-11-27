@@ -368,6 +368,7 @@ func workingsetServerCommand() *cobra.Command {
 	cmd.AddCommand(listServersCommand())
 	cmd.AddCommand(addServerCommand())
 	cmd.AddCommand(removeServerCommand())
+	cmd.AddCommand(updateServerCommand())
 
 	return cmd
 }
@@ -410,29 +411,95 @@ func addServerCommand() *cobra.Command {
 
 func removeServerCommand() *cobra.Command {
 	var names []string
+	var servers []string
 
 	cmd := &cobra.Command{
-		Use:     "remove <profile-id> --name <name1> --name <name2> ...",
+		Use:     "remove <profile-id> [--name <name1> ...] [--server <uri1> ...]",
 		Aliases: []string{"rm"},
 		Short:   "Remove MCP servers from a profile",
-		Long:    "Remove MCP servers from a profile by server name.",
-		Example: ` # Remove servers by name
+		Long:    "Remove MCP servers from a profile by server name or server URI.",
+		Example: `  # Remove by name
   docker mcp profile server remove dev-tools --name github --name slack
 
-  # Remove a single server
-  docker mcp profile server remove dev-tools --name github`,
+  # Remove by URI (same as used for add)
+  docker mcp profile server remove dev-tools --server catalog://mcp/docker-mcp-catalog/github+slack
+
+  # Remove by direct image reference
+  docker mcp profile server remove dev-tools --server docker://mcp/github:latest
+
+  # Mix multiple URIs
+  docker mcp profile server remove dev-tools --server catalog://mcp/docker-mcp-catalog/github --server docker://custom-server:latest`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Validation: can't specify both
+			if len(names) > 0 && len(servers) > 0 {
+				return fmt.Errorf("cannot specify both --name and --server flags")
+			}
+			if len(names) == 0 && len(servers) == 0 {
+				return fmt.Errorf("must specify either --name or --server flag")
+			}
+
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
+
+			// If servers provided, resolve to names first
+			if len(servers) > 0 {
+				registryClient := registryapi.NewClient()
+				ociService := oci.NewService()
+				names, err = workingset.ResolveServerURIsToNames(cmd.Context(), dao, registryClient, ociService, servers)
+				if err != nil {
+					return fmt.Errorf("failed to resolve server URIs: %w\nHint: Use --name flag with server names from 'docker mcp profile show %s'", err, args[0])
+				}
+			}
+
 			return workingset.RemoveServers(cmd.Context(), dao, args[0], names)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
+	flags.StringArrayVar(&servers, "server", []string{}, "Server URI to remove - same format as add command (can be specified multiple times)")
+
+	return cmd
+}
+
+func updateServerCommand() *cobra.Command {
+	var addServers []string
+	var removeServers []string
+
+	cmd := &cobra.Command{
+		Use:   "update <profile-id> [--add <uri1> --add <uri2> ...] [--remove <uri1> --remove <uri2> ...]",
+		Short: "Update servers in a profile (add and remove atomically)",
+		Long:  "Atomically add and remove MCP servers in a single operation. Both operations are applied together or fail together.",
+		Example: `  # Add and remove servers in one atomic operation
+  docker mcp profile server update dev-tools --add catalog://mcp/docker-mcp-catalog/github --remove catalog://mcp/docker-mcp-catalog/slack
+
+  # Add multiple servers while removing others
+  docker mcp profile server update my-profile --add docker://server1:latest --add docker://server2:latest --remove docker://old-server:latest
+
+  # Mix different URI types
+  docker mcp profile server update dev-tools --add catalog://mcp/docker-mcp-catalog/github --add http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 --remove docker://old:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(addServers) == 0 && len(removeServers) == 0 {
+				return fmt.Errorf("must specify at least one --add or --remove flag")
+			}
+
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return workingset.UpdateServers(cmd.Context(), dao, registryClient, ociService, args[0], addServers, removeServers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&addServers, "add", []string{}, "Server URI to add: https:// (MCP Registry) or docker:// (Docker Image) or catalog:// (Catalog). Can be specified multiple times.")
+	flags.StringArrayVar(&removeServers, "remove", []string{}, "Server URI to remove - same format as add. Can be specified multiple times.")
 
 	return cmd
 }

@@ -110,25 +110,43 @@ docker mcp profile server add dev-tools \
 
 ### Removing Servers from a Profile
 
-Remove servers from a profile by their server name:
+Remove servers from a profile by their server name or by the same URI used to add them:
 
 ```bash
-# Remove servers by name
+# Remove by name
 docker mcp profile server remove dev-tools \
   --name github \
   --name slack
 
-# Remove a single server
-docker mcp profile server remove dev-tools --name github
+# Remove by URI (same format as used for add)
+docker mcp profile server remove dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/github+slack
+
+# Remove by direct image reference
+docker mcp profile server remove dev-tools \
+  --server docker://mcp/github:latest
+
+# Mix multiple URIs
+docker mcp profile server remove dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/github \
+  --server docker://custom-server:latest
 
 # Using alias
 docker mcp profile server rm dev-tools --name github
 ```
 
-**Server Names:**
+**Removal Options:**
 - Use `--name` flag to specify server names to remove (can be specified multiple times)
+- Use `--server` flag to specify server URIs to remove - same format as the add command (can be specified multiple times)
+- You must specify either `--name` or `--server`, but not both
+- When using `--server`, the CLI will resolve the URI to find the matching server names and remove them
 - Server names are determined by the server's snapshot (not the image name or source URL)
 - Use `docker mcp profile show <profile-id>` to see available server names in a profile
+
+**When to use each option:**
+- Use `--name` when you know the server's name (faster, no resolution needed)
+- Use `--server` for consistency with how you added the server
+- Use `--server` with catalog URIs to remove multiple servers at once (e.g., `catalog://.../github+slack`)
 
 ### Listing Servers Across Profiles
 
@@ -814,6 +832,10 @@ Error: server 'github' not found in profile
 - Use `docker mcp profile show <profile-id> --format yaml` to see current servers in the profile
 - Ensure you're using the correct server name in the snapshot (not the image name or source URL)
 - Server names are case-sensitive
+- Alternatively, use `--server` flag with the same URI you used to add the server:
+  ```bash
+  docker mcp profile server remove <profile-id> --server docker://mcp/github:latest
+  ```
 
 ### Invalid Tool Name Format
 

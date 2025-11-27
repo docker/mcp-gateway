@@ -118,6 +118,116 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	return nil
 }
 
+// UpdateServers atomically adds and removes servers from a profile in a single operation.
+// Both operations are applied together or fail together.
+func UpdateServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, addServerURIs []string, removeServerURIs []string) error {
+	if len(addServerURIs) == 0 && len(removeServerURIs) == 0 {
+		return fmt.Errorf("at least one server must be specified for add or remove")
+	}
+
+	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("profile %s not found", id)
+		}
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	workingSet := NewFromDb(dbWorkingSet)
+
+	defaultSecret := "default"
+	_, defaultFound := workingSet.Secrets[defaultSecret]
+	if workingSet.Secrets == nil || !defaultFound {
+		defaultSecret = ""
+	}
+
+	// Resolve servers to remove
+	var removedCount int
+	if len(removeServerURIs) > 0 {
+		removeNames, err := ResolveServerURIsToNames(ctx, dao, registryClient, ociService, removeServerURIs)
+		if err != nil {
+			return fmt.Errorf("failed to resolve server URIs for removal: %w", err)
+		}
+
+		namesToRemove := make(map[string]bool)
+		for _, name := range removeNames {
+			namesToRemove[name] = true
+		}
+
+		// Filter out servers to remove
+		originalCount := len(workingSet.Servers)
+		filtered := make([]Server, 0, len(workingSet.Servers))
+		for _, server := range workingSet.Servers {
+			// TODO: Remove when Snapshot is required
+			if server.Snapshot == nil || !namesToRemove[server.Snapshot.Server.Name] {
+				filtered = append(filtered, server)
+			}
+		}
+		removedCount = originalCount - len(filtered)
+		workingSet.Servers = filtered
+	}
+
+	// Resolve and add new servers
+	var addedCount int
+	if len(addServerURIs) > 0 {
+		newServers := make([]Server, 0)
+		for _, serverURI := range addServerURIs {
+			ss, err := resolveServersFromString(ctx, registryClient, ociService, dao, serverURI)
+			if err != nil {
+				return fmt.Errorf("invalid server value: %w", err)
+			}
+			newServers = append(newServers, ss...)
+		}
+
+		// Set the secrets on all the new servers to the default secret
+		for i := range newServers {
+			newServers[i].Secrets = defaultSecret
+		}
+
+		workingSet.Servers = append(workingSet.Servers, newServers...)
+		addedCount = len(newServers)
+	}
+
+	if err := workingSet.Validate(); err != nil {
+		return fmt.Errorf("invalid profile: %w", err)
+	}
+
+	err = dao.UpdateWorkingSet(ctx, workingSet.ToDb())
+	if err != nil {
+		return fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	// Print summary
+	var actions []string
+	if addedCount > 0 {
+		actions = append(actions, fmt.Sprintf("added %d", addedCount))
+	}
+	if removedCount > 0 {
+		actions = append(actions, fmt.Sprintf("removed %d", removedCount))
+	}
+	fmt.Printf("Updated profile %s: %s server(s)\n", id, strings.Join(actions, ", "))
+
+	return nil
+}
+
+// ResolveServerURIsToNames resolves server URIs to their snapshot names.
+// This allows users to remove servers using the same URI format they used to add them.
+func ResolveServerURIsToNames(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, uris []string) ([]string, error) {
+	var names []string
+	for _, uri := range uris {
+		servers, err := resolveServersFromString(ctx, registryClient, ociService, dao, uri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve %s: %w", uri, err)
+		}
+		for _, server := range servers {
+			if server.Snapshot != nil {
+				names = append(names, server.Snapshot.Server.Name)
+			}
+		}
+	}
+	return names, nil
+}
+
 type SearchResult struct {
 	ID      string   `json:"id" yaml:"id"`
 	Name    string   `json:"name" yaml:"name"`
