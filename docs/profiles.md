@@ -270,6 +270,27 @@ docker mcp profile config my-profile --get-all --format yaml
 - `--get-all`: Retrieves all configuration values from all servers in the profile
 - `--format`: Output format - `human` (default), `json`, or `yaml`
 
+**Typed values via JSON:**
+
+- Values passed to `--set` are parsed as JSON when possible. This allows arrays, numbers, booleans and objects.
+- If the value is not valid JSON, it is stored as a plain string.
+- Examples:
+
+```bash
+# Numbers and booleans
+docker mcp profile config my-profile --set github.timeout=60 --set github.debug=true
+
+# Strings (either raw or JSON-quoted both work)
+docker mcp profile config my-profile --set slack.channel=general
+docker mcp profile config my-profile --set slack.channel='"general"'
+
+# Arrays
+docker mcp profile config my-profile --set filesystem.paths='["/Users/dk/dev","/Users/dk/projects"]'
+
+# Objects
+docker mcp profile config my-profile --set build.options='{"retries":3,"cache":false}'
+```
+
 **Important notes:**
 - The server name must match the name from the server's snapshot (not the image or source URL)
 - Use `docker mcp profile show <profile-id> --format yaml` to see available server names

@@ -92,8 +92,8 @@ func TestUpdateConfig_SetMultipleValues(t *testing.T) {
 	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
 	require.NoError(t, err)
 	assert.Equal(t, "secret123", dbSet.Servers[0].Config["api_key"])
-	assert.Equal(t, "30", dbSet.Servers[0].Config["timeout"])
-	assert.Equal(t, "true", dbSet.Servers[0].Config["enabled"])
+	assert.Equal(t, 30, int(dbSet.Servers[0].Config["timeout"].(float64)))
+	assert.Equal(t, true, dbSet.Servers[0].Config["enabled"])
 }
 
 func TestUpdateConfig_GetSingleValue(t *testing.T) {
@@ -354,6 +354,57 @@ func TestUpdateConfig_YAMLOutput(t *testing.T) {
 	err = yaml.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
 	assert.Equal(t, "secret123", result["test-server.api_key"])
+}
+
+func TestUpdateConfig_JSONOutput_TypedArray(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "filesystem",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	// Set typed array value
+	_ = captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set",
+			[]string{`filesystem.paths=["/Users/dk/dev","/Users/dk/projects"]`},
+			[]string{}, []string{}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	// Get JSON, ensure array is preserved as array
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set",
+			[]string{}, []string{"filesystem.paths"}, []string{}, false, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result map[string]any
+	err = json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+
+	raw := result["filesystem.paths"]
+	list, ok := raw.([]any)
+	require.True(t, ok)
+	require.Len(t, list, 2)
+	assert.Equal(t, "/Users/dk/dev", list[0].(string))
+	assert.Equal(t, "/Users/dk/projects", list[1].(string))
 }
 
 func TestUpdateConfig_WorkingSetNotFound(t *testing.T) {
