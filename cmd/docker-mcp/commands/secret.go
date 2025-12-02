@@ -12,7 +12,6 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/desktop"
-	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
 const setSecretExample = `
@@ -32,7 +31,7 @@ Another way to inject secrets would be to use a pattern.
 > cat pwd.txt | docker mcp secret set POSTGRES_PASSWORD
 `
 
-func secretCommand(_ docker.Client) *cobra.Command {
+func secretCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "secret",
 		Short:   "Manage secrets in the local OS Keychain",

@@ -40,6 +40,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 			HiddenDefaultCmd:  true,
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SetContext(ctx)
 			if err := plugin.PersistentPreRunE(cmd, args); err != nil {
 				return err
 			}
@@ -59,7 +60,6 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 		},
 		Version: version.Version,
 	}
-	cmd.SetContext(ctx)
 	cmd.SetVersionTemplate("{{.Version}}\n")
 	cmd.Flags().BoolP("version", "v", false, "Print version information and quit")
 	cmd.SetHelpTemplate(helpTemplate)
@@ -81,7 +81,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli))
 	cmd.AddCommand(oauthCommand())
 	cmd.AddCommand(registryCommand())
-	cmd.AddCommand(secretCommand(dockerClient))
+	cmd.AddCommand(secretCommand())
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
 	cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
 	cmd.AddCommand(versionCommand())
