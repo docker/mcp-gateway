@@ -39,12 +39,12 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 		return fmt.Errorf("failed to resolve snapshots: %w", err)
 	}
 
-	outputMap := make(map[string]string)
+	outputMap := make(map[string]any)
 
 	if getAll {
 		for _, server := range workingSet.Servers {
 			for configName, value := range server.Config {
-				outputMap[fmt.Sprintf("%s.%s", server.Snapshot.Server.Name, configName)] = fmt.Sprintf("%v", value)
+				outputMap[fmt.Sprintf("%s.%s", server.Snapshot.Server.Name, configName)] = value
 			}
 		}
 	} else {
@@ -60,7 +60,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 			}
 
 			if server.Config != nil && server.Config[configName] != nil {
-				outputMap[configArg] = fmt.Sprintf("%v", server.Config[configName])
+				outputMap[configArg] = server.Config[configName]
 			}
 		}
 	}
@@ -84,9 +84,14 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 		if server.Config == nil {
 			server.Config = make(map[string]any)
 		}
-		// TODO(cody): validate that schema supports the config we're adding and map it to the right type (right now we're forcing a string)
-		server.Config[configName] = value
-		outputMap[key] = value
+		// TODO(cody): validate that schema supports the config we're adding
+		finalValue := any(value)
+		var decoded any
+		if err := json.Unmarshal([]byte(value), &decoded); err == nil {
+			finalValue = decoded
+		}
+		server.Config[configName] = finalValue
+		outputMap[key] = finalValue
 	}
 
 	for _, delConfigArg := range delConfigArgs {
@@ -116,7 +121,7 @@ func UpdateConfig(ctx context.Context, dao db.DAO, ociService oci.Service, id st
 	switch outputFormat {
 	case OutputFormatHumanReadable:
 		for configName, value := range outputMap {
-			fmt.Printf("%s=%s\n", configName, value)
+			fmt.Printf("%s=%v\n", configName, value)
 		}
 	case OutputFormatJSON:
 		data, err := json.MarshalIndent(outputMap, "", "  ")
