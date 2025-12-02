@@ -18,6 +18,12 @@ func GetGordonSetup(ctx context.Context) MCPClientCfg {
 		IsInstalled:   true,
 		IsOsSupported: true,
 	}
+	workingSet, err := ReadGordonProfile()
+	if err != nil {
+		result.Err = classifyError(err)
+		return result
+	}
+	result.WorkingSet = workingSet
 	out, err := exec.CommandContext(ctx, "docker", "ai", "config", "get").Output()
 	if err != nil {
 		result.Err = classifyError(err)
@@ -37,13 +43,22 @@ func GetGordonSetup(ctx context.Context) MCPClientCfg {
 		if feature.Name == "MCP Catalog" && feature.Enabled {
 			result.IsMCPCatalogConnected = true
 			result.Cfg = &MCPJSONLists{STDIOServers: []MCPServerSTDIO{{Name: DockerMCPCatalog}}}
+			if workingSet != "" {
+				// Hacky way to make it say there is a profile attached
+				result.Cfg.STDIOServers[0].Args = append(result.Cfg.STDIOServers[0].Args, "--profile", workingSet)
+			}
 			break
 		}
 	}
 	return result
 }
 
-func ConnectGordon(ctx context.Context) error {
+func ConnectGordon(ctx context.Context, workingSet string) error {
+	if workingSet != "" {
+		if err := writeGordonProfile(workingSet); err != nil {
+			return err
+		}
+	}
 	return exec.CommandContext(ctx, "docker", "ai", "config", "set-feature", "MCP Catalog", "true").Run()
 }
 
