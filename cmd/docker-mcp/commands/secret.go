@@ -11,7 +11,6 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 const setSecretExample = `
@@ -36,13 +35,6 @@ func secretCommand() *cobra.Command {
 		Use:     "secret",
 		Short:   "Manage secrets in the local OS Keychain",
 		Example: strings.Trim(setSecretExample, "\n"),
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			err := desktop.CheckHasDockerPass(cmd.Context())
-			if err != nil {
-				return err
-			}
-			return nil
-		},
 	}
 	cmd.AddCommand(rmSecretCommand())
 	cmd.AddCommand(listSecretCommand())

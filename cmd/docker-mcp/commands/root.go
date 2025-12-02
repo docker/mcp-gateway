@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"os"
+	"slices"
 
 	"github.com/docker/cli/cli-plugins/plugin"
 	"github.com/docker/cli/cli/command"
@@ -43,6 +44,13 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 			cmd.SetContext(ctx)
 			if err := plugin.PersistentPreRunE(cmd, args); err != nil {
 				return err
+			}
+
+			// Check for docker-credential-desktop for secret commands
+			if isSubcommandOf(cmd, []string{"secret"}) {
+				if err := desktop.CheckHasDockerPass(cmd.Context()); err != nil {
+					return err
+				}
 			}
 
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
@@ -99,4 +107,16 @@ func unhideHiddenCommands(cmd *cobra.Command) {
 		c.Hidden = false
 		unhideHiddenCommands(c)
 	}
+}
+
+func isSubcommandOf(cmd *cobra.Command, names []string) bool {
+	if cmd == nil {
+		return false
+	}
+
+	if slices.Contains(names, cmd.Name()) {
+		return true
+	}
+
+	return isSubcommandOf(cmd.Parent(), names)
 }
