@@ -52,8 +52,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	// Secrets to env
 	env := map[string]string{}
 	for _, s := range c.config.Spec.Secrets {
-		value := getSecretValue(ctx, s.Name)
-		env[s.Env] = value
+		env[s.Env] = getSecretValue(ctx, s.Name)
 	}
 
 	// Headers

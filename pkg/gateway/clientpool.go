@@ -10,7 +10,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/eval"
@@ -323,9 +322,13 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 	for _, s := range serverConfig.Spec.Secrets {
 		args = append(args, "-e", s.Env)
 
-		// Build se:// URI with full namespace path
-		secretURI := fmt.Sprintf("se://%s", secret.GetSecretKey(s.Name))
-		env = append(env, fmt.Sprintf("%s=%s", s.Env, secretURI))
+		secretValue, ok := serverConfig.Secrets[s.Name]
+		if ok {
+			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
+		} else {
+			log.Logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
+			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
+		}
 	}
 
 	// Env
