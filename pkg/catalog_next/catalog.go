@@ -25,6 +25,12 @@ type CatalogWithDigest struct {
 	Digest  string `yaml:"digest" json:"digest"`
 }
 
+type CatalogSummary struct {
+	Ref    string `yaml:"ref" json:"ref"`
+	Digest string `yaml:"digest" json:"digest"`
+	Title  string `yaml:"title" json:"title"`
+}
+
 // Source prefixes must be of the form "<prefix>:"
 const (
 	SourcePrefixWorkingSet    = "profile:"

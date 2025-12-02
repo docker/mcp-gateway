@@ -23,19 +23,23 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 		return nil
 	}
 
-	catalogs := make([]CatalogWithDigest, len(dbCatalogs))
+	summaries := make([]CatalogSummary, len(dbCatalogs))
 	for i, dbCatalog := range dbCatalogs {
-		catalogs[i] = NewFromDb(&dbCatalog)
+		summaries[i] = CatalogSummary{
+			Ref:    dbCatalog.Ref,
+			Digest: dbCatalog.Digest,
+			Title:  dbCatalog.Title,
+		}
 	}
 
 	var data []byte
 	switch format {
 	case workingset.OutputFormatHumanReadable:
-		data = []byte(printListHumanReadable(catalogs))
+		data = []byte(printListHumanReadable(summaries))
 	case workingset.OutputFormatJSON:
-		data, err = json.MarshalIndent(catalogs, "", "  ")
+		data, err = json.MarshalIndent(summaries, "", "  ")
 	case workingset.OutputFormatYAML:
-		data, err = yaml.Marshal(catalogs)
+		data, err = yaml.Marshal(summaries)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to marshal catalogs: %w", err)
@@ -46,7 +50,7 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	return nil
 }
 
-func printListHumanReadable(catalogs []CatalogWithDigest) string {
+func printListHumanReadable(catalogs []CatalogSummary) string {
 	lines := ""
 	for _, catalog := range catalogs {
 		lines += fmt.Sprintf("%s\t| %s\t| %s\n", catalog.Ref, catalog.Digest, catalog.Title)

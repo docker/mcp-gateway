@@ -138,26 +138,20 @@ func TestListJSON(t *testing.T) {
 	})
 
 	// Parse JSON output
-	var catalogs []CatalogWithDigest
+	var catalogs []CatalogSummary
 	err = json.Unmarshal([]byte(output), &catalogs)
 	require.NoError(t, err)
 	assert.Len(t, catalogs, 2)
 
-	// Verify first catalog
+	// Verify first catalog (summary only)
+	assert.Equal(t, "test/catalog4:latest", catalogs[0].Ref)
 	assert.Equal(t, "catalog-one", catalogs[0].Title)
-	assert.Equal(t, "source-1", catalogs[0].Source)
-	assert.Len(t, catalogs[0].Servers, 1)
-	assert.Equal(t, workingset.ServerTypeImage, catalogs[0].Servers[0].Type)
-	assert.Equal(t, "test:v1", catalogs[0].Servers[0].Image)
-	assert.Equal(t, []string{"tool1"}, catalogs[0].Servers[0].Tools)
+	assert.NotEmpty(t, catalogs[0].Digest)
 
-	// Verify second catalog
+	// Verify second catalog (summary only)
+	assert.Equal(t, "test/catalog5:latest", catalogs[1].Ref)
 	assert.Equal(t, "catalog-two", catalogs[1].Title)
-	assert.Equal(t, "source-2", catalogs[1].Source)
-	assert.Len(t, catalogs[1].Servers, 1)
-	assert.Equal(t, workingset.ServerTypeRegistry, catalogs[1].Servers[0].Type)
-	assert.Equal(t, "https://example.com", catalogs[1].Servers[0].Source)
-	assert.Equal(t, []string{"tool2", "tool3"}, catalogs[1].Servers[0].Tools)
+	assert.NotEmpty(t, catalogs[1].Digest)
 }
 
 func TestListJSONEmpty(t *testing.T) {
@@ -170,7 +164,7 @@ func TestListJSONEmpty(t *testing.T) {
 	})
 
 	// Parse JSON output
-	var catalogs []CatalogWithDigest
+	var catalogs []CatalogSummary
 	err := json.Unmarshal([]byte(output), &catalogs)
 	require.NoError(t, err)
 	assert.Empty(t, catalogs)
@@ -206,18 +200,15 @@ func TestListYAML(t *testing.T) {
 	})
 
 	// Parse YAML output
-	var catalogs []CatalogWithDigest
+	var catalogs []CatalogSummary
 	err = yaml.Unmarshal([]byte(output), &catalogs)
 	require.NoError(t, err)
 	assert.Len(t, catalogs, 1)
 
-	// Verify catalog
+	// Verify catalog (summary only)
+	assert.Equal(t, "test/catalog6:latest", catalogs[0].Ref)
 	assert.Equal(t, "catalog-yaml", catalogs[0].Title)
-	assert.Equal(t, "yaml-source", catalogs[0].Source)
-	assert.Len(t, catalogs[0].Servers, 1)
-	assert.Equal(t, workingset.ServerTypeImage, catalogs[0].Servers[0].Type)
-	assert.Equal(t, "test:yaml", catalogs[0].Servers[0].Image)
-	assert.Equal(t, []string{"tool1", "tool2"}, catalogs[0].Servers[0].Tools)
+	assert.NotEmpty(t, catalogs[0].Digest)
 }
 
 func TestListYAMLEmpty(t *testing.T) {
@@ -230,7 +221,7 @@ func TestListYAMLEmpty(t *testing.T) {
 	})
 
 	// Parse YAML output
-	var catalogs []CatalogWithDigest
+	var catalogs []CatalogSummary
 	err := yaml.Unmarshal([]byte(output), &catalogs)
 	require.NoError(t, err)
 	assert.Empty(t, catalogs)
@@ -271,15 +262,15 @@ func TestListWithSnapshot(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	var result []CatalogWithDigest
+	var result []CatalogSummary
 	err = json.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
 
-	// Verify snapshot is included
-	require.NotNil(t, result[0].Servers[0].Snapshot)
-	assert.Equal(t, "test-server", result[0].Servers[0].Snapshot.Server.Name)
-	assert.Equal(t, "Test description", result[0].Servers[0].Snapshot.Server.Description)
+	// Verify only summary fields are present
+	assert.Equal(t, "test/catalog7:latest", result[0].Ref)
+	assert.Equal(t, "snapshot-catalog", result[0].Title)
+	assert.NotEmpty(t, result[0].Digest)
 }
 
 func TestListWithMultipleServers(t *testing.T) {
@@ -319,19 +310,15 @@ func TestListWithMultipleServers(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	var result []CatalogWithDigest
+	var result []CatalogSummary
 	err = json.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
-	assert.Len(t, result[0].Servers, 3)
 
-	// Just verify that all three server types are present, order may vary
-	types := make(map[workingset.ServerType]int)
-	for _, s := range result[0].Servers {
-		types[s.Type]++
-	}
-	assert.Equal(t, 2, types[workingset.ServerTypeImage])
-	assert.Equal(t, 1, types[workingset.ServerTypeRegistry])
+	// Verify only summary fields are present
+	assert.Equal(t, "test/catalog8:latest", result[0].Ref)
+	assert.Equal(t, "multi-server-catalog", result[0].Title)
+	assert.NotEmpty(t, result[0].Digest)
 }
 
 func TestListHumanReadableEmptyDoesNotShowInJSON(t *testing.T) {
@@ -344,7 +331,7 @@ func TestListHumanReadableEmptyDoesNotShowInJSON(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	var catalogs []CatalogWithDigest
+	var catalogs []CatalogSummary
 	err := json.Unmarshal([]byte(outputJSON), &catalogs)
 	require.NoError(t, err)
 	assert.Empty(t, catalogs)
