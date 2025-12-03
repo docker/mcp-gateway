@@ -196,20 +196,27 @@ func FindClientsByProfile(ctx context.Context, profileID string) map[string]any 
 			continue
 		}
 		clientCfg := processor.ParseConfig()
-		if clientCfg.WorkingSet == profileID {
+		if matchesProfile(clientCfg, profileID) {
 			clients[vendor] = clientCfg
 		}
 	}
 
 	gordonCfg := GetGordonSetup(ctx)
-	if gordonCfg.WorkingSet == profileID {
+	if matchesProfile(gordonCfg, profileID) {
 		clients[VendorGordon] = gordonCfg
 	}
 
 	codexCfg := GetCodexSetup(ctx)
-	if codexCfg.WorkingSet == profileID {
+	if matchesProfile(codexCfg, profileID) {
 		clients[VendorCodex] = codexCfg
 	}
 
 	return clients
+}
+
+func matchesProfile(cfg MCPClientCfg, profileID string) bool {
+	if cfg.IsMCPCatalogConnected && profileID == "default" && cfg.WorkingSet == "" {
+		return true
+	}
+	return cfg.WorkingSet == profileID
 }
