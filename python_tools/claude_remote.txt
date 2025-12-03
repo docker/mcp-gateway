@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": [
+        "mcp",
+        "gateway",
+        "run",
+        "--transport",
+        "sse"
+      ]
+    }
+  }
+}
+
+{
+  "mcpServers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": [
+        "mcp",
+        "gateway",
+        "run",
+        "--transport",
+        "sse",
+        "--port",
+        "8080"
+      ]
+    }
+  }
+}
