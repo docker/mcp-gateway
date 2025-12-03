@@ -87,9 +87,6 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 
 func verifySupportedClients(cfg client.Config, clients []string) error {
 	for _, c := range clients {
-		if c == client.VendorGordon {
-			return fmt.Errorf("gordon cannot be connected to a profile")
-		}
 		if !client.IsSupportedMCPClient(cfg, c, true) {
 			return fmt.Errorf("client %s is not supported. Supported clients: %s", c, strings.Join(client.GetSupportedMCPClients(cfg), ", "))
 		}

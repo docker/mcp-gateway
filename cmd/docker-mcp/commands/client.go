@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/docker/cli/cli/command"
@@ -22,7 +23,7 @@ func clientCommand(dockerCli command.Cli, cwd string) *cobra.Command {
 	cmd.AddCommand(listClientCommand(cwd, *cfg))
 	cmd.AddCommand(connectClientCommand(dockerCli, cwd, *cfg))
 	cmd.AddCommand(disconnectClientCommand(cwd, *cfg))
-	cmd.AddCommand(manualClientCommand())
+	cmd.AddCommand(manualClientCommand(dockerCli))
 	return cmd
 }
 
@@ -87,7 +88,7 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	return cmd
 }
 
-func manualClientCommand() *cobra.Command {
+func manualClientCommand(dockerCli command.Cli) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "manual-instructions",
 		Short: "Display the manual instructions to connect the MCP client",
@@ -99,6 +100,16 @@ func manualClientCommand() *cobra.Command {
 			}
 
 			command := []string{"docker", "mcp", "gateway", "run"}
+			if isWorkingSetsFeatureEnabled(dockerCli) {
+				gordonProfile, err := client.ReadGordonProfile()
+				if err != nil {
+					return fmt.Errorf("failed to read gordon profile: %w", err)
+				}
+				if gordonProfile != "" {
+					command = append(command, "--profile", gordonProfile)
+				}
+				fmt.Fprintf(os.Stderr, "Deprecation notice: This command is deprecated and only used for Gordon in Docker Desktop. Please use `docker mcp profile manual-instructions <profile-id>` instead.\n")
+			}
 			if printAsJSON {
 				buf, err := json.Marshal(command)
 				if err != nil {

@@ -26,11 +26,7 @@ func Connect(ctx context.Context, dao db.DAO, cwd string, config Config, vendor 
 			return err
 		}
 	} else if vendor == VendorGordon && global {
-		if workingSet != "" {
-			// Gordon doesn't support profiles yet
-			return fmt.Errorf("gordon cannot be connected to a profile")
-		}
-		if err := ConnectGordon(ctx); err != nil {
+		if err := ConnectGordon(ctx, workingSet); err != nil {
 			return err
 		}
 	} else {

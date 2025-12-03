@@ -201,11 +201,10 @@ func FindClientsByProfile(ctx context.Context, profileID string) map[string]any 
 		}
 	}
 
-	// TODO: Add support for Gordon with flags
-	// gordonCfg := GetGordonSetup(ctx)
-	// if gordonCfg.WorkingSet == profileID {
-	// 	clients[VendorGordon] = gordonCfg
-	// }
+	gordonCfg := GetGordonSetup(ctx)
+	if gordonCfg.WorkingSet == profileID {
+		clients[VendorGordon] = gordonCfg
+	}
 
 	codexCfg := GetCodexSetup(ctx)
 	if codexCfg.WorkingSet == profileID {
