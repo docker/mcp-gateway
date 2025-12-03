@@ -26,6 +26,7 @@ func catalogNextCommand() *cobra.Command {
 	cmd.AddCommand(pushCatalogNextCommand())
 	cmd.AddCommand(pullCatalogNextCommand())
 	cmd.AddCommand(tagCatalogNextCommand())
+	cmd.AddCommand(catalogNextServerCommand())
 
 	return cmd
 }
@@ -83,6 +84,7 @@ func tagCatalogNextCommand() *cobra.Command {
 func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
 	pullOption := string(catalognext.PullOptionNever)
+	var noTools bool
 
 	cmd := &cobra.Command{
 		Use:   "show <oci-reference> [--pull <pull-option>]",
@@ -98,13 +100,14 @@ func showCatalogNextCommand() *cobra.Command {
 				return err
 			}
 			ociService := oci.NewService()
-			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption)
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption, noTools)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s, or duration (e.g. '1h', '1d'). Duration represents time since last update.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
+	flags.BoolVar(&noTools, "no-tools", false, "Exclude tools from output")
 	return cmd
 }
 
@@ -180,4 +183,63 @@ func pullCatalogNextCommand() *cobra.Command {
 			return catalognext.Pull(cmd.Context(), dao, ociService, args[0])
 		},
 	}
+}
+
+func catalogNextServerCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "server",
+		Short: "Manage servers in catalogs",
+	}
+
+	cmd.AddCommand(listCatalogNextServersCommand())
+
+	return cmd
+}
+
+func listCatalogNextServersCommand() *cobra.Command {
+	var opts struct {
+		Filters []string
+		Format  string
+	}
+
+	cmd := &cobra.Command{
+		Use:     "ls <oci-reference>",
+		Aliases: []string{"list"},
+		Short:   "List servers in a catalog",
+		Long: `List all servers in a catalog.
+
+Use --filter to search for servers matching a query (case-insensitive substring matching on server names).
+Filters use key=value format (e.g., name=github).`,
+		Example: `  # List all servers in a catalog
+  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+
+  # Filter servers by name
+  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+
+  # Combine multiple filters (using short flag)
+  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest -f name=slack -f name=github
+
+  # Output in JSON format
+  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --format json`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", opts.Format)
+			}
+
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+
+			return catalognext.ListServers(cmd.Context(), dao, args[0], opts.Filters, workingset.OutputFormat(opts.Format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVarP(&opts.Filters, "filter", "f", []string{}, "Filter output (e.g., name=github)")
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
 }

@@ -16,7 +16,7 @@ func TestShowNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever)
+	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "catalog test/nonexistent:latest not found")
 }
@@ -51,7 +51,7 @@ func TestShowHumanReadable(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatHumanReadable, PullOptionNever)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatHumanReadable, PullOptionNever, false)
 		require.NoError(t, err)
 	})
 
@@ -91,7 +91,7 @@ func TestShowJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatJSON, PullOptionNever)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatJSON, PullOptionNever, false)
 		require.NoError(t, err)
 	})
 
@@ -136,7 +136,7 @@ func TestShowYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatYAML, PullOptionNever)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatYAML, PullOptionNever, false)
 		require.NoError(t, err)
 	})
 
@@ -187,7 +187,7 @@ func TestShowWithSnapshot(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever)
+		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, false)
 		require.NoError(t, err)
 	})
 
@@ -204,9 +204,68 @@ func TestShowInvalidReferenceWithDigest(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever)
+	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reference test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 must be a valid OCI reference without a digest")
+}
+
+func TestShowWithNoTools(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	snapshot := &workingset.ServerSnapshot{
+		Server: catalog.Server{
+			Name:        "snapshot-server",
+			Description: "A server with snapshot",
+			Tools: []catalog.Tool{
+				{Name: "snapshot-tool1", Description: "First snapshot tool"},
+				{Name: "snapshot-tool2", Description: "Second snapshot tool"},
+			},
+		},
+	}
+
+	catalogObj := Catalog{
+		Ref: "test/no-tools-catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "no-tools-catalog",
+			Servers: []Server{
+				{
+					Type:     workingset.ServerTypeImage,
+					Image:    "docker/test:v1",
+					Tools:    []string{"tool1", "tool2", "tool3"},
+					Snapshot: snapshot,
+				},
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://example.com/api",
+					Tools:  []string{"tool4", "tool5"},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, true)
+		require.NoError(t, err)
+	})
+
+	var result CatalogWithDigest
+	err = json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+
+	// Verify tools are filtered out
+	assert.Len(t, result.Servers, 2)
+	assert.Nil(t, result.Servers[0].Tools)
+	assert.Nil(t, result.Servers[1].Tools)
+
+	// Verify snapshot tools are also filtered out
+	require.NotNil(t, result.Servers[0].Snapshot)
+	assert.Nil(t, result.Servers[0].Snapshot.Server.Tools)
 }
 
 // TODO(cody): Add tests for pull once we have proper mocks in place
@@ -214,7 +273,7 @@ func TestInvalidPullOption(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid")
+	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid", false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse pull option invalid: should be missing, never, always, or duration (e.g. '1h', '1d')")
 }
