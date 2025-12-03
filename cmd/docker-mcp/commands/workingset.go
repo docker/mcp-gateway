@@ -9,29 +9,18 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/client"
 	"github.com/docker/mcp-gateway/pkg/db"
-	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/migrate"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func workingSetCommand(docker docker.Client) *cobra.Command {
+func workingSetCommand() *cobra.Command {
 	cfg := client.ReadConfig()
 
 	cmd := &cobra.Command{
 		Use:   "profile",
 		Short: "Manage profiles",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			dao, err := db.New()
-			if err != nil {
-				return err
-			}
-			defer dao.Close()
-			migrate.MigrateConfig(cmd.Context(), docker, dao)
-			return nil
-		},
 	}
 
 	cmd.AddCommand(exportWorkingSetCommand())
@@ -74,7 +63,7 @@ func configWorkingSetCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&set, "set", []string{}, "Set configuration values: <key>=<value> (can be specified multiple times)")
+	flags.StringArrayVar(&set, "set", []string{}, "Set configuration values: <key>=<value> (repeatable). Value may be JSON to set typed values (arrays, numbers, booleans, objects).")
 	flags.StringArrayVar(&get, "get", []string{}, "Get configuration values: <key> (can be specified multiple times)")
 	flags.StringArrayVar(&del, "del", []string{}, "Delete configuration values: <key> (can be specified multiple times)")
 	flags.BoolVar(&getAll, "get-all", false, "Get all configuration values")

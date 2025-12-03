@@ -10,8 +10,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/version"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/migrate"
 )
 
 // Note: We use a custom help template to make it more brief.
@@ -32,6 +34,8 @@ Examples:
 
 // Root returns the root command for the init plugin
 func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command {
+	dockerClient := docker.NewClient(dockerCli)
+
 	cmd := &cobra.Command{
 		Use:              "mcp [OPTIONS]",
 		Short:            "Manage MCP servers and clients",
@@ -54,6 +58,17 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 			}
 
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
+				if isWorkingSetsFeatureEnabled(dockerCli) {
+					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
+						dao, err := db.New()
+						if err != nil {
+							return err
+						}
+						defer dao.Close()
+						migrate.MigrateConfig(cmd.Context(), dockerClient, dao)
+					}
+				}
+
 				runningInDockerCE, err := docker.RunningInDockerCE(ctx, dockerCli)
 				if err != nil {
 					return err
@@ -76,11 +91,9 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 		return []string{"--help"}, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	dockerClient := docker.NewClient(dockerCli)
-
 	if isWorkingSetsFeatureEnabled(dockerCli) {
-		cmd.AddCommand(workingSetCommand(dockerClient))
-		cmd.AddCommand(catalogNextCommand(dockerClient))
+		cmd.AddCommand(workingSetCommand())
+		cmd.AddCommand(catalogNextCommand())
 	}
 	cmd.AddCommand(catalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(dockerCli, cwd))

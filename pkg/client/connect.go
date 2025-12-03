@@ -4,11 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 var ErrCodexOnlySupportsGlobalConfiguration = errors.New("codex only supports global configuration. Re-run with --global or -g")
 
-func Connect(ctx context.Context, cwd string, config Config, vendor string, global bool, workingSet string) error {
+func Connect(ctx context.Context, dao db.DAO, cwd string, config Config, vendor string, global bool, workingSet string) error {
+	if workingSet != "" {
+		_, err := dao.GetWorkingSet(ctx, workingSet)
+		if err != nil {
+			return fmt.Errorf("failed to get profile: %s", workingSet)
+		}
+	}
+
 	if vendor == VendorCodex {
 		if !global {
 			return ErrCodexOnlySupportsGlobalConfiguration

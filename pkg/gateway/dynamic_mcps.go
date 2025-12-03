@@ -745,6 +745,7 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 				"value": {
 					Types:       []string{"string", "number", "boolean", "object", "array"},
 					Description: "Configuration value to set (can be string, number, boolean, object, or array)",
+					Items:       &jsonschema.Schema{Type: "object"},
 				},
 			},
 			Required: []string{"server", "key", "value"},
