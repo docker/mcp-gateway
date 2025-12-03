@@ -72,10 +72,11 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 					len(options.CatalogPath) > 0 || len(options.RegistryPath) > 0 || len(options.ConfigPath) > 0 || len(options.ToolsPath) > 0 ||
 					len(additionalCatalogs) > 0 || len(additionalRegistries) > 0 || len(additionalConfigs) > 0 || len(additionalToolsConfig) > 0 ||
 					len(mcpRegistryUrls) > 0 || len(options.OciRef) > 0 ||
+					len(options.SessionName) > 0 ||
 					(options.SecretsPath != "docker-desktop" && !strings.HasPrefix(options.SecretsPath, "docker-desktop:")) {
 					// We're in legacy mode, so we can't use the working set feature
 					if options.WorkingSet != "" {
-						return fmt.Errorf("cannot use --profile with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry flags")
+						return fmt.Errorf("cannot use --profile with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry, --session flags")
 					}
 					// Make sure to default the options in legacy mode
 					setLegacyDefaults(&options)
