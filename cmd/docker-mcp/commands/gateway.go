@@ -33,7 +33,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 		// In-container.
 		// Note: The catalog URL will be updated after checking the feature flag in RunE
 		options = gateway.Config{
-			CatalogPath: []string{catalog.DockerCatalogURLV2}, // Default to v2, will be updated based on flag
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
 				Cpus:         1,
@@ -47,11 +46,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 	} else {
 		// On-host.
 		options = gateway.Config{
-			CatalogPath:  []string{catalog.DockerCatalogFilename},
-			RegistryPath: []string{"registry.yaml"},
-			ConfigPath:   []string{"config.yaml"},
-			ToolsPath:    []string{"tools.yaml"},
-			SecretsPath:  "docker-desktop",
+			SecretsPath: "docker-desktop",
 			Options: gateway.Options{
 				Cpus:         1,
 				Memory:       "2Gb",
@@ -62,12 +57,35 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			},
 		}
 	}
+	if !isWorkingSetsFeatureEnabled(dockerCli) {
+		// Default these only if we aren't defaulting to profiles
+		setLegacyDefaults(&options)
+	}
 
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run the gateway",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if isWorkingSetsFeatureEnabled(dockerCli) {
+				if len(options.ServerNames) > 0 || enableAllServers ||
+					len(options.CatalogPath) > 0 || len(options.RegistryPath) > 0 || len(options.ConfigPath) > 0 || len(options.ToolsPath) > 0 ||
+					len(additionalCatalogs) > 0 || len(additionalRegistries) > 0 || len(additionalConfigs) > 0 || len(additionalToolsConfig) > 0 ||
+					len(mcpRegistryUrls) > 0 || len(options.OciRef) > 0 ||
+					(options.SecretsPath != "docker-desktop" && !strings.HasPrefix(options.SecretsPath, "docker-desktop:")) {
+					// We're in legacy mode, so we can't use the working set feature
+					if options.WorkingSet != "" {
+						return fmt.Errorf("cannot use --profile with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry flags")
+					}
+					// Make sure to default the options in legacy mode
+					setLegacyDefaults(&options)
+				} else if options.WorkingSet == "" {
+					// ELSE we're in working set mode,
+					// so IF no profile specified, use the default profile
+					options.WorkingSet = "default"
+				}
+			}
+
 			// Check if OAuth interceptor feature is enabled
 			options.OAuthInterceptorEnabled = isOAuthInterceptorFeatureEnabled(dockerCli)
 
@@ -121,17 +139,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 					}
 				}
 				options.MCPRegistryServers = mcpServers
-			}
-
-			// TODO(cody): When all commands are migrated, we should default this parameter to "default"
-			// Also need to consider the case when there is no default profile
-			if options.WorkingSet != "" {
-				if len(options.ServerNames) > 0 {
-					return fmt.Errorf("cannot use --profile with --servers flag")
-				}
-				if enableAllServers {
-					return fmt.Errorf("cannot use --profile with --enable-all-servers flag")
-				}
 			}
 
 			// Handle --enable-all-servers flag
@@ -360,4 +367,25 @@ func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
 		return false
 	}
 	return value == "enabled"
+}
+
+func setLegacyDefaults(options *gateway.Config) {
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+		if len(options.CatalogPath) == 0 {
+			options.CatalogPath = []string{catalog.DockerCatalogURLV2} // Default to v2, will be updated based on flag
+		}
+	} else {
+		if len(options.CatalogPath) == 0 {
+			options.CatalogPath = []string{catalog.DockerCatalogFilename}
+		}
+		if len(options.RegistryPath) == 0 {
+			options.RegistryPath = []string{"registry.yaml"}
+		}
+		if len(options.ConfigPath) == 0 {
+			options.ConfigPath = []string{"config.yaml"}
+		}
+		if len(options.ToolsPath) == 0 {
+			options.ToolsPath = []string{"tools.yaml"}
+		}
+	}
 }
