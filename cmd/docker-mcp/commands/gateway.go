@@ -80,6 +80,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command 
 			// Check if tool name prefix feature is enabled
 			options.ToolNamePrefix = isToolNamePrefixFeatureEnabled(dockerCli)
 
+			// Check if use-embeddings feature is enabled
+			options.UseEmbeddings = isUseEmbeddingsFeatureEnabled(dockerCli)
+
 			// Update catalog URL based on mcp-oauth-dcr flag if using default Docker catalog URL
 			if len(options.CatalogPath) == 1 && (options.CatalogPath[0] == catalog.DockerCatalogURLV2 || options.CatalogPath[0] == catalog.DockerCatalogURLV3) {
 				options.CatalogPath[0] = catalog.GetDockerCatalogURL(options.McpOAuthDcrEnabled)
@@ -356,6 +359,20 @@ func isWorkingSetsFeatureEnabled(dockerCli command.Cli) bool {
 	}
 
 	value, exists := configFile.Features["profiles"]
+	if !exists {
+		return false
+	}
+	return value == "enabled"
+}
+
+// isUseEmbeddingsFeatureEnabled checks if the use-embeddings feature is enabled
+func isUseEmbeddingsFeatureEnabled(dockerCli command.Cli) bool {
+	configFile := dockerCli.ConfigFile()
+	if configFile == nil || configFile.Features == nil {
+		return false
+	}
+
+	value, exists := configFile.Features["use-embeddings"]
 	if !exists {
 		return false
 	}
