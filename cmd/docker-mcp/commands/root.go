@@ -46,7 +46,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 				return err
 			}
 
-			// Check for docker-credential-desktop for secret commands
+			// Note: Using PersistentPreRunE in secretCommand would override this parent hook
 			if isSubcommandOf(cmd, []string{"secret"}) {
 				if err := desktop.CheckHasDockerPass(cmd.Context()); err != nil {
 					return err
