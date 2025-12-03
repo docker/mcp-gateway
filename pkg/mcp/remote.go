@@ -30,7 +30,7 @@ func NewRemoteMCPClient(config *catalog.ServerConfig) Client {
 	}
 }
 
-func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, _ bool, _ *mcp.ServerSession, _ *mcp.Server, _ CapabilityRefresher) error {
+func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams, verbose bool, _ *mcp.ServerSession, _ *mcp.Server, _ CapabilityRefresher) error {
 	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
@@ -52,7 +52,19 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	// Secrets to env
 	env := map[string]string{}
 	for _, s := range c.config.Spec.Secrets {
-		env[s.Env] = getSecretValue(ctx, s.Name)
+		// First check if secret was provided via configuration (file-based or se:// URI)
+		if value, ok := c.config.Secrets[s.Name]; ok && value != "" {
+			if verbose {
+				log.Logf("    - %s: %s", s.Env, maskSecret(value))
+			}
+			env[s.Env] = value
+		} else {
+			// Fall back to secrets engine (Docker Desktop direct API)
+			if verbose {
+				log.Logf("    - Fetching secret: %s", secret.GetSecretKey(s.Name))
+			}
+			env[s.Env] = getSecretValue(ctx, s.Name)
+		}
 	}
 
 	// Headers
@@ -63,6 +75,9 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	// Add OAuth token if remote server has OAuth configuration
 	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
+		if verbose {
+			log.Logf("    - Using OAuth token for: %s", c.config.Name)
+		}
 		credHelper := oauth.NewOAuthCredentialHelper()
 		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
 		if err != nil {
@@ -145,6 +160,18 @@ func expandEnv(value string, secrets map[string]string) string {
 	return os.Expand(value, func(name string) string {
 		return secrets[name]
 	})
+}
+
+// maskSecret shows the first few characters of a secret followed by asterisks.
+// se:// URIs are shown in full since they're just references, not actual secrets.
+func maskSecret(value string) string {
+	if strings.HasPrefix(value, "se://") {
+		return value
+	}
+	if len(value) <= 4 {
+		return "****"
+	}
+	return value[:4] + "****"
 }
 
 // headerRoundTripper is an http.RoundTripper that adds custom headers to all requests
