@@ -57,7 +57,7 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 	}
 }
 
-func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, annotations *mcp.ToolAnnotations) mcp.ToolHandler {
+func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, annotations *mcp.ToolAnnotations, originalToolName string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Look up server configuration
 		serverConfig, _, ok := g.configuration.Find(serverName)
@@ -128,7 +128,7 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 		}
 		params := &mcp.CallToolParams{
 			Meta:      req.Params.Meta,
-			Name:      req.Params.Name,
+			Name:      originalToolName,
 			Arguments: args,
 		}
 
