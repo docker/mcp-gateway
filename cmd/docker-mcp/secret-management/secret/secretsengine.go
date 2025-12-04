@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -58,12 +59,22 @@ func GetSecrets(ctx context.Context) ([]Envelope, error) {
 			return nil, err
 		}
 
-		var secrets map[string][]Envelope
-		if err := json.NewDecoder(resp.Body).Decode(&secrets); err != nil {
-			resp.Body.Close()
-			return nil, err
-		}
+		// Read body
+		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body for pattern %s: %w", pattern, err)
+		}
+
+		// Skip patterns with no secrets (404 = not found)
+		if resp.StatusCode == http.StatusNotFound {
+			continue
+		}
+
+		var secrets map[string][]Envelope
+		if err := json.Unmarshal(body, &secrets); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal response for pattern %s: %w", pattern, err)
+		}
 
 		// Merge results, deduplicating by ID
 		for _, env := range secrets["envelopes"] {
