@@ -1,7 +1,7 @@
 # docker mcp secret ls
 
 <!---MARKER_GEN_START-->
-List all secret names in Docker Desktop's secret store
+List all secrets from the local OS Keychain as well as any active Secrets Engine provider
 
 ### Options
 
