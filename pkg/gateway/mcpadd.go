@@ -229,9 +229,9 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 		}
 		clientNameLower := strings.ToLower(clientName)
 
-		// Only activate tools if activate is true AND client name doesn't contain "claude"
-		// (Claude clients auto-refresh their tool list, so they don't need explicit activation)
-		shouldActivate := params.Activate && !strings.Contains(clientNameLower, "claude")
+		// Activate tools if requested - all clients need explicit activation
+		// (Removed incorrect assumption that Claude auto-refreshes tool list)
+		shouldActivate := params.Activate // Claude clients also need explicit activation
 
 		if shouldActivate {
 			// Now update g.mcpServer with the new capabilities
