@@ -12,18 +12,19 @@ import (
 
 	clientcli "github.com/docker/mcp-gateway/cmd/docker-mcp/client"
 	"github.com/docker/mcp-gateway/pkg/client"
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
-func clientCommand(dockerCli command.Cli, cwd string) *cobra.Command {
+func clientCommand(dockerCli command.Cli, cwd string, features features.Features) *cobra.Command {
 	cfg := client.ReadConfig()
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("client (Supported: %s)", strings.Join(client.GetSupportedMCPClients(*cfg), ", ")),
 		Short: "Manage MCP clients",
 	}
 	cmd.AddCommand(listClientCommand(cwd, *cfg))
-	cmd.AddCommand(connectClientCommand(dockerCli, cwd, *cfg))
+	cmd.AddCommand(connectClientCommand(dockerCli, cwd, *cfg, features))
 	cmd.AddCommand(disconnectClientCommand(cwd, *cfg))
-	cmd.AddCommand(manualClientCommand(dockerCli))
+	cmd.AddCommand(manualClientCommand(features))
 	return cmd
 }
 
@@ -46,7 +47,7 @@ func listClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	return cmd
 }
 
-func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config) *cobra.Command {
+func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config, features features.Features) *cobra.Command {
 	var opts struct {
 		Global     bool
 		Quiet      bool
@@ -63,7 +64,7 @@ func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config) 
 	flags := cmd.Flags()
 	addGlobalFlag(flags, &opts.Global)
 	addQuietFlag(flags, &opts.Quiet)
-	if isWorkingSetsFeatureEnabled(dockerCli) {
+	if features.IsProfilesFeatureEnabled() {
 		addWorkingSetFlag(flags, &opts.WorkingSet)
 	}
 	return cmd
@@ -88,7 +89,7 @@ func disconnectClientCommand(cwd string, cfg client.Config) *cobra.Command {
 	return cmd
 }
 
-func manualClientCommand(dockerCli command.Cli) *cobra.Command {
+func manualClientCommand(features features.Features) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "manual-instructions",
 		Short: "Display the manual instructions to connect the MCP client",
@@ -100,7 +101,7 @@ func manualClientCommand(dockerCli command.Cli) *cobra.Command {
 			}
 
 			command := []string{"docker", "mcp", "gateway", "run"}
-			if isWorkingSetsFeatureEnabled(dockerCli) {
+			if features.IsProfilesFeatureEnabled() {
 				gordonProfile, err := client.ReadGordonProfile()
 				if err != nil {
 					return fmt.Errorf("failed to read gordon profile: %w", err)
