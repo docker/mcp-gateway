@@ -80,7 +80,7 @@ func prefixToolName(prefix, toolName string) string {
 	if prefix == "" {
 		return toolName
 	}
-	return prefix + ":" + toolName
+	return prefix + "__" + toolName
 }
 
 func (caps *Capabilities) getPromptByName(promptName string) (PromptRegistration, error) {
