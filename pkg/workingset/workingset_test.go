@@ -645,7 +645,7 @@ func TestResolveServerFromString(t *testing.T) {
 					},
 				}))
 
-			server, err := resolveServersFromString(t.Context(), registryClient, ociService, dao, tt.input)
+			server, err := ResolveServersFromString(t.Context(), registryClient, ociService, dao, tt.input)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -698,7 +698,7 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 		"http://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
 	}))
 
-	server, err := resolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
+	server, err := ResolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
 	require.NoError(t, err)
 	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server[0].Source)
 }

@@ -4,12 +4,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
@@ -25,6 +28,36 @@ func setupTestDB(t *testing.T) db.DAO {
 	require.NoError(t, err)
 
 	return dao
+}
+
+func getMockRegistryClient() registryapi.Client {
+	server := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Version: "0.1.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+				},
+			},
+		},
+		Meta: v0.ResponseMeta{
+			Official: &v0.RegistryExtensions{
+				IsLatest: true,
+			},
+		},
+	}
+
+	return mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
+		"https://example.com/v0/servers/server1/versions": {
+			Servers: []v0.ServerResponse{server},
+		},
+		"https://example.com/v0/servers/server2/versions": {
+			Servers: []v0.ServerResponse{server},
+		},
+	}), mocks.WithServerResponses(map[string]v0.ServerResponse{
+		"https://example.com/v0/servers/server1/versions/0.1.0": server,
+		"https://example.com/v0/servers/server2/versions/0.1.0": server,
+	}))
 }
 
 func getMockOciService() oci.Service {

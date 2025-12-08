@@ -53,7 +53,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	}
 
 	for _, server := range servers {
-		ss, err := resolveServersFromString(ctx, registryClient, ociService, dao, server)
+		ss, err := ResolveServersFromString(ctx, registryClient, ociService, dao, server)
 		if err != nil {
 			return err
 		}

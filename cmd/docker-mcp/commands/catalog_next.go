@@ -10,6 +10,7 @@ import (
 	catalognext "github.com/docker/mcp-gateway/pkg/catalog_next"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -36,16 +37,14 @@ func createCatalogNextCommand() *cobra.Command {
 		Title             string
 		FromWorkingSet    string
 		FromLegacyCatalog string
+		Servers           []string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create <oci-reference> [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--title <title>]",
+		Use:   "create <oci-reference> [--server <ref1> --server <ref2> ...] [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--title <title>]",
 		Short: "Create a new catalog from a profile or legacy catalog",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opts.FromWorkingSet == "" && opts.FromLegacyCatalog == "" {
-				return fmt.Errorf("either --from-profile or --from-legacy-catalog must be provided")
-			}
 			if opts.FromWorkingSet != "" && opts.FromLegacyCatalog != "" {
 				return fmt.Errorf("cannot use both --from-profile and --from-legacy-catalog")
 			}
@@ -54,11 +53,14 @@ func createCatalogNextCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return catalognext.Create(cmd.Context(), dao, args[0], opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Title)
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Title)
 		},
 	}
 
 	flags := cmd.Flags()
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")

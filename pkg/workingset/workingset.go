@@ -262,7 +262,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	return "", fmt.Errorf("failed to create profile id")
 }
 
-func resolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
+func ResolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
 	if v, ok := strings.CutPrefix(value, "docker://"); ok {
 		fullRef, err := ResolveImageRef(ctx, ociService, v)
 		if err != nil {
