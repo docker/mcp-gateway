@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: docker/mcp-gateway:dind
+    privileged: true
+    ports:
+      - "0.0.0.0:8080:8080"  # Bind to all interfaces for LAN access
+    command:
+      - --port=8080
+      - --transport=stdio    # Use stdio transport for bridge compatibility  
+      - --servers=fetch      # Enable fetch server (or whatever servers you need)
+      - --memory=512Mb
+      - --verbose            # Enable verbose logging for debugging
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For Docker-in-Docker
+    restart: unless-stopped
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
