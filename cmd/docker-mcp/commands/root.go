@@ -13,6 +13,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/docker/mcp-gateway/pkg/migrate"
 )
 
@@ -33,7 +34,7 @@ Examples:
 `
 
 // Root returns the root command for the init plugin
-func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command {
+func Root(ctx context.Context, cwd string, dockerCli command.Cli, features features.Features) *cobra.Command {
 	dockerClient := docker.NewClient(dockerCli)
 
 	cmd := &cobra.Command{
@@ -50,8 +51,13 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 				return err
 			}
 
+			// Check the feature initialization error here for clearer error messages for the user
+			if features.InitError() != nil {
+				return features.InitError()
+			}
+
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
-				if isWorkingSetsFeatureEnabled(dockerCli) {
+				if features.IsProfilesFeatureEnabled() {
 					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
 						dao, err := db.New()
 						if err != nil {
@@ -84,15 +90,15 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 		return []string{"--help"}, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	if isWorkingSetsFeatureEnabled(dockerCli) {
+	if features.IsProfilesFeatureEnabled() {
 		cmd.AddCommand(workingSetCommand())
 		cmd.AddCommand(catalogNextCommand())
 	}
 	cmd.AddCommand(catalogCommand(dockerCli))
-	cmd.AddCommand(clientCommand(dockerCli, cwd))
+	cmd.AddCommand(clientCommand(dockerCli, cwd, features))
 	cmd.AddCommand(configCommand(dockerClient))
-	cmd.AddCommand(featureCommand(dockerCli))
-	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli))
+	cmd.AddCommand(featureCommand(dockerCli, features))
+	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(oauthCommand())
 	cmd.AddCommand(policyCommand())
 	cmd.AddCommand(registryCommand())

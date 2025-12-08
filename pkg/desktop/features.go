@@ -13,6 +13,26 @@ type Feature struct {
 	Enabled bool `json:"enabled"`
 }
 
+func CheckProfilesFeatureIsEnabled(ctx context.Context) (bool, error) {
+	// Copied from https://github.com/docker/ai/commit/ae5c7d328f8aa42bc63d9398157a0673de9ffcf5
+	// Save and restore working directory because pinata code might change it.
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = os.Chdir(wd)
+	}()
+
+	features, err := getFeatures(ctx)
+	if err != nil {
+		//nolint:staticcheck
+		return false, errors.New("Docker Desktop is not running")
+	}
+
+	return isFeatureEnabled("MCPWorkingSets", features), nil
+}
+
 // CheckFeatureIsEnabled verifies if a feature is enabled in either admin-settings.json or Docker Desktop settings.
 // settingName is the setting name (e.g. "enableDockerMCPToolkit", "enableDockerAI", etc.)
 // label is the human-readable name of the feature for error messages
@@ -63,4 +83,21 @@ func getSettings(ctx context.Context) (any, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func getFeatures(ctx context.Context) (map[string]Feature, error) {
+	var result map[string]Feature
+	if err := ClientBackend.Get(ctx, "/features", &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func isFeatureEnabled(featureName string, features map[string]Feature) bool {
+	for name, feature := range features {
+		if name == featureName && feature.Enabled {
+			return true
+		}
+	}
+	return false
 }

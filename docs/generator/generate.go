@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/commands"
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
 const defaultSourcePath = "/reference/"
@@ -35,7 +36,7 @@ func gen(opts *options) error {
 		DisableAutoGenTag: true,
 	}
 
-	cmd.AddCommand(commands.Root(context.TODO(), "", dockerCLI))
+	cmd.AddCommand(commands.Root(context.TODO(), "", dockerCLI, features.AllDisabled()))
 
 	c, err := clidocstool.New(clidocstool.Options{
 		Root:      cmd,

@@ -17,7 +17,9 @@ Profiles are decoupled from catalogs, meaning the servers in a profile can come 
 
 ## Enabling Profiles
 
-Profiles are a feature that must be enabled first:
+Profiles are a feature that must be enabled first.
+
+In Docker CE or container mode:
 
 ```bash
 # Enable the profiles feature
@@ -26,6 +28,8 @@ docker mcp feature enable profiles
 # Verify it's enabled
 docker mcp feature list
 ```
+
+If you're using Docker Desktop, you have to enable the `MCPWorkingSets` feature flag within Docker Desktop instead.
 
 Once enabled, you'll have access to:
 - `docker mcp profile` commands for managing profiles
@@ -740,7 +744,7 @@ Error: profile my-set not found
 Error: unknown command "profile" for "docker mcp"
 ```
 
-**Solution**: Enable the feature with `docker mcp feature enable profiles`
+**Solution**: In Docker CE or container mode, enable the feature with `docker mcp feature enable profiles`. In Docker Desktop, enable the `MCPWorkingSets` feature flag.
 
 ### Invalid Server Reference
 

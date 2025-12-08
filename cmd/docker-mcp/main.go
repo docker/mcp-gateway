@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/commands"
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/version"
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 	}
 
 	plugin.Run(func(dockerCli command.Cli) *cobra.Command {
-		return commands.Root(ctx, cwd, dockerCli)
+		return commands.Root(ctx, cwd, dockerCli, features.New(ctx, dockerCli))
 	},
 		manager.Metadata{
 			SchemaVersion:    "0.1.0",
