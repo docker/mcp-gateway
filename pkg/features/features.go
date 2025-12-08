@@ -37,6 +37,20 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	return
 }
 
+func AllEnabled() Features {
+	return &featuresImpl{
+		runningDockerDesktop: true,
+		profilesEnabled:      true,
+	}
+}
+
+func AllDisabled() Features {
+	return &featuresImpl{
+		runningDockerDesktop: false,
+		profilesEnabled:      false,
+	}
+}
+
 func (f *featuresImpl) InitError() error {
 	return f.initErr
 }

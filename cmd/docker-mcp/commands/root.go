@@ -34,10 +34,8 @@ Examples:
 `
 
 // Root returns the root command for the init plugin
-func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command {
+func Root(ctx context.Context, cwd string, dockerCli command.Cli, features features.Features) *cobra.Command {
 	dockerClient := docker.NewClient(dockerCli)
-
-	features := features.New(ctx, dockerCli)
 
 	cmd := &cobra.Command{
 		Use:              "mcp [OPTIONS]",
