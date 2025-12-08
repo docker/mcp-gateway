@@ -891,7 +891,7 @@ Error: tool 'invalid_tool' not found in server 'github'
 - Full registry support in the gateway
 - Search and discovery features
 
-## Creating Catalogs from Profiles
+## Creating Catalogs
 
 The `catalog-next` command allows you to create and share catalogs:
 
@@ -904,6 +904,12 @@ docker mcp catalog-next create my-catalog --from-profile my-profile --name "My C
 
 # Create a catalog from a legacy catalog
 docker mcp catalog-next create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+
+# Create a catalog with servers from other catalogs
+docker mcp catalog-next create dev-catalog --title dev-tools --server catalog://mcp/docker-mcp-catalog/github+notion+obsidian
+
+# Create a catalog with your own MCP server
+docker mcp catalog-next create my-catalog --title my-catalog --server docker://my-server:latest
 
 # List all catalogs
 docker mcp catalog-next list

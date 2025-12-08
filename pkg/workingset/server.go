@@ -40,7 +40,7 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 
 	newServers := make([]Server, 0)
 	for _, server := range servers {
-		ss, err := resolveServersFromString(ctx, registryClient, ociService, dao, server)
+		ss, err := ResolveServersFromString(ctx, registryClient, ociService, dao, server)
 		if err != nil {
 			return fmt.Errorf("invalid server value: %w", err)
 		}

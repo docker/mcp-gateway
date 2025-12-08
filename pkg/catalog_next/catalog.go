@@ -36,6 +36,7 @@ const (
 	SourcePrefixWorkingSet    = "profile:"
 	SourcePrefixLegacyCatalog = "legacy-catalog:"
 	SourcePrefixOCI           = "oci:"
+	SourcePrefixUser          = "user:"
 )
 
 type Server struct {

@@ -13,10 +13,11 @@ import (
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string, legacyCatalogURL string, title string) error {
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, title string) error {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
@@ -37,13 +38,27 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
 	} else {
-		return fmt.Errorf("either profile ID or legacy catalog URL must be provided")
+		// Construct from servers
+		if title == "" {
+			return fmt.Errorf("title is required when creating a catalog without using an existing legacy catalog or profile")
+		}
+		catalog = Catalog{
+			CatalogArtifact: CatalogArtifact{
+				Title:   title,
+				Servers: make([]Server, 0, len(servers)),
+			},
+			Source: SourcePrefixUser + "cli",
+		}
 	}
 
 	catalog.Ref = oci.FullNameWithoutDigest(ref)
 
 	if title != "" {
 		catalog.Title = title
+	}
+
+	if err := addServersToCatalog(ctx, dao, registryClient, ociService, &catalog, servers); err != nil {
+		return err
 	}
 
 	if err := catalog.Validate(); err != nil {
@@ -65,6 +80,24 @@ func Create(ctx context.Context, dao db.DAO, refStr string, workingSetID string,
 	return nil
 }
 
+func addServersToCatalog(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, catalog *Catalog, servers []string) error {
+	if len(servers) == 0 {
+		return nil
+	}
+
+	for _, server := range servers {
+		ss, err := workingset.ResolveServersFromString(ctx, registryClient, ociService, dao, server)
+		if err != nil {
+			return err
+		}
+		for _, s := range ss {
+			catalog.Servers = append(catalog.Servers, workingSetServerToCatalogServer(s))
+		}
+	}
+
+	return nil
+}
+
 func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID string) (Catalog, error) {
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, workingSetID)
 	if err != nil {
@@ -78,14 +111,7 @@ func createCatalogFromWorkingSet(ctx context.Context, dao db.DAO, workingSetID s
 
 	servers := make([]Server, len(workingSet.Servers))
 	for i, server := range workingSet.Servers {
-		servers[i] = Server{
-			Type:     server.Type,
-			Tools:    server.Tools,
-			Source:   server.Source,
-			Image:    server.Image,
-			Endpoint: server.Endpoint,
-			Snapshot: server.Snapshot,
-		}
+		servers[i] = workingSetServerToCatalogServer(server)
 	}
 
 	return Catalog{
@@ -143,4 +169,15 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 		},
 		Source: SourcePrefixLegacyCatalog + name,
 	}, nil
+}
+
+func workingSetServerToCatalogServer(server workingset.Server) Server {
+	return Server{
+		Type:     server.Type,
+		Tools:    server.Tools,
+		Source:   server.Source,
+		Image:    server.Image,
+		Endpoint: server.Endpoint,
+		Snapshot: server.Snapshot,
+	}
 }
