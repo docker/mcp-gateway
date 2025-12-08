@@ -123,7 +123,20 @@ func extractLayer(layer interface{ Uncompressed() (io.ReadCloser, error) }, dest
 			return fmt.Errorf("failed to read tar header: %w", err)
 		}
 
+		// Prevent zip slip vulnerability by validating the target path
 		target := filepath.Join(destDir, header.Name)
+		// Clean the path to resolve any ".." elements and ensure it's within destDir
+		cleanedTarget := filepath.Clean(target)
+		cleanedDestDir := filepath.Clean(destDir)
+
+		// Use filepath.Rel to check if target is within destDir
+		// If the relative path contains "..", it's trying to escape
+		relPath, err := filepath.Rel(cleanedDestDir, cleanedTarget)
+		if err != nil || len(relPath) == 0 || relPath[0] == '.' && len(relPath) > 1 && relPath[1] == '.' {
+			return fmt.Errorf("invalid tar entry path (potential path traversal): %s", header.Name)
+		}
+
+		target = cleanedTarget
 
 		switch header.Typeflag {
 		case tar.TypeDir:

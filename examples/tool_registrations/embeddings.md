@@ -66,12 +66,14 @@ https://github.com/docker/mcp-gateway
 
 # Dynamic Embeddings
 
-| Model | time(s) /tool                  | dim   | ctx len | size  |  Notes  |
-| :---  | :---- | :--- | :--- |
-| DMR - embeddinggemma (302M)      | 1.2 | 768   | 2048    | 307M  | needs summary | 
-| DMR - nomic (137M)               |     | 768   | 2048    | 0.5G  | needs summary | 
-| DMR - qwen3-embedding (4B)       | 3.2 | 2560  | 40960   | 2.32G | ok | 
-| GPT (text-embedding-3-small)     | 0.3 | 1536  | 8191    |  -    | ok |
+| Model                  | time(ms)/tool  | dim   | ctx len | size  |  Notes  |
+| :---                             | :--  | :---  | :---    | :---  | :---- | 
+| DMR - embeddinggemma (302M)      | 4871 | 768   | 2048    | 307M  | needs tool summarization | 
+| DMR - qwen3-embedding (4B)       | 920  | 2560  | 40960   | 2.32G | can embed un-summarized tool def | 
+| GPT (text-embedding-3-small)     | 307  | 1536  | 8191    |  -    | can embed un-summarized tool def |
+| DMR - nomic (137M)               |      | 768   | 2048    | 0.5G  | needs tool summarization | 
+
+* 40 servers will be about 4 megs for larger vec dimensions like qwen3.  Roughly half that for text-embedding-3-small, and half again for the smaller dimensions.
 
 Pre-summary to use smaller models
 

@@ -13,8 +13,9 @@
 (defn start-vector-db
   "Start the jimclark106/vector-db Docker container with interactive streams.
    Returns a map with :process, :in (stdin stream), :out (stdout stream), and :err (stderr stream)"
-  [{:keys [dimension db]}]
+  [{:keys [dimension db name]}]
   (let [cmd ["docker" "run" "-i" "--rm"
+             "--name" name
              "--platform" "linux/amd64"
              "-v" "./data:/data"
              "-e" (format "DB_PATH=/data/%s" db)
@@ -160,7 +161,7 @@
       (if (:error response)
         response
         (try
-          (-> response :content first :text (json/parse-string keyword))
+          (-> response :content first :text (json/parse-string keyword) :collections)
           (catch Exception e
             {:error (str "Failed to parse collections response: " (.getMessage e))}))))))
 
@@ -201,7 +202,7 @@
 
 (comment
   ;; Start the container
-  (def db (start-vector-db {:dimension 1536 :db "vectors.db"}))
+  (def db (start-vector-db {:name "vectors" :dimension 1536 :db "vectors.db"}))
 
   ;; Access the raw streams
   (:in db)   ; stdin stream
@@ -218,24 +219,14 @@
   (wait-for-container db)
 
   ;; Create a stdio-server using the container's streams
-  (def server-container (vector-db-stdio-server))
+  (def server-container (vector-db-stdio-server {:name "vectors" :dimension 1536 :db "vectors.db"}))
   (:server server-container)  ; The stdio-server
   (:container server-container)  ; The container info
-
-  ;; Initialize the MCP connection
-  (def init-ch (mcp-initialize server-container {:clientInfo {:name "test-client" :version "1.0.0"}}))
-  ;; Wait for the response
-  (async/<!! init-ch)
 
   ;; List available tools
   (def list-ch (mcp-list-tools server-container))
   ;; Wait for the tools list
   (async/<!! list-ch)
-
-  ;; Call a tool on the server
-  (def tool-ch (mcp-call-tool server-container "search" {:query "example query" :limit 10}))
-  ;; Wait for the tool response
-  (async/<!! tool-ch)
 
   ;; Using the vector-db wrapper functions:
 

@@ -35,9 +35,9 @@ If we find an mcp server, it can be added with the mcp-add tool, and configured 
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
-				"prompt": {
+				"query": {
 					Type:        "string",
-					Description: "describe the use case that might benefit from adding a new MCP server.",
+					Description: "Search query to find servers by name, title, or description (case-insensitive)",
 				},
 				"limit": {
 					Type:        "integer",

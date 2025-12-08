@@ -172,25 +172,31 @@ func (vs *VectorServer) registerTools(server *mcp.Server) {
 				Properties: map[string]*jsonschema.Schema{},
 			},
 			OutputSchema: &jsonschema.Schema{
-				Type: "array",
-				Items: &jsonschema.Schema{
-					Type: "object",
-					Properties: map[string]*jsonschema.Schema{
-						"id": {
-							Type:        "integer",
-							Description: "Unique identifier for the collection",
-						},
-						"name": {
-							Type:        "string",
-							Description: "Name of the collection",
-						},
-						"created_at": {
-							Type:        "string",
-							Description: "Timestamp when the collection was created",
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"collections": {
+						Type: "array",
+						Items: &jsonschema.Schema{
+							Type: "object",
+							Properties: map[string]*jsonschema.Schema{
+								"id": {
+									Type:        "integer",
+									Description: "Unique identifier for the collection",
+								},
+								"name": {
+									Type:        "string",
+									Description: "Name of the collection",
+								},
+								"created_at": {
+									Type:        "string",
+									Description: "Timestamp when the collection was created",
+								},
+							},
+							Required: []string{"id", "name", "created_at"},
 						},
 					},
-					Required: []string{"id", "name", "created_at"},
 				},
+				Required: []string{"collections"},
 			},
 		},
 		vs.handleListCollections,
@@ -370,7 +376,11 @@ func (vs *VectorServer) handleListCollections(ctx context.Context, req *mcp.Call
 		collections = append(collections, c)
 	}
 
-	resultJSON, err := json.MarshalIndent(collections, "", "  ")
+	result := map[string]any{
+		"collections": collections,
+	}
+
+	resultJSON, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal collections: %w", err)
 	}
