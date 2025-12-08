@@ -487,11 +487,6 @@ func (g *Gateway) createMcpRemoveTool() *ToolRegistration {
 			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
 		}
 
-		// Persist configuration if session name is set
-		if err := g.configuration.Persist(); err != nil {
-			log.Log("Warning: Failed to persist configuration:", err)
-		}
-
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{
 				Text: fmt.Sprintf("Successfully removed server '%s'.", serverName),
@@ -811,11 +806,6 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 		// Log the configuration change
 		log.Log(fmt.Sprintf("  - Set config for server '%s': %s = %s", serverName, configKey, valueStr))
 
-		// Persist configuration if session name is set
-		if err := g.configuration.Persist(); err != nil {
-			log.Log("Warning: Failed to persist configuration:", err)
-		}
-
 		var resultMessage string
 		if oldValue != nil {
 			resultMessage = fmt.Sprintf("Successfully updated config for server '%s': %s = %s (was: %s)", serverName, configKey, valueStr, oldValueStr)
@@ -838,92 +828,6 @@ func (g *Gateway) createMcpConfigSetTool(_ *clientConfig) *ToolRegistration {
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-config-set", handler),
 	}
-}
-
-// createMcpSessionNameTool implements a tool for setting the session name
-//
-//nolint:unused
-func (g *Gateway) createMcpSessionNameTool() *ToolRegistration {
-	tool := &mcp.Tool{
-		Name:        "mcp-session-name",
-		Description: "Set a session name for the gateway configuration. When set, configuration changes will be persisted to ~/.docker/mcp/{SessionName}/ directory.",
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"name": {
-					Type:        "string",
-					Description: "Session name to set (alphanumeric and hyphens only)",
-				},
-			},
-			Required: []string{"name"},
-		},
-	}
-
-	handler := func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Parse parameters
-		var params struct {
-			Name string `json:"name"`
-		}
-
-		if req.Params.Arguments == nil {
-			return nil, fmt.Errorf("missing arguments")
-		}
-
-		paramsBytes, err := json.Marshal(req.Params.Arguments)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
-		}
-
-		if err := json.Unmarshal(paramsBytes, &params); err != nil {
-			return nil, fmt.Errorf("failed to parse arguments: %w", err)
-		}
-
-		if params.Name == "" {
-			return nil, fmt.Errorf("name parameter is required")
-		}
-
-		sessionName := strings.TrimSpace(params.Name)
-
-		// Validate session name (alphanumeric and hyphens only)
-		if !isValidSessionName(sessionName) {
-			return &mcp.CallToolResult{
-				Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Error: Invalid session name '%s'. Session names must contain only alphanumeric characters and hyphens.", sessionName),
-				}},
-			}, nil
-		}
-
-		// Set the session name
-		g.configuration.SessionName = sessionName
-
-		// Persist the current configuration to the session directory
-		if err := g.configuration.Persist(); err != nil {
-			return nil, fmt.Errorf("failed to persist configuration: %w", err)
-		}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{&mcp.TextContent{
-				Text: fmt.Sprintf("Successfully set session name to '%s'. Configuration will now be persisted to ~/.docker/mcp/%s/", sessionName, sessionName),
-			}},
-		}, nil
-	}
-
-	return &ToolRegistration{
-		Tool:    tool,
-		Handler: withToolTelemetry("mcp-session-name", handler),
-	}
-}
-
-// isValidSessionName checks if a session name contains only alphanumeric characters and hyphens
-//
-//nolint:unused
-func isValidSessionName(name string) bool {
-	for _, ch := range name {
-		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '_' {
-			return false
-		}
-	}
-	return len(name) > 0
 }
 
 // createMcpExecTool implements a tool for executing tools that exist in the current session

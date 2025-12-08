@@ -81,34 +81,17 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	if config.WorkingSet != "" {
 		configurator = NewWorkingSetConfiguration(config.WorkingSet, oci.NewService(), docker)
 	} else {
-		// Prepend session-specific paths if SessionName is set
-		registryPath := config.RegistryPath
-		configPath := config.ConfigPath
-		toolsPath := config.ToolsPath
-
-		if config.SessionName != "" {
-			// Prepend session-specific paths to load session configs first
-			sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
-			sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
-			sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
-
-			registryPath = append([]string{sessionRegistry}, registryPath...)
-			configPath = append([]string{sessionConfig}, configPath...)
-			toolsPath = append([]string{sessionTools}, toolsPath...)
-		}
-
 		configurator = &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
-			RegistryPath:       registryPath,
-			ConfigPath:         configPath,
+			RegistryPath:       config.RegistryPath,
+			ConfigPath:         config.ConfigPath,
 			SecretsPath:        config.SecretsPath,
-			ToolsPath:          toolsPath,
+			ToolsPath:          config.ToolsPath,
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
-			sessionName:        config.SessionName,
 			docker:             docker,
 		}
 	}
@@ -191,13 +174,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return err
 	}
 	defer func() { _ = stopConfigWatcher() }()
-
-	// Set the session name in the configuration for persistence if specified via --session flag
-	if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-		if fbc.sessionName != "" {
-			g.configuration.SessionName = fbc.sessionName
-		}
-	}
 
 	// Parse interceptors
 	var parsedInterceptors []interceptors.Interceptor

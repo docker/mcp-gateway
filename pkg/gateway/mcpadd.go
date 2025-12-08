@@ -244,11 +244,6 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			g.capabilitiesMu.Unlock()
 		}
 
-		// Persist configuration if session name is set
-		if err := g.configuration.Persist(); err != nil {
-			log.Log("Warning: Failed to persist configuration:", err)
-		}
-
 		// Get the list of tools that were just added from this server
 		var addedTools []*mcp.Tool
 		g.capabilitiesMu.RLock()
