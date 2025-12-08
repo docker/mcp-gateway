@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -37,56 +36,29 @@ var c = http.Client{
 }
 
 func GetSecrets(ctx context.Context) ([]Envelope, error) {
-	// Workaround: Query multiple patterns since docker/mcp/** double-wildcard isn't working
-	// TODO: Remove once Secrets Engine fixes pattern matching bug
-	patterns := []string{
-		fmt.Sprintf(`{"pattern": "%s**"}`, NamespaceGeneric),  // Generic secrets (docker pass)
-		fmt.Sprintf(`{"pattern": "%s**"}`, NamespaceOAuth),    // OAuth tokens
-		fmt.Sprintf(`{"pattern": "%s**"}`, NamespaceOAuthDCR), // DCR configs
+	pattern := `{"pattern": "docker/mcp/**"}`
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader([]byte(pattern)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// No secrets found
+	if resp.StatusCode == http.StatusNotFound {
+		return []Envelope{}, nil
 	}
 
-	allSecrets := make(map[string]Envelope) // Use map to deduplicate by ID
-
-	for _, pattern := range patterns {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader([]byte(pattern)))
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Add("Content-Type", "application/json")
-
-		resp, err := c.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		// Read body
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body for pattern %s: %w", pattern, err)
-		}
-
-		// Skip patterns with no secrets (404 = not found)
-		if resp.StatusCode == http.StatusNotFound {
-			continue
-		}
-
-		var secrets map[string][]Envelope
-		if err := json.Unmarshal(body, &secrets); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal response for pattern %s: %w", pattern, err)
-		}
-
-		// Merge results, deduplicating by ID
-		for _, env := range secrets["envelopes"] {
-			allSecrets[env.ID] = env
-		}
+	var secrets map[string][]Envelope
+	if err := json.NewDecoder(resp.Body).Decode(&secrets); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal secrets response: %w", err)
 	}
 
-	// Convert map back to slice
-	result := make([]Envelope, 0, len(allSecrets))
-	for _, env := range allSecrets {
-		result = append(result, env)
-	}
-
-	return result, nil
+	return secrets["envelopes"], nil
 }
