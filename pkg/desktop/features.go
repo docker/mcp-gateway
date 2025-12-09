@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 
 	"github.com/PaesslerAG/jsonpath"
 )
@@ -41,6 +42,20 @@ func CheckFeatureIsEnabled(ctx context.Context, settingName string, label string
 		return errors.New("The \"" + label + "\" feature needs to be enabled in Docker Desktop Settings")
 	}
 
+	return nil
+}
+
+var ErrDockerPassUnsupported = errors.New("docker pass has not been installed")
+
+func CheckHasDockerPass(ctx context.Context) error {
+	err := exec.CommandContext(ctx, "docker", "pass").Run()
+	execStatus, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	if execStatus.ExitCode() > 0 {
+		return ErrDockerPassUnsupported
+	}
 	return nil
 }
 

@@ -33,7 +33,7 @@ grafana:
   url: TEST
 `
 	secrets := map[string]string{
-		"grafana.api_key": "API_KEY",
+		"grafana.api_key": "se://docker/mcp/grafana.api_key",
 	}
 
 	args, env := argsAndEnv(t, "grafana", catalogYAML, configYAML, secrets, nil)
@@ -43,7 +43,7 @@ grafana:
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=grafana", "-l", "docker-mcp-transport=stdio",
 		"-e", "GRAFANA_API_KEY", "-e", "GRAFANA_URL",
 	}, args)
-	assert.Equal(t, []string{"GRAFANA_API_KEY=API_KEY", "GRAFANA_URL=TEST"}, env)
+	assert.Equal(t, []string{"GRAFANA_API_KEY=se://docker/mcp/grafana.api_key", "GRAFANA_URL=TEST"}, env)
 }
 
 func TestApplyConfigMongoDB(t *testing.T) {
@@ -53,7 +53,7 @@ secrets:
     env: MDB_MCP_CONNECTION_STRING
   `
 	secrets := map[string]string{
-		"mongodb.connection_string": "HOST:PORT",
+		"mongodb.connection_string": "se://docker/mcp/mongodb.connection_string",
 	}
 
 	args, env := argsAndEnv(t, "mongodb", catalogYAML, "", secrets, nil)
@@ -63,7 +63,7 @@ secrets:
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=mongodb", "-l", "docker-mcp-transport=stdio",
 		"-e", "MDB_MCP_CONNECTION_STRING",
 	}, args)
-	assert.Equal(t, []string{"MDB_MCP_CONNECTION_STRING=HOST:PORT"}, env)
+	assert.Equal(t, []string{"MDB_MCP_CONNECTION_STRING=se://docker/mcp/mongodb.connection_string"}, env)
 }
 
 func TestApplyConfigNotion(t *testing.T) {
@@ -77,7 +77,7 @@ env:
     value: '{"Authorization": "Bearer $INTERNAL_INTEGRATION_TOKEN", "Notion-Version": "2022-06-28"}'
   `
 	secrets := map[string]string{
-		"notion.internal_integration_token": "ntn_DUMMY",
+		"notion.internal_integration_token": "se://docker/mcp/notion.internal_integration_token",
 	}
 
 	args, env := argsAndEnv(t, "notion", catalogYAML, "", secrets, nil)
@@ -87,7 +87,33 @@ env:
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=notion", "-l", "docker-mcp-transport=stdio",
 		"-e", "INTERNAL_INTEGRATION_TOKEN", "-e", "OPENAPI_MCP_HEADERS",
 	}, args)
-	assert.Equal(t, []string{"INTERNAL_INTEGRATION_TOKEN=ntn_DUMMY", `OPENAPI_MCP_HEADERS={"Authorization": "Bearer ntn_DUMMY", "Notion-Version": "2022-06-28"}`}, env)
+	assert.Equal(t, []string{"INTERNAL_INTEGRATION_TOKEN=se://docker/mcp/notion.internal_integration_token", `OPENAPI_MCP_HEADERS={"Authorization": "Bearer se://docker/mcp/notion.internal_integration_token", "Notion-Version": "2022-06-28"}`}, env)
+}
+
+func TestApplyConfigFileBasedSecrets(t *testing.T) {
+	// Test that file-based secrets (actual values) pass through correctly
+	catalogYAML := `
+secrets:
+  - name: db.password
+    env: DB_PASSWORD
+  - name: api.key
+    env: API_KEY
+`
+	// File-based mode: secrets map contains actual values (not se:// URIs)
+	secrets := map[string]string{
+		"db.password": "my-actual-db-password",
+		"api.key":     "my-actual-api-key",
+	}
+
+	args, env := argsAndEnv(t, "myserver", catalogYAML, "", secrets, nil)
+
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=myserver", "-l", "docker-mcp-transport=stdio",
+		"-e", "DB_PASSWORD", "-e", "API_KEY",
+	}, args)
+	// File-based mode: actual values pass through unchanged
+	assert.Equal(t, []string{"DB_PASSWORD=my-actual-db-password", "API_KEY=my-actual-api-key"}, env)
 }
 
 func TestApplyConfigMountAs(t *testing.T) {

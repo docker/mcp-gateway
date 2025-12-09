@@ -50,6 +50,13 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 				return err
 			}
 
+			// Note: Using PersistentPreRunE in secretCommand would override this parent hook
+			if isSubcommandOf(cmd, []string{"secret"}) {
+				if err := desktop.CheckHasDockerPass(cmd.Context()); err != nil {
+					return err
+				}
+			}
+
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
 				if isWorkingSetsFeatureEnabled(dockerCli) {
 					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
@@ -94,9 +101,8 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli) *cobra.Command
 	cmd.AddCommand(featureCommand(dockerCli))
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli))
 	cmd.AddCommand(oauthCommand())
-	cmd.AddCommand(policyCommand())
 	cmd.AddCommand(registryCommand())
-	cmd.AddCommand(secretCommand(dockerClient))
+	cmd.AddCommand(secretCommand())
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
 	cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
 	cmd.AddCommand(versionCommand())
