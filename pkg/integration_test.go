@@ -1,17 +1,25 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	mcpclient "github.com/docker/mcp-gateway/pkg/mcp"
 )
 
 func thisIsAnIntegrationTest(t *testing.T) {
@@ -183,4 +191,110 @@ func TestIntegrationCallToolDuckDuckDb(t *testing.T) {
 
 	out := runDockerMCP(t, "tools", "call", "--gateway-arg="+strings.Join(gatewayArgs, ","), "search", "query=Docker")
 	assert.Contains(t, out, "Found 10 search results")
+}
+
+func TestIntegrationOpenAIModels(t *testing.T) {
+	thisIsAnIntegrationTest(t)
+
+	// Check for OPENAI_API_KEY
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		t.Skip("OPENAI_API_KEY not set, skipping OpenAI integration test")
+	}
+
+	// Create a test gateway client
+	args := []string{
+		"mcp",
+		"gateway",
+		"run",
+		"--catalog=" + catalog.DockerCatalogURLV2,
+		"--servers=",
+	}
+
+	c := mcpclient.NewStdioCmdClient("openai-test", "docker", os.Environ(), args...)
+	t.Cleanup(func() {
+		c.Session().Close()
+	})
+
+	initParams := &mcp.InitializeParams{
+		ProtocolVersion: "2024-11-05",
+		ClientInfo: &mcp.Implementation{
+			Name:    "openai-test-client",
+			Version: "1.0.0",
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	err := c.Initialize(ctx, initParams, false, nil, nil, nil)
+	require.NoError(t, err)
+
+	// List available tools from the gateway
+	toolsResult, err := c.Session().ListTools(ctx, &mcp.ListToolsParams{})
+	require.NoError(t, err)
+	require.NotNil(t, toolsResult)
+
+	fmt.Printf("Found %d tools from gateway\n", len(toolsResult.Tools))
+
+	// Convert tools to OpenAI format
+	openaiTools := make([]map[string]any, 0, len(toolsResult.Tools))
+	for _, tool := range toolsResult.Tools {
+		openaiTool := map[string]any{
+			"type": "function",
+			"function": map[string]any{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  tool.InputSchema,
+			},
+		}
+		openaiTools = append(openaiTools, openaiTool)
+	}
+
+	fmt.Printf("Converted %d tools for OpenAI\n", len(openaiTools))
+
+	// Make OpenAI API call with gpt-4.1 model
+	openaiURL := "https://api.openai.com/v1/chat/completions"
+	requestBody := map[string]any{
+		"model": "gpt-4.1",
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": "find an mcp server for GitHub",
+			},
+		},
+		"tools": openaiTools,
+	}
+
+	requestJSON, err := json.Marshal(requestBody)
+	require.NoError(t, err)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openaiURL, bytes.NewBuffer(requestJSON))
+	require.NoError(t, err)
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	resp, err := httpClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Read response body for better error messages
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "OpenAI API should return 200, got body: %s", string(respBody))
+
+	// Parse response
+	var openaiResp map[string]any
+	err = json.Unmarshal(respBody, &openaiResp)
+	require.NoError(t, err)
+
+	// Verify we got a response with choices
+	choices, ok := openaiResp["choices"].([]any)
+	require.True(t, ok, "Response should contain choices")
+	require.NotEmpty(t, choices, "Should have at least one choice")
+
+	fmt.Printf("OpenAI Response: %+v\n", openaiResp)
 }

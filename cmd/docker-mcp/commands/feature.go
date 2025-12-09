@@ -153,7 +153,7 @@ func featureListCommand(dockerCli command.Cli, features features.Features) *cobr
 			fmt.Println()
 
 			// Show all known features
-			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools", "tool-name-prefix"}
+			knownFeatures := []string{"oauth-interceptor", "mcp-oauth-dcr", "dynamic-tools", "tool-name-prefix", "use-embeddings"}
 			if !features.IsRunningInDockerDesktop() {
 				knownFeatures = append(knownFeatures, "profiles")
 			}
@@ -177,6 +177,8 @@ func featureListCommand(dockerCli command.Cli, features features.Features) *cobr
 					fmt.Printf("  %-20s %s\n", "", "Enable profile management tools (docker mcp profile <subcommand>)")
 				case "tool-name-prefix":
 					fmt.Printf("  %-20s %s\n", "", "Prefix all tool names with server name to avoid conflicts")
+				case "use-embeddings":
+					fmt.Printf("  %-20s %s\n", "", "Enable vector similarity search for find-tools (requires OPENAI_API_KEY)")
 				}
 				fmt.Println()
 			}
@@ -215,6 +217,7 @@ func isFeatureEnabledFromConfig(configFile *configfile.ConfigFile, feature strin
 	// Features that are enabled by default
 	defaultEnabledFeatures := map[string]bool{
 		"mcp-oauth-dcr": true,
+		"dynamic-tools": true,
 	}
 
 	if configFile.Features == nil {
@@ -246,6 +249,7 @@ func isKnownFeature(feature string, features features.Features) bool {
 		"mcp-oauth-dcr",
 		"dynamic-tools",
 		"tool-name-prefix",
+		"use-embeddings",
 	}
 	if !features.IsRunningInDockerDesktop() {
 		knownFeatures = append(knownFeatures, "profiles")

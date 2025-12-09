@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "marp": "marp --html embeddings.md",
+    "marp:watch": "marp --html embeddings.md --watch",
+    "marp:pdf": "marp --html embeddings.md --pdf -o embeddings.pdf",
+    "marp:html": "marp --html embeddings.md -o embeddings.html"
+  },
+  "dependencies": {
+    "@marp-team/marpit": "^3.2.0",
+    "markdown-it-mermaid": "^0.2.5"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.2.3"
+  }
+}

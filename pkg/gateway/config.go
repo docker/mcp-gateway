@@ -37,4 +37,5 @@ type Options struct {
 	DynamicTools            bool
 	ToolNamePrefix          bool
 	LogFilePath             string
+	UseEmbeddings           bool
 }

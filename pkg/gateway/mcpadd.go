@@ -21,28 +21,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
-// mcpAddTool implements a tool for adding new servers to the registry
-func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration {
-	tool := &mcp.Tool{
-		Name:        "mcp-add",
-		Description: "Add a new MCP server to the session. The server must exist in the catalog.",
-		InputSchema: &jsonschema.Schema{
-			Type: "object",
-			Properties: map[string]*jsonschema.Schema{
-				"name": {
-					Type:        "string",
-					Description: "Name of the MCP server to add to the registry (must exist in catalog)",
-				},
-				"activate": {
-					Type:        "boolean",
-					Description: "Activate all of the server's tools in the current session",
-				},
-			},
-			Required: []string{"name"},
-		},
-	}
-
-	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params struct {
 			Name     string `json:"name"`
@@ -302,12 +282,60 @@ func (g *Gateway) createMcpAddTool(clientConfig *clientConfig) *ToolRegistration
 			}},
 		}, nil
 	}
+}
 
-	return &ToolRegistration{
-		Tool:    tool,
-		Handler: withToolTelemetry("mcp-add", handler),
+func removeServerHandler(g *Gateway) mcp.ToolHandler {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Parse parameters
+		var params struct {
+			Name string `json:"name"`
+		}
+
+		if req.Params.Arguments == nil {
+			return nil, fmt.Errorf("missing arguments")
+		}
+
+		paramsBytes, err := json.Marshal(req.Params.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
+		if err := json.Unmarshal(paramsBytes, &params); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+
+		if params.Name == "" {
+			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		serverName := strings.TrimSpace(params.Name)
+
+		// Remove the server from the current serverNames
+		updatedServerNames := slices.DeleteFunc(slices.Clone(g.configuration.serverNames), func(name string) bool {
+			return name == serverName
+		})
+
+		// Update the current configuration state
+		g.configuration.serverNames = updatedServerNames
+
+		// Stop OAuth provider if this is an OAuth server
+		if g.McpOAuthDcrEnabled {
+			g.stopProvider(serverName)
+		}
+
+		if err := g.removeServerConfiguration(ctx, serverName); err != nil {
+			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: fmt.Sprintf("Successfully removed server '%s'.", serverName),
+			}},
+		}, nil
 	}
 }
+
+// mcpAddTool implements a tool for adding new servers to the registry
 
 // shortenURL creates a shortened URL using Bitly's API
 // It returns the shortened URL or an error if the request fails

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -14,12 +15,14 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
+	"github.com/docker/mcp-gateway/pkg/user"
 )
 
 type ServerSessionCache struct {
@@ -69,6 +72,9 @@ type Gateway struct {
 
 	// Track all tool registrations for mcp-exec
 	toolRegistrations map[string]ToolRegistration
+
+	// embeddings client for vector search
+	embeddingsClient *embeddings.VectorDBClient
 
 	// authToken stores the authentication token for SSE/streaming modes
 	authToken string
@@ -126,6 +132,35 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Create a multi-writer that writes to both stderr and the log file
 		multiWriter := io.MultiWriter(os.Stderr, logFile)
 		log.SetLogWriter(multiWriter)
+	}
+
+	// Initialize embeddings client if feature is enabled and OPENAI_API_KEY is set
+	if g.UseEmbeddings {
+		if os.Getenv("OPENAI_API_KEY") == "" {
+			log.Log("Warning: use-embeddings feature is enabled but OPENAI_API_KEY is not set")
+			log.Log("find-tools will not support vector similarity search")
+		} else {
+			homeDir, err := user.HomeDir()
+			if err == nil {
+				// Use ~/.docker/mcp as the embeddings directory (vectors.db will be there)
+				embeddingsDir := filepath.Join(homeDir, ".docker", "mcp")
+
+				log.Logf("Initializing embeddings client with data directory: %s", embeddingsDir)
+				embClient, err := embeddings.NewVectorDBClient(ctx, embeddingsDir, 1536, func(msg string) {
+					if g.Verbose {
+						log.Log(msg)
+					}
+				})
+				if err != nil {
+					log.Logf("Warning: Failed to initialize embeddings client: %v", err)
+					log.Log("find-tools will not support vector similarity search")
+				} else {
+					g.embeddingsClient = embClient
+					defer embClient.Close()
+					log.Log("Embeddings client initialized successfully")
+				}
+			}
+		}
 	}
 
 	// Record gateway start
@@ -599,4 +634,43 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	default:
 		// Other events (login-start, code-received, error) - ignore
 	}
+}
+
+// GetToolRegistrations returns a copy of all registered tools
+// This is useful for introspection and serialization
+func (g *Gateway) GetToolRegistrations() map[string]ToolRegistration {
+	g.capabilitiesMu.RLock()
+	defer g.capabilitiesMu.RUnlock()
+
+	// Create a copy to avoid external modification
+	registrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
+	for k, v := range g.toolRegistrations {
+		registrations[k] = v
+	}
+	return registrations
+}
+
+// Configurator returns the gateway's configurator
+// This is useful for programmatic access to configuration
+func (g *Gateway) Configurator() Configurator {
+	return g.configurator
+}
+
+// SetMCPServer sets the gateway's MCP server
+// This is useful when initializing the gateway programmatically
+func (g *Gateway) SetMCPServer(server *mcp.Server) {
+	g.mcpServer = server
+}
+
+// ReloadConfiguration reloads the gateway configuration and capabilities
+// This is useful for programmatic configuration updates
+func (g *Gateway) ReloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
+	g.configuration = configuration
+	return g.reloadConfiguration(ctx, configuration, serverNames, clientConfig)
+}
+
+// PullAndVerify pulls and verifies Docker images for the configured servers
+// This is useful when programmatically initializing the gateway
+func (g *Gateway) PullAndVerify(ctx context.Context, configuration Configuration) error {
+	return g.pullAndVerify(ctx, configuration)
 }
