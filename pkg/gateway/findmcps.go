@@ -13,6 +13,14 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 
+// maxInt returns the maximum of two integers
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // ServerMatch represents a search result
 type ServerMatch struct {
 	Name   string

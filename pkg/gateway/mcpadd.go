@@ -284,6 +284,57 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 	}
 }
 
+func removeServerHandler(g *Gateway) mcp.ToolHandler {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Parse parameters
+		var params struct {
+			Name string `json:"name"`
+		}
+
+		if req.Params.Arguments == nil {
+			return nil, fmt.Errorf("missing arguments")
+		}
+
+		paramsBytes, err := json.Marshal(req.Params.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal arguments: %w", err)
+		}
+
+		if err := json.Unmarshal(paramsBytes, &params); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+
+		if params.Name == "" {
+			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		serverName := strings.TrimSpace(params.Name)
+
+		// Remove the server from the current serverNames
+		updatedServerNames := slices.DeleteFunc(slices.Clone(g.configuration.serverNames), func(name string) bool {
+			return name == serverName
+		})
+
+		// Update the current configuration state
+		g.configuration.serverNames = updatedServerNames
+
+		// Stop OAuth provider if this is an OAuth server
+		if g.McpOAuthDcrEnabled {
+			g.stopProvider(serverName)
+		}
+
+		if err := g.removeServerConfiguration(ctx, serverName); err != nil {
+			return nil, fmt.Errorf("failed to remove server configuration: %w", err)
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{
+				Text: fmt.Sprintf("Successfully removed server '%s'.", serverName),
+			}},
+		}, nil
+	}
+}
+
 // mcpAddTool implements a tool for adding new servers to the registry
 
 // shortenURL creates a shortened URL using Bitly's API
