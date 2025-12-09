@@ -19,7 +19,7 @@ const setSecretExample = `
 > docker mcp secret set postgres_password=my-secret-password
 
 Inject the secret by querying by ID
-> docker run -d -e POSTGRES_PASSWORD=se://docker/mcp/generic/postgres_password -p 5432 postgres
+> docker run -d -e POSTGRES_PASSWORD=se://docker/mcp/postgres_password -p 5432 postgres
 
 Another way to inject secrets would be to use a pattern.
 > docker run -d -e POSTGRES_PASSWORD=se://**/postgres_password -p 5432 postgres

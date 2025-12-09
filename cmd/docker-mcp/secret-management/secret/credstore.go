@@ -13,7 +13,7 @@ import (
 
 const (
 	// Namespace prefixes for different secret types
-	NamespaceGeneric  = "docker/mcp/generic/"
+	NamespaceDefault  = "docker/mcp/"
 	NamespaceOAuth    = "docker/mcp/oauth/"
 	NamespaceOAuthDCR = "docker/mcp/oauth-dcr/"
 )
@@ -24,28 +24,28 @@ func cmd(ctx context.Context, args ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, "docker", append([]string{"pass"}, args...)...)
 }
 
-// getSecretKey prefixes the secrets with the docker/mcp/generic namespace.
+// getSecretKey prefixes the secrets with the docker/mcp namespace.
 // Additional namespaces can be added when defining the secretName.
 //
 // Example:
 //
 //	secretName = "mysecret/application/id"
-//	return "docker/mcp/generic/mysecret/application/id"
+//	return "docker/mcp/mysecret/application/id"
 //
 // This can later then be queried by the Secrets Engine using a pattern or direct
 // ID match.
 //
 // Example:
 //
-//	# anything under mcp/generic
-//	pattern = "docker/mcp/generic/**"
+//	# anything under mcp
+//	pattern = "docker/mcp/**"
 //	# specific to mysecret
-//	pattern = "docker/mcp/generic/mysecret/application/**"
+//	pattern = "docker/mcp/mysecret/application/**"
 func getSecretKey(secretName string) string {
-	return path.Join(NamespaceGeneric, secretName)
+	return path.Join(NamespaceDefault, secretName)
 }
 
-// GetSecretKey constructs the full namespaced ID for a generic MCP secret
+// GetSecretKey constructs the full namespaced ID for an MCP secret
 func GetSecretKey(secretName string) string {
 	return getSecretKey(secretName)
 }
@@ -60,11 +60,12 @@ func GetDCRKey(serverName string) string {
 	return path.Join(NamespaceOAuthDCR, serverName)
 }
 
-// StripNamespace removes the namespace prefix from a secret ID to get the simple name
+// StripNamespace removes the namespace prefix from a secret ID to get the simple name.
+// OAuth and DCR namespaces must be stripped first (more specific), then default.
 func StripNamespace(secretID string) string {
-	name := strings.TrimPrefix(secretID, NamespaceGeneric)
-	name = strings.TrimPrefix(name, NamespaceOAuth)
+	name := strings.TrimPrefix(secretID, NamespaceOAuth)
 	name = strings.TrimPrefix(name, NamespaceOAuthDCR)
+	name = strings.TrimPrefix(name, NamespaceDefault)
 	return name
 }
 

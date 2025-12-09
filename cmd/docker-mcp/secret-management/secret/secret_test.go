@@ -9,7 +9,7 @@ import (
 
 func TestGetSecretKey(t *testing.T) {
 	result := getSecretKey("mykey")
-	assert.Equal(t, "docker/mcp/generic/mykey", result)
+	assert.Equal(t, "docker/mcp/mykey", result)
 }
 
 func TestParseArg(t *testing.T) {
