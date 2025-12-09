@@ -269,7 +269,7 @@ func TestIntegrationOpenAIModels(t *testing.T) {
 	requestJSON, err := json.Marshal(requestBody)
 	require.NoError(t, err)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", openaiURL, bytes.NewBuffer(requestJSON))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openaiURL, bytes.NewBuffer(requestJSON))
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -294,7 +294,7 @@ func TestIntegrationOpenAIModels(t *testing.T) {
 	// Verify we got a response with choices
 	choices, ok := openaiResp["choices"].([]any)
 	require.True(t, ok, "Response should contain choices")
-	require.Greater(t, len(choices), 0, "Should have at least one choice")
+	require.NotEmpty(t, choices, "Should have at least one choice")
 
 	fmt.Printf("OpenAI Response: %+v\n", openaiResp)
 }

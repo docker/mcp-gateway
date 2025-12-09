@@ -33,7 +33,7 @@ func keywordStrategy(configuration Configuration) mcp.ToolHandler {
 		// Parse parameters
 		var params struct {
 			Query string `json:"query"`
-			Limit  int    `json:"limit"`
+			Limit int    `json:"limit"`
 		}
 
 		if req.Params.Arguments == nil {
@@ -198,7 +198,7 @@ func embeddingStrategy(g *Gateway) mcp.ToolHandler {
 		// Parse parameters
 		var params struct {
 			Query string `json:"query"`
-			Limit  int    `json:"limit"`
+			Limit int    `json:"limit"`
 		}
 
 		if req.Params.Arguments == nil {
