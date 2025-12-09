@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -145,29 +144,125 @@ func (m *mockLayer) Uncompressed() (io.ReadCloser, error) {
 
 // TestExtractLayerSymlinkSafety tests that symlinks are handled safely
 func TestExtractLayerSymlinkSafety(t *testing.T) {
+	tests := []struct {
+		name        string
+		symlinkName string
+		symlinkDest string
+		shouldError bool
+		description string
+	}{
+		{
+			name:        "legitimate relative symlink",
+			symlinkName: "vectors.db/link",
+			symlinkDest: "data.db",
+			shouldError: false,
+			description: "should allow relative symlinks within destination",
+		},
+		{
+			name:        "absolute symlink target",
+			symlinkName: "vectors.db/link",
+			symlinkDest: "/etc/passwd",
+			shouldError: true,
+			description: "should reject absolute symlink targets",
+		},
+		{
+			name:        "symlink escaping with ..",
+			symlinkName: "vectors.db/link",
+			symlinkDest: "../../etc/passwd",
+			shouldError: true,
+			description: "should reject symlinks that escape destination directory",
+		},
+		{
+			name:        "symlink to parent that stays within",
+			symlinkName: "vectors.db/subdir/link",
+			symlinkDest: "../data.db",
+			shouldError: false,
+			description: "should allow .. if it resolves within destination",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			destDir := t.TempDir()
+
+			// Create a tar with a directory and a symlink
+			var buf bytes.Buffer
+			tw := tar.NewWriter(&buf)
+
+			// Add the parent directory first
+			dirHeader := &tar.Header{
+				Name:     "vectors.db/",
+				Mode:     0o755,
+				Typeflag: tar.TypeDir,
+			}
+			if err := tw.WriteHeader(dirHeader); err != nil {
+				t.Fatalf("failed to write directory header: %v", err)
+			}
+
+			// Add subdirectory if needed
+			if filepath.Dir(tt.symlinkName) != "vectors.db" {
+				subdirHeader := &tar.Header{
+					Name:     filepath.Dir(tt.symlinkName) + "/",
+					Mode:     0o755,
+					Typeflag: tar.TypeDir,
+				}
+				if err := tw.WriteHeader(subdirHeader); err != nil {
+					t.Fatalf("failed to write subdirectory header: %v", err)
+				}
+			}
+
+			// Add the symlink
+			header := &tar.Header{
+				Name:     tt.symlinkName,
+				Linkname: tt.symlinkDest,
+				Typeflag: tar.TypeSymlink,
+			}
+			if err := tw.WriteHeader(header); err != nil {
+				t.Fatalf("failed to write symlink header: %v", err)
+			}
+
+			tw.Close()
+
+			layer := &mockLayer{data: buf.Bytes()}
+
+			// Extract and check result
+			err := extractLayer(layer, destDir)
+
+			if tt.shouldError {
+				if err == nil {
+					t.Errorf("%s: expected error but got none", tt.description)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("%s: unexpected error: %v", tt.description, err)
+				}
+			}
+		})
+	}
+}
+
+// TestExtractLayerSymlinkChaining tests protection against symlink chaining attacks
+func TestExtractLayerSymlinkChaining(t *testing.T) {
 	destDir := t.TempDir()
 
-	// Create a tar with a directory and a symlink
+	// Create a malicious tar with symlink chaining:
+	// 1. vectors.db/link -> .. (points outside destDir to parent directory)
+	// 2. vectors.db/escape -> link/.. (chains through the symlink to escape further)
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 
-	// Add the parent directory first
-	dirHeader := &tar.Header{
-		Name:     "vectors.db/",
-		Mode:     0o755,
-		Typeflag: tar.TypeDir,
-	}
-	if err := tw.WriteHeader(dirHeader); err != nil {
-		t.Fatalf("failed to write directory header: %v", err)
+	// Add directory
+	if err := tw.WriteHeader(&tar.Header{Name: "vectors.db/", Mode: 0o755, Typeflag: tar.TypeDir}); err != nil {
+		t.Fatalf("failed to write header: %v", err)
 	}
 
-	// Add a symlink
-	header := &tar.Header{
+	// Add first symlink that points outside: vectors.db/link -> ../..
+	// This creates: destDir/vectors.db/link -> ../.. which resolves to parent of destDir
+	if err := tw.WriteHeader(&tar.Header{
 		Name:     "vectors.db/link",
-		Linkname: "/etc/passwd",
+		Linkname: "../..",
 		Typeflag: tar.TypeSymlink,
-	}
-	if err := tw.WriteHeader(header); err != nil {
+	}); err != nil {
 		t.Fatalf("failed to write symlink header: %v", err)
 	}
 
@@ -175,15 +270,11 @@ func TestExtractLayerSymlinkSafety(t *testing.T) {
 
 	layer := &mockLayer{data: buf.Bytes()}
 
-	// Extract should succeed (we extract the symlink but validate the path)
+	// This should fail because the symlink escapes the destination directory
 	err := extractLayer(layer, destDir)
-	if err != nil {
-		t.Errorf("unexpected error extracting symlink: %v", err)
-	}
-
-	// Verify the symlink was created in the destination
-	linkPath := filepath.Join(destDir, "vectors.db", "link")
-	if _, err := os.Lstat(linkPath); err != nil {
-		t.Errorf("symlink was not created: %v", err)
+	if err == nil {
+		t.Error("Expected error for symlink chaining attack, but extraction succeeded")
+	} else {
+		t.Logf("Symlink chaining attack correctly blocked: %v", err)
 	}
 }

@@ -10,7 +10,7 @@ Downloads the embeddings OCI artifact and installs the vector.db directory to `~
 
 ```bash
 # From repository root
-go run ./examples/embeddings/pull.go
+go run ./examples/embeddings/pull/main.go
 ```
 
 The Pull function will:
@@ -28,14 +28,14 @@ Creates an OCI artifact from a local vector.db directory and pushes it to a regi
 
 ```bash
 # From repository root
-go run ./examples/embeddings/push.go <vector-db-path> <oci-ref>
+go run ./examples/embeddings/push/main.go <vector-db-path> <oci-ref>
 ```
 
 ### Example
 
 ```bash
 # Push the local vectors.db to your own registry
-go run ./examples/embeddings/push.go ~/.docker/mcp/vectors.db jimclark106/embeddings:v1.0
+go run ./examples/embeddings/push/main.go ~/.docker/mcp/vectors.db jimclark106/embeddings:v1.0
 ```
 
 The Push function will:

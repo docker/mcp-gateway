@@ -16,6 +16,8 @@ import (
 )
 
 // readServersFromURL fetches and parses server definitions from a URL
+//
+//nolint:unused // TODO: This function will be used when registry import feature is enabled
 func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[string]catalog.Server, error) {
 	servers := make(map[string]catalog.Server)
 
@@ -63,6 +65,7 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 	return nil, fmt.Errorf("unable to parse response as OCI catalog or direct catalog format")
 }
 
+//nolint:unused // TODO: This handler will be used when registry import feature is enabled
 func registryImportHandler(g *Gateway, configuration Configuration) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters

@@ -32,7 +32,7 @@ func keywordStrategy(configuration Configuration) mcp.ToolHandler {
 	return func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params struct {
-			Prompt string `json:"prompt"`
+			Query string `json:"query"`
 			Limit  int    `json:"limit"`
 		}
 
@@ -49,7 +49,7 @@ func keywordStrategy(configuration Configuration) mcp.ToolHandler {
 			return nil, fmt.Errorf("failed to parse arguments: %w", err)
 		}
 
-		if params.Prompt == "" {
+		if params.Query == "" {
 			return nil, fmt.Errorf("query parameter is required")
 		}
 
@@ -58,7 +58,7 @@ func keywordStrategy(configuration Configuration) mcp.ToolHandler {
 		}
 
 		// Search through the catalog servers
-		query := strings.ToLower(strings.TrimSpace(params.Prompt))
+		query := strings.ToLower(strings.TrimSpace(params.Query))
 		var matches []ServerMatch
 
 		for serverName, server := range configuration.servers {
@@ -177,7 +177,7 @@ func keywordStrategy(configuration Configuration) mcp.ToolHandler {
 		}
 
 		response := map[string]any{
-			"prompt":        params.Prompt,
+			"prompt":        params.Query,
 			"total_matches": len(results),
 			"servers":       results,
 		}
@@ -197,7 +197,7 @@ func embeddingStrategy(g *Gateway) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params struct {
-			Prompt string `json:"prompt"`
+			Query string `json:"query"`
 			Limit  int    `json:"limit"`
 		}
 
@@ -214,7 +214,7 @@ func embeddingStrategy(g *Gateway) mcp.ToolHandler {
 			return nil, fmt.Errorf("failed to parse arguments: %w", err)
 		}
 
-		if params.Prompt == "" {
+		if params.Query == "" {
 			return nil, fmt.Errorf("query parameter is required")
 		}
 
@@ -223,13 +223,13 @@ func embeddingStrategy(g *Gateway) mcp.ToolHandler {
 		}
 
 		// Use vector similarity search to find relevant servers
-		results, err := g.findServersByEmbedding(ctx, params.Prompt, params.Limit)
+		results, err := g.findServersByEmbedding(ctx, params.Query, params.Limit)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find servers: %w", err)
 		}
 
 		response := map[string]any{
-			"prompt":        params.Prompt,
+			"prompt":        params.Query,
 			"total_matches": len(results),
 			"servers":       results,
 		}

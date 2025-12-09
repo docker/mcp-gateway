@@ -130,18 +130,27 @@ func extractLayer(layer interface{ Uncompressed() (io.ReadCloser, error) }, dest
 		}
 
 		target := filepath.Join(destDir, header.Name)
-		// Clean the path to resolve any ".." elements and ensure it's within destDir
-		cleanedTarget := filepath.Clean(target)
+
+		// Resolve any previously-extracted symbolic links in the target path
+		// This prevents symlink chaining attacks where a symlink could be used
+		// to escape the destination directory
+		resolvedTarget, err := filepath.EvalSymlinks(target)
+		if err != nil {
+			// If EvalSymlinks fails (e.g., path doesn't exist yet), fall back to Clean
+			// This is expected for new files/dirs that haven't been created yet
+			resolvedTarget = filepath.Clean(target)
+		}
+
 		cleanedDestDir := filepath.Clean(destDir)
 
-		// Use filepath.Rel to check if target is within destDir
+		// Use filepath.Rel to check if resolved target is within destDir
 		// If the relative path starts with "..", it's trying to escape
-		relPath, err := filepath.Rel(cleanedDestDir, cleanedTarget)
+		relPath, err := filepath.Rel(cleanedDestDir, resolvedTarget)
 		if err != nil || len(relPath) == 0 || (relPath[0] == '.' && len(relPath) > 1 && relPath[1] == '.') {
 			return fmt.Errorf("invalid tar entry path (potential path traversal): %s", header.Name)
 		}
 
-		target = cleanedTarget
+		target = filepath.Clean(target)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
@@ -167,7 +176,30 @@ func extractLayer(layer interface{ Uncompressed() (io.ReadCloser, error) }, dest
 			file.Close()
 
 		case tar.TypeSymlink:
-			// Handle symlinks
+			// Handle symlinks - validate the link target to prevent symlink attacks
+			// Reject absolute symlink targets
+			if filepath.IsAbs(header.Linkname) {
+				return fmt.Errorf("invalid symlink target (absolute path not allowed): %s -> %s", header.Name, header.Linkname)
+			}
+
+			// Calculate where the symlink target would resolve to
+			// The symlink is created at 'target', and points to 'header.Linkname'
+			linkTargetPath := filepath.Join(filepath.Dir(target), header.Linkname)
+
+			// Resolve any previously-extracted symbolic links in the target path
+			// This prevents symlink chaining attacks
+			resolvedLinkTarget, err := filepath.EvalSymlinks(linkTargetPath)
+			if err != nil {
+				// If EvalSymlinks fails, fall back to Clean (target doesn't exist yet)
+				resolvedLinkTarget = filepath.Clean(linkTargetPath)
+			}
+
+			// Ensure the symlink target is within the destination directory
+			relLinkPath, err := filepath.Rel(cleanedDestDir, resolvedLinkTarget)
+			if err != nil || len(relLinkPath) == 0 || (relLinkPath[0] == '.' && len(relLinkPath) > 1 && relLinkPath[1] == '.') {
+				return fmt.Errorf("invalid symlink target (potential path traversal): %s -> %s", header.Name, header.Linkname)
+			}
+
 			if err := os.Symlink(header.Linkname, target); err != nil {
 				return fmt.Errorf("failed to create symlink: %w", err)
 			}
