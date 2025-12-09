@@ -3,11 +3,11 @@ package features
 import (
 	"context"
 	"os"
+	"runtime"
 
 	"github.com/docker/cli/cli/command"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
-	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
 type Features interface {
@@ -28,7 +28,7 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
-	features.runningDockerDesktop, features.initErr = isRunningInDockerDesktop(ctx, dockerCli)
+	features.runningDockerDesktop, features.initErr = isRunningInDockerDesktop(ctx)
 	if features.initErr != nil {
 		return
 	}
@@ -63,13 +63,23 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
 }
 
-func isRunningInDockerDesktop(ctx context.Context, dockerCli command.Cli) (bool, error) {
-	runningInDockerCE, err := docker.RunningInDockerCE(ctx, dockerCli)
-	if err != nil {
-		return false, err
+func isRunningInDockerDesktop(ctx context.Context) (bool, error) {
+	// Not running Docker Desktop in a container
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+		return false, nil
 	}
 
-	return !runningInDockerCE && os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1", nil
+	// Always running in Docker Desktop on Windows and macOS
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return true, nil
+	}
+
+	// Otherwise, on Linux check if Docker Desktop is running
+	// Hacky, but it's the only way to check before PersistentPreRunE is called with the plugin
+	if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {
