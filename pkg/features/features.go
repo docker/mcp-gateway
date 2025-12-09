@@ -28,10 +28,7 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
-	features.runningDockerDesktop, features.initErr = isRunningInDockerDesktop(ctx)
-	if features.initErr != nil {
-		return
-	}
+	features.runningDockerDesktop = isRunningInDockerDesktop(ctx)
 
 	features.profilesEnabled, features.initErr = readProfilesFeature(ctx, dockerCli, features.runningDockerDesktop)
 	return
@@ -63,23 +60,24 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
 }
 
-func isRunningInDockerDesktop(ctx context.Context) (bool, error) {
+func isRunningInDockerDesktop(ctx context.Context) bool {
 	// Not running Docker Desktop in a container
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
-		return false, nil
+		return false
 	}
 
 	// Always running in Docker Desktop on Windows and macOS
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		return true, nil
+		return true
 	}
 
 	// Otherwise, on Linux check if Docker Desktop is running
 	// Hacky, but it's the only way to check before PersistentPreRunE is called with the plugin
 	if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
-		return false, err
+		// If we can't check, assume we're not running in Docker Desktop
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {
