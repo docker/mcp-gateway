@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 )
@@ -59,6 +60,18 @@ func CheckFeatureIsEnabled(ctx context.Context, settingName string, label string
 	value, _ := jsonpath.Get("$.desktop."+settingName+".value", settings)
 	if value == false {
 		return errors.New("The \"" + label + "\" feature needs to be enabled in Docker Desktop Settings")
+	}
+
+	return nil
+}
+
+func CheckDesktopIsRunning(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	if err := ClientBackend.Get(ctx, "/ping", nil); err != nil {
+		//nolint:staticcheck
+		return errors.New("Docker Desktop is not running")
 	}
 
 	return nil
