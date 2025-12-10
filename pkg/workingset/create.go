@@ -60,6 +60,8 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		workingSet.Servers = append(workingSet.Servers, ss...)
 	}
 
+	RegisterOAuthProvidersForServers(ctx, workingSet.Servers)
+
 	if err := workingSet.Validate(); err != nil {
 		return fmt.Errorf("invalid profile: %w", err)
 	}
