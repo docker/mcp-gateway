@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -551,7 +553,7 @@ func TestMigrateConfig_LegacyFilesBackedUpOnSuccess(t *testing.T) {
 	assert.Equal(t, MigrationStatusSuccess, status.Status)
 }
 
-func TestMigrateConfig_SkipsWhenTableLockedByTransaction(t *testing.T) {
+func TestMigrateConfig_LockTransactionAndRollbackAllowsCompletionOfMigration(t *testing.T) {
 	mcpDir := setupTestEnvironment(t)
 
 	tempDir := t.TempDir()
@@ -565,7 +567,7 @@ func TestMigrateConfig_SkipsWhenTableLockedByTransaction(t *testing.T) {
 	writeTestLegacyFiles(t, mcpDir, "server1")
 
 	// Open a separate connection to the same database and hold a transaction on migration_status
-	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(100)")
+	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(5000)")
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		blockingDB.Close()
@@ -582,22 +584,97 @@ func TestMigrateConfig_SkipsWhenTableLockedByTransaction(t *testing.T) {
 	_, err = tx.ExecContext(ctx, "INSERT INTO migration_status (status, logs) VALUES ('pending', 'blocking')")
 	require.NoError(t, err)
 
-	// Now try to run migration - it should fail to acquire due to the lock
+	var completed atomic.Bool
+	completed.Store(false)
+
+	goChanErr := make(chan error, 1)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		completed.Store(true)
+		err := tx.Rollback()
+		goChanErr <- err
+	}()
+
+	// Now try to run migration - it will be delayed due to lock
 	mockDocker := &mockDockerClient{}
 	MigrateConfig(ctx, mockDocker, dao)
 
-	// Rollback the blocking transaction
-	err = tx.Rollback()
+	require.True(t, completed.Load(), "migration should return after the rollback")
+
+	err = <-goChanErr
 	require.NoError(t, err)
 
-	// Verify no working sets were created (migration didn't run)
+	// Verify migration completed
 	workingSets, err := dao.ListWorkingSets(ctx)
 	require.NoError(t, err)
-	assert.Empty(t, workingSets, "No working sets should be created when migration_status table is locked")
+	assert.Len(t, workingSets, 1)
 
-	// Verify the status is doesn't exist since we rolled back
-	_, err = dao.GetMigrationStatus(ctx)
-	require.ErrorIs(t, err, sql.ErrNoRows)
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusSuccess, status.Status)
+}
+
+func TestMigrateConfig_LockTransactionAndCommitPreventsMigration(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	tempDir := t.TempDir()
+	dbFile := filepath.Join(tempDir, "test.db")
+
+	dao, err := db.New(db.WithDatabaseFile(dbFile))
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Open a separate connection to the same database and hold a transaction on migration_status
+	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(5000)")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		blockingDB.Close()
+	})
+
+	// Start a transaction and lock the migration_status table
+	tx, err := blockingDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		tx.Rollback() //nolint:errcheck
+	})
+
+	// Insert a row to lock the table (this will hold a write lock)
+	_, err = tx.ExecContext(ctx, "INSERT INTO migration_status (status, logs) VALUES ('pending', 'blocking')")
+	require.NoError(t, err)
+
+	var completed atomic.Bool
+	completed.Store(false)
+
+	goChanErr := make(chan error, 1)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		completed.Store(true)
+		err := tx.Commit()
+		goChanErr <- err
+	}()
+
+	// Now try to run migration - it will be delayed due to lock
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	require.True(t, completed.Load(), "migration should complete after the rollback")
+
+	err = <-goChanErr
+	require.NoError(t, err)
+
+	// Verify migration did not complete
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, workingSets)
+
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusPending, status.Status)
 }
 
 func TestMigrateConfig_SkipsWhenStatusIsPending(t *testing.T) {

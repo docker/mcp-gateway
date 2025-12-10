@@ -39,6 +39,13 @@ func (d *dao) TryAcquireMigration(ctx context.Context, status string) (*Migratio
 	}
 	defer txClose(tx, &err)
 
+	// Hacky workaround to get exclusive lock between SELECT and INSERT
+	// https://github.com/mattn/go-sqlite3/issues/400#issuecomment-598953685
+	_, err = tx.ExecContext(ctx, "ROLLBACK; BEGIN IMMEDIATE")
+	if err != nil {
+		return nil, false, err
+	}
+
 	const selectQuery = `SELECT id, status, logs, last_updated FROM migration_status LIMIT 1`
 
 	var migrationStatus MigrationStatus
