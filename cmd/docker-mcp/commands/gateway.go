@@ -85,6 +85,10 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 					// so IF no profile specified, use the default profile
 					options.WorkingSet = "default"
 				}
+
+				if options.WorkingSet != "" && options.WorkingSetFile != "" {
+					return fmt.Errorf("cannot use both --profile and --profile-file at the same time")
+				}
 			}
 
 			// Check if OAuth interceptor feature is enabled
@@ -183,8 +187,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
 	if features.IsProfilesFeatureEnabled() {
-		runCmd.Flags().StringVar(&options.WorkingSet, "profile", "", "Profile ID to use (mutually exclusive with --servers and --enable-all-servers)")
-		runCmd.Flags().StringVar(&options.WorkingSetFile, "profile-file", "", "Profile file to use (mutually exclusive with --servers and --enable-all-servers)")
+		runCmd.Flags().StringVar(&options.WorkingSet, "profile", "", "Profile ID to use (mutually exclusive with --profile-file, --servers and --enable-all-servers)")
+		runCmd.Flags().StringVar(&options.WorkingSetFile, "profile-file", "", "Profile file to use (mutually exclusive with --profile, --servers and --enable-all-servers)")
 	}
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")
