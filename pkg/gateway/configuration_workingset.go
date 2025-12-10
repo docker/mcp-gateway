@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -18,29 +17,43 @@ import (
 )
 
 type WorkingSetConfiguration struct {
-	WorkingSet string
-	ociService oci.Service
-	docker     docker.Client
+	workingSetID   string
+	workingSetFile string
+	ociService     oci.Service
+	docker         docker.Client
 }
 
-func NewWorkingSetConfiguration(workingSet string, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
+func NewWorkingSetConfiguration(workingSetID string, workingSetFile string, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
 	return &WorkingSetConfiguration{
-		WorkingSet: workingSet,
-		ociService: ociService,
-		docker:     docker,
+		workingSetID:   workingSetID,
+		workingSetFile: workingSetFile,
+		ociService:     ociService,
+		docker:         docker,
 	}
 }
 
 func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
-	dao, err := db.New()
-	if err != nil {
-		return Configuration{}, nil, nil, fmt.Errorf("failed to create database client: %w", err)
+	var loader WorkingSetLoader
+	cleanup := func() error { return nil }
+
+	if c.workingSetID != "" {
+		dao, err := db.New()
+		if err != nil {
+			return Configuration{}, nil, nil, fmt.Errorf("failed to create database client: %w", err)
+		}
+		cleanup = func() error { return dao.Close() }
+
+		// Do migration from legacy files
+		migrate.MigrateConfig(ctx, c.docker, dao)
+
+		loader = NewWorkingSetDatabaseLoader(c.workingSetID, dao)
+	} else if c.workingSetFile != "" {
+		loader = NewWorkingSetFileLoader(c.workingSetFile, c.ociService)
+	} else {
+		return Configuration{}, nil, nil, fmt.Errorf("no working set ID or file provided")
 	}
 
-	// Do migration from legacy files
-	migrate.MigrateConfig(ctx, c.docker, dao)
-
-	configuration, err := c.readOnce(ctx, dao)
+	configuration, err := c.readOnce(ctx, loader)
 	if err != nil {
 		return Configuration{}, nil, nil, err
 	}
@@ -48,22 +61,20 @@ func (c *WorkingSetConfiguration) Read(ctx context.Context) (Configuration, chan
 	// TODO(cody): Stub for now
 	updates := make(chan Configuration)
 
-	return configuration, updates, func() error { return nil }, nil
+	return configuration, updates, cleanup, nil
 }
 
-func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Configuration, error) {
+func (c *WorkingSetConfiguration) readOnce(ctx context.Context, loader WorkingSetLoader) (Configuration, error) {
 	start := time.Now()
 	log.Log("- Reading profile configuration...")
 
-	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
+	workingSet, err := loader.ReadWorkingSet(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
+		if errors.Is(err, ErrWorkingSetNotFound) {
+			return Configuration{}, err
 		}
 		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
 	}
-
-	workingSet := workingset.NewFromDb(dbWorkingSet)
 
 	if err := workingSet.EnsureSnapshotsResolved(ctx, c.ociService); err != nil {
 		return Configuration{}, fmt.Errorf("failed to resolve snapshots: %w", err)

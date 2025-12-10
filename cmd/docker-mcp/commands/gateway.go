@@ -75,12 +75,12 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 					len(mcpRegistryUrls) > 0 || len(options.OciRef) > 0 ||
 					(options.SecretsPath != "docker-desktop" && !strings.HasPrefix(options.SecretsPath, "docker-desktop:")) {
 					// We're in legacy mode, so we can't use the working set feature
-					if options.WorkingSet != "" {
-						return fmt.Errorf("cannot use --profile with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry flags")
+					if options.WorkingSet != "" || options.WorkingSetFile != "" {
+						return fmt.Errorf("cannot use --profile or --profile-file with --servers, --enable-all-servers, --catalog, --additional-catalog, --registry, --additional-registry, --config, --additional-config, --tools-config, --additional-tools-config, --secrets, --oci-ref, --mcp-registry flags")
 					}
 					// Make sure to default the options in legacy mode
 					setLegacyDefaults(&options)
-				} else if options.WorkingSet == "" {
+				} else if options.WorkingSet == "" && options.WorkingSetFile == "" {
 					// ELSE we're in working set mode,
 					// so IF no profile specified, use the default profile
 					options.WorkingSet = "default"
@@ -184,6 +184,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().StringSliceVar(&options.ServerNames, "servers", nil, "Names of the servers to enable (if non empty, ignore --registry flag)")
 	if features.IsProfilesFeatureEnabled() {
 		runCmd.Flags().StringVar(&options.WorkingSet, "profile", "", "Profile ID to use (mutually exclusive with --servers and --enable-all-servers)")
+		runCmd.Flags().StringVar(&options.WorkingSetFile, "profile-file", "", "Profile file to use (mutually exclusive with --servers and --enable-all-servers)")
 	}
 	runCmd.Flags().BoolVar(&enableAllServers, "enable-all-servers", false, "Enable all servers in the catalog (instead of using individual --servers options)")
 	runCmd.Flags().StringSliceVar(&options.CatalogPath, "catalog", options.CatalogPath, "Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)")

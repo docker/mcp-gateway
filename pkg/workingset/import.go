@@ -16,33 +16,9 @@ import (
 )
 
 func Import(ctx context.Context, dao db.DAO, ociService oci.Service, filename string) error {
-	workingSetBuf, err := os.ReadFile(filename)
+	workingSet, err := ReadFromFile(ctx, ociService, filename)
 	if err != nil {
-		return fmt.Errorf("failed to read profile file: %w", err)
-	}
-
-	var workingSet WorkingSet
-	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
-		if err := yaml.Unmarshal(workingSetBuf, &workingSet); err != nil {
-			return fmt.Errorf("failed to unmarshal profile: %w", err)
-		}
-	} else if strings.HasSuffix(strings.ToLower(filename), ".json") {
-		if err := json.Unmarshal(workingSetBuf, &workingSet); err != nil {
-			return fmt.Errorf("failed to unmarshal profile: %w", err)
-		}
-	} else {
-		return fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", filename)
-	}
-
-	// Resolve snapshots for each server before saving
-	for i := range len(workingSet.Servers) {
-		if workingSet.Servers[i].Snapshot == nil {
-			snapshot, err := ResolveSnapshot(ctx, ociService, workingSet.Servers[i])
-			if err != nil {
-				return fmt.Errorf("failed to resolve snapshot for server[%d]: %w", i, err)
-			}
-			workingSet.Servers[i].Snapshot = snapshot
-		}
+		return err
 	}
 
 	if err := workingSet.Validate(); err != nil {
@@ -71,4 +47,37 @@ func Import(ctx context.Context, dao db.DAO, ociService oci.Service, filename st
 	fmt.Printf("Imported profile %s\n", workingSet.ID)
 
 	return nil
+}
+
+func ReadFromFile(ctx context.Context, ociService oci.Service, filename string) (WorkingSet, error) {
+	workingSetBuf, err := os.ReadFile(filename)
+	if err != nil {
+		return WorkingSet{}, fmt.Errorf("failed to read profile file: %w", err)
+	}
+
+	var workingSet WorkingSet
+	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
+		if err := yaml.Unmarshal(workingSetBuf, &workingSet); err != nil {
+			return WorkingSet{}, fmt.Errorf("failed to unmarshal profile: %w", err)
+		}
+	} else if strings.HasSuffix(strings.ToLower(filename), ".json") {
+		if err := json.Unmarshal(workingSetBuf, &workingSet); err != nil {
+			return WorkingSet{}, fmt.Errorf("failed to unmarshal profile: %w", err)
+		}
+	} else {
+		return WorkingSet{}, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", filename)
+	}
+
+	// Resolve snapshots for each server before saving
+	for i := range len(workingSet.Servers) {
+		if workingSet.Servers[i].Snapshot == nil {
+			snapshot, err := ResolveSnapshot(ctx, ociService, workingSet.Servers[i])
+			if err != nil {
+				return WorkingSet{}, fmt.Errorf("failed to resolve snapshot for server[%d]: %w", i, err)
+			}
+			workingSet.Servers[i].Snapshot = snapshot
+		}
+	}
+
+	return workingSet, nil
 }
