@@ -18,6 +18,9 @@ import (
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
+
+	// Import sqlite driver for direct database access in tests
+	_ "modernc.org/sqlite"
 )
 
 // setupTestEnvironment creates a temporary directory structure with legacy config files
@@ -546,6 +549,86 @@ func TestMigrateConfig_LegacyFilesBackedUpOnSuccess(t *testing.T) {
 	status, err := dao.GetMigrationStatus(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, MigrationStatusSuccess, status.Status)
+}
+
+func TestMigrateConfig_SkipsWhenTableLockedByTransaction(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	tempDir := t.TempDir()
+	dbFile := filepath.Join(tempDir, "test.db")
+
+	dao, err := db.New(db.WithDatabaseFile(dbFile))
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Open a separate connection to the same database and hold a transaction on migration_status
+	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(100)")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		blockingDB.Close()
+	})
+
+	// Start a transaction and lock the migration_status table
+	tx, err := blockingDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		tx.Rollback() //nolint:errcheck
+	})
+
+	// Insert a row to lock the table (this will hold a write lock)
+	_, err = tx.ExecContext(ctx, "INSERT INTO migration_status (status, logs) VALUES ('pending', 'blocking')")
+	require.NoError(t, err)
+
+	// Now try to run migration - it should fail to acquire due to the lock
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	// Rollback the blocking transaction
+	err = tx.Rollback()
+	require.NoError(t, err)
+
+	// Verify no working sets were created (migration didn't run)
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, workingSets, "No working sets should be created when migration_status table is locked")
+
+	// Verify the status is doesn't exist since we rolled back
+	_, err = dao.GetMigrationStatus(ctx)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestMigrateConfig_SkipsWhenStatusIsPending(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Set migration status to pending (simulating another instance running)
+	err := dao.UpdateMigrationStatus(ctx, db.MigrationStatus{
+		Status: MigrationStatusPending,
+		Logs:   "Migration in progress by another instance",
+	})
+	require.NoError(t, err)
+
+	// Now try to run migration - it should skip because status is pending
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	// Verify no working sets were created (migration didn't run)
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, workingSets, "No working sets should be created when migration status is pending")
+
+	// Verify status is still pending (unchanged)
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusPending, status.Status, "Migration status should still be pending")
 }
 
 // Helper functions
