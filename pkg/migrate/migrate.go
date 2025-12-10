@@ -2,38 +2,75 @@ package migrate
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/utils"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 const (
+	MigrationStatusPending = "pending"
 	MigrationStatusSuccess = "success"
 	MigrationStatusFailed  = "failed"
 )
 
+var errMigrationAlreadyRunning = errors.New("migration already running")
+
 //revive:disable
 func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
-	_, err := dao.GetMigrationStatus(ctx)
-	if err == nil {
-		// Migration already run, skip
+	var acquired bool
+	// It's possible another cli instance is already running the migration,
+	// so retry this 5 times as long as the error is errMigrationAlreadyRunning
+	err := utils.RetryIfErrorIs(5, 300*time.Millisecond, func() error {
+		migrationStatus, ac, err := dao.TryAcquireMigration(ctx, MigrationStatusPending)
+		if err != nil {
+			var sqliteErr *sqlite.Error
+			// If another "acquire" is in progress and is slow or stuck, it can return SQLITE_BUSY
+			if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_BUSY {
+				return errMigrationAlreadyRunning
+			}
+			return err
+		}
+		acquired = ac
+
+		if migrationStatus.LastUpdated != nil &&
+			migrationStatus.Status == MigrationStatusPending &&
+			time.Since(*migrationStatus.LastUpdated) > 10*time.Second {
+			// Very unlikely, but if stuck in pending state for too long, override the acquired flag.
+			// This can happen if the migration gets interrupted. Let's try to finish it.
+			acquired = true
+			return nil
+		}
+
+		if !acquired && migrationStatus.Status == MigrationStatusPending {
+			// Pending migration happening in another instance
+			return errMigrationAlreadyRunning
+		}
+
+		return nil
+	}, errMigrationAlreadyRunning)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to get migration status: %s\n", err.Error())
 		return
 	}
 
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		fmt.Fprintf(os.Stderr, "failed to get migration status: %s", err.Error())
+	// Didn't acquire the migration, assume already completed
+	if !acquired {
 		return
 	}
 
-	// err == sql.ErrNoRows so we need to perform the migration
+	// Otherwise, run the migration
 
 	status := MigrationStatusFailed
 	logs := []string{}
