@@ -61,7 +61,10 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 }
 
 func isRunningInDockerDesktop(ctx context.Context) bool {
-	// Not running Docker Desktop in a container
+	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
+	// must not touch the Docker API before the CLI is fully initialized. The
+	// plugin lifecycle initializes the Docker CLI later, so probing here would
+	// fail with "no context store initialized". In this mode we skip probing.
 	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
 		return false
 	}
