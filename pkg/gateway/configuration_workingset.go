@@ -58,6 +58,11 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// Special case for the default profile, we're okay with it not existing
+			if c.WorkingSet == "default" {
+				log.Log("  - Default profile not found, using empty configuration")
+				return c.emptyConfiguration()
+			}
 			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
 		}
 		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
@@ -121,6 +126,18 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		config:      cfg,
 		tools:       toolsConfig,
 		secrets:     flattenedSecrets,
+	}, nil
+}
+
+func (c *WorkingSetConfiguration) emptyConfiguration() (Configuration, error) {
+	return Configuration{
+		serverNames: []string{},
+		servers:     make(map[string]catalog.Server),
+		config:      make(map[string]map[string]any),
+		tools: config.ToolsConfig{
+			ServerTools: make(map[string][]string),
+		},
+		secrets: make(map[string]string),
 	}, nil
 }
 
