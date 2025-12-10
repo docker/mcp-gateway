@@ -13,6 +13,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -63,6 +65,20 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 		serverConfig, _, ok := g.configuration.Find(serverName)
 		if !ok {
 			return nil, fmt.Errorf("server %q not found in configuration", serverName)
+		}
+
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: serverConfig.Name,
+				Tool:   originalToolName,
+				Action: policy.ActionInvoke,
+			})
+			if err != nil {
+				telemetry.RecordToolError(ctx, nil, serverConfig.Name, inferServerType(serverConfig), req.Params.Name)
+				log.Logf("policy check failed for %s/%s: %v (allowing)", serverConfig.Name, originalToolName, err)
+			} else if !decision.Allowed {
+				return nil, fmt.Errorf("policy denied tool %s on server %s: %s", originalToolName, serverConfig.Name, decision.Reason)
+			}
 		}
 
 		// Debug logging to stderr
@@ -164,6 +180,18 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		serverConfig, _, ok := g.configuration.Find(serverName)
 		if !ok {
 			return nil, fmt.Errorf("server %q not found in configuration", serverName)
+		}
+
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: serverConfig.Name,
+				Action: policy.ActionPrompt,
+			})
+			if err != nil {
+				log.Logf("policy check failed for prompt on server %s: %v (allowing)", serverConfig.Name, err)
+			} else if !decision.Allowed {
+				return nil, fmt.Errorf("policy denied prompt on server %s: %s", serverConfig.Name, decision.Reason)
+			}
 		}
 
 		// Debug logging to stderr

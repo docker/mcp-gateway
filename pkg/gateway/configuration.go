@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 type Configurator interface {
@@ -89,6 +91,74 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 		byName[tool.Name] = tool
 	}
 	return nil, &byName, true
+}
+
+// FilterWithPolicy removes servers and tools that are denied by the policy client.
+func (c *Configuration) ApplyPolicy(ctx context.Context, pc policy.Client) error {
+	if pc == nil {
+		return nil
+	}
+
+	filteredServers := make(map[string]catalog.Server)
+	filteredServerNames := make([]string, 0, len(c.serverNames))
+	filteredConfig := make(map[string]map[string]any)
+	filteredTools := config.ToolsConfig{
+		ServerTools: make(map[string][]string),
+	}
+
+	for _, name := range c.serverNames {
+		decision, err := pc.Evaluate(ctx, policy.Request{
+			Server: name,
+			Action: policy.ActionLoad,
+		})
+		if err != nil {
+			log.Logf("policy check failed for server %s: %v (allowing)", name, err)
+		}
+		if decision.Allowed || err != nil {
+			server := c.servers[name]
+
+			// Filter tools for this server if any.
+			if tools, ok := c.tools.ServerTools[name]; ok {
+				for _, t := range tools {
+					toolDecision, tErr := pc.Evaluate(ctx, policy.Request{
+						Server: name,
+						Tool:   t,
+						Action: policy.ActionLoad,
+					})
+					if tErr != nil {
+						log.Logf("policy check failed for tool %s/%s: %v (allowing)", name, t, tErr)
+					}
+					if toolDecision.Allowed || tErr != nil {
+						filteredTools.ServerTools[name] = append(filteredTools.ServerTools[name], t)
+					}
+				}
+				// Also trim catalog.Tools slice if present.
+				if len(server.Tools) > 0 {
+					var kept []catalog.Tool
+					for _, tool := range server.Tools {
+						if slices.Contains(filteredTools.ServerTools[name], tool.Name) {
+							kept = append(kept, tool)
+						}
+					}
+					server.Tools = kept
+				}
+			}
+
+			filteredServers[name] = server
+			filteredServerNames = append(filteredServerNames, name)
+			canon := oci.CanonicalizeServerName(name)
+			if cfg, ok := c.config[canon]; ok {
+				filteredConfig[canon] = cfg
+			}
+		}
+	}
+
+	c.serverNames = filteredServerNames
+	c.servers = filteredServers
+	c.config = filteredConfig
+	c.tools = filteredTools
+	// c.secrets unchanged
+	return nil
 }
 
 type FileBasedConfiguration struct {
