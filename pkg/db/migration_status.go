@@ -2,11 +2,14 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 )
 
 type MigrationStatusDAO interface {
 	GetMigrationStatus(ctx context.Context) (*MigrationStatus, error)
+	TryAcquireMigration(ctx context.Context, status string) (*MigrationStatus, bool, error)
 	UpdateMigrationStatus(ctx context.Context, status MigrationStatus) error
 }
 
@@ -26,6 +29,57 @@ func (d *dao) GetMigrationStatus(ctx context.Context) (*MigrationStatus, error) 
 		return nil, err
 	}
 	return &migrationStatus, nil
+}
+
+// This will attempt to take ownership of the migration. If it returns true, the caller should do the migration.
+func (d *dao) TryAcquireMigration(ctx context.Context, status string) (*MigrationStatus, bool, error) {
+	tx, err := d.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	defer txClose(tx, &err)
+
+	// Hacky workaround to get exclusive lock between SELECT and INSERT
+	// https://github.com/mattn/go-sqlite3/issues/400#issuecomment-598953685
+	_, err = tx.ExecContext(ctx, "ROLLBACK; BEGIN IMMEDIATE")
+	if err != nil {
+		return nil, false, err
+	}
+
+	const selectQuery = `SELECT id, status, logs, last_updated FROM migration_status LIMIT 1`
+
+	var migrationStatus MigrationStatus
+	err = tx.GetContext(ctx, &migrationStatus, selectQuery)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, false, err
+		}
+		// No rows, so insert instead
+		const insertQuery = `INSERT INTO migration_status (status, logs) VALUES ($1, $2)`
+		_, err = tx.ExecContext(ctx, insertQuery, status, "")
+		if err != nil {
+			return nil, false, err
+		}
+
+		err = tx.GetContext(ctx, &migrationStatus, selectQuery)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if err = tx.Commit(); err != nil {
+			return nil, false, err
+		}
+
+		// Acquired the migration status
+		return &migrationStatus, true, nil
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, false, err
+	}
+
+	// Got an existing migration status
+	return &migrationStatus, false, nil
 }
 
 func (d *dao) UpdateMigrationStatus(ctx context.Context, status MigrationStatus) error {

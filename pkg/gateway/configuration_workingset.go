@@ -71,6 +71,11 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, loader WorkingSe
 	workingSet, err := loader.ReadWorkingSet(ctx)
 	if err != nil {
 		if errors.Is(err, ErrWorkingSetNotFound) {
+			// Special case for the default profile, we're okay with it not existing
+			if c.workingSetID == "default" {
+				log.Log("  - Default profile not found, using empty configuration")
+				return c.emptyConfiguration()
+			}
 			return Configuration{}, err
 		}
 		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
@@ -132,6 +137,18 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, loader WorkingSe
 		config:      cfg,
 		tools:       toolsConfig,
 		secrets:     flattenedSecrets,
+	}, nil
+}
+
+func (c *WorkingSetConfiguration) emptyConfiguration() (Configuration, error) {
+	return Configuration{
+		serverNames: []string{},
+		servers:     make(map[string]catalog.Server),
+		config:      make(map[string]map[string]any),
+		tools: config.ToolsConfig{
+			ServerTools: make(map[string][]string),
+		},
+		secrets: make(map[string]string),
 	}, nil
 }
 
