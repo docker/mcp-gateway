@@ -105,11 +105,14 @@ func createDefaultProfile(ctx context.Context, dao db.DAO, registry *config.Regi
 			Tools:   tools.ServerTools[server],
 			Secrets: "default",
 		}
-		if oldServer.Type == "server" {
+		switch oldServer.Type {
+		case "server":
 			profileServer.Type = workingset.ServerTypeImage
 			profileServer.Image = oldServer.Image
-		} else {
-			// TODO(cody): Support remotes
+		case "remote":
+			profileServer.Type = workingset.ServerTypeRemote
+			profileServer.Endpoint = oldServer.Remote.URL
+		default:
 			logs = append(logs, fmt.Sprintf("server %s has an invalid server type: %s, skipping", server, oldServer.Type))
 			continue // Ignore
 		}

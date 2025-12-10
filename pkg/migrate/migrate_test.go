@@ -183,6 +183,73 @@ func TestMigrateConfig_SkipsWithNoServers(t *testing.T) {
 	assert.Empty(t, workingSets)
 }
 
+func TestMigrateConfig_SuccessWithRemoteAndImage(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create registry with mixed server types
+	registryYaml := `registry:
+  server-1:
+    ref: ""
+  server-2:
+    ref: ""`
+	err := os.WriteFile(filepath.Join(mcpDir, "registry.yaml"), []byte(registryYaml), 0o644)
+	require.NoError(t, err)
+
+	// Config
+	err = os.WriteFile(filepath.Join(mcpDir, "config.yaml"), []byte("{}"), 0o644)
+	require.NoError(t, err)
+
+	// Tools
+	err = os.WriteFile(filepath.Join(mcpDir, "tools.yaml"), []byte("{}"), 0o644)
+	require.NoError(t, err)
+
+	// Catalog with one valid and one invalid server type
+	catalogYaml := `registry:
+  server-1:
+    type: remote
+    remote:
+      transport_type: sse
+      url: https://mcp.example.com/sse
+    title: Remote Server
+    description: A remote server
+  server-2:
+    type: server
+    image: test/server-2:latest
+    title: Server 2
+    description: A server 2`
+	catalogsDir := filepath.Join(mcpDir, "catalogs")
+	err = os.MkdirAll(catalogsDir, 0o755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(catalogsDir, legacycatalog.DockerCatalogFilename), []byte(catalogYaml), 0o644)
+	require.NoError(t, err)
+
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	// Verify migration status is success
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusSuccess, status.Status)
+	assert.Contains(t, status.Logs, "default profile created with 2 servers")
+
+	// Verify working set was created
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Len(t, workingSets, 1)
+	assert.Equal(t, "default", workingSets[0].ID)
+	assert.Equal(t, "Default Profile", workingSets[0].Name)
+
+	// Verify servers in working set
+	assert.Len(t, workingSets[0].Servers, 2)
+	assert.Equal(t, "remote", workingSets[0].Servers[0].Type)
+	assert.Equal(t, "https://mcp.example.com/sse", workingSets[0].Servers[0].Endpoint)
+	assert.Equal(t, "image", workingSets[0].Servers[1].Type)
+	assert.Equal(t, "test/server-2:latest", workingSets[0].Servers[1].Image)
+}
+
 func TestMigrateConfig_FailureReadingLegacyFiles(t *testing.T) {
 	mcpDir := setupTestEnvironment(t)
 
