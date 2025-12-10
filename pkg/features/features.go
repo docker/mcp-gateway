@@ -28,6 +28,15 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
+	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
+	// must not touch the Docker API before the CLI is fully initialized. The
+	// plugin lifecycle initializes the Docker CLI later, so probing here would
+	// fail with "no context store initialized". In this mode we skip probing and
+	// fall back to defaults.
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+		return features
+	}
+
 	features.runningDockerDesktop, features.initErr = isRunningInDockerDesktop(ctx, dockerCli)
 	if features.initErr != nil {
 		return
