@@ -19,18 +19,16 @@ import (
 )
 
 type WorkingSetConfiguration struct {
-	WorkingSet   string
-	dynamicTools bool
-	ociService   oci.Service
-	docker       docker.Client
+	config     Config
+	ociService oci.Service
+	docker     docker.Client
 }
 
-func NewWorkingSetConfiguration(workingSet string, dynamicTools bool, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
+func NewWorkingSetConfiguration(config Config, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
 	return &WorkingSetConfiguration{
-		WorkingSet:   workingSet,
-		dynamicTools: dynamicTools,
-		ociService:   ociService,
-		docker:       docker,
+		config:     config,
+		ociService: ociService,
+		docker:     docker,
 	}
 }
 
@@ -58,15 +56,15 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	start := time.Now()
 	log.Log("- Reading profile configuration...")
 
-	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
+	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.config.WorkingSet)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// Special case for the default profile, we're okay with it not existing
-			if c.WorkingSet == "default" {
+			if c.config.WorkingSet == "default" {
 				log.Log("  - Default profile not found, using empty configuration")
 				return c.emptyConfiguration(ctx, dao)
 			}
-			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
+			return Configuration{}, fmt.Errorf("profile %s not found", c.config.WorkingSet)
 		}
 		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
 	}
@@ -156,7 +154,7 @@ func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db
 
 func (c *WorkingSetConfiguration) readDefaultCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
 	servers := make(map[string]catalog.Server)
-	if c.dynamicTools {
+	if c.config.DynamicTools {
 		defaultCatalog, err := dao.GetCatalog(ctx, "mcp/docker-mcp-catalog:latest")
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
