@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -63,7 +64,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 			// Special case for the default profile, we're okay with it not existing
 			if c.WorkingSet == "default" {
 				log.Log("  - Default profile not found, using empty configuration")
-				return c.emptyConfiguration()
+				return c.emptyConfiguration(ctx, dao)
 			}
 			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
 		}
@@ -97,23 +98,11 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	servers := make(map[string]catalog.Server)
 
 	// Load the default catalog to populate servers for dynamic tools
-	if c.dynamicTools {
-		defaultCatalog, err := dao.GetCatalog(ctx, "mcp/docker-mcp-catalog:latest")
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				log.Log("  - Default catalog not found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
-			} else {
-				return Configuration{}, fmt.Errorf("failed to get default catalog: %w", err)
-			}
-		} else {
-			log.Log(fmt.Sprintf("  - Read catalog 'mcp/docker-mcp-catalog:latest' for dynamic tools with %d servers", len(defaultCatalog.Servers)))
-			for _, server := range defaultCatalog.Servers {
-				if server.Snapshot != nil { // should always be true
-					servers[server.Snapshot.Server.Name] = server.Snapshot.Server
-				}
-			}
-		}
+	defaultCatalogServers, err := c.readDefaultCatalogServers(ctx, dao)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to read default catalog servers: %w", err)
 	}
+	maps.Copy(servers, defaultCatalogServers)
 
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
@@ -147,16 +136,44 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	}, nil
 }
 
-func (c *WorkingSetConfiguration) emptyConfiguration() (Configuration, error) {
+func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db.DAO) (Configuration, error) {
+	// Load the default catalog to populate servers for dynamic tools
+	defaultCatalogServers, err := c.readDefaultCatalogServers(ctx, dao)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to read default catalog servers: %w", err)
+	}
+
 	return Configuration{
 		serverNames: []string{},
-		servers:     make(map[string]catalog.Server),
+		servers:     defaultCatalogServers,
 		config:      make(map[string]map[string]any),
 		tools: config.ToolsConfig{
 			ServerTools: make(map[string][]string),
 		},
 		secrets: make(map[string]string),
 	}, nil
+}
+
+func (c *WorkingSetConfiguration) readDefaultCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
+	servers := make(map[string]catalog.Server)
+	if c.dynamicTools {
+		defaultCatalog, err := dao.GetCatalog(ctx, "mcp/docker-mcp-catalog:latest")
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				log.Log("  - Default catalog not found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
+			} else {
+				return servers, fmt.Errorf("failed to get default catalog: %w", err)
+			}
+		} else {
+			log.Log(fmt.Sprintf("  - Read catalog 'mcp/docker-mcp-catalog:latest' for dynamic tools with %d servers", len(defaultCatalog.Servers)))
+			for _, server := range defaultCatalog.Servers {
+				if server.Snapshot != nil { // should always be true
+					servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+				}
+			}
+		}
+	}
+	return servers, nil
 }
 
 func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) config.ToolsConfig {
