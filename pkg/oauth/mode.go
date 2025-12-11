@@ -3,7 +3,6 @@ package oauth
 import (
 	"context"
 	"os"
-	"time"
 
 	"github.com/docker/mcp-gateway/pkg/features"
 )
@@ -24,9 +23,6 @@ func IsCEMode() bool {
 	}
 
 	// Use the same logic as feature flags
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
 	// IsCEMode is the inverse of IsRunningInDockerDesktop
-	return !features.IsRunningInDockerDesktop(ctx)
+	return !features.IsRunningInDockerDesktop(context.Background())
 }
