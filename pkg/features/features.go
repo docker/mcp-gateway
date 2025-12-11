@@ -61,7 +61,6 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 }
 
 // IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
-// This is exported so other packages (like oauth) can reuse the same logic.
 func IsRunningInDockerDesktop(ctx context.Context) bool {
 	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
 	// must not touch the Docker API before the CLI is fully initialized. The

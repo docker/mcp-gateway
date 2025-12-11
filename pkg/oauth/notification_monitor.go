@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -64,24 +63,10 @@ func (m *NotificationMonitor) Start(ctx context.Context) {
 	go m.monitor(ctx)
 }
 
-// monitor runs the main monitoring loop with automatic reconnection
+// monitor connects once to the OAuth notification stream.
+// If the connection fails or is lost, it does not retry.
 func (m *NotificationMonitor) monitor(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Log("- OAuth notification monitor shutting down")
-			return
-		default:
-			m.connect(ctx)
-			// Reconnect after 5 seconds on disconnect
-			select {
-			case <-time.After(5 * time.Second):
-				log.Log("- OAuth notification monitor reconnecting...")
-			case <-ctx.Done():
-				return
-			}
-		}
-	}
+	m.connect(ctx)
 }
 
 // connect establishes SSE connection and processes events
