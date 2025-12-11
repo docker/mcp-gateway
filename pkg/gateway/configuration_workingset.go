@@ -18,16 +18,18 @@ import (
 )
 
 type WorkingSetConfiguration struct {
-	WorkingSet string
-	ociService oci.Service
-	docker     docker.Client
+	WorkingSet   string
+	dynamicTools bool
+	ociService   oci.Service
+	docker       docker.Client
 }
 
-func NewWorkingSetConfiguration(workingSet string, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
+func NewWorkingSetConfiguration(workingSet string, dynamicTools bool, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
 	return &WorkingSetConfiguration{
-		WorkingSet: workingSet,
-		ociService: ociService,
-		docker:     docker,
+		WorkingSet:   workingSet,
+		dynamicTools: dynamicTools,
+		ociService:   ociService,
+		docker:       docker,
 	}
 }
 
@@ -93,6 +95,26 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	// TODO(cody): Finish making the gateway fully compatible with working sets
 	serverNames := make([]string, 0)
 	servers := make(map[string]catalog.Server)
+
+	// Load the default catalog to populate servers for dynamic tools
+	if c.dynamicTools {
+		defaultCatalog, err := dao.GetCatalog(ctx, "mcp/docker-mcp-catalog:latest")
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				log.Log("  - Default catalog not found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
+			} else {
+				return Configuration{}, fmt.Errorf("failed to get default catalog: %w", err)
+			}
+		} else {
+			log.Log(fmt.Sprintf("  - Read catalog 'mcp/docker-mcp-catalog:latest' for dynamic tools with %d servers", len(defaultCatalog.Servers)))
+			for _, server := range defaultCatalog.Servers {
+				if server.Snapshot != nil { // should always be true
+					servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+				}
+			}
+		}
+	}
+
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
 		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
@@ -100,10 +122,6 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		}
 
 		serverName := server.Snapshot.Server.Name
-
-		if _, exists := servers[serverName]; exists {
-			return Configuration{}, fmt.Errorf("duplicate server names: %s", serverName)
-		}
 
 		servers[serverName] = server.Snapshot.Server
 		serverNames = append(serverNames, serverName)
