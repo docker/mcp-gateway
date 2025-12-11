@@ -28,7 +28,7 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
-	features.runningDockerDesktop = isRunningInDockerDesktop(ctx)
+	features.runningDockerDesktop = IsRunningInDockerDesktop(ctx)
 
 	features.profilesEnabled, features.initErr = readProfilesFeature(ctx, dockerCli, features.runningDockerDesktop)
 	return
@@ -60,7 +60,9 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
 }
 
-func isRunningInDockerDesktop(ctx context.Context) bool {
+// IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
+// This is exported so other packages (like oauth) can reuse the same logic.
+func IsRunningInDockerDesktop(ctx context.Context) bool {
 	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
 	// must not touch the Docker API before the CLI is fully initialized. The
 	// plugin lifecycle initializes the Docker CLI later, so probing here would

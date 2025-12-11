@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
 	"github.com/docker/mcp-gateway/pkg/health"
@@ -288,6 +289,16 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
 		// Skip in CE mode (no Desktop to connect to)
 		if !oauth.IsCEMode() {
+			// Verify Desktop backend is reachable before starting monitor
+			// This matches the feature flag behavior: assume Desktop on Win/Mac,
+			// but fail if the backend API is not accessible
+			checkCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+			if err := desktop.CheckDesktopIsRunning(checkCtx); err != nil {
+				cancel()
+				return fmt.Errorf("docker Desktop is not running: %w", err)
+			}
+			cancel()
+
 			log.Log("- Starting OAuth notification monitor")
 			monitor := oauth.NewNotificationMonitor()
 			monitor.OnOAuthEvent = func(event oauth.Event) {
