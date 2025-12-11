@@ -84,8 +84,8 @@ type Gateway struct {
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	var configurator Configurator
-	if config.WorkingSet != "" {
-		configurator = NewWorkingSetConfiguration(config.WorkingSet, oci.NewService(), docker)
+	if config.WorkingSet != "" || config.WorkingSetFile != "" {
+		configurator = NewWorkingSetConfiguration(config.WorkingSet, config.WorkingSetFile, oci.NewService(), docker)
 	} else {
 		configurator = &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
