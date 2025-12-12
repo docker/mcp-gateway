@@ -96,6 +96,184 @@ func TestUpdateConfig_SetMultipleValues(t *testing.T) {
 	assert.Equal(t, true, dbSet.Servers[0].Config["enabled"])
 }
 
+func TestUpdateConfig_SetNestedValue(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with a server that has a snapshot
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{"test-server.service.api_key=secret123"}, []string{}, []string{}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "test-server.service.api_key=secret123")
+
+	// Verify the config was updated in the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"service": map[string]any{
+			"api_key": "secret123",
+		},
+	}, dbSet.Servers[0].Config)
+}
+
+func TestUpdateConfig_SetMultipleNestedValues(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with a server that has a snapshot
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{"test-server.service.api_key=secret123", "test-server.service.username=bob", "test-server.other.nested.thing=true"}, []string{}, []string{}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "test-server.service.api_key=secret123")
+
+	// Verify the config was updated in the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"service": map[string]any{
+			"api_key":  "secret123",
+			"username": "bob",
+		},
+		"other": map[string]any{
+			"nested": map[string]any{
+				"thing": true,
+			},
+		},
+	}, dbSet.Servers[0].Config)
+}
+
+func TestUpdateConfig_GetNestedValue(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with nested config values
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Config: map[string]any{
+					"service": map[string]any{
+						"api_key": "secret123",
+					},
+				},
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{}, []string{"test-server.service.api_key"}, []string{}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "test-server.service.api_key=secret123")
+}
+
+func TestUpdateConfig_GetMultipleNestedValues(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with multiple nested config values
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Config: map[string]any{
+					"service": map[string]any{
+						"api_key":  "secret123",
+						"username": "bob",
+					},
+					"other": map[string]any{
+						"nested": map[string]any{
+							"thing": true,
+						},
+					},
+				},
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{}, []string{
+			"test-server.service.api_key",
+			"test-server.service.username",
+			"test-server.other.nested.thing",
+		}, []string{}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "test-server.service.api_key=secret123")
+	assert.Contains(t, output, "test-server.service.username=bob")
+	assert.Contains(t, output, "test-server.other.nested.thing=true")
+}
+
 func TestUpdateConfig_GetSingleValue(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
@@ -744,6 +922,113 @@ func TestUpdateConfig_DeleteMultipleValues(t *testing.T) {
 	assert.Nil(t, dbSet.Servers[0].Config["timeout"])
 	// But other config should remain
 	assert.Equal(t, true, dbSet.Servers[0].Config["enabled"])
+}
+
+func TestUpdateConfig_DeleteNestedValue(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with nested config values
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Config: map[string]any{
+					"service": map[string]any{
+						"api_key":  "secret123",
+						"username": "bob",
+					},
+				},
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{}, []string{}, []string{"test-server.service.api_key"}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	// Deleting should not produce output
+	assert.Empty(t, output)
+
+	// Verify the nested config was deleted from the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"service": map[string]any{
+			"username": "bob",
+		},
+	}, dbSet.Servers[0].Config)
+}
+
+func TestUpdateConfig_DeleteMultipleNestedValues(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with multiple nested config values
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "myimage:latest",
+				Config: map[string]any{
+					"service": map[string]any{
+						"api_key":  "secret123",
+						"username": "bob",
+					},
+					"other": map[string]any{
+						"nested": map[string]any{
+							"thing": true,
+						},
+					},
+					"keep": "this",
+				},
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name: "test-server",
+					},
+				},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	ociService := getMockOciService()
+
+	output := captureStdout(func() {
+		err = UpdateConfig(ctx, dao, ociService, "test-set", []string{}, []string{}, []string{
+			"test-server.service.api_key",
+			"test-server.service.username",
+			"test-server.other.nested.thing",
+		}, false, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	// Deleting should not produce output
+	assert.Empty(t, output)
+
+	// Verify the nested configs were deleted from the database
+	// Note: empty parent objects should be cleaned up
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"keep": "this",
+	}, dbSet.Servers[0].Config)
 }
 
 func TestUpdateConfig_DeleteNonExistentKey(t *testing.T) {
