@@ -48,6 +48,16 @@ linters:
       - path: cmd/docker-mcp/internal/gateway/dynamic_mcps.go
         linters:
           - gofumpt
+      - path: vendor/
+        linters:
+          - gofmt
+          - gofumpt
+          - goimports
+      - path: examples/
+        linters:
+          - gofmt
+          - gofumpt
+          - goimports
 formatters:
   enable:
     - gofmt

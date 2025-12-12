@@ -26,6 +26,7 @@ type Options struct {
 	LogCalls                bool
 	BlockSecrets            bool
 	BlockNetwork            bool
+	DisableNetwork          bool
 	VerifySignatures        bool
 	DryRun                  bool
 	Watch                   bool
