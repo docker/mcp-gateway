@@ -95,12 +95,12 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	serverNames := make([]string, 0)
 	servers := make(map[string]catalog.Server)
 
-	// Load the default catalog to populate servers for dynamic tools
-	defaultCatalogServers, err := c.readDefaultCatalogServers(ctx, dao)
+	// Load all catalogs to populate servers for dynamic tools
+	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
 	if err != nil {
-		return Configuration{}, fmt.Errorf("failed to read default catalog servers: %w", err)
+		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
 	}
-	maps.Copy(servers, defaultCatalogServers)
+	maps.Copy(servers, allCatalogServers)
 
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
@@ -135,15 +135,15 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 }
 
 func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db.DAO) (Configuration, error) {
-	// Load the default catalog to populate servers for dynamic tools
-	defaultCatalogServers, err := c.readDefaultCatalogServers(ctx, dao)
+	// Load all catalogs to populate servers for dynamic tools
+	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
 	if err != nil {
-		return Configuration{}, fmt.Errorf("failed to read default catalog servers: %w", err)
+		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
 	}
 
 	return Configuration{
 		serverNames: []string{},
-		servers:     defaultCatalogServers,
+		servers:     allCatalogServers,
 		config:      make(map[string]map[string]any),
 		tools: config.ToolsConfig{
 			ServerTools: make(map[string][]string),
@@ -152,23 +152,27 @@ func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db
 	}, nil
 }
 
-func (c *WorkingSetConfiguration) readDefaultCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
+func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
 	servers := make(map[string]catalog.Server)
 	if c.config.DynamicTools {
-		defaultCatalog, err := dao.GetCatalog(ctx, "mcp/docker-mcp-catalog:latest")
+		allCatalogs, err := dao.ListCatalogs(ctx)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				log.Log("  - Default catalog not found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
-			} else {
-				return servers, fmt.Errorf("failed to get default catalog: %w", err)
-			}
+			return servers, fmt.Errorf("failed to list catalogs: %w", err)
+		}
+
+		if len(allCatalogs) == 0 {
+			log.Log("  - No catalogs found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
 		} else {
-			log.Log(fmt.Sprintf("  - Read catalog 'mcp/docker-mcp-catalog:latest' for dynamic tools with %d servers", len(defaultCatalog.Servers)))
-			for _, server := range defaultCatalog.Servers {
-				if server.Snapshot != nil { // should always be true
-					servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+			log.Log(fmt.Sprintf("  - Loading %d catalog(s) for dynamic tools", len(allCatalogs)))
+			for _, cat := range allCatalogs {
+				log.Log(fmt.Sprintf("    - Processing catalog '%s' with %d servers", cat.Ref, len(cat.Servers)))
+				for _, server := range cat.Servers {
+					if server.Snapshot != nil { // should always be true
+						servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+					}
 				}
 			}
+			log.Log(fmt.Sprintf("  - Total servers loaded from all catalogs: %d", len(servers)))
 		}
 	}
 	return servers, nil
