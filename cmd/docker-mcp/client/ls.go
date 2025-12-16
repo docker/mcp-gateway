@@ -169,8 +169,9 @@ func parseGlobalConfigs(ctx context.Context, config client.Config) GlobalConfig 
 		cfg.ConfigName = v
 		result[v] = cfg
 	}
-	err := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")
-	if err == nil {
+	cagentEnabled, cagentErr := desktop.CheckFeatureFlagIsEnabled(ctx, "DesktopCagent")
+	gordonSettingErr := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")
+	if gordonSettingErr == nil && cagentErr == nil && cagentEnabled == false {
 		result[client.VendorGordon] = client.GetGordonSetup(ctx)
 	}
 	result[client.VendorCodex] = client.GetCodexSetup(ctx)

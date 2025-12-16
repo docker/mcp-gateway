@@ -14,7 +14,7 @@ type Feature struct {
 	Enabled bool `json:"enabled"`
 }
 
-func CheckProfilesFeatureIsEnabled(ctx context.Context) (bool, error) {
+func CheckFeatureFlagIsEnabled(ctx context.Context, featureName string) (bool, error) {
 	// Copied from https://github.com/docker/ai/commit/ae5c7d328f8aa42bc63d9398157a0673de9ffcf5
 	// Save and restore working directory because pinata code might change it.
 	wd, err := os.Getwd()
@@ -31,7 +31,7 @@ func CheckProfilesFeatureIsEnabled(ctx context.Context) (bool, error) {
 		return false, errors.New("Docker Desktop is not running")
 	}
 
-	return isFeatureEnabled("MCPWorkingSets", features), nil
+	return isFeatureEnabled(featureName, features), nil
 }
 
 // CheckFeatureIsEnabled verifies if a feature is enabled in either admin-settings.json or Docker Desktop settings.
