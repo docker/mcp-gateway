@@ -87,7 +87,7 @@ func IsRunningInDockerDesktop(ctx context.Context) bool {
 func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {
 	if runningDockerDesktop {
 		// Check DD feature flag
-		return desktop.CheckProfilesFeatureIsEnabled(ctx)
+		return desktop.CheckFeatureFlagIsEnabled(ctx, "MCPWorkingSets")
 	}
 
 	// Otherwise, check the profiles feature in Docker CE or in a container
