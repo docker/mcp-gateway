@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/docker/mcp-gateway/pkg/client"
@@ -161,18 +162,25 @@ func (cfg GlobalConfig) GetData() any {
 func parseGlobalConfigs(ctx context.Context, config client.Config) GlobalConfig {
 	result := make(map[string]client.MCPClientCfg)
 	for v, pathCfg := range config.System {
+		fmt.Fprintf(os.Stderr, "Creating for %s\n", v)
 		processor, err := client.NewGlobalCfgProcessor(pathCfg)
 		if err != nil {
 			continue
 		}
+		fmt.Fprintf(os.Stderr, "Parsing for %s\n", v)
 		cfg := processor.ParseConfig()
+		fmt.Fprintf(os.Stderr, "Done for %s\n", v)
 		cfg.ConfigName = v
 		result[v] = cfg
 	}
 	err := desktop.CheckFeatureIsEnabled(ctx, "enableDockerAI", "Docker AI")
 	if err == nil {
+		fmt.Fprintf(os.Stderr, "Checking gordon\n")
+		// Slow here
 		result[client.VendorGordon] = client.GetGordonSetup(ctx)
 	}
+	fmt.Fprintf(os.Stderr, "Checking codex\n")
 	result[client.VendorCodex] = client.GetCodexSetup(ctx)
+	fmt.Fprintf(os.Stderr, "Done")
 	return result
 }

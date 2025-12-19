@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,9 +12,11 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	catalogTypes "github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/docker/mcp-gateway/pkg/gateway"
+	"github.com/docker/mcp-gateway/pkg/statusreporter"
 )
 
 func gatewayCommand(docker docker.Client, dockerCli command.Cli, features features.Features) *cobra.Command {
@@ -177,7 +180,21 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 				}
 			}
 
-			return gateway.NewGateway(options, docker).Run(cmd.Context())
+			desktopStatusReporter := statusreporter.NewDesktop()
+			desktopStatusReporter.Start(cmd.Context())
+			defer desktopStatusReporter.Stop()
+			wd, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("failed to get working directory: %w", err)
+			}
+			desktopStatusReporter.ReportStatus(desktop.McpGatewayState{
+				Status:  "starting",
+				Args:    os.Args,
+				Cwd:     wd,
+				Profile: options.WorkingSet,
+			})
+
+			return gateway.NewGateway(options, docker, desktopStatusReporter).Run(cmd.Context())
 		},
 	}
 
@@ -219,6 +236,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	_ = runCmd.Flags().MarkHidden("log")
 
 	cmd.AddCommand(runCmd)
+	cmd.AddCommand(listMcpGatewaysCommand(features))
+	cmd.AddCommand(eventsCommand(features))
 
 	return cmd
 }
@@ -391,4 +410,50 @@ func isUseEmbeddingsFeatureEnabled(dockerCli command.Cli) bool {
 		return false
 	}
 	return value == "enabled"
+}
+
+func listMcpGatewaysCommand(features features.Features) *cobra.Command {
+	return &cobra.Command{
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "List all MCP running gateways (requires Docker Desktop)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !features.IsRunningInDockerDesktop() {
+				return errors.New("this command requires Docker Desktop to be running")
+			}
+			gateways, err := desktop.ListMcpGatewayStates(cmd.Context())
+			if err != nil {
+				return err
+			}
+			jsonData, err := json.MarshalIndent(gateways, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(jsonData))
+			return nil
+		},
+	}
+}
+
+func eventsCommand(features features.Features) *cobra.Command {
+	return &cobra.Command{
+		Use:   "events",
+		Short: "Get events for a specific MCP gateway",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !features.IsRunningInDockerDesktop() {
+				return errors.New("this command requires Docker Desktop to be running")
+			}
+			events, err := desktop.GetMcpGatewayEvents(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			jsonData, err := json.MarshalIndent(events, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(jsonData))
+			return nil
+		},
+	}
 }

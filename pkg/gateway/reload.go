@@ -8,6 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/prompts"
 	// "github.com/docker/mcp-gateway/pkg/prompts"
@@ -32,6 +33,8 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		return fmt.Errorf("listing resources: %w", err)
 	}
 	log.Log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
+
+	g.reportCapabilities(capabilities)
 
 	// Update capabilities
 	// Clear existing capabilities per server and register new ones
@@ -199,6 +202,28 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	return nil
 }
 
+func (g *Gateway) reportCapabilities(capabilities *Capabilities) {
+	serverMap := make(map[string]*desktop.McpGatewayStateServersInner)
+	for _, tool := range capabilities.Tools {
+		server, ok := serverMap[tool.ServerName]
+		if !ok {
+			server = &desktop.McpGatewayStateServersInner{
+				Name:  tool.ServerName,
+				Tools: make([]string, 0),
+			}
+			serverMap[tool.ServerName] = server
+		}
+		server.Tools = append(server.Tools, tool.Tool.Name)
+	}
+	servers := make([]desktop.McpGatewayStateServersInner, 0, len(serverMap))
+	for _, server := range serverMap {
+		servers = append(servers, *server)
+	}
+	g.desktopStatusReporter.ReportStatus(desktop.McpGatewayState{
+		Servers: servers,
+	})
+}
+
 // stringSliceToSet converts a slice to a map for efficient lookup
 func stringSliceToSet(slice []string) map[string]bool {
 	set := make(map[string]bool, len(slice))
@@ -272,6 +297,8 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to list capabilities for %s: %w", serverName, err)
 	}
+
+	g.reportCapabilities(newServerCaps)
 
 	// Lock for reading/writing capability tracking
 	g.capabilitiesMu.Lock()

@@ -22,6 +22,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/statusreporter"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
@@ -53,14 +54,15 @@ type ServerCapabilities struct {
 
 type Gateway struct {
 	Options
-	docker         docker.Client
-	configurator   Configurator
-	configuration  Configuration
-	clientPool     *clientPool
-	mcpServer      *mcp.Server
-	health         health.State
-	oauthProviders map[string]*oauth.Provider
-	providersMu    sync.RWMutex
+	docker                docker.Client
+	desktopStatusReporter *statusreporter.DesktopStatusReporter
+	configurator          Configurator
+	configuration         Configuration
+	clientPool            *clientPool
+	mcpServer             *mcp.Server
+	health                health.State
+	oauthProviders        map[string]*oauth.Provider
+	providersMu           sync.RWMutex
 	// subsChannel  chan SubsMessage
 
 	sessionCacheMu sync.RWMutex
@@ -83,7 +85,7 @@ type Gateway struct {
 	authTokenWasGenerated bool
 }
 
-func NewGateway(config Config, docker docker.Client) *Gateway {
+func NewGateway(config Config, docker docker.Client, desktopStatusReporter *statusreporter.DesktopStatusReporter) *Gateway {
 	var configurator Configurator
 	if config.WorkingSet != "" {
 		configurator = NewWorkingSetConfiguration(config, oci.NewService(), docker)
@@ -106,6 +108,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	g := &Gateway{
 		Options:                     config.Options,
 		docker:                      docker,
+		desktopStatusReporter:       desktopStatusReporter,
 		oauthProviders:              make(map[string]*oauth.Provider),
 		configurator:                configurator,
 		sessionCache:                make(map[*mcp.ServerSession]*ServerSessionCache),
@@ -122,6 +125,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
 
+	logWriters := []io.Writer{os.Stderr, g.desktopStatusReporter.LogWriter()}
+
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
 		logFile, err := os.OpenFile(g.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
@@ -130,10 +135,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 		defer logFile.Close()
 
-		// Create a multi-writer that writes to both stderr and the log file
-		multiWriter := io.MultiWriter(os.Stderr, logFile)
-		log.SetLogWriter(multiWriter)
+		// Add writer for log file
+		logWriters = append(logWriters, logFile)
 	}
+
+	log.SetLogWriter(io.MultiWriter(logWriters...))
 
 	// Initialize embeddings client if feature is enabled and OPENAI_API_KEY is set
 	if g.UseEmbeddings {
@@ -243,12 +249,25 @@ func (g *Gateway) Run(ctx context.Context) error {
 		RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
 			log.Log("- Client roots list changed")
 			// We can't get the ServerSession from the request anymore, so we'll need to handle this differently
-			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
+			g.ListRoots(ctx, req.Session)
 		},
 		CompletionHandler: nil,
 		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
 			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+			// TODO how to disconnect client when using streaming mode?
+			g.desktopStatusReporter.ReportStatus(desktop.McpGatewayState{
+				Clients: []desktop.McpGatewayStateClientsInner{
+					{
+						Name:    clientInfo.Name,
+						Status:  "connected",
+						Title:   clientInfo.Title,
+						Version: clientInfo.Version,
+					},
+				},
+			})
+			// Update roots list when client is initialized
+			g.ListRoots(ctx, req.Session)
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -360,6 +379,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		g.authToken = token
 		g.authTokenWasGenerated = wasGenerated
 	}
+
+	g.desktopStatusReporter.ReportStatus(desktop.McpGatewayState{
+		Status: "running",
+	})
 
 	// Start the server
 	switch transport {
@@ -474,6 +497,16 @@ func (g *Gateway) ListRoots(ctx context.Context, ss *mcp.ServerSession) {
 			log.Log("  - Root:", root.URI)
 		}
 		cache.Roots = rootsResult.Roots
+
+		roots := make([]desktop.McpGatewayStateRootsInner, 0, len(cache.Roots))
+		for _, root := range cache.Roots {
+			roots = append(roots, desktop.McpGatewayStateRootsInner{
+				Uri: root.URI,
+			})
+		}
+		g.desktopStatusReporter.ReportStatus(desktop.McpGatewayState{
+			Roots: roots,
+		})
 	}
 	g.clientPool.UpdateRoots(ss, cache.Roots)
 }
