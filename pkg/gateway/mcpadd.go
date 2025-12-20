@@ -26,7 +26,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		// Parse parameters
 		var params struct {
 			Name     string `json:"name"`
-			Activate bool   `json:"activate"`
+			Activate *bool  `json:"activate"`
 		}
 
 		if req.Params.Arguments == nil {
@@ -44,6 +44,12 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		if params.Name == "" {
 			return nil, fmt.Errorf("name parameter is required")
+		}
+
+		// Default activate to true if not provided
+		activate := true
+		if params.Activate != nil {
+			activate = *params.Activate
 		}
 
 		serverName := strings.TrimSpace(params.Name)
@@ -66,13 +72,11 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// Fetch updated secrets for the new server list
 		if g.configurator != nil {
-			if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-				updatedSecrets, err := fbc.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-				if err == nil {
-					g.configuration.secrets = updatedSecrets
-				} else {
-					log.Log("Warning: Failed to update secrets:", err)
-				}
+			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
+			if err == nil {
+				g.configuration.secrets = updatedSecrets
+			} else {
+				log.Log("Warning: Failed to update secrets:", err)
 			}
 		}
 
@@ -211,7 +215,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// Only activate tools if activate is true AND client name doesn't contain "claude"
 		// (Claude clients auto-refresh their tool list, so they don't need explicit activation)
-		shouldActivate := params.Activate && !strings.Contains(clientNameLower, "claude")
+		shouldActivate := activate && !strings.Contains(clientNameLower, "claude")
 
 		if shouldActivate {
 			// Now update g.mcpServer with the new capabilities

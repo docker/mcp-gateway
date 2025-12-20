@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
+	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -251,9 +253,30 @@ func (g *Gateway) Run(ctx context.Context) error {
 			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
+		InitializedHandler: func(ctx context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
 			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+
+			// Log current working directory
+			if pwd, err := os.Getwd(); err == nil {
+				log.Log(fmt.Sprintf("- Current working directory: %s", pwd))
+			}
+
+			// Log entire initialize request
+			initParams := req.Session.InitializeParams()
+			if initParams != nil {
+				if initJSON, err := json.MarshalIndent(initParams, "  ", "  "); err == nil {
+					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
+				}
+			}
+
+			// Load profiles from profiles.json if client is claude-code
+			if clientInfo.Name == "claude-code" {
+				log.Log("- Claude Code detected, checking for profiles.json")
+				if err := project.LoadProfiles(ctx, g); err != nil {
+					log.Log(fmt.Sprintf("! Failed to load profiles: %v", err))
+				}
+			}
 		},
 		HasPrompts:   true,
 		HasResources: true,

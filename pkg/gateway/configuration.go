@@ -21,6 +21,7 @@ import (
 
 type Configurator interface {
 	Read(ctx context.Context) (Configuration, chan Configuration, func() error, error)
+	readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error)
 }
 
 type Configuration struct {
@@ -472,7 +473,7 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 	return mergedToolsConfig, nil
 }
 
-func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
+func readSecrets(ctx context.Context, docker docker.Client, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
 	// Use a map to deduplicate secret names
 	uniqueSecretNames := make(map[string]struct{})
 
@@ -500,12 +501,16 @@ func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, s
 	}
 
 	log.Log("  - Reading secrets", secretNames)
-	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
+	secretsByName, err := docker.ReadSecrets(ctx, secretNames, true)
 	if err != nil {
 		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
 	}
 
 	return secretsByName, nil
+}
+
+func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
+	return readSecrets(ctx, c.docker, servers, serverNames)
 }
 
 func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path string) (map[string]string, error) {
