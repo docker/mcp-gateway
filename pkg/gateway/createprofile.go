@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
@@ -159,6 +160,16 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 				return nil, fmt.Errorf("failed to create profile: %w", err)
 			}
 			log.Logf("Created profile %s with %d servers", profileID, len(servers))
+		}
+
+		// If client is claude-code, update profiles.json in current directory
+		clientInfo := req.Session.InitializeParams().ClientInfo
+		if clientInfo.Name == "claude-code" {
+			log.Log("- Claude Code detected, updating profiles.json")
+			if err := project.SaveProfile(profileName); err != nil {
+				log.Log(fmt.Sprintf("! Failed to update profiles.json: %v", err))
+				// Don't fail the entire operation, just log the error
+			}
 		}
 
 		// Build success message
