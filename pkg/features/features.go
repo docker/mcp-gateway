@@ -28,7 +28,7 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
-	features.runningDockerDesktop = isRunningInDockerDesktop(ctx)
+	features.runningDockerDesktop = IsRunningInDockerDesktop(ctx)
 
 	features.profilesEnabled, features.initErr = readProfilesFeature(ctx, dockerCli, features.runningDockerDesktop)
 	return
@@ -60,7 +60,8 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
 }
 
-func isRunningInDockerDesktop(ctx context.Context) bool {
+// IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
+func IsRunningInDockerDesktop(ctx context.Context) bool {
 	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
 	// must not touch the Docker API before the CLI is fully initialized. The
 	// plugin lifecycle initializes the Docker CLI later, so probing here would
@@ -86,7 +87,7 @@ func isRunningInDockerDesktop(ctx context.Context) bool {
 func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {
 	if runningDockerDesktop {
 		// Check DD feature flag
-		return desktop.CheckProfilesFeatureIsEnabled(ctx)
+		return desktop.CheckFeatureFlagIsEnabled(ctx, "MCPWorkingSets")
 	}
 
 	// Otherwise, check the profiles feature in Docker CE or in a container

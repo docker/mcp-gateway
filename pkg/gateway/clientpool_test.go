@@ -160,6 +160,42 @@ user: "1001:2002"
 	assert.Empty(t, env)
 }
 
+func TestApplyConfigLongLivedIgnoresReadOnly(t *testing.T) {
+	catalogYAML := `
+longLived: true
+volumes:
+  - '/local/data:/data'
+  `
+
+	args, env := argsAndEnv(t, "longlived", catalogYAML, "", nil, readOnly())
+
+	// Even though readOnly is true, volumes should NOT have :ro appended
+	// because long-lived servers share containers across multiple tool calls
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=longlived", "-l", "docker-mcp-transport=stdio",
+		"-v", "/local/data:/data",
+	}, args)
+	assert.Empty(t, env)
+}
+
+func TestApplyConfigShortLivedRespectsReadOnly(t *testing.T) {
+	catalogYAML := `
+volumes:
+  - '/local/data:/data'
+  `
+
+	args, env := argsAndEnv(t, "shortlived", catalogYAML, "", nil, readOnly())
+
+	// Short-lived servers should respect readOnly flag
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=shortlived", "-l", "docker-mcp-transport=stdio",
+		"-v", "/local/data:/data:ro",
+	}, args)
+	assert.Empty(t, env)
+}
+
 func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool) ([]string, []string) {
 	t.Helper()
 

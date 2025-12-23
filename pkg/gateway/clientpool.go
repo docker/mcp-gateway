@@ -352,7 +352,10 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 			continue
 		}
 
-		if readOnly != nil && *readOnly && !strings.HasSuffix(mount, ":ro") {
+		// For long-lived servers, never mount volumes as read-only
+		// because the container will be shared across multiple tool calls
+		isLongLived := serverConfig.Spec.LongLived || cp.LongLived
+		if !isLongLived && readOnly != nil && *readOnly && !strings.HasSuffix(mount, ":ro") {
 			args = append(args, "-v", mount+":ro")
 		} else {
 			args = append(args, "-v", mount)

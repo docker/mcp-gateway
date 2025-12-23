@@ -52,6 +52,8 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		newServers[i].Secrets = defaultSecret
 	}
 
+	RegisterOAuthProvidersForServers(ctx, newServers)
+
 	workingSet.Servers = append(workingSet.Servers, newServers...)
 
 	if err := workingSet.Validate(); err != nil {
