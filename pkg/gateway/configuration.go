@@ -93,8 +93,8 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 	return nil, &byName, true
 }
 
-// FilterWithPolicy removes servers and tools that are denied by the policy client.
-func (c *Configuration) ApplyPolicy(ctx context.Context, pc policy.Client) error {
+// FilterByPolicy removes servers and tools that are denied by the policy client.
+func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) error {
 	if pc == nil {
 		return nil
 	}
