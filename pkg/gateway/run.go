@@ -271,10 +271,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 
 			// Load profiles from profiles.json if client is claude-code
-			if clientInfo.Name == "claude-code" {
-				log.Log("- Claude Code detected, checking for profiles.json")
-				if err := project.LoadProfiles(ctx, g); err != nil {
-					log.Log(fmt.Sprintf("! Failed to load profiles: %v", err))
+			if g.UseProfiles {
+				if clientInfo.Name == "claude-code" {
+					log.Log("- Claude Code detected, checking for profiles.json")
+					if err := project.LoadProfiles(ctx, g); err != nil {
+						log.Log(fmt.Sprintf("! Failed to load profiles: %v", err))
+					}
 				}
 			}
 		},
