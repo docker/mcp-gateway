@@ -121,8 +121,8 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	return g
 }
 
-func (g *Gateway) applyPolicy(ctx context.Context, cfg *Configuration) {
-	if err := cfg.ApplyPolicy(ctx, g.policyClient); err != nil {
+func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
+	if err := cfg.FilterByPolicy(ctx, g.policyClient); err != nil {
 		log.Log("policy filtering failed:", err)
 	}
 }
@@ -217,7 +217,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	g.applyPolicy(ctx, &configuration)
+	g.filterByPolicy(ctx, &configuration)
 	g.configuration = configuration
 	defer func() { _ = stopConfigWatcher() }()
 
@@ -338,7 +338,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 				case configuration := <-configurationUpdates:
 					log.Log("> Configuration updated, reloading...")
 
-					g.applyPolicy(ctx, &configuration)
+					g.filterByPolicy(ctx, &configuration)
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						log.Logf("> Unable to pull and verify images: %s", err)
