@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
@@ -13,7 +14,15 @@ import (
 )
 
 // DefaultRedirectURI is the OAuth callback endpoint
-const DefaultRedirectURI = "https://mcp.docker.com/oauth/callback"
+// Can be overridden with MCP_OAUTH_REDIRECT_URI environment variable
+var DefaultRedirectURI = getDefaultRedirectURI()
+
+func getDefaultRedirectURI() string {
+	if uri := os.Getenv("MCP_OAUTH_REDIRECT_URI"); uri != "" {
+		return uri
+	}
+	return "https://mcp.docker.com/oauth/callback"
+}
 
 // Manager orchestrates OAuth flows for DCR-based providers
 type Manager struct {
