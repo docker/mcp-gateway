@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
@@ -58,11 +59,21 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 				continue
 			}
 
-			// Determine server type based on whether it has an image
-			serverType := workingset.ServerTypeImage
-			if catalogServer.Image == "" {
-				// Skip servers without images for now (registry servers)
-				log.Logf("Warning: server %s has no image, skipping", serverName)
+			// Determine server type and validate required fields
+			var serverType workingset.ServerType
+			var image, endpoint string
+
+			if catalogServer.Remote.URL != "" {
+				// Remote server
+				serverType = workingset.ServerTypeRemote
+				endpoint = catalogServer.Remote.URL
+			} else if catalogServer.Image != "" {
+				// Image-based server
+				serverType = workingset.ServerTypeImage
+				image = catalogServer.Image
+			} else {
+				// Skip servers without image or remote endpoint (e.g., registry servers)
+				log.Logf("Warning: server %s has neither image nor remote endpoint, skipping", serverName)
 				continue
 			}
 
@@ -80,11 +91,12 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 
 			// Create server entry
 			server := workingset.Server{
-				Type:    serverType,
-				Image:   catalogServer.Image,
-				Config:  serverConfig,
-				Secrets: "default",
-				Tools:   serverTools,
+				Type:     serverType,
+				Image:    image,
+				Endpoint: endpoint,
+				Config:   serverConfig,
+				Secrets:  "default",
+				Tools:    serverTools,
 				Snapshot: &workingset.ServerSnapshot{
 					Server: catalogServer,
 				},
@@ -96,7 +108,7 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 		if len(servers) == 0 {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
-					Text: "No servers with images found in current gateway state. Cannot create profile.",
+					Text: "No servers with images or remote endpoints found in current gateway state. Cannot create profile.",
 				}},
 				IsError: true,
 			}, nil
@@ -161,6 +173,16 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 			log.Logf("Created profile %s with %d servers", profileID, len(servers))
 		}
 
+		// If client is claude-code, update profiles.json in current directory
+		clientInfo := req.Session.InitializeParams().ClientInfo
+		if clientInfo.Name == "claude-code" {
+			log.Log("- Claude Code detected, updating profiles.json")
+			if err := project.SaveProfile(profileName); err != nil {
+				log.Log(fmt.Sprintf("! Failed to update profiles.json: %v", err))
+				// Don't fail the entire operation, just log the error
+			}
+		}
+
 		// Build success message
 		var resultMessage string
 		if isUpdate {
@@ -175,6 +197,9 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 			resultMessage += fmt.Sprintf("\n%d. %s", i+1, serverName)
 			if server.Image != "" {
 				resultMessage += fmt.Sprintf(" (image: %s)", server.Image)
+			}
+			if server.Endpoint != "" {
+				resultMessage += fmt.Sprintf(" (endpoint: %s)", server.Endpoint)
 			}
 			if len(server.Tools) > 0 {
 				resultMessage += fmt.Sprintf(" - %d tools", len(server.Tools))

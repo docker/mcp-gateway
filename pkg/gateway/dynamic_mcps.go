@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -60,6 +61,7 @@ The server must exist in the catalog.`,
 				"activate": {
 					Type:        "boolean",
 					Description: "Activate all of the server's tools in the current session",
+					Default:     json.RawMessage("true"),
 				},
 			},
 			Required: []string{"name"},
@@ -121,6 +123,30 @@ If a profile with the given name already exists, it will be updated with the cur
 	return &ToolRegistration{
 		Tool:    tool,
 		Handler: withToolTelemetry("mcp-create-profile", createProfileHandler(g)),
+	}
+}
+
+func (g *Gateway) createMcpActivateProfileTool(clientConfig *clientConfig) *ToolRegistration {
+	tool := &mcp.Tool{
+		Name: "mcp-activate-profile",
+		Description: `Activate a saved profile by loading its servers into the current gateway.
+This will merge the profile's servers with currently active servers.
+Servers that are already active will be skipped.`,
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name": {
+					Type:        "string",
+					Description: "Profile ID to activate",
+				},
+			},
+			Required: []string{"name"},
+		},
+	}
+
+	return &ToolRegistration{
+		Tool:    tool,
+		Handler: withToolTelemetry("mcp-activate-profile", activateProfileHandler(g, clientConfig)),
 	}
 }
 

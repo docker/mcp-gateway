@@ -201,7 +201,7 @@ func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet wo
 
 		switch secretConfig.Provider {
 		case workingset.SecretProviderDockerDesktop:
-			secrets, err := c.readDockerDesktopSecrets(ctx, servers)
+			secrets, err := c.readDockerDesktopSecretsFromWorkingSet(ctx, servers)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read docker desktop secrets: %w", err)
 			}
@@ -214,7 +214,11 @@ func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet wo
 	return providerSecrets, nil
 }
 
-func (c *WorkingSetConfiguration) readDockerDesktopSecrets(ctx context.Context, servers []workingset.Server) (map[string]string, error) {
+func (c *WorkingSetConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
+	return readSecrets(ctx, c.docker, servers, serverNames)
+}
+
+func (c *WorkingSetConfiguration) readDockerDesktopSecretsFromWorkingSet(ctx context.Context, servers []workingset.Server) (map[string]string, error) {
 	// Use a map to deduplicate secret names
 	uniqueSecretNames := make(map[string]struct{})
 

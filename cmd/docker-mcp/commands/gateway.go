@@ -102,6 +102,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 			// Check if use-embeddings feature is enabled
 			options.UseEmbeddings = isUseEmbeddingsFeatureEnabled(dockerCli)
 
+			// Check if profiles feature is enabled
+			options.UseProfiles = features.IsProfilesFeatureEnabled()
+
 			// Update catalog URL based on mcp-oauth-dcr flag if using default Docker catalog URL
 			if len(options.CatalogPath) == 1 && (options.CatalogPath[0] == catalog.DockerCatalogURLV2 || options.CatalogPath[0] == catalog.DockerCatalogURLV3) {
 				options.CatalogPath[0] = catalog.GetDockerCatalogURL(options.McpOAuthDcrEnabled)
