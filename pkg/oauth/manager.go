@@ -116,8 +116,9 @@ func (m *Manager) BuildAuthorizationURL(_ context.Context, serverName string, sc
 	}
 
 	opts := []oauth2.AuthCodeOption{
-		oauth2.AccessTypeOffline,             // Request refresh token
-		oauth2.S256ChallengeOption(verifier), // PKCE challenge
+		oauth2.AccessTypeOffline,                    // Request refresh token
+		oauth2.SetAuthURLParam("prompt", "consent"), // Force consent to get refresh token (Google requires this)
+		oauth2.S256ChallengeOption(verifier),        // PKCE challenge
 	}
 
 	// Add resource parameter for RFC 8707 token audience binding
@@ -169,6 +170,10 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 
 	log.Logf("- Token exchanged for %s (access: %v, refresh: %v)",
 		serverName, token.AccessToken != "", token.RefreshToken != "")
+
+	if token.RefreshToken == "" {
+		log.Logf("! WARNING: No refresh token received for %s - token refresh will fail when access token expires", serverName)
+	}
 
 	// Store token
 	if err := m.tokenStore.Save(dcrClient, token); err != nil {
