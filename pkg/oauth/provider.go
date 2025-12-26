@@ -25,7 +25,7 @@ type DCRProvider struct {
 func NewDCRProvider(dcrClient dcr.Client, redirectURL string) *DCRProvider {
 	config := &oauth2.Config{
 		ClientID:     dcrClient.ClientID,
-		ClientSecret: "", // Public client - no secret
+		ClientSecret: dcrClient.ClientSecret, // Empty for public clients, populated for confidential clients
 		RedirectURL:  redirectURL,
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  dcrClient.AuthorizationEndpoint,
