@@ -373,16 +373,57 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading tools: %w", err)
 	}
 
-	// Helper function to build se:// URIs for all required secrets
+	// Build se:// URIs for secrets
 	buildSecretsURIs := func() map[string]string {
 		uris := make(map[string]string)
+
+		allSecrets, _ := secret.GetSecrets(ctx)
+		secrets := make(map[string]string)
+		for _, e := range allSecrets {
+			secrets[e.ID] = string(e.Value)
+		}
+
 		for _, serverName := range serverNames {
-			server, ok := servers[serverName]
-			if !ok {
+			server := servers[serverName]
+
+			// ================================================================
+			// SCENARIO 1: Secrets-only (no OAuth in catalog)
+			// Examples: grafana, mongodb, notion
+			// ================================================================
+			if server.OAuth == nil {
+				for _, s := range server.Secrets {
+					key := secret.GetSecretKey(s.Name)
+					if val := secrets[key]; val != "" {
+						uris[s.Name] = "se://" + key
+					}
+				}
 				continue
 			}
+
+			// ================================================================
+			// SCENARIO 2: OAuth + secrets (OAuth takes precedence over PAT)
+			// Examples: github-official
+			// ================================================================
+			// Pre-build mapping: secret name -> OAuth key
+			// e.g., "github.personal_access_token" -> "docker/mcp/oauth/github"
+			secretToOAuthKey := make(map[string]string)
+			for _, p := range server.OAuth.Providers {
+				secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
+			}
+
 			for _, s := range server.Secrets {
-				uris[s.Name] = fmt.Sprintf("se://%s", secret.GetSecretKey(s.Name))
+				// Try OAuth first
+				if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
+					if _, exists := secrets[oauthKey]; exists {
+						uris[s.Name] = "se://" + oauthKey
+						continue
+					}
+				}
+				// Fallback to PAT (must be non-empty)
+				patKey := secret.GetSecretKey(s.Name)
+				if val := secrets[patKey]; val != "" {
+					uris[s.Name] = "se://" + patKey
+				}
 			}
 		}
 		return uris

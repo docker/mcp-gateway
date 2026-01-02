@@ -89,10 +89,18 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 		return "", fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	// The secret is base64-encoded JSON, decode it first
-	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+	var tokenJSON []byte
+	if IsCEMode() {
+		// CE mode: credential helper returns base64-encoded JSON
+		var err error
+		tokenJSON, err = base64.StdEncoding.DecodeString(tokenSecret)
+		if err != nil {
+			return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+		}
+	} else {
+		// Desktop mode: Secrets Engine value is already decoded by json.Unmarshal
+		// (because Envelope.Value is []byte, Go auto-decodes base64 during unmarshal)
+		tokenJSON = []byte(tokenSecret)
 	}
 
 	// Parse the JSON to extract the actual access token
@@ -159,10 +167,18 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	// Base64 decode the token
-	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
-	if err != nil {
-		return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+	var tokenJSON []byte
+	if IsCEMode() {
+		// CE mode: credential helper returns base64-encoded JSON
+		var err error
+		tokenJSON, err = base64.StdEncoding.DecodeString(tokenSecret)
+		if err != nil {
+			return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
+		}
+	} else {
+		// Desktop mode: Secrets Engine value is already decoded by json.Unmarshal
+		// (because Envelope.Value is []byte, Go auto-decodes base64 during unmarshal)
+		tokenJSON = []byte(tokenSecret)
 	}
 
 	// Parse the JSON to extract token data including expiry
