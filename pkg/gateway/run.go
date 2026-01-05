@@ -74,6 +74,10 @@ type Gateway struct {
 	// Track all tool registrations for mcp-exec
 	toolRegistrations map[string]ToolRegistration
 
+	// Track ongoing refresh operations per server to prevent concurrent/recursive refreshes
+	refreshMu         sync.Mutex
+	refreshingServers map[string]bool
+
 	// embeddings client for vector search
 	embeddingsClient *embeddings.VectorDBClient
 
@@ -112,6 +116,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		serverCapabilities:          make(map[string]*ServerCapabilities),
 		serverAvailableCapabilities: make(map[string]*Capabilities),
 		toolRegistrations:           make(map[string]ToolRegistration),
+		refreshingServers:           make(map[string]bool),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 
@@ -407,6 +412,24 @@ func (g *Gateway) Run(ctx context.Context) error {
 // RefreshCapabilities implements the CapabilityRefresher interface
 // This method updates the server's capabilities by reloading the configuration
 func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession, serverName string) error {
+	// Check if a refresh is already in progress for this server to prevent infinite loops
+	g.refreshMu.Lock()
+	if g.refreshingServers[serverName] {
+		log.Log("- RefreshCapabilities already in progress for", serverName, "- skipping")
+		g.refreshMu.Unlock()
+		return nil
+	}
+	// Mark this server as refreshing
+	g.refreshingServers[serverName] = true
+	g.refreshMu.Unlock()
+
+	// Ensure we clear the refreshing flag when done
+	defer func() {
+		g.refreshMu.Lock()
+		delete(g.refreshingServers, serverName)
+		g.refreshMu.Unlock()
+	}()
+
 	// Create a clientConfig to reuse the existing session for the server that triggered the notification
 	clientConfig := &clientConfig{
 		serverSession: serverSession,
