@@ -75,8 +75,9 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 			})
 			if err != nil {
 				telemetry.RecordToolError(ctx, nil, serverConfig.Name, inferServerType(serverConfig), req.Params.Name)
-				log.Logf("policy check failed for %s/%s: %v (allowing)", serverConfig.Name, originalToolName, err)
-			} else if !decision.Allowed {
+				return nil, fmt.Errorf("policy check failed for %s/%s: %w", serverConfig.Name, originalToolName, err)
+			}
+			if !decision.Allowed {
 				return nil, fmt.Errorf("policy denied tool %s on server %s: %s", originalToolName, serverConfig.Name, decision.Reason)
 			}
 		}

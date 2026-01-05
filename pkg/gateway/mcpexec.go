@@ -87,9 +87,14 @@ func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
 				Action: policy.ActionInvoke,
 			})
 			if err != nil {
-				log.Logf("policy check failed for mcp-exec %s: %v (allowing)", toolName, err)
+				log.Logf("policy check failed for mcp-exec %s: %v (denying)", toolName, err)
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Tool '%s' blocked due to policy check error: %v", toolName, err),
+					}},
+				}, nil
 			}
-			if !decision.Allowed && err == nil {
+			if !decision.Allowed {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
 						Text: fmt.Sprintf("Error: Tool '%s' blocked by policy: %s", toolName, decision.Reason),
