@@ -125,6 +125,8 @@ kubectl port-forward service/mcp-gateway 8811:8811
 
 Or change the service type to `LoadBalancer` or `NodePort` in `service.yaml`.
 
+**See [docs/accessing.md](docs/accessing.md) for detailed access instructions, authentication configuration, and production deployment options.**
+
 ## Security Considerations
 
 - All containers run with `allowPrivilegeEscalation: false`
@@ -208,3 +210,8 @@ These are inherent limitations of running in Kubernetes static mode.
 - Implement Prometheus monitoring
 - Add network policies for additional security
 - Create Helm chart for easier deployment
+
+## Additional Documentation
+
+- **[docs/accessing.md](docs/accessing.md)** - Detailed guide for accessing the gateway from outside the cluster, including authentication, external exposure options (LoadBalancer, Ingress, NodePort), and troubleshooting
+- **[docs/dashboard.md](docs/dashboard.md)** - Optional guide for installing and using the Kubernetes Dashboard to monitor your cluster
