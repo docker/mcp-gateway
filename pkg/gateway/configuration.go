@@ -338,13 +338,10 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		for _, serverName := range serverNames {
 			server := servers[serverName]
 
-			// ================================================================
-			// SCENARIO 1: Secrets-only (no OAuth in catalog)
-			// Examples: grafana, mongodb, notion
-			// ================================================================
+			// Server has no OAuth configured - use secret directly
 			if server.OAuth == nil {
 				for _, s := range server.Secrets {
-					key := secret.GetSecretKey(s.Name)
+					key := secret.GetDefaultSecretKey(s.Name)
 					if val := secrets[key]; val != "" {
 						uris[s.Name] = "se://" + key
 					}
@@ -352,12 +349,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 				continue
 			}
 
-			// ================================================================
-			// SCENARIO 2: OAuth + secrets (OAuth takes precedence over PAT)
-			// Examples: github-official
-			// ================================================================
-			// Pre-build mapping: secret name -> OAuth key
-			// e.g., "github.personal_access_token" -> "docker/mcp/oauth/github"
+			// Server has OAuth - check OAuth token first, fall back to PAT
 			secretToOAuthKey := make(map[string]string)
 			for _, p := range server.OAuth.Providers {
 				secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
@@ -372,7 +364,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 					}
 				}
 				// Fallback to PAT (must be non-empty)
-				patKey := secret.GetSecretKey(s.Name)
+				patKey := secret.GetDefaultSecretKey(s.Name)
 				if val := secrets[patKey]; val != "" {
 					uris[s.Name] = "se://" + patKey
 				}

@@ -24,30 +24,17 @@ func cmd(ctx context.Context, args ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, "docker", append([]string{"pass"}, args...)...)
 }
 
-// getSecretKey prefixes the secrets with the docker/mcp namespace.
-// Additional namespaces can be added when defining the secretName.
+// GetDefaultSecretKey constructs the full namespaced ID for an MCP secret
+// using the default namespace (docker/mcp/).
 //
 // Example:
 //
-//	secretName = "mysecret/application/id"
-//	return "docker/mcp/mysecret/application/id"
+//	secretName = "postgres_password"
+//	return "docker/mcp/postgres_password"
 //
-// This can later then be queried by the Secrets Engine using a pattern or direct
-// ID match.
-//
-// Example:
-//
-//	# anything under mcp
-//	pattern = "docker/mcp/**"
-//	# specific to mysecret
-//	pattern = "docker/mcp/mysecret/application/**"
-func getSecretKey(secretName string) string {
+// This can later be queried by the Secrets Engine using a pattern or direct ID match.
+func GetDefaultSecretKey(secretName string) string {
 	return path.Join(NamespaceDefault, secretName)
-}
-
-// GetSecretKey constructs the full namespaced ID for an MCP secret
-func GetSecretKey(secretName string) string {
-	return getSecretKey(secretName)
 }
 
 // GetOAuthKey constructs the full namespaced ID for an OAuth token
@@ -87,8 +74,9 @@ func List(ctx context.Context) ([]string, error) {
 	return secrets, nil
 }
 
-func setSecret(ctx context.Context, id string, value string) error {
-	c := cmd(ctx, "set", getSecretKey(id))
+// setDefaultSecret stores a secret in the default namespace (docker/mcp/).
+func setDefaultSecret(ctx context.Context, id string, value string) error {
+	c := cmd(ctx, "set", GetDefaultSecretKey(id))
 	c.Stdin = strings.NewReader(value)
 	out, err := c.CombinedOutput()
 	if err != nil {
@@ -97,8 +85,9 @@ func setSecret(ctx context.Context, id string, value string) error {
 	return nil
 }
 
-func DeleteSecret(ctx context.Context, id string) error {
-	out, err := cmd(ctx, "rm", getSecretKey(id)).CombinedOutput()
+// DeleteDefaultSecret removes a secret from the default namespace (docker/mcp/).
+func DeleteDefaultSecret(ctx context.Context, id string) error {
+	out, err := cmd(ctx, "rm", GetDefaultSecretKey(id)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("could not delete secret: %s\n%s\n%s", id, bytes.TrimSpace(out), err)
 	}

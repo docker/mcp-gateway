@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetSecretKey(t *testing.T) {
-	result := getSecretKey("mykey")
+func TestGetDefaultSecretKey(t *testing.T) {
+	result := GetDefaultSecretKey("mykey")
 	assert.Equal(t, "docker/mcp/mykey", result)
 }
 

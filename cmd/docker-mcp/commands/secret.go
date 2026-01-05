@@ -63,7 +63,7 @@ func rmSecretCommand() *cobra.Command {
 
 			var errs []error
 			for _, s := range ids {
-				errs = append(errs, secret.DeleteSecret(cmd.Context(), s))
+				errs = append(errs, secret.DeleteDefaultSecret(cmd.Context(), s))
 			}
 			return errors.Join(errs...)
 		},

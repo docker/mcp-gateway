@@ -87,7 +87,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 			providerPrefix = server.Secrets + "_"
 		}
 		for _, s := range server.Snapshot.Server.Secrets {
-			secrets[providerPrefix+s.Name] = fmt.Sprintf("se://%s", secret.GetSecretKey(s.Name))
+			secrets[providerPrefix+s.Name] = fmt.Sprintf("se://%s", secret.GetDefaultSecretKey(s.Name))
 		}
 	}
 

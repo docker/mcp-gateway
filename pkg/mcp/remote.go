@@ -62,7 +62,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		} else {
 			// Fall back to secrets engine (Docker Desktop direct API)
 			if verbose {
-				log.Logf("    - Fetching secret: %s", secret.GetSecretKey(s.Name))
+				log.Logf("    - Fetching secret: %s", secret.GetDefaultSecretKey(s.Name))
 			}
 			env[s.Env] = getSecretValue(ctx, s.Name)
 		}
@@ -148,7 +148,7 @@ func getSecretValue(ctx context.Context, secretName string) string {
 		return ""
 	}
 
-	fullID := secret.GetSecretKey(secretName)
+	fullID := secret.GetDefaultSecretKey(secretName)
 	for _, env := range envelopes {
 		if env.ID == fullID {
 			return string(env.Value)

@@ -55,5 +55,5 @@ func isDirectValueProvider(provider string) bool {
 }
 
 func Set(ctx context.Context, s Secret, _ SetOpts) error {
-	return setSecret(ctx, s.key, s.val)
+	return setDefaultSecret(ctx, s.key, s.val)
 }
