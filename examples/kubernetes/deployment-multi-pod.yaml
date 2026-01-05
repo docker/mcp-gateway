@@ -167,7 +167,14 @@ spec:
         app: mcp-gateway
     spec:
       initContainers:
-      # Wait for MCP servers to be ready before starting gateway
+      # WORKAROUND: Wait for MCP servers to be ready before starting gateway
+      #
+      # The gateway currently initializes connections to all MCP servers during startup.
+      # This init container ensures servers are listening before the gateway starts.
+      #
+      # FUTURE: The gateway should use lazy initialization - connect to servers on-demand
+      # when clients connect, not during gateway startup. This would eliminate the need
+      # for this init container and allow servers to come/go dynamically.
       - name: wait-for-mcp-servers
         image: busybox:1.36
         command: ['sh', '-c']

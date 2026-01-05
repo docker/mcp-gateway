@@ -236,6 +236,8 @@ kubectl delete -f services-multi-pod.yaml
 
 ## Limitations
 
+### Kubernetes Static Mode Limitations
+
 Compared to running the gateway locally with Docker:
 
 - **No dynamic server provisioning** - Cannot add/remove servers at runtime
@@ -244,6 +246,24 @@ Compared to running the gateway locally with Docker:
 - **No file watching** - Config updates need pod restart
 
 These are inherent limitations of running in Kubernetes static mode.
+
+### Gateway Startup Dependency Limitation
+
+**Current Behavior:** The gateway initializes connections to all MCP servers during startup. This means:
+- Gateway cannot start until all configured MCP servers are available
+- Init container must wait for servers to be listening before gateway starts
+- If a server is unavailable at startup, gateway initialization fails
+- Servers cannot be dynamically added/removed without restarting the gateway
+
+**Workaround:** We use an init container (`wait-for-mcp-servers`) to ensure MCP servers are ready before the gateway starts. See lines 169-198 in `deployment-multi-pod.yaml`.
+
+**Ideal Behavior (Future):** The gateway should use lazy initialization:
+- Gateway starts independently without connecting to upstream servers
+- Server connections are established on-demand when a client connects
+- Tool/resource listing happens at client connection time, not gateway startup
+- This would allow servers to come and go dynamically while the gateway remains available
+
+**Note:** This is a gateway application architecture limitation, not a Kubernetes limitation. It requires changes to the gateway code to implement connection pooling with lazy initialization and on-demand server discovery.
 
 ## Next Steps
 
