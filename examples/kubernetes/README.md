@@ -27,10 +27,50 @@ In static mode (`--static=true`), the gateway connects to pre-started MCP server
 
 ## Files
 
+### Kubernetes Manifests
+
 - `deployment.yaml` - Main deployment with gateway and MCP servers as sidecars
 - `service.yaml` - Service to expose the gateway
 - `deployment-multi-pod.yaml` - Alternative: separate pods for each component
 - `services-multi-pod.yaml` - Services for multi-pod deployment
+
+### Scripts
+
+All scripts are located in the `scripts/` directory and can be run from any directory.
+
+**MCP Gateway Scripts:**
+
+- **`scripts/deploy.sh`** - One-command deployment of MCP Gateway and servers
+  - Checks prerequisites (kubectl, cluster connection)
+  - Deploys multi-pod configuration
+  - Waits for pods to be ready
+  - Shows status and access instructions
+
+- **`scripts/cleanup.sh`** - Clean removal of all MCP Gateway resources
+  - Deletes all deployments and services
+  - Waits for pod termination
+  - Verifies complete removal
+
+- **`scripts/port-forward-mcp.sh [port]`** - Port-forward the MCP Gateway to localhost
+  - Verifies gateway is deployed and ready
+  - Kills any existing process on the target port
+  - Forwards service/mcp-gateway to localhost (default: 8811)
+  - Shows connection info and stays running until Ctrl+C
+
+- **`scripts/test.sh`** - Verify deployment is working correctly
+  - Checks pod and service status
+  - Views gateway logs
+  - Tests health endpoint
+  - Provides connection instructions
+
+**Kubernetes Dashboard Scripts:**
+
+- **`scripts/install-dashboard.sh`** - Install Kubernetes Dashboard v2.7.0
+- **`scripts/setup-dashboard-admin.sh`** - Create admin service account for dashboard
+- **`scripts/get-dashboard-token.sh [duration]`** - Generate authentication token (default: 1h)
+- **`scripts/port-forward-dashboard.sh [port]`** - Port-forward dashboard to localhost (default: 8443)
+
+See **[docs/dashboard.md](docs/dashboard.md)** for complete dashboard setup documentation.
 
 ## Prerequisites
 
@@ -44,10 +84,10 @@ Deploy the gateway with MCP servers in separate pods:
 
 ```bash
 # One-command deploy
-./deploy.sh
+./scripts/deploy.sh
 
 # Start port forwarding (separate terminal)
-./port-forward-mcp.sh
+./scripts/port-forward-mcp.sh
 
 # Test the gateway (another terminal)
 curl http://localhost:8811/mcp
@@ -55,6 +95,8 @@ curl http://localhost:8811/mcp
 ```
 
 Connect your MCP client to: `http://localhost:8811/mcp`
+
+**Note:** All scripts can be run from any directory - they automatically resolve paths relative to their location.
 
 ## Alternative: Multi-Pod Deployment
 

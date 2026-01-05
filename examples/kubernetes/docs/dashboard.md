@@ -5,29 +5,33 @@ Quick scripts to install and access the Kubernetes Dashboard on your cluster.
 ## Quick Start
 
 ```bash
+# From the kubernetes/ directory:
+
 # 1. Install the dashboard
-./install-dashboard.sh
+./scripts/install-dashboard.sh
 
 # 2. Set up admin account
-./setup-dashboard-admin.sh
+./scripts/setup-dashboard-admin.sh
 
 # 3. Start port forwarding (in one terminal)
-./port-forward-dashboard.sh
+./scripts/port-forward-dashboard.sh
 
 # 4. Get login token (in another terminal)
-./get-dashboard-token.sh
+./scripts/get-dashboard-token.sh
 ```
 
 Then open: **https://localhost:8443** and paste the token.
 
+**Note:** Scripts can be run from any directory - they automatically resolve paths relative to their location.
+
 ## Scripts
 
-### 1. `install-dashboard.sh`
+### 1. `scripts/install-dashboard.sh`
 
 Installs Kubernetes Dashboard v2.7.0 to your cluster.
 
 ```bash
-./install-dashboard.sh
+./scripts/install-dashboard.sh
 ```
 
 **What it does:**
@@ -38,12 +42,12 @@ Installs Kubernetes Dashboard v2.7.0 to your cluster.
 
 **Safe to re-run:** Prompts before reinstalling if already exists.
 
-### 2. `setup-dashboard-admin.sh`
+### 2. `scripts/setup-dashboard-admin.sh`
 
 Creates a service account with cluster-admin permissions.
 
 ```bash
-./setup-dashboard-admin.sh
+./scripts/setup-dashboard-admin.sh
 ```
 
 **What it does:**
@@ -55,18 +59,18 @@ Creates a service account with cluster-admin permissions.
 
 **Safe to re-run:** Skips if resources already exist.
 
-### 3. `get-dashboard-token.sh`
+### 3. `scripts/get-dashboard-token.sh`
 
 Generates an authentication token for the dashboard.
 
 ```bash
 # Default: 1 hour token
-./get-dashboard-token.sh
+./scripts/get-dashboard-token.sh
 
 # Custom duration
-./get-dashboard-token.sh 24h   # 24 hours
-./get-dashboard-token.sh 30m   # 30 minutes
-./get-dashboard-token.sh 7d    # 7 days
+./scripts/get-dashboard-token.sh 24h   # 24 hours
+./scripts/get-dashboard-token.sh 30m   # 30 minutes
+./scripts/get-dashboard-token.sh 7d    # 7 days
 ```
 
 **What it does:**
@@ -77,16 +81,16 @@ Generates an authentication token for the dashboard.
 
 **Note:** Tokens are temporary and expire. Run this script again to generate a new token.
 
-### 4. `port-forward-dashboard.sh`
+### 4. `scripts/port-forward-dashboard.sh`
 
 Starts port-forwarding to access the dashboard.
 
 ```bash
 # Default port (8443)
-./port-forward-dashboard.sh
+./scripts/port-forward-dashboard.sh
 
 # Custom port
-./port-forward-dashboard.sh 9443
+./scripts/port-forward-dashboard.sh 9443
 ```
 
 **What it does:**
@@ -107,7 +111,7 @@ Starts port-forwarding to access the dashboard.
 kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8443:443
 
 # Terminal 2: Get token
-./get-dashboard-token.sh
+./scripts/get-dashboard-token.sh
 
 # Browser: Open https://localhost:8443
 ```
@@ -161,7 +165,7 @@ kubectl create rolebinding dashboard-namespace-admin \
 
 3. **Use Short-Lived Tokens:**
 ```bash
-./get-dashboard-token.sh 1h   # 1 hour only
+./scripts/get-dashboard-token.sh 1h   # 1 hour only
 ```
 
 4. **Consider OIDC/SSO Integration:**
@@ -194,7 +198,7 @@ kubectl get clusterrolebinding dashboard-admin
 
 If missing, run:
 ```bash
-./setup-dashboard-admin.sh
+./scripts/setup-dashboard-admin.sh
 ```
 
 ### Token expired
@@ -203,10 +207,10 @@ If missing, run:
 
 **Solution:** Generate a new token:
 ```bash
-./get-dashboard-token.sh
+./scripts/get-dashboard-token.sh
 
 # Or with longer duration
-./get-dashboard-token.sh 24h
+./scripts/get-dashboard-token.sh 24h
 ```
 
 ### Dashboard pod not starting
@@ -255,8 +259,10 @@ kubectl get namespace kubernetes-dashboard
 
 ## Related Scripts
 
-Also in this directory:
-- `deploy.sh` - Deploy MCP Gateway
-- `cleanup.sh` - Remove MCP Gateway
-- `test.sh` - Test MCP Gateway
-- See `QUICKSTART.md` for MCP Gateway setup
+Also available in the `../scripts/` directory:
+- `scripts/deploy.sh` - Deploy MCP Gateway
+- `scripts/cleanup.sh` - Remove MCP Gateway
+- `scripts/test.sh` - Test MCP Gateway
+- `scripts/port-forward-mcp.sh` - Port-forward MCP Gateway
+
+See `../README.md` for complete MCP Gateway documentation.

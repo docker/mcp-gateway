@@ -4,6 +4,11 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Parent directory contains the YAML files
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "=========================================="
 echo "MCP Gateway Kubernetes Deployment"
 echo "=========================================="
@@ -28,11 +33,11 @@ echo ""
 
 # Deploy the gateway and servers
 echo "Deploying MCP Gateway and servers..."
-kubectl apply -f deployment-multi-pod.yaml
+kubectl apply -f "$PARENT_DIR/deployment-multi-pod.yaml"
 
 echo ""
 echo "Deploying services..."
-kubectl apply -f services-multi-pod.yaml
+kubectl apply -f "$PARENT_DIR/services-multi-pod.yaml"
 
 echo ""
 echo "Waiting for pods to be ready (this may take 30-60 seconds)..."
@@ -78,6 +83,5 @@ echo "  - duckduckgo (2 tools)"
 echo ""
 echo "For more information, see:"
 echo "  - README.md for full documentation"
-echo "  - ACCESSING.md for connection details"
-echo "  - STATUS.md for testing results"
+echo "  - docs/accessing.md for connection details"
 echo ""

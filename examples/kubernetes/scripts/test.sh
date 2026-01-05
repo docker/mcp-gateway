@@ -3,6 +3,11 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Parent directory contains the YAML files
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "=== MCP Gateway Kubernetes Test ==="
 echo ""
 

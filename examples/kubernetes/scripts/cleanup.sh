@@ -3,17 +3,22 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Parent directory contains the YAML files
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "=========================================="
 echo "MCP Gateway Cleanup"
 echo "=========================================="
 echo ""
 
 echo "Deleting deployments..."
-kubectl delete -f deployment-multi-pod.yaml --ignore-not-found=true
+kubectl delete -f "$PARENT_DIR/deployment-multi-pod.yaml" --ignore-not-found=true
 
 echo ""
 echo "Deleting services..."
-kubectl delete -f services-multi-pod.yaml --ignore-not-found=true
+kubectl delete -f "$PARENT_DIR/services-multi-pod.yaml" --ignore-not-found=true
 
 echo ""
 echo "Waiting for pods to terminate..."
