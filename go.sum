@@ -244,10 +244,10 @@ github.com/docker/go-metrics v0.0.1/go.mod h1:cG1hvH2utMXtqgqqYE9plW6lDxS3/5ayHz
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7/go.mod h1:cyGadeNEkKy96OOhEzfZl+yxihPEzKnqJwvfuSUqbZE=
-github.com/docker/mcp-gateway-oauth-helpers v0.0.3 h1:TgXk/DFaXFYpDhduN3l7LCjdjo6doTHXoEg2P43NZT0=
-github.com/docker/mcp-gateway-oauth-helpers v0.0.3/go.mod h1:IK0jk+ZNYW/yy5yotveLFcU9Jgk3pMpNasX4X1hheZM=
 github.com/docker/mcp-community-registry v0.0.0-20251024214917-21000e320421 h1:18Ut0n3NwDXDyCc4vHE03Wcl3LhzOltstayBsg8QqtM=
 github.com/docker/mcp-community-registry v0.0.0-20251024214917-21000e320421/go.mod h1:TDsRGHqTXW9BykauHTOGUL5xQ74PH7zB9iK5HatW1Bg=
+github.com/docker/mcp-gateway-oauth-helpers v0.0.3 h1:TgXk/DFaXFYpDhduN3l7LCjdjo6doTHXoEg2P43NZT0=
+github.com/docker/mcp-gateway-oauth-helpers v0.0.3/go.mod h1:IK0jk+ZNYW/yy5yotveLFcU9Jgk3pMpNasX4X1hheZM=
 github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6 h1:6dE1TmjqkY6tehR4A67gDNhvDtuZ54ocu7ab4K9o540=
 github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6/go.mod h1:MxLav0peU43GgvwVgNbLAj1s/bSGboKkhuULvq/7hx4=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
@@ -540,8 +540,8 @@ github.com/moby/sys/sequential v0.6.0 h1:qrx7XFUd/5DxtqcoH1h438hF5TmOvzC/lspjy7z
 github.com/moby/sys/sequential v0.6.0/go.mod h1:uyv8EUTrca5PnDsdMGXhZe6CCe8U/UiTWd+lL+7b/Ko=
 github.com/moby/term v0.5.2 h1:6qk3FJAFDs6i/q3W/pQ97SX192qKfZgGjCQqfCJkgzQ=
 github.com/moby/term v0.5.2/go.mod h1:d3djjFCrjnB+fl8NJux+EJzu0msscUP+f8it8hPkFLc=
-github.com/modelcontextprotocol/go-sdk v1.0.0 h1:Z4MSjLi38bTgLrd/LjSmofqRqyBiVKRyQSJgw8q8V74=
-github.com/modelcontextprotocol/go-sdk v1.0.0/go.mod h1:nYtYQroQ2KQiM0/SbyEPUWQ6xs4B95gJjEalc9AQyOs=
+github.com/modelcontextprotocol/go-sdk v1.2.0 h1:Y23co09300CEk8iZ/tMxIX1dVmKZkzoSBZOpJwUnc/s=
+github.com/modelcontextprotocol/go-sdk v1.2.0/go.mod h1:6fM3LCm3yV7pAs8isnKLn07oKtB0MP9LHd3DfAcKw10=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
