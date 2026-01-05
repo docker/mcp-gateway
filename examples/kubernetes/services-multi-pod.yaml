@@ -1,0 +1,56 @@
+# Services for multi-pod deployment
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-duckduckgo
+  labels:
+    app: mcp-server
+    server: duckduckgo
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-server
+    server: duckduckgo
+  ports:
+  - port: 4444
+    targetPort: 4444
+    protocol: TCP
+    name: mcp
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-fetch
+  labels:
+    app: mcp-server
+    server: fetch
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-server
+    server: fetch
+  ports:
+  - port: 4444
+    targetPort: 4444
+    protocol: TCP
+    name: mcp
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-gateway
+  labels:
+    app: mcp-gateway
+spec:
+  type: ClusterIP  # Change to LoadBalancer or NodePort for external access
+  selector:
+    app: mcp-gateway
+  ports:
+  - port: 8811
+    targetPort: 8811
+    protocol: TCP
+    name: mcp
