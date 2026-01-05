@@ -373,6 +373,13 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 		}
 	}
 
+	// Extra hosts (for /etc/hosts entries)
+	for _, host := range serverConfig.Spec.ExtraHosts {
+		if host != "" {
+			args = append(args, "--add-host", host)
+		}
+	}
+
 	return args, env
 }
 
