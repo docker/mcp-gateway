@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -18,6 +20,9 @@ import (
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
+
+	// Import sqlite driver for direct database access in tests
+	_ "modernc.org/sqlite"
 )
 
 // setupTestEnvironment creates a temporary directory structure with legacy config files
@@ -122,9 +127,6 @@ func TestMigrateConfig_SuccessWithServers(t *testing.T) {
 	// Verify secrets
 	assert.Len(t, workingSets[0].Secrets, 1)
 	assert.Equal(t, "docker-desktop-store", workingSets[0].Secrets["default"].Provider)
-
-	// Verify legacy files were backed up
-	assertLegacyFilesBackedUp(t, mcpDir)
 }
 
 func TestMigrateConfig_SuccessWithSingleServer(t *testing.T) {
@@ -184,9 +186,73 @@ func TestMigrateConfig_SkipsWithNoServers(t *testing.T) {
 	workingSets, err := dao.ListWorkingSets(ctx)
 	require.NoError(t, err)
 	assert.Empty(t, workingSets)
+}
 
-	// Verify legacy files were still backed up
-	assertLegacyFilesBackedUp(t, mcpDir)
+func TestMigrateConfig_SuccessWithRemoteAndImage(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create registry with mixed server types
+	registryYaml := `registry:
+  server-1:
+    ref: ""
+  server-2:
+    ref: ""`
+	err := os.WriteFile(filepath.Join(mcpDir, "registry.yaml"), []byte(registryYaml), 0o644)
+	require.NoError(t, err)
+
+	// Config
+	err = os.WriteFile(filepath.Join(mcpDir, "config.yaml"), []byte("{}"), 0o644)
+	require.NoError(t, err)
+
+	// Tools
+	err = os.WriteFile(filepath.Join(mcpDir, "tools.yaml"), []byte("{}"), 0o644)
+	require.NoError(t, err)
+
+	// Catalog with one valid and one invalid server type
+	catalogYaml := `registry:
+  server-1:
+    type: remote
+    remote:
+      transport_type: sse
+      url: https://mcp.example.com/sse
+    title: Remote Server
+    description: A remote server
+  server-2:
+    type: server
+    image: test/server-2:latest
+    title: Server 2
+    description: A server 2`
+	catalogsDir := filepath.Join(mcpDir, "catalogs")
+	err = os.MkdirAll(catalogsDir, 0o755)
+	require.NoError(t, err)
+	err = os.WriteFile(filepath.Join(catalogsDir, legacycatalog.DockerCatalogFilename), []byte(catalogYaml), 0o644)
+	require.NoError(t, err)
+
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	// Verify migration status is success
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusSuccess, status.Status)
+	assert.Contains(t, status.Logs, "default profile created with 2 servers")
+
+	// Verify working set was created
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Len(t, workingSets, 1)
+	assert.Equal(t, "default", workingSets[0].ID)
+	assert.Equal(t, "Default Profile", workingSets[0].Name)
+
+	// Verify servers in working set
+	assert.Len(t, workingSets[0].Servers, 2)
+	assert.Equal(t, "remote", workingSets[0].Servers[0].Type)
+	assert.Equal(t, "https://mcp.example.com/sse", workingSets[0].Servers[0].Endpoint)
+	assert.Equal(t, "image", workingSets[0].Servers[1].Type)
+	assert.Equal(t, "test/server-2:latest", workingSets[0].Servers[1].Image)
 }
 
 func TestMigrateConfig_FailureReadingLegacyFiles(t *testing.T) {
@@ -485,18 +551,161 @@ func TestMigrateConfig_LegacyFilesBackedUpOnSuccess(t *testing.T) {
 	status, err := dao.GetMigrationStatus(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, MigrationStatusSuccess, status.Status)
+}
 
-	// Verify all legacy files were backed up
-	assertLegacyFilesBackedUp(t, mcpDir)
+func TestMigrateConfig_LockTransactionAndRollbackAllowsCompletionOfMigration(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
 
-	// Verify catalog.json was also backed up
-	backupCatalogIndexPath := filepath.Join(mcpDir, ".backup", "catalog.json")
-	_, err = os.Stat(backupCatalogIndexPath)
-	assert.False(t, os.IsNotExist(err), "catalog.json should be backed up")
+	tempDir := t.TempDir()
+	dbFile := filepath.Join(tempDir, "test.db")
 
-	// Verify original catalog.json no longer exists
-	_, err = os.Stat(catalogIndexPath)
-	assert.True(t, os.IsNotExist(err), "original catalog.json should be removed")
+	dao, err := db.New(db.WithDatabaseFile(dbFile))
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Open a separate connection to the same database and hold a transaction on migration_status
+	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(5000)")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		blockingDB.Close()
+	})
+
+	// Start a transaction and lock the migration_status table
+	tx, err := blockingDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		tx.Rollback() //nolint:errcheck
+	})
+
+	// Insert a row to lock the table (this will hold a write lock)
+	_, err = tx.ExecContext(ctx, "INSERT INTO migration_status (status, logs) VALUES ('pending', 'blocking')")
+	require.NoError(t, err)
+
+	var completed atomic.Bool
+	completed.Store(false)
+
+	goChanErr := make(chan error, 1)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		completed.Store(true)
+		err := tx.Rollback()
+		goChanErr <- err
+	}()
+
+	// Now try to run migration - it will be delayed due to lock
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	require.True(t, completed.Load(), "migration should return after the rollback")
+
+	err = <-goChanErr
+	require.NoError(t, err)
+
+	// Verify migration completed
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Len(t, workingSets, 1)
+
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusSuccess, status.Status)
+}
+
+func TestMigrateConfig_LockTransactionAndCommitPreventsMigration(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	tempDir := t.TempDir()
+	dbFile := filepath.Join(tempDir, "test.db")
+
+	dao, err := db.New(db.WithDatabaseFile(dbFile))
+	require.NoError(t, err)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Open a separate connection to the same database and hold a transaction on migration_status
+	blockingDB, err := sql.Open("sqlite", "file:"+dbFile+"?_pragma=busy_timeout(5000)")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		blockingDB.Close()
+	})
+
+	// Start a transaction and lock the migration_status table
+	tx, err := blockingDB.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		tx.Rollback() //nolint:errcheck
+	})
+
+	// Insert a row to lock the table (this will hold a write lock)
+	_, err = tx.ExecContext(ctx, "INSERT INTO migration_status (status, logs) VALUES ('pending', 'blocking')")
+	require.NoError(t, err)
+
+	var completed atomic.Bool
+	completed.Store(false)
+
+	goChanErr := make(chan error, 1)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		completed.Store(true)
+		err := tx.Commit()
+		goChanErr <- err
+	}()
+
+	// Now try to run migration - it will be delayed due to lock
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	require.True(t, completed.Load(), "migration should complete after the rollback")
+
+	err = <-goChanErr
+	require.NoError(t, err)
+
+	// Verify migration did not complete
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, workingSets)
+
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusPending, status.Status)
+}
+
+func TestMigrateConfig_SkipsWhenStatusIsPending(t *testing.T) {
+	mcpDir := setupTestEnvironment(t)
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create legacy files (these should not be read if migration is blocked)
+	writeTestLegacyFiles(t, mcpDir, "server1")
+
+	// Set migration status to pending (simulating another instance running)
+	err := dao.UpdateMigrationStatus(ctx, db.MigrationStatus{
+		Status: MigrationStatusPending,
+		Logs:   "Migration in progress by another instance",
+	})
+	require.NoError(t, err)
+
+	// Now try to run migration - it should skip because status is pending
+	mockDocker := &mockDockerClient{}
+	MigrateConfig(ctx, mockDocker, dao)
+
+	// Verify no working sets were created (migration didn't run)
+	workingSets, err := dao.ListWorkingSets(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, workingSets, "No working sets should be created when migration status is pending")
+
+	// Verify status is still pending (unchanged)
+	status, err := dao.GetMigrationStatus(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, MigrationStatusPending, status.Status, "Migration status should still be pending")
 }
 
 // Helper functions
@@ -544,50 +753,6 @@ func writeCatalogFile(t *testing.T, mcpDir string, serverNames []string) {
 
 	err = os.WriteFile(filepath.Join(catalogsDir, legacycatalog.DockerCatalogFilename), []byte(catalogYaml), 0o644)
 	require.NoError(t, err)
-}
-
-func assertLegacyFilesBackedUp(t *testing.T, mcpDir string) {
-	t.Helper()
-
-	backupDir := filepath.Join(mcpDir, ".backup")
-
-	// Verify backup directory exists
-	_, err := os.Stat(backupDir)
-	assert.False(t, os.IsNotExist(err), "backup directory should exist")
-
-	// Verify original files no longer exist in original location
-	registryPath := filepath.Join(mcpDir, "registry.yaml")
-	_, err = os.Stat(registryPath)
-	assert.True(t, os.IsNotExist(err), "original registry.yaml should be removed")
-
-	configPath := filepath.Join(mcpDir, "config.yaml")
-	_, err = os.Stat(configPath)
-	assert.True(t, os.IsNotExist(err), "original config.yaml should be removed")
-
-	toolsPath := filepath.Join(mcpDir, "tools.yaml")
-	_, err = os.Stat(toolsPath)
-	assert.True(t, os.IsNotExist(err), "original tools.yaml should be removed")
-
-	catalogPath := filepath.Join(mcpDir, "catalogs", legacycatalog.DockerCatalogFilename)
-	_, err = os.Stat(catalogPath)
-	assert.True(t, os.IsNotExist(err), "original catalog file should be removed")
-
-	// Verify files exist in backup directory
-	backupRegistryPath := filepath.Join(backupDir, "registry.yaml")
-	_, err = os.Stat(backupRegistryPath)
-	assert.False(t, os.IsNotExist(err), "registry.yaml should be backed up")
-
-	backupConfigPath := filepath.Join(backupDir, "config.yaml")
-	_, err = os.Stat(backupConfigPath)
-	assert.False(t, os.IsNotExist(err), "config.yaml should be backed up")
-
-	backupToolsPath := filepath.Join(backupDir, "tools.yaml")
-	_, err = os.Stat(backupToolsPath)
-	assert.False(t, os.IsNotExist(err), "tools.yaml should be backed up")
-
-	backupCatalogPath := filepath.Join(backupDir, legacycatalog.DockerCatalogFilename)
-	_, err = os.Stat(backupCatalogPath)
-	assert.False(t, os.IsNotExist(err), "catalog file should be backed up")
 }
 
 // mockDockerClient is a simple mock implementation of docker.Client for testing

@@ -2,39 +2,75 @@ package migrate
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
+	"time"
+
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/utils"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 const (
+	MigrationStatusPending = "pending"
 	MigrationStatusSuccess = "success"
 	MigrationStatusFailed  = "failed"
 )
 
+var errMigrationAlreadyRunning = errors.New("migration already running")
+
 //revive:disable
 func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
-	_, err := dao.GetMigrationStatus(ctx)
-	if err == nil {
-		// Migration already run, skip
+	var acquired bool
+	// It's possible another cli instance is already running the migration,
+	// so retry this 5 times as long as the error is errMigrationAlreadyRunning
+	err := utils.RetryIfErrorIs(5, 300*time.Millisecond, func() error {
+		migrationStatus, ac, err := dao.TryAcquireMigration(ctx, MigrationStatusPending)
+		if err != nil {
+			var sqliteErr *sqlite.Error
+			// If another "acquire" is in progress and is slow or stuck, it can return SQLITE_BUSY
+			if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_BUSY {
+				return errMigrationAlreadyRunning
+			}
+			return err
+		}
+		acquired = ac
+
+		if migrationStatus.LastUpdated != nil &&
+			migrationStatus.Status == MigrationStatusPending &&
+			time.Since(*migrationStatus.LastUpdated) > 10*time.Second {
+			// Very unlikely, but if stuck in pending state for too long, override the acquired flag.
+			// This can happen if the migration gets interrupted. Let's try to finish it.
+			acquired = true
+			return nil
+		}
+
+		if !acquired && migrationStatus.Status == MigrationStatusPending {
+			// Pending migration happening in another instance
+			return errMigrationAlreadyRunning
+		}
+
+		return nil
+	}, errMigrationAlreadyRunning)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to get migration status: %s\n", err.Error())
 		return
 	}
 
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		fmt.Fprintf(os.Stderr, "failed to get migration status: %s", err.Error())
+	// Didn't acquire the migration, assume already completed
+	if !acquired {
 		return
 	}
 
-	// err == sql.ErrNoRows so we need to perform the migration
+	// Otherwise, run the migration
 
 	status := MigrationStatusFailed
 	logs := []string{}
@@ -74,12 +110,6 @@ func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
 
 	// Migration considered successful by this point
 	status = MigrationStatusSuccess
-
-	err = backupLegacyFiles()
-	if err != nil {
-		logs = append(logs, fmt.Sprintf("failed to backup legacy files: %s", err.Error()))
-		return
-	}
 }
 
 func createDefaultProfile(ctx context.Context, dao db.DAO, registry *config.Registry, cfg map[string]map[string]any, tools *config.ToolsConfig, oldCatalog *legacycatalog.Catalog) ([]string, error) {
@@ -112,11 +142,14 @@ func createDefaultProfile(ctx context.Context, dao db.DAO, registry *config.Regi
 			Tools:   tools.ServerTools[server],
 			Secrets: "default",
 		}
-		if oldServer.Type == "server" {
+		switch oldServer.Type {
+		case "server":
 			profileServer.Type = workingset.ServerTypeImage
 			profileServer.Image = oldServer.Image
-		} else {
-			// TODO(cody): Support remotes
+		case "remote":
+			profileServer.Type = workingset.ServerTypeRemote
+			profileServer.Endpoint = oldServer.Remote.URL
+		default:
 			logs = append(logs, fmt.Sprintf("server %s has an invalid server type: %s, skipping", server, oldServer.Type))
 			continue // Ignore
 		}
@@ -186,67 +219,4 @@ func readLegacyDefaults(ctx context.Context, docker docker.Client) (*config.Regi
 	}
 
 	return &registry, cfg, &tools, &mcpCatalog, nil
-}
-
-func backupLegacyFiles() error {
-	// Create backup directory
-	backupDir, err := config.FilePath(".backup")
-	if err != nil {
-		return fmt.Errorf("failed to get backup directory path: %w", err)
-	}
-
-	err = os.MkdirAll(backupDir, 0o755)
-	if err != nil {
-		return fmt.Errorf("failed to create backup directory: %w", err)
-	}
-
-	// Get paths to legacy files
-	registryPath, err := config.FilePath("registry.yaml")
-	if err != nil {
-		return fmt.Errorf("failed to get registry path: %w", err)
-	}
-	configPath, err := config.FilePath("config.yaml")
-	if err != nil {
-		return fmt.Errorf("failed to get config path: %w", err)
-	}
-	toolsPath, err := config.FilePath("tools.yaml")
-	if err != nil {
-		return fmt.Errorf("failed to get tools path: %w", err)
-	}
-
-	catalogIndexPath, err := config.FilePath("catalog.json")
-	if err != nil {
-		return fmt.Errorf("failed to get catalog index path: %w", err)
-	}
-
-	catalogsDir, err := config.FilePath("catalogs")
-	if err != nil {
-		return fmt.Errorf("failed to get old catalog path: %w", err)
-	}
-
-	oldCatalogPath := filepath.Join(catalogsDir, legacycatalog.DockerCatalogFilename)
-
-	// Move files to backup directory
-	_ = moveFile(registryPath, filepath.Join(backupDir, "registry.yaml"))
-	_ = moveFile(configPath, filepath.Join(backupDir, "config.yaml"))
-	_ = moveFile(toolsPath, filepath.Join(backupDir, "tools.yaml"))
-	_ = moveFile(catalogIndexPath, filepath.Join(backupDir, "catalog.json"))
-	_ = moveFile(oldCatalogPath, filepath.Join(backupDir, legacycatalog.DockerCatalogFilename))
-
-	// We use os.Remove to remove the directory, so it's only removed if empty
-	// We don't want to remove any custom catalog yamls the user may have added
-	_ = os.Remove(catalogsDir)
-
-	return nil
-}
-
-// moveFile moves a file from src to dst. If src doesn't exist, it's a no-op.
-func moveFile(src, dst string) error {
-	// Check if source file exists
-	if _, err := os.Stat(src); os.IsNotExist(err) {
-		return nil // File doesn't exist, nothing to move
-	}
-
-	// Move the file
-	return os.Rename(src, dst)
 }

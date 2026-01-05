@@ -8,3 +8,8 @@ dist
 **/.DS_Store
 /nix/
 /.mcp.json
+/test/embeddings/.clj-kondo/
+/test/embeddings/.cpcache/
+/test/embeddings/.direnv/
+/test/embeddings/.envrc
+/test/embeddings/.lsp/

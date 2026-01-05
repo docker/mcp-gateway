@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
@@ -19,14 +20,14 @@ import (
 )
 
 type WorkingSetConfiguration struct {
-	WorkingSet string
+	config     Config
 	ociService oci.Service
 	docker     docker.Client
 }
 
-func NewWorkingSetConfiguration(workingSet string, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
+func NewWorkingSetConfiguration(config Config, ociService oci.Service, docker docker.Client) *WorkingSetConfiguration {
 	return &WorkingSetConfiguration{
-		WorkingSet: workingSet,
+		config:     config,
 		ociService: ociService,
 		docker:     docker,
 	}
@@ -56,10 +57,15 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	start := time.Now()
 	log.Log("- Reading profile configuration...")
 
-	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.WorkingSet)
+	dbWorkingSet, err := dao.GetWorkingSet(ctx, c.config.WorkingSet)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return Configuration{}, fmt.Errorf("profile %s not found", c.WorkingSet)
+			// Special case for the default profile, we're okay with it not existing
+			if c.config.WorkingSet == "default" {
+				log.Log("  - Default profile not found, using empty configuration")
+				return c.emptyConfiguration(ctx, dao)
+			}
+			return Configuration{}, fmt.Errorf("profile %s not found", c.config.WorkingSet)
 		}
 		return Configuration{}, fmt.Errorf("failed to get profile: %w", err)
 	}
@@ -90,6 +96,14 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	// TODO(cody): Finish making the gateway fully compatible with working sets
 	serverNames := make([]string, 0)
 	servers := make(map[string]catalog.Server)
+
+	// Load all catalogs to populate servers for dynamic tools
+	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
+	}
+	maps.Copy(servers, allCatalogServers)
+
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
 		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
@@ -97,10 +111,6 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		}
 
 		serverName := server.Snapshot.Server.Name
-
-		if _, exists := servers[serverName]; exists {
-			return Configuration{}, fmt.Errorf("duplicate server names: %s", serverName)
-		}
 
 		servers[serverName] = server.Snapshot.Server
 		serverNames = append(serverNames, serverName)
@@ -124,6 +134,50 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		tools:       toolsConfig,
 		secrets:     secrets,
 	}, nil
+}
+
+func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db.DAO) (Configuration, error) {
+	// Load all catalogs to populate servers for dynamic tools
+	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
+	if err != nil {
+		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
+	}
+
+	return Configuration{
+		serverNames: []string{},
+		servers:     allCatalogServers,
+		config:      make(map[string]map[string]any),
+		tools: config.ToolsConfig{
+			ServerTools: make(map[string][]string),
+		},
+		secrets: make(map[string]string),
+	}, nil
+}
+
+func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
+	servers := make(map[string]catalog.Server)
+	if c.config.DynamicTools {
+		allCatalogs, err := dao.ListCatalogs(ctx)
+		if err != nil {
+			return servers, fmt.Errorf("failed to list catalogs: %w", err)
+		}
+
+		if len(allCatalogs) == 0 {
+			log.Log("  - No catalogs found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
+		} else {
+			log.Log(fmt.Sprintf("  - Loading %d catalog(s) for dynamic tools", len(allCatalogs)))
+			for _, cat := range allCatalogs {
+				log.Log(fmt.Sprintf("    - Processing catalog '%s' with %d servers", cat.Ref, len(cat.Servers)))
+				for _, server := range cat.Servers {
+					if server.Snapshot != nil { // should always be true
+						servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+					}
+				}
+			}
+			log.Log(fmt.Sprintf("  - Total servers loaded from all catalogs: %d", len(servers)))
+		}
+	}
+	return servers, nil
 }
 
 func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) config.ToolsConfig {

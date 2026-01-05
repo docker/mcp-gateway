@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -13,13 +14,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
+	"github.com/docker/mcp-gateway/pkg/user"
 )
 
 type ServerSessionCache struct {
@@ -70,6 +74,9 @@ type Gateway struct {
 	// Track all tool registrations for mcp-exec
 	toolRegistrations map[string]ToolRegistration
 
+	// embeddings client for vector search
+	embeddingsClient *embeddings.VectorDBClient
+
 	// authToken stores the authentication token for SSE/streaming modes
 	authToken string
 	// authTokenWasGenerated indicates whether the token was auto-generated or from environment
@@ -79,36 +86,19 @@ type Gateway struct {
 func NewGateway(config Config, docker docker.Client) *Gateway {
 	var configurator Configurator
 	if config.WorkingSet != "" {
-		configurator = NewWorkingSetConfiguration(config.WorkingSet, oci.NewService(), docker)
+		configurator = NewWorkingSetConfiguration(config, oci.NewService(), docker)
 	} else {
-		// Prepend session-specific paths if SessionName is set
-		registryPath := config.RegistryPath
-		configPath := config.ConfigPath
-		toolsPath := config.ToolsPath
-
-		if config.SessionName != "" {
-			// Prepend session-specific paths to load session configs first
-			sessionRegistry := fmt.Sprintf("%s/registry.yaml", config.SessionName)
-			sessionConfig := fmt.Sprintf("%s/config.yaml", config.SessionName)
-			sessionTools := fmt.Sprintf("%s/tools.yaml", config.SessionName)
-
-			registryPath = append([]string{sessionRegistry}, registryPath...)
-			configPath = append([]string{sessionConfig}, configPath...)
-			toolsPath = append([]string{sessionTools}, toolsPath...)
-		}
-
 		configurator = &FileBasedConfiguration{
 			ServerNames:        config.ServerNames,
 			CatalogPath:        config.CatalogPath,
-			RegistryPath:       registryPath,
-			ConfigPath:         configPath,
+			RegistryPath:       config.RegistryPath,
+			ConfigPath:         config.ConfigPath,
 			SecretsPath:        config.SecretsPath,
-			ToolsPath:          toolsPath,
+			ToolsPath:          config.ToolsPath,
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
-			sessionName:        config.SessionName,
 			docker:             docker,
 		}
 	}
@@ -143,6 +133,35 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Create a multi-writer that writes to both stderr and the log file
 		multiWriter := io.MultiWriter(os.Stderr, logFile)
 		log.SetLogWriter(multiWriter)
+	}
+
+	// Initialize embeddings client if feature is enabled and OPENAI_API_KEY is set
+	if g.UseEmbeddings {
+		if os.Getenv("OPENAI_API_KEY") == "" {
+			log.Log("Warning: use-embeddings feature is enabled but OPENAI_API_KEY is not set")
+			log.Log("find-tools will not support vector similarity search")
+		} else {
+			homeDir, err := user.HomeDir()
+			if err == nil {
+				// Use ~/.docker/mcp as the embeddings directory (vectors.db will be there)
+				embeddingsDir := filepath.Join(homeDir, ".docker", "mcp")
+
+				log.Logf("Initializing embeddings client with data directory: %s", embeddingsDir)
+				embClient, err := embeddings.NewVectorDBClient(ctx, embeddingsDir, 1536, func(msg string) {
+					if g.Verbose {
+						log.Log(msg)
+					}
+				})
+				if err != nil {
+					log.Logf("Warning: Failed to initialize embeddings client: %v", err)
+					log.Log("find-tools will not support vector similarity search")
+				} else {
+					g.embeddingsClient = embClient
+					defer embClient.Close()
+					log.Log("Embeddings client initialized successfully")
+				}
+			}
+		}
 	}
 
 	// Record gateway start
@@ -191,13 +210,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return err
 	}
 	defer func() { _ = stopConfigWatcher() }()
-
-	// Set the session name in the configuration for persistence if specified via --session flag
-	if fbc, ok := g.configurator.(*FileBasedConfiguration); ok {
-		if fbc.sessionName != "" {
-			g.configuration.SessionName = fbc.sessionName
-		}
-	}
 
 	// Parse interceptors
 	var parsedInterceptors []interceptors.Interceptor
@@ -277,6 +289,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
 		// Skip in CE mode (no Desktop to connect to)
 		if !oauth.IsCEMode() {
+			// Verify Desktop backend is reachable before starting monitor
+			if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
+				return fmt.Errorf("docker Desktop is not running: %w", err)
+			}
+
 			log.Log("- Starting OAuth notification monitor")
 			monitor := oauth.NewNotificationMonitor()
 			monitor.OnOAuthEvent = func(event oauth.Event) {
@@ -623,4 +640,43 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	default:
 		// Other events (login-start, code-received, error) - ignore
 	}
+}
+
+// GetToolRegistrations returns a copy of all registered tools
+// This is useful for introspection and serialization
+func (g *Gateway) GetToolRegistrations() map[string]ToolRegistration {
+	g.capabilitiesMu.RLock()
+	defer g.capabilitiesMu.RUnlock()
+
+	// Create a copy to avoid external modification
+	registrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
+	for k, v := range g.toolRegistrations {
+		registrations[k] = v
+	}
+	return registrations
+}
+
+// Configurator returns the gateway's configurator
+// This is useful for programmatic access to configuration
+func (g *Gateway) Configurator() Configurator {
+	return g.configurator
+}
+
+// SetMCPServer sets the gateway's MCP server
+// This is useful when initializing the gateway programmatically
+func (g *Gateway) SetMCPServer(server *mcp.Server) {
+	g.mcpServer = server
+}
+
+// ReloadConfiguration reloads the gateway configuration and capabilities
+// This is useful for programmatic configuration updates
+func (g *Gateway) ReloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
+	g.configuration = configuration
+	return g.reloadConfiguration(ctx, configuration, serverNames, clientConfig)
+}
+
+// PullAndVerify pulls and verifies Docker images for the configured servers
+// This is useful when programmatically initializing the gateway
+func (g *Gateway) PullAndVerify(ctx context.Context, configuration Configuration) error {
+	return g.pullAndVerify(ctx, configuration)
 }

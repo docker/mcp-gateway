@@ -122,6 +122,63 @@ func TestShowYAML(t *testing.T) {
 	assert.Equal(t, ServerTypeRegistry, workingSet.Servers[0].Type)
 }
 
+func TestShowYAMLToolsShouldBeOmittedWhenAllEnabled(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:   "registry",
+				Source: "https://example.com/server",
+			},
+		},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := Show(ctx, dao, "test-set", OutputFormatYAML, false)
+		require.NoError(t, err)
+	})
+
+	require.NotContains(t, output, "tools: []")
+}
+
+func TestShowYAMLToolsShouldBeEmptyArrayWhenAllDisabled(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:   "registry",
+				Source: "https://example.com/server",
+				Tools:  []string{},
+			},
+		},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := Show(ctx, dao, "test-set", OutputFormatYAML, false)
+		require.NoError(t, err)
+	})
+
+	require.Contains(t, output, "tools: []")
+}
+
 func TestShowNonExistentWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

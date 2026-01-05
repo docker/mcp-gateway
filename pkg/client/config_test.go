@@ -319,6 +319,18 @@ func TestFindClientsByProfile(t *testing.T) {
 			expectedVendors: []string{},
 		},
 		{
+			name:      "find clients with default profile",
+			profileID: "default",
+			mockConfigs: map[string][]byte{
+				vendorCursor:        readTestData(t, "find-profiles/cursor-with-profile.json"),
+				vendorClaudeDesktop: readTestData(t, "find-profiles/claude-desktop-with-profile.json"),
+				vendorZed:           readTestData(t, "find-profiles/zed-without-profile.json"),
+				vendorKiro:          readTestData(t, "find-profiles/kiro-without-profile.json"),
+				vendorContinueDev:   readTestData(t, "find-profiles/continue-without-profile.yml"),
+			},
+			expectedVendors: []string{vendorZed, vendorKiro, vendorContinueDev},
+		},
+		{
 			name:      "finds clients without profile when searching for empty string",
 			profileID: "",
 			mockConfigs: map[string][]byte{
@@ -376,6 +388,10 @@ func TestFindClientsByProfile(t *testing.T) {
 					IsOsSupported: true,
 				}
 				clientCfg.setParseResult(lists, nil)
+
+				if matchesProfile(clientCfg, tc.profileID) {
+					clientCfg.WorkingSet = tc.profileID // Overwrite if matching
+				}
 
 				shouldMatch := expectedMap[vendor]
 

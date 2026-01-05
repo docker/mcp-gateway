@@ -22,6 +22,8 @@ pkgs.mkShell {
     curl
     jq
     wget
+
+    marp-cli
   ];
 
   shellHook = ''

@@ -1,0 +1,172 @@
+package catalognext
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/goccy/go-yaml"
+
+	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/workingset"
+)
+
+type serverFilter struct {
+	key   string
+	value string
+}
+
+// ListServers lists servers in a catalog with optional filtering
+func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []string, format workingset.OutputFormat) error {
+	parsedFilters, err := parseFilters(filters)
+	if err != nil {
+		return err
+	}
+
+	// Get the catalog
+	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog %s: %w", catalogRef, err)
+	}
+
+	catalog := NewFromDb(dbCatalog)
+
+	// Apply name filter
+	var nameFilter string
+	for _, filter := range parsedFilters {
+		switch filter.key {
+		case "name":
+			nameFilter = filter.value
+		default:
+			return fmt.Errorf("unsupported filter key: %s", filter.key)
+		}
+	}
+
+	// Filter servers
+	servers := filterServers(catalog.Servers, nameFilter)
+
+	// Output results
+	return outputServers(catalog.Ref, catalog.Title, servers, format)
+}
+
+func parseFilters(filters []string) ([]serverFilter, error) {
+	parsed := make([]serverFilter, 0, len(filters))
+	for _, filter := range filters {
+		parts := strings.SplitN(filter, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid filter format: %s (expected key=value)", filter)
+		}
+		parsed = append(parsed, serverFilter{
+			key:   parts[0],
+			value: parts[1],
+		})
+	}
+	return parsed, nil
+}
+
+func filterServers(servers []Server, nameFilter string) []Server {
+	if nameFilter == "" {
+		return servers
+	}
+
+	nameLower := strings.ToLower(nameFilter)
+	filtered := make([]Server, 0)
+
+	for _, server := range servers {
+		if matchesNameFilter(server, nameLower) {
+			filtered = append(filtered, server)
+		}
+	}
+
+	return filtered
+}
+
+func matchesNameFilter(server Server, nameLower string) bool {
+	if server.Snapshot == nil {
+		return false
+	}
+	serverName := strings.ToLower(server.Snapshot.Server.Name)
+	return strings.Contains(serverName, nameLower)
+}
+
+func outputServers(catalogRef, catalogTitle string, servers []Server, format workingset.OutputFormat) error {
+	// Sort servers by name
+	sort.Slice(servers, func(i, j int) bool {
+		if servers[i].Snapshot == nil || servers[j].Snapshot == nil {
+			return false
+		}
+		return servers[i].Snapshot.Server.Name < servers[j].Snapshot.Server.Name
+	})
+
+	var data []byte
+	var err error
+
+	switch format {
+	case workingset.OutputFormatHumanReadable:
+		printServersHuman(catalogRef, catalogTitle, servers)
+		return nil
+	case workingset.OutputFormatJSON:
+		output := map[string]any{
+			"catalog": catalogRef,
+			"title":   catalogTitle,
+			"servers": servers,
+		}
+		data, err = json.MarshalIndent(output, "", "  ")
+	case workingset.OutputFormatYAML:
+		output := map[string]any{
+			"catalog": catalogRef,
+			"title":   catalogTitle,
+			"servers": servers,
+		}
+		data, err = yaml.Marshal(output)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to format servers: %w", err)
+	}
+
+	fmt.Println(string(data))
+	return nil
+}
+
+func printServersHuman(catalogRef, catalogTitle string, servers []Server) {
+	if len(servers) == 0 {
+		fmt.Println("No servers found")
+		return
+	}
+
+	fmt.Printf("Catalog: %s\n", catalogRef)
+	fmt.Printf("Title: %s\n", catalogTitle)
+	fmt.Printf("Servers (%d):\n\n", len(servers))
+
+	for _, server := range servers {
+		if server.Snapshot == nil {
+			continue
+		}
+		srv := server.Snapshot.Server
+		fmt.Printf("  %s\n", srv.Name)
+		if srv.Title != "" {
+			fmt.Printf("    Title: %s\n", srv.Title)
+		}
+		if srv.Description != "" {
+			fmt.Printf("    Description: %s\n", srv.Description)
+		}
+		fmt.Printf("    Type: %s\n", server.Type)
+		switch server.Type {
+		case workingset.ServerTypeImage:
+			fmt.Printf("    Image: %s\n", server.Image)
+		case workingset.ServerTypeRegistry:
+			fmt.Printf("    Source: %s\n", server.Source)
+		case workingset.ServerTypeRemote:
+			fmt.Printf("    Endpoint: %s\n", server.Endpoint)
+		}
+		if len(srv.Tools) > 0 {
+			fmt.Printf("    Tools: %d\n", len(srv.Tools))
+		}
+		fmt.Println()
+	}
+}

@@ -62,7 +62,7 @@ func TestNewFromDb(t *testing.T) {
 	assert.Equal(t, ServerTypeRegistry, workingSet.Servers[0].Type)
 	assert.Equal(t, "https://example.com/server", workingSet.Servers[0].Source)
 	assert.Equal(t, map[string]any{"key": "value"}, workingSet.Servers[0].Config)
-	assert.Equal(t, []string{"tool1", "tool2"}, workingSet.Servers[0].Tools)
+	assert.Equal(t, ToolList([]string{"tool1", "tool2"}), workingSet.Servers[0].Tools)
 
 	// Check image server
 	assert.Equal(t, ServerTypeImage, workingSet.Servers[1].Type)
@@ -170,7 +170,7 @@ func TestNewFromDbWithRemoteServer(t *testing.T) {
 	// Check remote server
 	assert.Equal(t, ServerTypeRemote, workingSet.Servers[0].Type)
 	assert.Equal(t, "https://mcp.example.com/sse", workingSet.Servers[0].Endpoint)
-	assert.Equal(t, []string{"tool1", "tool2"}, workingSet.Servers[0].Tools)
+	assert.Equal(t, ToolList([]string{"tool1", "tool2"}), workingSet.Servers[0].Tools)
 }
 
 func TestWorkingSetToDbWithRemoteServer(t *testing.T) {
@@ -645,7 +645,7 @@ func TestResolveServerFromString(t *testing.T) {
 					},
 				}))
 
-			server, err := resolveServersFromString(t.Context(), registryClient, ociService, dao, tt.input)
+			server, err := ResolveServersFromString(t.Context(), registryClient, ociService, dao, tt.input)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -698,7 +698,7 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 		"http://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
 	}))
 
-	server, err := resolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
+	server, err := ResolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
 	require.NoError(t, err)
 	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server[0].Source)
 }

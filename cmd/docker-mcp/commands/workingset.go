@@ -11,7 +11,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
-	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -34,6 +33,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(workingsetServerCommand())
 	cmd.AddCommand(configWorkingSetCommand())
 	cmd.AddCommand(toolsWorkingSetCommand())
+	cmd.AddCommand(manualInstructionsCommand())
 	return cmd
 }
 
@@ -170,7 +170,7 @@ Profiles are decoupled from catalogs. Servers can be:
 	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
-	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", supportedClientsList(*cfg)))
+	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
 	_ = cmd.MarkFlagRequired("name")
 
 	return cmd
@@ -437,9 +437,24 @@ func removeServerCommand() *cobra.Command {
 	return cmd
 }
 
-func supportedClientsList(cfg client.Config) string {
-	// Gordon doesn't support profiles yet
-	return strings.Join(sliceutil.Filter(client.GetSupportedMCPClients(cfg), func(c string) bool {
-		return c != client.VendorGordon
-	}), " ")
+func manualInstructionsCommand() *cobra.Command {
+	var format string
+
+	cmd := &cobra.Command{
+		Use:    "manual-instructions <profile-id>",
+		Short:  "Display the manual instructions to connect an MCP client to a profile",
+		Args:   cobra.ExactArgs(1),
+		Hidden: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", format)
+			}
+			return workingset.WriteManualInstructions(args[0], workingset.OutputFormat(format), cmd.OutOrStdout())
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+	return cmd
 }

@@ -10,50 +10,43 @@ import (
 )
 
 func TestIsCEMode(t *testing.T) {
-	// Test CE mode detection
-	tests := []struct {
-		name     string
-		envValue string
-		expected bool
-	}{
-		{
-			name:     "CE mode enabled",
-			envValue: "true",
-			expected: true,
-		},
-		{
-			name:     "CE mode disabled",
-			envValue: "false",
-			expected: false,
-		},
-		{
-			name:     "CE mode not set",
-			envValue: "",
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			oldValue := os.Getenv("DOCKER_MCP_USE_CE")
-			defer func() {
-				if oldValue == "" {
-					os.Unsetenv("DOCKER_MCP_USE_CE")
-				} else {
-					os.Setenv("DOCKER_MCP_USE_CE", oldValue)
-				}
-			}()
-
-			if tt.envValue == "" {
+	// Test CE mode explicit enable via environment variable
+	t.Run("CE mode enabled via env var", func(t *testing.T) {
+		oldValue := os.Getenv("DOCKER_MCP_USE_CE")
+		defer func() {
+			if oldValue == "" {
 				os.Unsetenv("DOCKER_MCP_USE_CE")
 			} else {
-				os.Setenv("DOCKER_MCP_USE_CE", tt.envValue)
+				os.Setenv("DOCKER_MCP_USE_CE", oldValue)
 			}
+		}()
 
-			result := IsCEMode()
-			assert.Equal(t, tt.expected, result)
-		})
-	}
+		os.Setenv("DOCKER_MCP_USE_CE", "true")
+		result := IsCEMode()
+		assert.True(t, result, "Should return true when DOCKER_MCP_USE_CE=true")
+	})
+
+	t.Run("CE mode enabled in container", func(t *testing.T) {
+		oldCEValue := os.Getenv("DOCKER_MCP_USE_CE")
+		oldContainerValue := os.Getenv("DOCKER_MCP_IN_CONTAINER")
+		defer func() {
+			if oldCEValue == "" {
+				os.Unsetenv("DOCKER_MCP_USE_CE")
+			} else {
+				os.Setenv("DOCKER_MCP_USE_CE", oldCEValue)
+			}
+			if oldContainerValue == "" {
+				os.Unsetenv("DOCKER_MCP_IN_CONTAINER")
+			} else {
+				os.Setenv("DOCKER_MCP_IN_CONTAINER", oldContainerValue)
+			}
+		}()
+
+		os.Unsetenv("DOCKER_MCP_USE_CE")
+		os.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
+		result := IsCEMode()
+		assert.True(t, result, "Should return true when running in container")
+	})
 }
 
 func TestReadWriteHelper_Operations(t *testing.T) {

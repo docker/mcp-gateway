@@ -5,6 +5,8 @@ import (
 
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
 func TestIsFeatureEnabledOAuthInterceptor(t *testing.T) {
@@ -63,7 +65,7 @@ func TestIsFeatureEnabledDynamicTools(t *testing.T) {
 			Features: make(map[string]string),
 		}
 		enabled := isFeatureEnabledFromConfig(configFile, "dynamic-tools")
-		assert.False(t, enabled, "dynamic-tools should default to disabled when missing")
+		assert.True(t, enabled, "dynamic-tools should default to enabled when missing")
 	})
 
 	t.Run("nil features map", func(t *testing.T) {
@@ -71,7 +73,7 @@ func TestIsFeatureEnabledDynamicTools(t *testing.T) {
 			Features: nil,
 		}
 		enabled := isFeatureEnabledFromConfig(configFile, "dynamic-tools")
-		assert.False(t, enabled, "dynamic-tools should default to disabled when Features is nil")
+		assert.True(t, enabled, "dynamic-tools should default to enabled when Features is nil")
 	})
 }
 
@@ -115,12 +117,40 @@ func TestIsFeatureEnabledMcpOAuthDcr(t *testing.T) {
 
 func TestIsKnownFeature(t *testing.T) {
 	// Test valid features
-	assert.True(t, isKnownFeature("oauth-interceptor"))
-	assert.True(t, isKnownFeature("mcp-oauth-dcr"))
-	assert.True(t, isKnownFeature("dynamic-tools"))
+	assert.True(t, isKnownFeature("oauth-interceptor", &mockFeatures{}))
+	assert.True(t, isKnownFeature("mcp-oauth-dcr", &mockFeatures{}))
+	assert.True(t, isKnownFeature("dynamic-tools", &mockFeatures{}))
 
 	// Test invalid features
-	assert.False(t, isKnownFeature("invalid-feature"))
-	assert.False(t, isKnownFeature("configured-catalogs")) // No longer supported
-	assert.False(t, isKnownFeature(""))
+	assert.False(t, isKnownFeature("invalid-feature", &mockFeatures{}))
+	assert.False(t, isKnownFeature("configured-catalogs", &mockFeatures{})) // No longer supported
+	assert.False(t, isKnownFeature("", &mockFeatures{}))
+
+	// Test profiles feature - unknown in Docker Desktop, known in CE
+	assert.True(t, isKnownFeature("profiles", &mockFeatures{
+		runningDockerDesktop: false,
+	}))
+	assert.False(t, isKnownFeature("profiles", &mockFeatures{
+		runningDockerDesktop: true,
+	}))
+}
+
+type mockFeatures struct {
+	initErr              error
+	runningDockerDesktop bool
+	profilesEnabled      bool
+}
+
+var _ features.Features = &mockFeatures{}
+
+func (m *mockFeatures) InitError() error {
+	return m.initErr
+}
+
+func (m *mockFeatures) IsRunningInDockerDesktop() bool {
+	return m.runningDockerDesktop
+}
+
+func (m *mockFeatures) IsProfilesFeatureEnabled() bool {
+	return m.profilesEnabled
 }

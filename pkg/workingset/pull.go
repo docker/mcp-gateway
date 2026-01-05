@@ -31,6 +31,8 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) e
 		}
 	}
 
+	RegisterOAuthProvidersForServers(ctx, workingSet.Servers)
+
 	if err := workingSet.Validate(); err != nil {
 		return fmt.Errorf("invalid profile: %w", err)
 	}

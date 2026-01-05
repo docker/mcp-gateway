@@ -19,7 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOptionParam string) error {
+func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOptionParam string, noTools bool) error {
 	pullOption, pullInterval, err := parsePullOption(pullOptionParam)
 	if err != nil {
 		return err
@@ -77,6 +77,10 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 
 	catalog := NewFromDb(dbCatalog)
 
+	if noTools {
+		catalog = filterCatalogTools(catalog)
+	}
+
 	var data []byte
 	switch format {
 	case workingset.OutputFormatHumanReadable:
@@ -112,6 +116,24 @@ func printHumanReadable(catalog CatalogWithDigest) string {
 	}
 	servers = strings.TrimSuffix(servers, "\n")
 	return fmt.Sprintf("Reference: %s\nTitle: %s\nSource: %s\nServers:\n%s", catalog.Ref, catalog.Title, catalog.Source, servers)
+}
+
+func filterCatalogTools(catalog CatalogWithDigest) CatalogWithDigest {
+	filteredServers := make([]Server, len(catalog.Servers))
+	for i, server := range catalog.Servers {
+		filteredServer := server
+		filteredServer.Tools = nil
+		if filteredServer.Snapshot != nil {
+			snapshotCopy := *filteredServer.Snapshot
+			serverCopy := snapshotCopy.Server
+			serverCopy.Tools = nil
+			snapshotCopy.Server = serverCopy
+			filteredServer.Snapshot = &snapshotCopy
+		}
+		filteredServers[i] = filteredServer
+	}
+	catalog.Servers = filteredServers
+	return catalog
 }
 
 func parsePullOption(pullOptionParam string) (PullOption, time.Duration, error) {

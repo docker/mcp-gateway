@@ -82,53 +82,65 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("- Adding internal tools (dynamic-tools feature enabled)")
 
 		// Add mcp-find tool
-		mcpFindTool := g.createMcpFindTool(configuration)
+		var handler mcp.ToolHandler
+		if g.embeddingsClient != nil {
+			handler = embeddingStrategy(g)
+		} else {
+			handler = keywordStrategy(configuration)
+		}
+		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
+		mcpFindTool := g.createMcpFindTool(configuration, handler)
 		g.mcpServer.AddTool(mcpFindTool.Tool, mcpFindTool.Handler)
 		g.toolRegistrations[mcpFindTool.Tool.Name] = *mcpFindTool
 
 		// Add mcp-add tool
+		log.Log("  > mcp-add: tool for adding MCP servers to the registry")
 		mcpAddTool := g.createMcpAddTool(clientConfig)
 		g.mcpServer.AddTool(mcpAddTool.Tool, mcpAddTool.Handler)
 		g.toolRegistrations[mcpAddTool.Tool.Name] = *mcpAddTool
 
 		// Add mcp-remove tool
+		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
 		mcpRemoveTool := g.createMcpRemoveTool()
 		g.mcpServer.AddTool(mcpRemoveTool.Tool, mcpRemoveTool.Handler)
 		g.toolRegistrations[mcpRemoveTool.Tool.Name] = *mcpRemoveTool
 
 		// Add codemode
+		log.Log("  > code-mode: write code that calls other MCPs directly")
 		codeModeTool := g.createCodeModeTool(clientConfig)
 		g.mcpServer.AddTool(codeModeTool.Tool, codeModeTool.Handler)
 		g.toolRegistrations[codeModeTool.Tool.Name] = *codeModeTool
 
 		// Add mcp-exec tool
+		log.Log("  > mcp-exec: execute tools that exist in the current session")
 		mcpExecTool := g.createMcpExecTool()
 		g.mcpServer.AddTool(mcpExecTool.Tool, mcpExecTool.Handler)
 		g.toolRegistrations[mcpExecTool.Tool.Name] = *mcpExecTool
 
 		// Add mcp-config-set tool
+		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
 		mcpConfigSetTool := g.createMcpConfigSetTool(clientConfig)
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
 
-		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
-		log.Log("  > mcp-add: tool for adding MCP servers to the registry")
-		log.Log("  > mcp-remove: tool for removing MCP servers from the registry")
-		log.Log("  > mcp-config-set: tool for setting configuration values for MCP servers")
-		log.Log("  > code-mode: write code that calls other MCPs directly")
-		log.Log("  > mcp-exec: execute tools that exist in the current session")
+		// Add mcp-create-profile tool
+		log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
+		mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
+		g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
+		g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+
+		// Add find-tools tool only if embeddings client is configured
+		if g.embeddingsClient != nil {
+			log.Log("  > find-tools: AI-powered tool recommendation based on task description")
+			findToolsTool := g.createFindToolsTool(clientConfig)
+			g.mcpServer.AddTool(findToolsTool.Tool, findToolsTool.Handler)
+			g.toolRegistrations[findToolsTool.Tool.Name] = *findToolsTool
+		}
 
 		// Add mcp-registry-import tool
 		// mcpRegistryImportTool := g.createMcpRegistryImportTool(configuration, clientConfig)
 		// g.mcpServer.AddTool(mcpRegistryImportTool.Tool, mcpRegistryImportTool.Handler)
 		// g.toolRegistrations[mcpRegistryImportTool.Tool.Name] = *mcpRegistryImportTool
-
-		// Add mcp-session-name tool
-		// mcpSessionNameTool := g.createMcpSessionNameTool()
-		// g.mcpServer.AddTool(mcpSessionNameTool.Tool, mcpSessionNameTool.Handler)
-		// g.toolRegistrations[mcpSessionNameTool.Tool.Name] = *mcpSessionNameTool
-		// log.Log("  > mcp-registry-import: tool for importing servers from MCP registry URLs")
-		// log.Log("  > mcp-session-name: tool for setting session name to persist configuration")
 
 		// Add prompt
 		prompts.AddDiscoverPrompt(g.mcpServer)

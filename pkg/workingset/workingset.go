@@ -47,7 +47,7 @@ type Server struct {
 	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
 	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
-	Tools   []string       `yaml:"tools" json:"tools"`
+	Tools   ToolList       `yaml:"tools,omitempty" json:"tools"` // See IsZero() below
 
 	// ServerTypeRegistry only
 	Source string `yaml:"source,omitempty" json:"source,omitempty" validate:"required_if=Type registry"`
@@ -75,6 +75,14 @@ type Secret struct {
 
 type ServerSnapshot struct {
 	Server catalog.Server `yaml:"server" json:"server"`
+}
+
+type ToolList []string
+
+// Needed for proper YAML encoding with omitempty. YAML defaults IsZero to true when a slice is empty, but we only want it on nil.
+// This IsZero() + omitempty matches json behavior without omitempty.
+func (tools ToolList) IsZero() bool {
+	return tools == nil
 }
 
 func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
@@ -262,7 +270,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	return "", fmt.Errorf("failed to create profile id")
 }
 
-func resolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
+func ResolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
 	if v, ok := strings.CutPrefix(value, "docker://"); ok {
 		fullRef, err := ResolveImageRef(ctx, ociService, v)
 		if err != nil {
@@ -496,7 +504,7 @@ func mapCatalogServersToWorkingSetServers(dbServers []db.CatalogServer, secrets 
 	for i, server := range dbServers {
 		servers[i] = Server{
 			Type:     ServerType(server.ServerType),
-			Tools:    server.Tools,
+			Tools:    ToolList(server.Tools),
 			Config:   map[string]any{},
 			Source:   server.Source,
 			Image:    server.Image,
