@@ -31,18 +31,21 @@ echo "✓ kubectl found"
 echo "✓ Connected to cluster: $(kubectl config current-context)"
 echo ""
 
-# Deploy the gateway and servers
-echo "Deploying MCP Gateway and servers..."
+# Deploy everything
+echo "Deploying MCP servers and gateway..."
 kubectl apply -f "$PARENT_DIR/deployment-multi-pod.yaml"
-
-echo ""
-echo "Deploying services..."
 kubectl apply -f "$PARENT_DIR/services-multi-pod.yaml"
 
 echo ""
-echo "Waiting for pods to be ready (this may take 30-60 seconds)..."
-kubectl wait --for=condition=ready pod -l app=mcp-gateway --timeout=60s
+echo "Waiting for MCP servers to be ready..."
 kubectl wait --for=condition=ready pod -l app=mcp-server,server=duckduckgo --timeout=60s
+echo "✓ MCP servers are ready"
+
+echo ""
+echo "Waiting for gateway to be ready..."
+echo "(Gateway init container is waiting for MCP servers to accept connections...)"
+kubectl wait --for=condition=ready pod -l app=mcp-gateway --timeout=120s
+echo "✓ Gateway is ready"
 
 echo ""
 echo "=========================================="
