@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/prompts"
 	// "github.com/docker/mcp-gateway/pkg/prompts"
 )
@@ -294,8 +295,23 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 			delete(g.toolRegistrations, toolName)
 		}
 	}
-	// Add new tool registrations from the server
+	// Add new tool registrations from the server (with policy filtering)
 	for _, tool := range newServerCaps.Tools {
+		// Policy check for dynamically added tools
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: serverName,
+				Tool:   tool.Tool.Name,
+				Action: policy.ActionLoad,
+			})
+			if err != nil {
+				log.Logf("policy check failed for dynamic tool %s/%s: %v (allowing)", serverName, tool.Tool.Name, err)
+			}
+			if !decision.Allowed && err == nil {
+				log.Logf("policy denied dynamic tool %s/%s: %s", serverName, tool.Tool.Name, decision.Reason)
+				continue
+			}
+		}
 		g.toolRegistrations[tool.Tool.Name] = tool
 	}
 

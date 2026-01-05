@@ -22,6 +22,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
@@ -58,6 +59,7 @@ type Gateway struct {
 	configuration  Configuration
 	clientPool     *clientPool
 	mcpServer      *mcp.Server
+	policyClient   policy.Client
 	health         health.State
 	oauthProviders map[string]*oauth.Provider
 	providersMu    sync.RWMutex
@@ -112,10 +114,17 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		serverCapabilities:          make(map[string]*ServerCapabilities),
 		serverAvailableCapabilities: make(map[string]*Capabilities),
 		toolRegistrations:           make(map[string]ToolRegistration),
+		policyClient:                newPolicyClient(),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 
 	return g
+}
+
+func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
+	if err := cfg.FilterByPolicy(ctx, g.policyClient); err != nil {
+		log.Log("policy filtering failed:", err)
+	}
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
@@ -205,10 +214,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Read the configuration.
 	configuration, configurationUpdates, stopConfigWatcher, err := g.configurator.Read(ctx)
-	g.configuration = configuration
 	if err != nil {
 		return err
 	}
+	g.filterByPolicy(ctx, &configuration)
+	g.configuration = configuration
 	defer func() { _ = stopConfigWatcher() }()
 
 	// Parse interceptors
@@ -327,6 +337,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 					return
 				case configuration := <-configurationUpdates:
 					log.Log("> Configuration updated, reloading...")
+
+					g.filterByPolicy(ctx, &configuration)
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						log.Logf("> Unable to pull and verify images: %s", err)

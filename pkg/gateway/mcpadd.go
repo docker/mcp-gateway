@@ -19,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
@@ -56,6 +57,24 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 					Text: fmt.Sprintf("Error: Server '%s' not found in catalog. Use mcp-find to search for available servers.", serverName),
 				}},
 			}, nil
+		}
+
+		// Check if server is allowed by policy before adding
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: serverName,
+				Action: policy.ActionLoad,
+			})
+			if err != nil {
+				log.Logf("policy check failed for server %s: %v (allowing)", serverName, err)
+			}
+			if !decision.Allowed && err == nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Server '%s' is blocked by policy: %s", serverName, decision.Reason),
+					}},
+				}, nil
+			}
 		}
 
 		// Append the new server to the current serverNames if not already present

@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
@@ -76,6 +77,25 @@ func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
 				Arguments: toolArguments,
 			},
 			Extra: req.Extra,
+		}
+
+		// Policy check before executing the tool
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: toolReg.ServerName,
+				Tool:   toolName,
+				Action: policy.ActionInvoke,
+			})
+			if err != nil {
+				log.Logf("policy check failed for mcp-exec %s: %v (allowing)", toolName, err)
+			}
+			if !decision.Allowed && err == nil {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Tool '%s' blocked by policy: %s", toolName, decision.Reason),
+					}},
+				}, nil
+			}
 		}
 
 		// Execute the tool using its registered handler
