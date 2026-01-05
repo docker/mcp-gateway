@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-gateway
+  labels:
+    app: mcp-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-gateway
+  template:
+    metadata:
+      labels:
+        app: mcp-gateway
+    spec:
+      # Init container to copy the docker-mcp-bridge tool from the gateway image
+      initContainers:
+      - name: copy-bridge
+        image: docker/mcp-gateway:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            echo "Copying bridge tool to shared volume..."
+            mkdir -p /mcp-bridge/misc
+            cp /misc/docker-mcp-bridge /mcp-bridge/misc/
+            chmod +x /mcp-bridge/misc/docker-mcp-bridge
+            echo "Bridge tool copied successfully"
+            ls -la /mcp-bridge/misc/
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: false  # Needs to write to emptyDir
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      containers:
+      # Gateway container
+      - name: gateway
+        image: docker/mcp-gateway:latest
+        args:
+          - --transport=streaming
+          - --port=8811
+          - --static=true
+          - --servers=duckduckgo,fetch
+          - --verbose
+        ports:
+        - containerPort: 8811
+          name: mcp
+          protocol: TCP
+        env:
+        - name: MCP_GATEWAY_AUTH_TOKEN
+          value: "test-token-123"  # In production, use a Secret
+        - name: DOCKER_MCP_IN_CONTAINER
+          value: "1"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8811
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer test-token-123"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8811
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer test-token-123"
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+      # MCP Server: DuckDuckGo
+      - name: mcp-duckduckgo
+        image: mcp/duckduckgo@sha256:68eb20db6109f5c312a695fc5ec3386ad15d93ffb765a0b4eb1baf4328dec14f
+        command: ["/mcp-bridge/misc/docker-mcp-bridge"]
+        args: ["python", "-m", "duckduckgo_mcp_server.server"]
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      # MCP Server: Fetch
+      - name: mcp-fetch
+        image: mcp/fetch@sha256:ef9535a3f07249142f9ca5a6033d7024950afdb6dc05e98292794a23e9f5dfbe
+        command: ["/mcp-bridge/misc/docker-mcp-bridge"]
+        args: ["mcp-server-fetch"]
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      volumes:
+      - name: docker-mcp-tools
+        emptyDir: {}

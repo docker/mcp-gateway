@@ -12,3 +12,4 @@
 + `interceptors` - Configure interceptors on Tool Calls.
 + `health` - Health checks with Compose.
 + `compose-static` - Run the MCP Gateway, with Compose, in `static` mode. (Experimental)
++ `kubernetes` - Run the MCP Gateway in Kubernetes using static mode with multi-pod deployment.
