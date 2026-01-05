@@ -112,9 +112,9 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 			Action: policy.ActionLoad,
 		})
 		if err != nil {
-			log.Logf("policy check failed for server %s: %v (allowing)", name, err)
+			log.Logf("policy check failed for server %s: %v (denying)", name, err)
 		}
-		if decision.Allowed || err != nil {
+		if decision.Allowed && err == nil {
 			server := c.servers[name]
 
 			// Filter tools for this server if any.
@@ -126,9 +126,9 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 						Action: policy.ActionLoad,
 					})
 					if tErr != nil {
-						log.Logf("policy check failed for tool %s/%s: %v (allowing)", name, t, tErr)
+						log.Logf("policy check failed for tool %s/%s: %v (denying)", name, t, tErr)
 					}
-					if toolDecision.Allowed || tErr != nil {
+					if toolDecision.Allowed && tErr == nil {
 						filteredTools.ServerTools[name] = append(filteredTools.ServerTools[name], t)
 					}
 				}

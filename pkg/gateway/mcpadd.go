@@ -72,9 +72,14 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 				Action: policy.ActionLoad,
 			})
 			if err != nil {
-				log.Logf("policy check failed for server %s: %v (allowing)", serverName, err)
+				log.Logf("policy check failed for server %s: %v (denying)", serverName, err)
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Server '%s' blocked by policy check error: %v", serverName, err),
+					}},
+				}, nil
 			}
-			if !decision.Allowed && err == nil {
+			if !decision.Allowed {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
 						Text: fmt.Sprintf("Error: Server '%s' is blocked by policy: %s", serverName, decision.Reason),
