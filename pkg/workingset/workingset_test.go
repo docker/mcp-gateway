@@ -887,10 +887,10 @@ func TestValidateServerSnapshot(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.snapshot.ValidateInnerConfig()
 			if tt.expectErr != "" {
-				assert.Error(t, err)
-				assert.ErrorContains(t, err, tt.expectErr)
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.expectErr)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -1266,23 +1266,23 @@ func TestResolveFile(t *testing.T) {
 				require.NoError(t, err)
 				tempFile := filepath.Join(tempDir, "testdata", tt.file)
 				_ = os.MkdirAll(filepath.Dir(tempFile), 0o755)
-				err = os.WriteFile(tempFile, []byte(content), 0o644)
+				err = os.WriteFile(tempFile, content, 0o644)
 				require.NoError(t, err)
 				defer os.Remove(tempFile)
 			}
 
 			cwd, err := os.Getwd()
 			require.NoError(t, err)
-			defer os.Chdir(cwd)
+			defer os.Chdir(cwd) //nolint:errcheck
 			err = os.Chdir(tempDir)
 			require.NoError(t, err)
 
 			server, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), setupTestDB(t), tt.input)
 			if tt.expectedErr != "" {
-				assert.Error(t, err)
-				assert.ErrorContains(t, err, tt.expectedErr)
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.expectedErr)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				require.Equal(t, tt.expected, server)
 			}
 		})
