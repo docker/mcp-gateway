@@ -26,7 +26,7 @@ func Export(ctx context.Context, dao db.DAO, id string, filename string) error {
 	workingSet := NewFromDb(dbSet)
 
 	var data []byte
-	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
+	if strings.HasSuffix(strings.ToLower(filename), ".yaml") || strings.HasSuffix(strings.ToLower(filename), ".yml") {
 		data, err = yaml.Marshal(workingSet)
 	} else if strings.HasSuffix(strings.ToLower(filename), ".json") {
 		data, err = json.MarshalIndent(workingSet, "", "  ")
