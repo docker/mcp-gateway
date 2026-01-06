@@ -163,3 +163,8 @@ type ServerConfig struct {
 	Config  map[string]any
 	Secrets map[string]string
 }
+
+// IsRemote returns true if this server is a remote MCP server (not a Docker container)
+func (sc *ServerConfig) IsRemote() bool {
+	return sc.Spec.SSEEndpoint != "" || sc.Spec.Remote.URL != ""
+}
