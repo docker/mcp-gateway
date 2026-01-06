@@ -211,6 +211,8 @@ func TestCreateFromWorkingSetWithSnapshot(t *testing.T) {
 		Server: catalog.Server{
 			Name:        "test-server",
 			Description: "Test server",
+			Type:        "server",
+			Image:       "docker/test:latest",
 		},
 	}
 
