@@ -58,11 +58,15 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 				continue
 			}
 
-			// Determine server type based on whether it has an image
-			serverType := workingset.ServerTypeImage
-			if catalogServer.Image == "" {
-				// Skip servers without images for now (registry servers)
-				log.Logf("Warning: server %s has no image, skipping", serverName)
+			// Determine server type based on whether it has an image or remote endpoint
+			var serverType workingset.ServerType
+
+			if catalogServer.Image != "" {
+				serverType = workingset.ServerTypeImage
+			} else if catalogServer.Remote.URL != "" {
+				serverType = workingset.ServerTypeRemote
+			} else {
+				log.Logf("Warning: server %s has no image or remote endpoint, skipping", serverName)
 				continue
 			}
 
@@ -78,10 +82,9 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 				serverTools = g.configuration.tools.ServerTools[serverName]
 			}
 
-			// Create server entry
+			// Create server entry based on type
 			server := workingset.Server{
 				Type:    serverType,
-				Image:   catalogServer.Image,
 				Config:  serverConfig,
 				Secrets: "default",
 				Tools:   serverTools,
@@ -90,13 +93,20 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 				},
 			}
 
+			switch serverType {
+			case workingset.ServerTypeImage:
+				server.Image = catalogServer.Image
+			case workingset.ServerTypeRemote:
+				server.Endpoint = catalogServer.Remote.URL
+			}
+
 			servers = append(servers, server)
 		}
 
 		if len(servers) == 0 {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
-					Text: "No servers with images found in current gateway state. Cannot create profile.",
+					Text: "No servers with images or remote endpoints found in current gateway state. Cannot create profile.",
 				}},
 				IsError: true,
 			}, nil
@@ -175,6 +185,8 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 			resultMessage += fmt.Sprintf("\n%d. %s", i+1, serverName)
 			if server.Image != "" {
 				resultMessage += fmt.Sprintf(" (image: %s)", server.Image)
+			} else if server.Endpoint != "" {
+				resultMessage += fmt.Sprintf(" (remote: %s)", server.Endpoint)
 			}
 			if len(server.Tools) > 0 {
 				resultMessage += fmt.Sprintf(" - %d tools", len(server.Tools))
