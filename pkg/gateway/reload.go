@@ -158,6 +158,23 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	}
 
 	for _, prompt := range capabilities.Prompts {
+		// Enforce policy for prompts: deny if ActionPrompt is blocked.
+		if g.policyClient != nil {
+			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
+				Server: prompt.ServerName,
+				Tool:   prompt.Prompt.Name,
+				Action: policy.ActionPrompt,
+			})
+			if err != nil {
+				log.Logf("policy check failed for prompt %s/%s: %v (denying)", prompt.ServerName, prompt.Prompt.Name, err)
+				continue
+			}
+			if !decision.Allowed {
+				log.Logf("policy denied prompt %s/%s: %s", prompt.ServerName, prompt.Prompt.Name, decision.Reason)
+				continue
+			}
+		}
+
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
 
 		// Track by server

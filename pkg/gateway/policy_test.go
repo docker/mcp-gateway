@@ -350,3 +350,27 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 		assert.Contains(t, textContent.Text, "policy")
 	})
 }
+
+func TestMcpPrompts_PolicyEnforcement(t *testing.T) {
+	// denied prompt should error
+	mock := newMockPolicyClient()
+	mock.deny("prompt-server", "summarize", policy.ActionPrompt, "prompt blocked")
+
+	g := &Gateway{
+		policyClient: mock,
+		configuration: Configuration{
+			serverNames: []string{"prompt-server"},
+			servers: map[string]catalog.Server{
+				"prompt-server": {Image: "img"},
+			},
+		},
+	}
+
+	h := g.mcpServerPromptHandler("prompt-server", nil)
+	req := &mcp.GetPromptRequest{Params: &mcp.GetPromptParams{Name: "summarize"}}
+
+	_, err := h(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "policy")
+	assert.Contains(t, err.Error(), "summarize")
+}

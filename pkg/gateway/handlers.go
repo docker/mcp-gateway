@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
@@ -186,12 +185,14 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		if g.policyClient != nil {
 			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
 				Server: serverConfig.Name,
+				Tool:   req.Params.Name,
 				Action: policy.ActionPrompt,
 			})
 			if err != nil {
-				log.Logf("policy check failed for prompt on server %s: %v (allowing)", serverConfig.Name, err)
-			} else if !decision.Allowed {
-				return nil, fmt.Errorf("policy denied prompt on server %s: %s", serverConfig.Name, decision.Reason)
+				return nil, fmt.Errorf("policy check failed for prompt %s on server %s: %w", req.Params.Name, serverConfig.Name, err)
+			}
+			if !decision.Allowed {
+				return nil, fmt.Errorf("policy denied prompt %s on server %s: %s", req.Params.Name, serverConfig.Name, decision.Reason)
 			}
 		}
 
