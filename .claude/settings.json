@@ -2,12 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(cat:*)",
-      "Bash(make test:*)",
       "Bash(grep:*)",
       "Bash(go test:*)",
-      "Bash(make format:*)",
       "Bash(go build:*)",
-      "Bash(make :*)",
+      "Bash(make:*)",
       "Bash(go test :*)",
       "Bash(go run :*)",
       "Bash(go build :*)",
