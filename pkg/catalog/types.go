@@ -32,6 +32,7 @@ type Server struct {
 	User           string    `yaml:"user,omitempty" json:"user,omitempty"`
 	DisableNetwork bool      `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
 	AllowHosts     []string  `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
+	ExtraHosts     []string  `yaml:"extraHosts,omitempty" json:"extraHosts,omitempty"`
 	Tools          []Tool    `yaml:"tools,omitempty" json:"tools,omitempty" validate:"dive"`
 	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
 	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
@@ -162,4 +163,9 @@ type ServerConfig struct {
 	Spec    Server
 	Config  map[string]any
 	Secrets map[string]string
+}
+
+// IsRemote returns true if this server is a remote MCP server (not a Docker container)
+func (sc *ServerConfig) IsRemote() bool {
+	return sc.Spec.SSEEndpoint != "" || sc.Spec.Remote.URL != ""
 }

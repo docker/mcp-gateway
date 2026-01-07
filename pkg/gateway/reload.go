@@ -322,6 +322,15 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 	addedResources, removedResources := diffStringSlices(oldCaps.ResourceURIs, newCaps.ResourceURIs)
 	addedTemplates, removedTemplates := diffStringSlices(oldCaps.ResourceTemplateURIs, newCaps.ResourceTemplateURIs)
 
+	// Early exit if nothing changed - prevents unnecessary updates and potential notification loops
+	if len(addedTools) == 0 && len(removedTools) == 0 &&
+		len(addedPrompts) == 0 && len(removedPrompts) == 0 &&
+		len(addedResources) == 0 && len(removedResources) == 0 &&
+		len(addedTemplates) == 0 && len(removedTemplates) == 0 {
+		log.Log("  - No capability changes detected for", serverName, "- skipping update")
+		return nil
+	}
+
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)
