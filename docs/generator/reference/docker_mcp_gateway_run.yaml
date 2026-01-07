@@ -252,6 +252,26 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: telemetry-mcp-server-host
+      value_type: string
+      description: |
+        Host of custom telemetry MCP server (if empty, starts built-in server)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: telemetry-mcp-server-port
+      value_type: int
+      default_value: "0"
+      description: Port of custom telemetry MCP server
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: tools
       value_type: stringSlice
       default_value: '[]'

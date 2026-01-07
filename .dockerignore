@@ -1,6 +1,7 @@
 *
 !/cmd
 !/pkg
+!/telemetry-server
 !/tools/docker-mcp-bridge/**/*
 !/go.mod
 !/go.sum
