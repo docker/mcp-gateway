@@ -475,7 +475,7 @@ func StartInterceptorSpan(ctx context.Context, when, interceptorType string, att
 func RecordGatewayStart(ctx context.Context, transportMode string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordGatewayStart: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordGatewayStart: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -490,7 +490,7 @@ func RecordGatewayStart(ctx context.Context, transportMode string) {
 func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordInitialize: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordInitialize: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -506,7 +506,7 @@ func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
 func RecordListTools(ctx context.Context, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordListTools: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListTools: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -522,7 +522,7 @@ func RecordListTools(ctx context.Context, clientName string) {
 func RecordToolCall(ctx context.Context, serverName, serverType, toolName, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordToolCall: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolCall: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -538,7 +538,7 @@ func RecordToolCall(ctx context.Context, serverName, serverType, toolName, clien
 func RecordToolDuration(ctx context.Context, serverName, serverType, toolName, clientName string, durationMs float64) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordToolDuration: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolDuration: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -554,7 +554,7 @@ func RecordToolDuration(ctx context.Context, serverName, serverType, toolName, c
 func RecordToolList(ctx context.Context, serverName string, toolCount int) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordToolList: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolList: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -571,7 +571,7 @@ func RecordToolList(ctx context.Context, serverName string, toolCount int) {
 func RecordCatalogOperation(ctx context.Context, operation string, catalogName string, durationMs float64, success bool) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordCatalogOperation: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordCatalogOperation: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -588,7 +588,7 @@ func RecordCatalogOperation(ctx context.Context, operation string, catalogName s
 func RecordCatalogServers(ctx context.Context, catalogName string, serverCount int64) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordCatalogServers: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordCatalogServers: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -604,7 +604,7 @@ func RecordCatalogServers(ctx context.Context, catalogName string, serverCount i
 func RecordPromptGet(ctx context.Context, promptName string, serverName string, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordPromptGet: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptGet: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -620,7 +620,7 @@ func RecordPromptGet(ctx context.Context, promptName string, serverName string, 
 func RecordPromptDuration(ctx context.Context, promptName string, serverName string, durationMs float64, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordPromptDuration: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptDuration: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -637,7 +637,7 @@ func RecordPromptDuration(ctx context.Context, promptName string, serverName str
 func RecordPromptError(ctx context.Context, promptName string, serverName string, errorType string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordPromptError: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptError: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -654,7 +654,7 @@ func RecordPromptError(ctx context.Context, promptName string, serverName string
 func RecordPromptList(ctx context.Context, serverName string, promptCount int) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordPromptList: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptList: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -671,7 +671,7 @@ func RecordPromptList(ctx context.Context, serverName string, promptCount int) {
 func RecordListPrompts(ctx context.Context, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordListPrompts: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListPrompts: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -687,7 +687,7 @@ func RecordListPrompts(ctx context.Context, clientName string) {
 func RecordListResources(ctx context.Context, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordListResources: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListResources: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -703,7 +703,7 @@ func RecordListResources(ctx context.Context, clientName string) {
 func RecordResourceRead(ctx context.Context, resourceURI string, serverName string, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceRead: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceRead: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -719,7 +719,7 @@ func RecordResourceRead(ctx context.Context, resourceURI string, serverName stri
 func RecordResourceDuration(ctx context.Context, resourceURI string, serverName string, durationMs float64, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceDuration: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceDuration: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -736,7 +736,7 @@ func RecordResourceDuration(ctx context.Context, resourceURI string, serverName 
 func RecordResourceError(ctx context.Context, resourceURI string, serverName string, errorType string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceError: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceError: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -753,7 +753,7 @@ func RecordResourceError(ctx context.Context, resourceURI string, serverName str
 func RecordResourceList(ctx context.Context, serverName string, resourceCount int) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceList: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceList: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -770,7 +770,7 @@ func RecordResourceList(ctx context.Context, serverName string, resourceCount in
 func RecordListResourceTemplates(ctx context.Context, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordListResourceTemplates: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListResourceTemplates: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -786,7 +786,7 @@ func RecordListResourceTemplates(ctx context.Context, clientName string) {
 func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverName string, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceTemplateRead: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateRead: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -802,7 +802,7 @@ func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverN
 func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, serverName string, durationMs float64, clientName string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceTemplateDuration: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateDuration: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -819,7 +819,7 @@ func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, ser
 func RecordResourceTemplateError(ctx context.Context, uriTemplate string, serverName string, errorType string) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceTemplateError: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateError: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
@@ -836,7 +836,7 @@ func RecordResourceTemplateError(ctx context.Context, uriTemplate string, server
 func RecordResourceTemplateList(ctx context.Context, serverName string, templateCount int) {
 	if !IsMCPClientInitialized() {
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Skipping RecordResourceTemplateList: telemetry not initialized\n")
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateList: telemetry not initialized\n")
 		}
 		return // Telemetry not initialized
 	}
