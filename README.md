@@ -237,7 +237,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - 💬 [Troubleshooting](/docs/troubleshooting.md)
-- 📖 [MCP Specification](https://spec.modelcontextprotocol.io/)
+- 📖 [MCP Specification](https://modelcontextprotocol.io/specification/2025-11-25)
 - 🐳 [Docker Desktop Documentation](https://docs.docker.com/desktop/)
 - 🐛 [Report Issues](https://github.com/docker/mcp-gateway/issues)
 - 💬 [Discussions](https://github.com/docker/mcp-gateway/discussions)
