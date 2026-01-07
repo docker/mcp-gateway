@@ -69,8 +69,18 @@ func (cp *clientPool) UpdateRoots(ss *mcp.ServerSession, roots []*mcp.Root) {
 }
 
 func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clientConfig) bool {
-	keep := config != nil && config.serverSession != nil && (serverConfig.Spec.LongLived || cp.LongLived)
-	return keep
+	// Must have a valid session to cache clients
+	if config == nil || config.serverSession == nil {
+		return false
+	}
+
+	// Remote servers are always treated as long-lived since no container is involved
+	if serverConfig.IsRemote() {
+		return true
+	}
+
+	// For Docker-based servers, respect the LongLived flag
+	return serverConfig.Spec.LongLived || cp.LongLived
 }
 
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
