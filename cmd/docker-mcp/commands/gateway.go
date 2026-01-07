@@ -214,9 +214,13 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")
 	runCmd.Flags().StringVar(&options.LogFilePath, "log", options.LogFilePath, "Path to log file for stderr output (relative or absolute)")
+	runCmd.Flags().StringVar(&options.TelemetryMCPServerHost, "telemetry-mcp-server-host", options.TelemetryMCPServerHost, "Host of custom telemetry MCP server (if empty, starts built-in server)")
+	runCmd.Flags().IntVar(&options.TelemetryMCPServerPort, "telemetry-mcp-server-port", options.TelemetryMCPServerPort, "Port of custom telemetry MCP server")
 
 	// Very experimental features
 	_ = runCmd.Flags().MarkHidden("log")
+	_ = runCmd.Flags().MarkHidden("telemetry-mcp-server-host")
+	_ = runCmd.Flags().MarkHidden("telemetry-mcp-server-port")
 
 	cmd.AddCommand(runCmd)
 
