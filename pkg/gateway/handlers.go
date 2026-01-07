@@ -10,7 +10,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
@@ -94,14 +93,7 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 		defer span.End()
 
 		// Record tool call counter with server attribution
-		telemetry.ToolCallCounter.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("mcp.server.name", serverConfig.Name),
-				attribute.String("mcp.server.type", serverType),
-				attribute.String("mcp.tool.name", req.Params.Name),
-				attribute.String("mcp.client.name", req.Session.InitializeParams().ClientInfo.Name),
-			),
-		)
+		telemetry.RecordToolCall(ctx, serverConfig.Name, serverType, req.Params.Name, req.Session.InitializeParams().ClientInfo.Name)
 
 		var readOnlyHint *bool
 		if annotations != nil && annotations.ReadOnlyHint {
@@ -137,14 +129,7 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()
-		telemetry.ToolCallDuration.Record(ctx, float64(duration),
-			metric.WithAttributes(
-				attribute.String("mcp.server.name", serverConfig.Name),
-				attribute.String("mcp.server.type", serverType),
-				attribute.String("mcp.tool.name", req.Params.Name),
-				attribute.String("mcp.client.name", req.Session.InitializeParams().ClientInfo.Name),
-			),
-		)
+		telemetry.RecordToolDuration(ctx, serverConfig.Name, serverType, req.Params.Name, req.Session.InitializeParams().ClientInfo.Name, float64(duration))
 
 		if err != nil {
 			// Record error in telemetry

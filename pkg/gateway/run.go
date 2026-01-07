@@ -24,6 +24,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/user"
+	telemetryserver "github.com/docker/mcp-gateway/telemetry-server"
 )
 
 type ServerSessionCache struct {
@@ -121,6 +122,37 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
+
+	// Start telemetry MCP server and initialize client
+	var telemetrySrv *telemetryserver.Server
+	telemetryHost := g.TelemetryMCPServerHost
+	telemetryPort := g.TelemetryMCPServerPort
+
+	if telemetryHost == "" {
+		// Start default telemetry server
+		telemetryHost = "127.0.0.1"
+		if telemetryPort == 0 {
+			telemetryPort = 0 // Use port 0 to get an available port
+		}
+		telemetrySrv = telemetryserver.NewServer(telemetryPort)
+		if err := telemetrySrv.Start(ctx); err != nil {
+			log.Logf("Warning: Failed to start telemetry server: %v", err)
+		} else {
+			telemetryPort = telemetrySrv.Port()
+			log.Logf("- Telemetry server started on port %d", telemetryPort)
+			defer telemetrySrv.Stop()
+		}
+	}
+
+	// Initialize telemetry MCP client
+	if telemetryPort > 0 {
+		if err := telemetry.InitMCPClient(ctx, telemetryHost, telemetryPort); err != nil {
+			log.Logf("Warning: Failed to initialize telemetry MCP client: %v", err)
+		} else {
+			log.Logf("- Telemetry MCP client connected to %s:%d", telemetryHost, telemetryPort)
+			defer telemetry.CloseMCPClient()
+		}
+	}
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {

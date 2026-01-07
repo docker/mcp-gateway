@@ -38,4 +38,6 @@ type Options struct {
 	ToolNamePrefix          bool
 	LogFilePath             string
 	UseEmbeddings           bool
+	TelemetryMCPServerHost  string
+	TelemetryMCPServerPort  int
 }
