@@ -784,6 +784,6 @@ func (s *Server) Stop() error {
 
 func debugLog(format string, args ...any) {
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[TELEMETRY-SERVER] "+format+"\n", args...)
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-SERVER] "+format+"\n", args...)
 	}
 }

@@ -103,13 +103,21 @@ func callTool(ctx context.Context, toolName string, args any) error {
 		}
 	}
 
-	_, err := session.CallTool(ctx, &mcp.CallToolParams{
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-CLIENT] Calling tool %s\n", toolName)
+	}
+
+	result, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name:      toolName,
 		Arguments: argsMap,
 	})
 
-	if err != nil && os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-CLIENT] Error calling tool %s: %v\n", toolName, err)
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-CLIENT] Error calling tool %s: %v\n", toolName, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-CLIENT] Tool %s returned: %d content items\n", toolName, len(result.Content))
+		}
 	}
 
 	return err

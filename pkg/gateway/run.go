@@ -120,6 +120,11 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
+	// Debug: very first line of Run
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] === Gateway.Run() started ===\n")
+	}
+
 	// Initialize telemetry
 	telemetry.Init()
 
@@ -128,30 +133,54 @@ func (g *Gateway) Run(ctx context.Context) error {
 	telemetryHost := g.TelemetryMCPServerHost
 	telemetryPort := g.TelemetryMCPServerPort
 
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Startup: telemetryHost=%q, telemetryPort=%d\n", telemetryHost, telemetryPort)
+	}
+
 	if telemetryHost == "" {
 		// Start default telemetry server
 		telemetryHost = "127.0.0.1"
 		if telemetryPort == 0 {
 			telemetryPort = 0 // Use port 0 to get an available port
 		}
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Starting default telemetry server on port %d\n", telemetryPort)
+		}
 		telemetrySrv = telemetryserver.NewServer(telemetryPort)
 		if err := telemetrySrv.Start(ctx); err != nil {
 			log.Logf("Warning: Failed to start telemetry server: %v", err)
+			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] ERROR: Failed to start telemetry server: %v\n", err)
+			}
 		} else {
 			telemetryPort = telemetrySrv.Port()
 			log.Logf("- Telemetry server started on port %d", telemetryPort)
+			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Telemetry server started on port %d\n", telemetryPort)
+			}
 			defer telemetrySrv.Stop()
 		}
 	}
 
 	// Initialize telemetry MCP client
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] About to init MCP client: telemetryPort=%d\n", telemetryPort)
+	}
 	if telemetryPort > 0 {
 		if err := telemetry.InitMCPClient(ctx, telemetryHost, telemetryPort); err != nil {
 			log.Logf("Warning: Failed to initialize telemetry MCP client: %v", err)
+			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] ERROR: Failed to init MCP client: %v\n", err)
+			}
 		} else {
 			log.Logf("- Telemetry MCP client connected to %s:%d", telemetryHost, telemetryPort)
+			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] MCP client connected to %s:%d\n", telemetryHost, telemetryPort)
+			}
 			defer telemetry.CloseMCPClient()
 		}
+	} else if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping MCP client init because telemetryPort=%d\n", telemetryPort)
 	}
 
 	// Set up log file redirection if specified
