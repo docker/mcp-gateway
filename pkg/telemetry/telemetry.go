@@ -247,6 +247,8 @@ func getPlugin() plugin.TelemetryPlugin {
 }
 
 // recordCounter records a counter metric via plugin or locally
+//
+//nolint:unparam // value is kept for interface consistency with plugin.TelemetryPlugin
 func recordCounter(ctx context.Context, name string, value int64, attrs map[string]string) {
 	if p := getPlugin(); p != nil {
 		p.RecordCounter(ctx, name, value, attrs)
