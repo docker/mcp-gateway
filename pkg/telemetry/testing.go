@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	telemetryserver "github.com/docker/mcp-gateway/telemetry-server"
 	"go.opentelemetry.io/otel"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+
+	telemetryserver "github.com/docker/mcp-gateway/telemetry-server"
 )
 
 // TestTelemetryServer holds the test telemetry server and metric reader for verification.
@@ -57,7 +58,7 @@ func SetupTestTelemetryServer(t *testing.T) *TestTelemetryServer {
 
 	// Initialize the MCP client to connect to the server
 	if err := InitMCPClient(ctx, "127.0.0.1", port); err != nil {
-		server.Stop()
+		_ = server.Stop()
 		t.Fatalf("Failed to initialize MCP client: %v", err)
 	}
 
@@ -66,8 +67,8 @@ func SetupTestTelemetryServer(t *testing.T) *TestTelemetryServer {
 		server:       server,
 		MetricReader: metricReader,
 		cleanup: func() {
-			CloseMCPClient()
-			server.Stop()
+			_ = CloseMCPClient()
+			_ = server.Stop()
 			ResetForTesting()
 		},
 	}
