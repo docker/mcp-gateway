@@ -206,18 +206,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
-		// Get client name to determine whether to activate tools
-		clientName := ""
-		if req.Session.InitializeParams().ClientInfo != nil {
-			clientName = req.Session.InitializeParams().ClientInfo.Name
-		}
-		clientNameLower := strings.ToLower(clientName)
-
-		// Only activate tools if activate is true AND client name doesn't contain "claude"
-		// (Claude clients auto-refresh their tool list, so they don't need explicit activation)
-		shouldActivate := activate && !strings.Contains(clientNameLower, "claude")
-
-		if shouldActivate {
+		if activate {
 			// Now update g.mcpServer with the new capabilities
 			g.capabilitiesMu.Lock()
 			newCaps := g.allCapabilities(serverName)
@@ -241,8 +230,8 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		// Build the response text
 		responseText := fmt.Sprintf("Successfully added %d tools in server '%s'. Assume that it is fully configured and ready to use.", len(addedTools), serverName)
 
-		// Include the JSON representation of the newly added tools if client name contains "cagent" or "claude"
-		shouldSendTools := len(addedTools) > 0 && strings.Contains(clientNameLower, "claude")
+		// Include the JSON representation of the newly added tools
+		shouldSendTools := len(addedTools) > 0
 
 		if shouldSendTools {
 			// Create a tools list response matching the format from tools/list

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 
@@ -116,5 +118,43 @@ func SaveProfile(profileName string) error {
 	}
 
 	log.Log(fmt.Sprintf("- Updated profiles.json at: %s", profilesPath))
+	return nil
+}
+
+// IsClaudeCodeClient checks if the client is Claude Code
+func IsClaudeCodeClient(clientInfo *mcp.Implementation) bool {
+	return clientInfo != nil && clientInfo.Name == "claude-code"
+}
+
+// SaveProfileForClient saves a profile for the given client if it's Claude Code
+// This encapsulates Claude Code-specific logic for profile saving
+func SaveProfileForClient(clientInfo *mcp.Implementation, profileName string) error {
+	if !IsClaudeCodeClient(clientInfo) {
+		// Not Claude Code, nothing to do
+		return nil
+	}
+
+	log.Log("- Claude Code detected, updating profiles.json")
+	if err := SaveProfile(profileName); err != nil {
+		log.Log(fmt.Sprintf("! Failed to update profiles.json: %v", err))
+		// Don't fail the entire operation, just log the error
+		return err
+	}
+	return nil
+}
+
+// LoadProfilesForClient loads profiles for the given client if it's Claude Code
+// This encapsulates Claude Code-specific logic for profile loading
+func LoadProfilesForClient(ctx context.Context, clientInfo *mcp.Implementation, activator ProfileActivator) error {
+	if !IsClaudeCodeClient(clientInfo) {
+		// Not Claude Code, nothing to do
+		return nil
+	}
+
+	log.Log("- Claude Code detected, checking for profiles.json")
+	if err := LoadProfiles(ctx, activator); err != nil {
+		log.Log(fmt.Sprintf("! Failed to load profiles: %v", err))
+		return err
+	}
 	return nil
 }

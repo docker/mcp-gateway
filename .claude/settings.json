@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(make test:*)",
+      "Bash(grep:*)",
+      "Bash(go test:*)",
+      "Bash(make format:*)",
+      "Bash(go build:*)",
+      "Bash(make :*)",
+      "Bash(go test :*)",
+      "Bash(go run :*)",
+      "Bash(go build :*)",
+      "Bash(go mod :*)",
+      "Bash(go vet :*)",
+      "Bash(docker ps:*)",
+      "Bash(docker images:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker inspect:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(ls :*)",
+      "Bash(pwd)",
+      "Bash(head :*)",
+      "Bash(tail :*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(docker system prune:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Write(./.env*)",
+      "Edit(./.env*)"
+    ],
+    "ask": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(docker run:*)",
+      "Bash(docker start:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker rmi:*)",
+      "Write"
+    ]
+  },
+  "enabledPlugins": {
+    "mcp-toolkit@docker": true
+  }
+}

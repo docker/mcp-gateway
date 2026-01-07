@@ -175,13 +175,8 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 
 		// If client is claude-code, update profiles.json in current directory
 		clientInfo := req.Session.InitializeParams().ClientInfo
-		if clientInfo.Name == "claude-code" {
-			log.Log("- Claude Code detected, updating profiles.json")
-			if err := project.SaveProfile(profileName); err != nil {
-				log.Log(fmt.Sprintf("! Failed to update profiles.json: %v", err))
-				// Don't fail the entire operation, just log the error
-			}
-		}
+		// SaveProfileForClient handles Claude Code detection and profile saving
+		_ = project.SaveProfileForClient(clientInfo, profileName)
 
 		// Build success message
 		var resultMessage string
