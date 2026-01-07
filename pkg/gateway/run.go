@@ -158,7 +158,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Telemetry server started on port %d\n", telemetryPort)
 			}
-			defer telemetrySrv.Stop()
+			defer func() { _ = telemetrySrv.Stop() }()
 		}
 	}
 
@@ -177,7 +177,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 				fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] MCP client connected to %s:%d\n", telemetryHost, telemetryPort)
 			}
-			defer telemetry.CloseMCPClient()
+			defer func() { _ = telemetry.CloseMCPClient() }()
 		}
 	} else if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping MCP client init because telemetryPort=%d\n", telemetryPort)

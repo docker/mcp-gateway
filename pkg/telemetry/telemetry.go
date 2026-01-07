@@ -384,24 +384,18 @@ func StartCommandSpan(ctx context.Context, commandPath string, attrs ...attribut
 
 // RecordToolError records a tool error with appropriate attributes
 func RecordToolError(ctx context.Context, span trace.Span, serverName, serverType, toolName string) {
-	if ToolErrorCounter == nil {
+	if !IsMCPClientInitialized() {
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolError: telemetry not initialized\n")
+		}
 		return // Telemetry not initialized
 	}
 
-	// Record error in span if provided
-	if span != nil {
-		span.RecordError(nil, trace.WithAttributes(
-			attribute.String("mcp.server.name", serverName),
-			attribute.String("mcp.server.type", serverType),
-		))
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tool error: %s on %s\n", toolName, serverName)
 	}
 
-	ToolErrorCounter.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.String("mcp.tool.name", toolName),
-			attribute.String("mcp.server.name", serverName),
-			attribute.String("mcp.server.type", serverType),
-		))
+	recordToolError(ctx, span, serverName, serverType, toolName)
 }
 
 // StartPromptSpan starts a new span for a prompt operation

@@ -12,8 +12,6 @@ import (
 )
 
 var (
-	// mcpClient is the MCP client for telemetry recording
-	mcpClient     *mcp.Client
 	mcpSession    *mcp.ClientSession
 	mcpClientOnce sync.Once
 	mcpClientMu   sync.RWMutex
@@ -45,9 +43,9 @@ func InitMCPClient(ctx context.Context, host string, port int) error {
 		}
 
 		mcpClientMu.Lock()
-		mcpClient = client
 		mcpSession = session
 		mcpClientMu.Unlock()
+		_ = client // client is kept alive by session
 
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY-CLIENT] Connected to telemetry server\n")
@@ -72,7 +70,6 @@ func CloseMCPClient() error {
 	if mcpSession != nil {
 		err := mcpSession.Close()
 		mcpSession = nil
-		mcpClient = nil
 		return err
 	}
 	return nil
