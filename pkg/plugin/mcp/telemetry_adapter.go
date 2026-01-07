@@ -8,8 +8,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/docker/mcp-gateway/pkg/plugin"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/docker/mcp-gateway/pkg/plugin"
 )
 
 // TelemetryAdapter implements plugin.TelemetryPlugin using MCP tool calls.

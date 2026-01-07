@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/docker/mcp-gateway/pkg/plugin"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/docker/mcp-gateway/pkg/plugin"
 )
 
 const (
