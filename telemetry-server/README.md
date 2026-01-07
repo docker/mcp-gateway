@@ -2,6 +2,27 @@
 
 This directory contains the default telemetry MCP server used by the MCP gateway. The server receives telemetry data via MCP tool calls and records metrics using OpenTelemetry.
 
+## Architecture
+
+The telemetry system uses a plugin architecture that decouples the gateway from the specific telemetry implementation:
+
+```
+Gateway -> telemetry.go -> Plugin Registry -> TelemetryPlugin Interface
+                                                      |
+                                              MCP Telemetry Adapter
+                                                      |
+                                              MCP Tool Calls (record-counter, record-histogram, record-gauge)
+                                                      |
+                                              Telemetry MCP Server
+                                                      |
+                                              OpenTelemetry Backend
+```
+
+This design allows:
+- Easy swapping of telemetry backends without changing gateway code
+- Adding new metrics without changing the plugin interface
+- Testing with mock plugins
+
 ## Using a Custom Telemetry Server
 
 You can provide your own telemetry MCP server by using the `--telemetry-mcp-server-host` and `--telemetry-mcp-server-port` flags when running the gateway:
@@ -10,331 +31,199 @@ You can provide your own telemetry MCP server by using the `--telemetry-mcp-serv
 docker mcp gateway run --telemetry-mcp-server-host my-telemetry-server.example.com --telemetry-mcp-server-port 8080
 ```
 
-Your custom server must implement the MCP protocol with streaming HTTP transport and expose the tool calls documented below.
+Your custom server must implement the MCP protocol with streaming HTTP transport and expose the three tool calls documented below.
 
 ## Required Tool Calls
 
-Your telemetry server must implement the following MCP tools. All tools should return a successful response (the gateway does not use the response content).
+Your telemetry server only needs to implement **3 generic tools**. This design mirrors the OpenTelemetry interface, making it easy to implement and allowing new metrics to be added without changing the plugin.
 
-### Gateway Lifecycle
+### `record-counter`
 
-#### `record-gateway-start`
-
-Records when the gateway starts.
+Records a counter metric increment. Counters are cumulative metrics that only increase (e.g., number of requests).
 
 **Arguments:**
 | Name | Type | Description |
 |------|------|-------------|
-| `transport_mode` | string | The transport mode used by the gateway (e.g., "sse", "stdio") |
+| `name` | string | The metric name (e.g., "mcp.tool.calls") |
+| `value` | int64 | The increment value (usually 1) |
+| `attributes` | map[string]string | Key-value pairs for metric dimensions |
+
+**Example:**
+```json
+{
+  "name": "mcp.tool.calls",
+  "value": 1,
+  "attributes": {
+    "mcp.server.name": "my-server",
+    "mcp.tool.name": "docker_ps",
+    "mcp.client.name": "claude"
+  }
+}
+```
 
 ---
 
-#### `record-initialize`
+### `record-histogram`
 
-Records when a client initializes a connection.
+Records a value in a histogram metric. Histograms track the distribution of values (e.g., request durations).
 
 **Arguments:**
 | Name | Type | Description |
 |------|------|-------------|
-| `client_name` | string | Name of the connecting client |
-| `client_version` | string | Version of the connecting client |
+| `name` | string | The metric name (e.g., "mcp.tool.duration") |
+| `value` | float64 | The value to record (typically milliseconds for durations) |
+| `attributes` | map[string]string | Key-value pairs for metric dimensions |
+
+**Example:**
+```json
+{
+  "name": "mcp.tool.duration",
+  "value": 150.5,
+  "attributes": {
+    "mcp.server.name": "my-server",
+    "mcp.tool.name": "docker_ps",
+    "mcp.client.name": "claude"
+  }
+}
+```
 
 ---
 
-### Tool Operations
+### `record-gauge`
 
-#### `record-tool-call`
-
-Records when a tool is called.
+Records a point-in-time value. Gauges represent values that can go up or down (e.g., current connections, discovered resources).
 
 **Arguments:**
 | Name | Type | Description |
 |------|------|-------------|
-| `server_name` | string | Name of the MCP server handling the tool |
-| `server_type` | string | Type of server (e.g., "docker", "sse", "streaming") |
-| `tool_name` | string | Name of the tool being called |
-| `client_name` | string | Name of the client making the call |
+| `name` | string | The metric name (e.g., "mcp.tools.discovered") |
+| `value` | int64 | The current value |
+| `attributes` | map[string]string | Key-value pairs for metric dimensions |
+
+**Example:**
+```json
+{
+  "name": "mcp.tools.discovered",
+  "value": 15,
+  "attributes": {
+    "mcp.server.origin": "my-server"
+  }
+}
+```
 
 ---
 
-#### `record-tool-duration`
-
-Records the duration of a tool call.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `server_type` | string | Type of server |
-| `tool_name` | string | Name of the tool |
-| `client_name` | string | Name of the client |
-| `duration_ms` | float64 | Duration of the call in milliseconds |
-
----
-
-#### `record-tool-error`
-
-Records when a tool call fails.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `server_type` | string | Type of server |
-| `tool_name` | string | Name of the tool that failed |
-
----
-
-#### `record-list-tools`
-
-Records when a client lists available tools.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-tools-discovered`
-
-Records the number of tools discovered from a server.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `tool_count` | int64 | Number of tools discovered |
-
----
-
-### Prompt Operations
-
-#### `record-prompt-get`
-
-Records when a prompt is retrieved.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `prompt_name` | string | Name of the prompt |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-prompt-duration`
-
-Records the duration of a prompt operation.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `prompt_name` | string | Name of the prompt |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-| `duration_ms` | float64 | Duration in milliseconds |
-
----
-
-#### `record-prompt-error`
-
-Records when a prompt operation fails.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `prompt_name` | string | Name of the prompt |
-| `server_name` | string | Name of the MCP server |
-| `error_type` | string | Type of error that occurred |
-
----
-
-#### `record-list-prompts`
-
-Records when a client lists available prompts.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-prompts-discovered`
-
-Records the number of prompts discovered from a server.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `prompt_count` | int64 | Number of prompts discovered |
-
----
-
-### Resource Operations
-
-#### `record-resource-read`
-
-Records when a resource is read.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `resource_uri` | string | URI of the resource |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-resource-duration`
-
-Records the duration of a resource operation.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `resource_uri` | string | URI of the resource |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-| `duration_ms` | float64 | Duration in milliseconds |
-
----
-
-#### `record-resource-error`
-
-Records when a resource operation fails.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `resource_uri` | string | URI of the resource |
-| `server_name` | string | Name of the MCP server |
-| `error_type` | string | Type of error that occurred |
-
----
-
-#### `record-list-resources`
-
-Records when a client lists available resources.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-resources-discovered`
-
-Records the number of resources discovered from a server.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `resource_count` | int64 | Number of resources discovered |
-
----
-
-### Resource Template Operations
-
-#### `record-resource-template-read`
-
-Records when a resource template is read.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `uri_template` | string | URI template pattern |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-resource-template-duration`
-
-Records the duration of a resource template operation.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `uri_template` | string | URI template pattern |
-| `server_name` | string | Name of the MCP server |
-| `client_name` | string | Name of the client |
-| `duration_ms` | float64 | Duration in milliseconds |
-
----
-
-#### `record-resource-template-error`
-
-Records when a resource template operation fails.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `uri_template` | string | URI template pattern |
-| `server_name` | string | Name of the MCP server |
-| `error_type` | string | Type of error that occurred |
-
----
-
-#### `record-list-resource-templates`
-
-Records when a client lists available resource templates.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `client_name` | string | Name of the client |
-
----
-
-#### `record-resource-templates-discovered`
-
-Records the number of resource templates discovered from a server.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `server_name` | string | Name of the MCP server |
-| `template_count` | int64 | Number of templates discovered |
-
----
-
-### Catalog Operations
-
-#### `record-catalog-operation`
-
-Records a catalog operation (load, refresh, etc.).
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `operation` | string | Type of operation (e.g., "load", "refresh") |
-| `catalog_name` | string | Name of the catalog |
-| `duration_ms` | float64 | Duration in milliseconds |
-| `success` | bool | Whether the operation succeeded |
-
----
-
-#### `record-catalog-servers`
-
-Records the number of servers in a catalog.
-
-**Arguments:**
-| Name | Type | Description |
-|------|------|-------------|
-| `catalog_name` | string | Name of the catalog |
-| `server_count` | int64 | Number of servers in the catalog |
-
----
+## Standard Metric Names
+
+The gateway sends the following metric names. Your telemetry server can use these to create appropriately-typed OpenTelemetry instruments:
+
+### Counters (via `record-counter`)
+| Metric Name | Description |
+|-------------|-------------|
+| `mcp.tool.calls` | Number of tool calls executed |
+| `mcp.tool.errors` | Number of tool call errors |
+| `mcp.gateway.starts` | Number of gateway starts |
+| `mcp.initialize` | Number of client initialize calls |
+| `mcp.list.tools` | Number of list tools calls |
+| `mcp.catalog.operations` | Number of catalog operations |
+| `mcp.prompt.gets` | Number of prompt get operations |
+| `mcp.prompt.errors` | Number of prompt errors |
+| `mcp.list.prompts` | Number of list prompts calls |
+| `mcp.resource.reads` | Number of resource read operations |
+| `mcp.resource.errors` | Number of resource errors |
+| `mcp.list.resources` | Number of list resources calls |
+| `mcp.resource_template.reads` | Number of resource template reads |
+| `mcp.resource_template.errors` | Number of resource template errors |
+| `mcp.list.resource_templates` | Number of list resource template calls |
+
+### Histograms (via `record-histogram`)
+| Metric Name | Description | Unit |
+|-------------|-------------|------|
+| `mcp.tool.duration` | Duration of tool call execution | ms |
+| `mcp.catalog.operation.duration` | Duration of catalog operations | ms |
+| `mcp.prompt.duration` | Duration of prompt operations | ms |
+| `mcp.resource.duration` | Duration of resource operations | ms |
+| `mcp.resource_template.duration` | Duration of resource template operations | ms |
+
+### Gauges (via `record-gauge`)
+| Metric Name | Description |
+|-------------|-------------|
+| `mcp.tools.discovered` | Number of tools discovered from servers |
+| `mcp.catalog.servers` | Number of servers in catalogs |
+| `mcp.prompts.discovered` | Number of prompts discovered |
+| `mcp.resources.discovered` | Number of resources discovered |
+| `mcp.resource_templates.discovered` | Number of resource templates discovered |
+
+## Common Attributes
+
+These attributes are commonly included with metrics:
+
+| Attribute | Description |
+|-----------|-------------|
+| `mcp.server.name` | Name of the MCP server |
+| `mcp.server.type` | Type of server (docker, sse, streaming, etc.) |
+| `mcp.server.origin` | Origin server name |
+| `mcp.tool.name` | Name of the tool |
+| `mcp.client.name` | Name of the client |
+| `mcp.client.version` | Version of the client |
+| `mcp.prompt.name` | Name of the prompt |
+| `mcp.resource.uri` | URI of the resource |
+| `mcp.resource_template.uri` | URI template pattern |
+| `mcp.catalog.name` | Name of the catalog |
+| `mcp.catalog.operation` | Type of catalog operation |
+| `mcp.catalog.success` | Whether the operation succeeded ("true"/"false") |
+| `mcp.error.type` | Type of error that occurred |
+| `mcp.gateway.transport` | Gateway transport mode |
+
+## Implementing a Custom Server
+
+Here's a minimal example of implementing a custom telemetry server in Go:
+
+```go
+package main
+
+import (
+    "context"
+    "github.com/modelcontextprotocol/go-sdk/mcp"
+    "go.opentelemetry.io/otel/metric"
+)
+
+func main() {
+    server := mcp.NewServer(&mcp.Implementation{
+        Name:    "my-telemetry-server",
+        Version: "1.0.0",
+    }, nil)
+
+    // Record counter tool
+    type CounterArgs struct {
+        Name       string            `json:"name"`
+        Value      int64             `json:"value"`
+        Attributes map[string]string `json:"attributes"`
+    }
+    mcp.AddTool(server, &mcp.Tool{
+        Name:        "record-counter",
+        Description: "Record a counter metric",
+    }, func(ctx context.Context, _ *mcp.CallToolRequest, args CounterArgs) (*mcp.CallToolResult, any, error) {
+        // Record to your metrics backend
+        recordCounter(args.Name, args.Value, args.Attributes)
+        return &mcp.CallToolResult{
+            Content: []mcp.Content{&mcp.TextContent{Text: "recorded"}},
+        }, nil, nil
+    })
+
+    // Similar for record-histogram and record-gauge...
+}
+```
 
 ## Debugging
 
-Set the `DOCKER_MCP_TELEMETRY_DEBUG` environment variable to enable debug logging for the default telemetry server:
+Set the `DOCKER_MCP_TELEMETRY_DEBUG` environment variable to enable debug logging:
 
 ```bash
 DOCKER_MCP_TELEMETRY_DEBUG=1 docker mcp gateway run
 ```
+
+This will show:
+- `[MCP-TELEMETRY]` - Telemetry package logs
+- `[MCP-TELEMETRY-ADAPTER]` - MCP adapter logs
+- `[MCP-TELEMETRY-SERVER]` - Server-side logs (default server only)

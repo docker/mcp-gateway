@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/docker/mcp-gateway/pkg/plugin"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -23,54 +24,63 @@ const (
 	MeterName = "github.com/docker/mcp-gateway"
 )
 
+// Metric names - these are sent to the telemetry plugin
+const (
+	MetricToolCalls              = "mcp.tool.calls"
+	MetricToolDuration           = "mcp.tool.duration"
+	MetricToolErrors             = "mcp.tool.errors"
+	MetricGatewayStarts          = "mcp.gateway.starts"
+	MetricInitialize             = "mcp.initialize"
+	MetricListTools              = "mcp.list.tools"
+	MetricToolsDiscovered        = "mcp.tools.discovered"
+	MetricCatalogOperations      = "mcp.catalog.operations"
+	MetricCatalogDuration        = "mcp.catalog.operation.duration"
+	MetricCatalogServers         = "mcp.catalog.servers"
+	MetricPromptGets             = "mcp.prompt.gets"
+	MetricPromptDuration         = "mcp.prompt.duration"
+	MetricPromptErrors           = "mcp.prompt.errors"
+	MetricPromptsDiscovered      = "mcp.prompts.discovered"
+	MetricListPrompts            = "mcp.list.prompts"
+	MetricResourceReads          = "mcp.resource.reads"
+	MetricResourceDuration       = "mcp.resource.duration"
+	MetricResourceErrors         = "mcp.resource.errors"
+	MetricResourcesDiscovered    = "mcp.resources.discovered"
+	MetricListResources          = "mcp.list.resources"
+	MetricResourceTemplateReads  = "mcp.resource_template.reads"
+	MetricResourceTemplateDur    = "mcp.resource_template.duration"
+	MetricResourceTemplateErrors = "mcp.resource_template.errors"
+	MetricResourceTemplatesDisc  = "mcp.resource_templates.discovered"
+	MetricListResourceTemplates  = "mcp.list.resource_templates"
+)
+
 var (
 	// tracer is the global tracer for MCP Gateway
 	tracer trace.Tracer
 
-	// meter is the global meter for MCP Gateway
+	// meter is the global meter for MCP Gateway (used for local metrics)
 	meter metric.Meter
 
-	// ToolCallCounter tracks the number of tool calls with server attribution
-	ToolCallCounter metric.Int64Counter
-
-	// ToolCallDuration tracks the duration of tool calls in milliseconds
-	ToolCallDuration metric.Float64Histogram
-
-	// ToolErrorCounter tracks tool call errors by type and server
-	ToolErrorCounter metric.Int64Counter
-
-	// GatewayStartCounter tracks gateway starts
-	GatewayStartCounter metric.Int64Counter
-
-	// InitializeCounter tracks initialize calls
-	InitializeCounter metric.Int64Counter
-
-	// ListToolsCounter tracks list tools calls
-	ListToolsCounter metric.Int64Counter
-
-	// Catalog operation metrics
-	CatalogOperationsCounter metric.Int64Counter
-	CatalogOperationDuration metric.Float64Histogram
-	CatalogServersGauge      metric.Int64Gauge
-
-	// Tool discovery metrics
-	ToolsDiscovered metric.Int64Gauge
-
-	// Prompt operation metrics
-	PromptGetCounter   metric.Int64Counter
-	PromptDuration     metric.Float64Histogram
-	PromptErrorCounter metric.Int64Counter
-	PromptsDiscovered  metric.Int64Gauge
-	ListPromptsCounter metric.Int64Counter
-
-	// Resource operation metrics
-	ResourceReadCounter  metric.Int64Counter
-	ResourceDuration     metric.Float64Histogram
-	ResourceErrorCounter metric.Int64Counter
-	ResourcesDiscovered  metric.Int64Gauge
-	ListResourcesCounter metric.Int64Counter
-
-	// Resource template operation metrics
+	// Local OTel metrics - used when no plugin is registered
+	ToolCallCounter              metric.Int64Counter
+	ToolCallDuration             metric.Float64Histogram
+	ToolErrorCounter             metric.Int64Counter
+	GatewayStartCounter          metric.Int64Counter
+	InitializeCounter            metric.Int64Counter
+	ListToolsCounter             metric.Int64Counter
+	CatalogOperationsCounter     metric.Int64Counter
+	CatalogOperationDuration     metric.Float64Histogram
+	CatalogServersGauge          metric.Int64Gauge
+	ToolsDiscovered              metric.Int64Gauge
+	PromptGetCounter             metric.Int64Counter
+	PromptDuration               metric.Float64Histogram
+	PromptErrorCounter           metric.Int64Counter
+	PromptsDiscovered            metric.Int64Gauge
+	ListPromptsCounter           metric.Int64Counter
+	ResourceReadCounter          metric.Int64Counter
+	ResourceDuration             metric.Float64Histogram
+	ResourceErrorCounter         metric.Int64Counter
+	ResourcesDiscovered          metric.Int64Gauge
+	ListResourcesCounter         metric.Int64Counter
 	ResourceTemplateReadCounter  metric.Int64Counter
 	ResourceTemplateDuration     metric.Float64Histogram
 	ResourceTemplateErrorCounter metric.Int64Counter
@@ -86,279 +96,184 @@ func Init() {
 	// Get meter from global provider (set by Docker CLI)
 	meter = otel.GetMeterProvider().Meter(MeterName)
 
-	// Debug logging to stderr - remove in production
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Init called\n")
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] TracerName=%s, MeterName=%s\n", TracerName, MeterName)
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tracer provider type: %T\n", otel.GetTracerProvider())
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Meter provider type: %T\n", otel.GetMeterProvider())
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] OTEL endpoint env: %s\n", os.Getenv("DOCKER_CLI_OTEL_EXPORTER_OTLP_ENDPOINT"))
-	}
+	debugLog("Init called")
+	debugLog("TracerName=%s, MeterName=%s", TracerName, MeterName)
 
-	// Create metrics
+	// Create local metrics (used when no plugin is registered)
+	initLocalMetrics()
+
+	debugLog("Metrics created successfully")
+}
+
+func initLocalMetrics() {
 	var err error
 
-	ToolCallCounter, err = meter.Int64Counter("mcp.tool.calls",
+	ToolCallCounter, err = meter.Int64Counter(MetricToolCalls,
 		metric.WithDescription("Number of tool calls executed"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail - telemetry should not break the application
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tool call counter: %v\n", err)
-		}
-	}
+	logMetricError("tool call counter", err)
 
-	ToolCallDuration, err = meter.Float64Histogram("mcp.tool.duration",
+	ToolCallDuration, err = meter.Float64Histogram(MetricToolDuration,
 		metric.WithDescription("Duration of tool call execution"),
 		metric.WithUnit("ms"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tool duration histogram: %v\n", err)
-		}
-	}
+	logMetricError("tool duration histogram", err)
 
-	ToolErrorCounter, err = meter.Int64Counter("mcp.tool.errors",
+	ToolErrorCounter, err = meter.Int64Counter(MetricToolErrors,
 		metric.WithDescription("Number of tool call errors"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tool error counter: %v\n", err)
-		}
-	}
+	logMetricError("tool error counter", err)
 
-	GatewayStartCounter, err = meter.Int64Counter("mcp.gateway.starts",
+	GatewayStartCounter, err = meter.Int64Counter(MetricGatewayStarts,
 		metric.WithDescription("Number of gateway starts"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating gateway start counter: %v\n", err)
-		}
-	}
+	logMetricError("gateway start counter", err)
 
-	InitializeCounter, err = meter.Int64Counter("mcp.initialize",
+	InitializeCounter, err = meter.Int64Counter(MetricInitialize,
 		metric.WithDescription("Number of initialize calls"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating initialize counter: %v\n", err)
-		}
-	}
+	logMetricError("initialize counter", err)
 
-	ListToolsCounter, err = meter.Int64Counter("mcp.list.tools",
+	ListToolsCounter, err = meter.Int64Counter(MetricListTools,
 		metric.WithDescription("Number of list tools calls"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating list tools counter: %v\n", err)
-		}
-	}
+	logMetricError("list tools counter", err)
 
-	ToolsDiscovered, err = meter.Int64Gauge("mcp.tools.discovered",
+	ToolsDiscovered, err = meter.Int64Gauge(MetricToolsDiscovered,
 		metric.WithDescription("Number of tools discovered from servers"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tools discovered gauge: %v\n", err)
-		}
-	}
+	logMetricError("tools discovered gauge", err)
 
-	CatalogOperationsCounter, err = meter.Int64Counter("mcp.catalog.operations",
+	CatalogOperationsCounter, err = meter.Int64Counter(MetricCatalogOperations,
 		metric.WithDescription("Number of catalog operations"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating catalog operations counter: %v\n", err)
-		}
-	}
+	logMetricError("catalog operations counter", err)
 
-	CatalogOperationDuration, err = meter.Float64Histogram("mcp.catalog.operation.duration",
+	CatalogOperationDuration, err = meter.Float64Histogram(MetricCatalogDuration,
 		metric.WithDescription("Duration of catalog operations"),
 		metric.WithUnit("ms"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating catalog duration histogram: %v\n", err)
-		}
-	}
+	logMetricError("catalog duration histogram", err)
 
-	CatalogServersGauge, err = meter.Int64Gauge("mcp.catalog.servers",
+	CatalogServersGauge, err = meter.Int64Gauge(MetricCatalogServers,
 		metric.WithDescription("Number of servers in catalogs"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating catalog servers gauge: %v\n", err)
-		}
-	}
+	logMetricError("catalog servers gauge", err)
 
-	// Initialize prompt metrics
-	PromptGetCounter, err = meter.Int64Counter("mcp.prompt.gets",
+	PromptGetCounter, err = meter.Int64Counter(MetricPromptGets,
 		metric.WithDescription("Number of prompt get operations"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating prompt get counter: %v\n", err)
-		}
-	}
+	logMetricError("prompt get counter", err)
 
-	PromptDuration, err = meter.Float64Histogram("mcp.prompt.duration",
+	PromptDuration, err = meter.Float64Histogram(MetricPromptDuration,
 		metric.WithDescription("Duration of prompt operations"),
 		metric.WithUnit("ms"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating prompt duration histogram: %v\n", err)
-		}
-	}
+	logMetricError("prompt duration histogram", err)
 
-	PromptErrorCounter, err = meter.Int64Counter("mcp.prompt.errors",
+	PromptErrorCounter, err = meter.Int64Counter(MetricPromptErrors,
 		metric.WithDescription("Number of prompt operation errors"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating prompt error counter: %v\n", err)
-		}
-	}
+	logMetricError("prompt error counter", err)
 
-	PromptsDiscovered, err = meter.Int64Gauge("mcp.prompts.discovered",
+	PromptsDiscovered, err = meter.Int64Gauge(MetricPromptsDiscovered,
 		metric.WithDescription("Number of prompts discovered from servers"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating prompts discovered gauge: %v\n", err)
-		}
-	}
+	logMetricError("prompts discovered gauge", err)
 
-	ListPromptsCounter, err = meter.Int64Counter("mcp.list.prompts",
+	ListPromptsCounter, err = meter.Int64Counter(MetricListPrompts,
 		metric.WithDescription("Number of list prompts calls"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating list prompts counter: %v\n", err)
-		}
-	}
+	logMetricError("list prompts counter", err)
 
-	// Initialize resource metrics
-	ResourceReadCounter, err = meter.Int64Counter("mcp.resource.reads",
+	ResourceReadCounter, err = meter.Int64Counter(MetricResourceReads,
 		metric.WithDescription("Number of resource read operations"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource read counter: %v\n", err)
-		}
-	}
+	logMetricError("resource read counter", err)
 
-	ResourceDuration, err = meter.Float64Histogram("mcp.resource.duration",
+	ResourceDuration, err = meter.Float64Histogram(MetricResourceDuration,
 		metric.WithDescription("Duration of resource operations"),
 		metric.WithUnit("ms"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource duration histogram: %v\n", err)
-		}
-	}
+	logMetricError("resource duration histogram", err)
 
-	ResourceErrorCounter, err = meter.Int64Counter("mcp.resource.errors",
+	ResourceErrorCounter, err = meter.Int64Counter(MetricResourceErrors,
 		metric.WithDescription("Number of resource operation errors"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource error counter: %v\n", err)
-		}
-	}
+	logMetricError("resource error counter", err)
 
-	ResourcesDiscovered, err = meter.Int64Gauge("mcp.resources.discovered",
+	ResourcesDiscovered, err = meter.Int64Gauge(MetricResourcesDiscovered,
 		metric.WithDescription("Number of resources discovered from servers"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resources discovered gauge: %v\n", err)
-		}
-	}
+	logMetricError("resources discovered gauge", err)
 
-	ListResourcesCounter, err = meter.Int64Counter("mcp.list.resources",
+	ListResourcesCounter, err = meter.Int64Counter(MetricListResources,
 		metric.WithDescription("Number of list resources calls"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating list resources counter: %v\n", err)
-		}
-	}
+	logMetricError("list resources counter", err)
 
-	// Initialize resource template metrics
-	ResourceTemplateReadCounter, err = meter.Int64Counter("mcp.resource_template.reads",
+	ResourceTemplateReadCounter, err = meter.Int64Counter(MetricResourceTemplateReads,
 		metric.WithDescription("Number of resource template read operations"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource template read counter: %v\n", err)
-		}
-	}
+	logMetricError("resource template read counter", err)
 
-	ResourceTemplateDuration, err = meter.Float64Histogram("mcp.resource_template.duration",
+	ResourceTemplateDuration, err = meter.Float64Histogram(MetricResourceTemplateDur,
 		metric.WithDescription("Duration of resource template operations"),
 		metric.WithUnit("ms"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource template duration histogram: %v\n", err)
-		}
-	}
+	logMetricError("resource template duration histogram", err)
 
-	ResourceTemplateErrorCounter, err = meter.Int64Counter("mcp.resource_template.errors",
+	ResourceTemplateErrorCounter, err = meter.Int64Counter(MetricResourceTemplateErrors,
 		metric.WithDescription("Number of resource template operation errors"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource template error counter: %v\n", err)
-		}
-	}
+	logMetricError("resource template error counter", err)
 
-	ResourceTemplatesDiscovered, err = meter.Int64Gauge("mcp.resource_templates.discovered",
+	ResourceTemplatesDiscovered, err = meter.Int64Gauge(MetricResourceTemplatesDisc,
 		metric.WithDescription("Number of resource templates discovered from servers"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating resource templates discovered gauge: %v\n", err)
-		}
-	}
+	logMetricError("resource templates discovered gauge", err)
 
-	ListResourceTemplatesCounter, err = meter.Int64Counter("mcp.list.resource_templates",
+	ListResourceTemplatesCounter, err = meter.Int64Counter(MetricListResourceTemplates,
 		metric.WithDescription("Number of list resource templates calls"),
 		metric.WithUnit("1"))
-	if err != nil {
-		// Log error but don't fail
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating list resource templates counter: %v\n", err)
-		}
-	}
+	logMetricError("list resource templates counter", err)
+}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Metrics created successfully\n")
+func logMetricError(name string, err error) {
+	if err != nil {
+		debugLog("Error creating %s: %v", name, err)
 	}
+}
+
+// getPlugin returns the telemetry plugin if registered, or nil
+func getPlugin() plugin.TelemetryPlugin {
+	return plugin.Global().TelemetryPlugin()
+}
+
+// recordCounter records a counter metric via plugin or locally
+func recordCounter(ctx context.Context, name string, value int64, attrs map[string]string) {
+	if p := getPlugin(); p != nil {
+		p.RecordCounter(ctx, name, value, attrs)
+	}
+	// Note: local metrics can also be recorded here if needed
+}
+
+// recordHistogram records a histogram metric via plugin or locally
+func recordHistogram(ctx context.Context, name string, value float64, attrs map[string]string) {
+	if p := getPlugin(); p != nil {
+		p.RecordHistogram(ctx, name, value, attrs)
+	}
+}
+
+// recordGauge records a gauge metric via plugin or locally
+func recordGauge(ctx context.Context, name string, value int64, attrs map[string]string) {
+	if p := getPlugin(); p != nil {
+		p.RecordGauge(ctx, name, value, attrs)
+	}
+}
+
+// hasPlugin returns true if a telemetry plugin is registered
+func hasPlugin() bool {
+	return plugin.Global().HasTelemetryPlugin()
 }
 
 // StartToolCallSpan starts a new span for a tool call with server attribution
 func StartToolCallSpan(ctx context.Context, toolName string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
-	// Add the tool name as a mandatory attribute
 	allAttrs := append([]attribute.KeyValue{
 		attribute.String("mcp.tool.name", toolName),
 	}, attrs...)
@@ -370,7 +285,6 @@ func StartToolCallSpan(ctx context.Context, toolName string, attrs ...attribute.
 
 // StartCommandSpan starts a new span for a command execution
 func StartCommandSpan(ctx context.Context, commandPath string, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
-	// Add the command path as an attribute
 	allAttrs := append([]attribute.KeyValue{
 		attribute.String("mcp.command.path", commandPath),
 	}, attrs...)
@@ -384,18 +298,23 @@ func StartCommandSpan(ctx context.Context, commandPath string, attrs ...attribut
 
 // RecordToolError records a tool error with appropriate attributes
 func RecordToolError(ctx context.Context, span trace.Span, serverName, serverType, toolName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolError: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordToolError: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tool error: %s on %s\n", toolName, serverName)
+	debugLog("Tool error: %s on %s", toolName, serverName)
+
+	// Record error in span if provided (keeping local tracing)
+	if span != nil {
+		span.RecordError(nil)
 	}
 
-	recordToolError(ctx, span, serverName, serverType, toolName)
+	recordCounter(ctx, MetricToolErrors, 1, map[string]string{
+		"mcp.server.name": serverName,
+		"mcp.server.type": serverType,
+		"mcp.tool.name":   toolName,
+	})
 }
 
 // StartPromptSpan starts a new span for a prompt operation
@@ -409,7 +328,7 @@ func StartPromptSpan(ctx context.Context, promptName string, attrs ...attribute.
 		trace.WithSpanKind(trace.SpanKindClient))
 }
 
-// StartListSpan starts a new span for a list operation (tools, prompts, resources)
+// StartInitializeSpan starts a new span for an initialize operation
 func StartInitializeSpan(ctx context.Context, attrs ...attribute.KeyValue) (context.Context, trace.Span) {
 	return tracer.Start(ctx, "mcp.initialize",
 		trace.WithAttributes(attrs...),
@@ -467,378 +386,363 @@ func StartInterceptorSpan(ctx context.Context, when, interceptorType string, att
 
 // RecordGatewayStart records a gateway start event
 func RecordGatewayStart(ctx context.Context, transportMode string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordGatewayStart: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordGatewayStart: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Gateway started with transport: %s\n", transportMode)
-	}
+	debugLog("Gateway started with transport: %s", transportMode)
 
-	recordGatewayStart(ctx, transportMode)
+	recordCounter(ctx, MetricGatewayStarts, 1, map[string]string{
+		"mcp.gateway.transport": transportMode,
+	})
 }
 
+// RecordInitialize records an initialize event
 func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordInitialize: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordInitialize: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Initialize called\n")
-	}
+	debugLog("Initialize called")
 
-	recordInitialize(ctx, params.ClientInfo.Name, params.ClientInfo.Version)
+	recordCounter(ctx, MetricInitialize, 1, map[string]string{
+		"mcp.client.name":    params.ClientInfo.Name,
+		"mcp.client.version": params.ClientInfo.Version,
+	})
 }
 
 // RecordListTools records a list tools call
 func RecordListTools(ctx context.Context, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListTools: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordListTools: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List tools called\n")
-	}
+	debugLog("List tools called")
 
-	recordListTools(ctx, clientName)
+	recordCounter(ctx, MetricListTools, 1, map[string]string{
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordToolCall records a tool call event
 func RecordToolCall(ctx context.Context, serverName, serverType, toolName, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolCall: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordToolCall: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tool call: %s on %s\n", toolName, serverName)
-	}
+	debugLog("Tool call: %s on %s", toolName, serverName)
 
-	recordToolCall(ctx, serverName, serverType, toolName, clientName)
+	recordCounter(ctx, MetricToolCalls, 1, map[string]string{
+		"mcp.server.name": serverName,
+		"mcp.server.type": serverType,
+		"mcp.tool.name":   toolName,
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordToolDuration records tool call duration
 func RecordToolDuration(ctx context.Context, serverName, serverType, toolName, clientName string, durationMs float64) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolDuration: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordToolDuration: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tool duration: %s took %.2fms\n", toolName, durationMs)
-	}
+	debugLog("Tool duration: %s took %.2fms", toolName, durationMs)
 
-	recordToolDuration(ctx, serverName, serverType, toolName, clientName, durationMs)
+	recordHistogram(ctx, MetricToolDuration, durationMs, map[string]string{
+		"mcp.server.name": serverName,
+		"mcp.server.type": serverType,
+		"mcp.tool.name":   toolName,
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordToolList records the number of tools discovered from a server
 func RecordToolList(ctx context.Context, serverName string, toolCount int) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordToolList: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordToolList: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tools discovered: %d from server %s\n",
-			toolCount, serverName)
-	}
+	debugLog("Tools discovered: %d from server %s", toolCount, serverName)
 
-	recordToolsDiscovered(ctx, serverName, toolCount)
+	recordGauge(ctx, MetricToolsDiscovered, int64(toolCount), map[string]string{
+		"mcp.server.origin": serverName,
+	})
 }
 
 // RecordCatalogOperation records a catalog operation with duration
 func RecordCatalogOperation(ctx context.Context, operation string, catalogName string, durationMs float64, success bool) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordCatalogOperation: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordCatalogOperation: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Catalog operation: %s on %s, duration: %.2fms, success: %v\n",
-			operation, catalogName, durationMs, success)
+	debugLog("Catalog operation: %s on %s, duration: %.2fms, success: %v", operation, catalogName, durationMs, success)
+
+	successStr := "false"
+	if success {
+		successStr = "true"
 	}
 
-	recordCatalogOperation(ctx, operation, catalogName, durationMs, success)
+	attrs := map[string]string{
+		"mcp.catalog.operation": operation,
+		"mcp.catalog.name":      catalogName,
+		"mcp.catalog.success":   successStr,
+	}
+
+	recordCounter(ctx, MetricCatalogOperations, 1, attrs)
+	recordHistogram(ctx, MetricCatalogDuration, durationMs, attrs)
 }
 
 // RecordCatalogServers records the number of servers in catalogs
 func RecordCatalogServers(ctx context.Context, catalogName string, serverCount int64) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordCatalogServers: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordCatalogServers: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Catalog %s has %d servers\n", catalogName, serverCount)
-	}
+	debugLog("Catalog %s has %d servers", catalogName, serverCount)
 
-	recordCatalogServers(ctx, catalogName, serverCount)
+	recordGauge(ctx, MetricCatalogServers, serverCount, map[string]string{
+		"mcp.catalog.name": catalogName,
+	})
 }
 
 // RecordPromptGet records a prompt get operation
 func RecordPromptGet(ctx context.Context, promptName string, serverName string, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptGet: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordPromptGet: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Prompt get: %s from server %s\n", promptName, serverName)
-	}
+	debugLog("Prompt get: %s from server %s", promptName, serverName)
 
-	recordPromptGet(ctx, promptName, serverName, clientName)
+	recordCounter(ctx, MetricPromptGets, 1, map[string]string{
+		"mcp.prompt.name":   promptName,
+		"mcp.server.origin": serverName,
+		"mcp.client.name":   clientName,
+	})
 }
 
 // RecordPromptDuration records the duration of a prompt operation
 func RecordPromptDuration(ctx context.Context, promptName string, serverName string, durationMs float64, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptDuration: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordPromptDuration: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Prompt duration: %s from %s took %.2fms\n",
-			promptName, serverName, durationMs)
-	}
+	debugLog("Prompt duration: %s from %s took %.2fms", promptName, serverName, durationMs)
 
-	recordPromptDuration(ctx, promptName, serverName, durationMs, clientName)
+	recordHistogram(ctx, MetricPromptDuration, durationMs, map[string]string{
+		"mcp.prompt.name":   promptName,
+		"mcp.server.origin": serverName,
+		"mcp.client.name":   clientName,
+	})
 }
 
 // RecordPromptError records a prompt operation error
 func RecordPromptError(ctx context.Context, promptName string, serverName string, errorType string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptError: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordPromptError: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Prompt error: %s from %s, error: %s\n",
-			promptName, serverName, errorType)
-	}
+	debugLog("Prompt error: %s from %s, error: %s", promptName, serverName, errorType)
 
-	recordPromptError(ctx, promptName, serverName, errorType)
+	recordCounter(ctx, MetricPromptErrors, 1, map[string]string{
+		"mcp.prompt.name":   promptName,
+		"mcp.server.origin": serverName,
+		"mcp.error.type":    errorType,
+	})
 }
 
 // RecordPromptList records the number of prompts discovered from a server
 func RecordPromptList(ctx context.Context, serverName string, promptCount int) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordPromptList: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordPromptList: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Prompts discovered: %d from server %s\n",
-			promptCount, serverName)
-	}
+	debugLog("Prompts discovered: %d from server %s", promptCount, serverName)
 
-	recordPromptsDiscovered(ctx, serverName, promptCount)
+	recordGauge(ctx, MetricPromptsDiscovered, int64(promptCount), map[string]string{
+		"mcp.server.origin": serverName,
+	})
 }
 
-// RecordListPrompts records a list prompts call (similar to RecordListTools)
+// RecordListPrompts records a list prompts call
 func RecordListPrompts(ctx context.Context, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListPrompts: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordListPrompts: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List prompts called\n")
-	}
+	debugLog("List prompts called")
 
-	recordListPrompts(ctx, clientName)
+	recordCounter(ctx, MetricListPrompts, 1, map[string]string{
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordListResources records a list resources call
 func RecordListResources(ctx context.Context, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListResources: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordListResources: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List resources called\n")
-	}
+	debugLog("List resources called")
 
-	recordListResources(ctx, clientName)
+	recordCounter(ctx, MetricListResources, 1, map[string]string{
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordResourceRead records a resource read operation
 func RecordResourceRead(ctx context.Context, resourceURI string, serverName string, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceRead: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceRead: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource read: %s from server %s\n", resourceURI, serverName)
-	}
+	debugLog("Resource read: %s from server %s", resourceURI, serverName)
 
-	recordResourceRead(ctx, resourceURI, serverName, clientName)
+	recordCounter(ctx, MetricResourceReads, 1, map[string]string{
+		"mcp.resource.uri":  resourceURI,
+		"mcp.server.origin": serverName,
+		"mcp.client.name":   clientName,
+	})
 }
 
 // RecordResourceDuration records the duration of a resource operation
 func RecordResourceDuration(ctx context.Context, resourceURI string, serverName string, durationMs float64, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceDuration: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceDuration: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource duration: %s from %s took %.2fms\n",
-			resourceURI, serverName, durationMs)
-	}
+	debugLog("Resource duration: %s from %s took %.2fms", resourceURI, serverName, durationMs)
 
-	recordResourceDuration(ctx, resourceURI, serverName, durationMs, clientName)
+	recordHistogram(ctx, MetricResourceDuration, durationMs, map[string]string{
+		"mcp.resource.uri":  resourceURI,
+		"mcp.server.origin": serverName,
+		"mcp.client.name":   clientName,
+	})
 }
 
 // RecordResourceError records a resource operation error
 func RecordResourceError(ctx context.Context, resourceURI string, serverName string, errorType string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceError: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceError: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource error: %s from %s, error: %s\n",
-			resourceURI, serverName, errorType)
-	}
+	debugLog("Resource error: %s from %s, error: %s", resourceURI, serverName, errorType)
 
-	recordResourceError(ctx, resourceURI, serverName, errorType)
+	recordCounter(ctx, MetricResourceErrors, 1, map[string]string{
+		"mcp.resource.uri":  resourceURI,
+		"mcp.server.origin": serverName,
+		"mcp.error.type":    errorType,
+	})
 }
 
 // RecordResourceList records the number of resources discovered from a server
 func RecordResourceList(ctx context.Context, serverName string, resourceCount int) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceList: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceList: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resources discovered: %d from server %s\n",
-			resourceCount, serverName)
-	}
+	debugLog("Resources discovered: %d from server %s", resourceCount, serverName)
 
-	recordResourcesDiscovered(ctx, serverName, resourceCount)
+	recordGauge(ctx, MetricResourcesDiscovered, int64(resourceCount), map[string]string{
+		"mcp.server.origin": serverName,
+	})
 }
 
 // RecordListResourceTemplates records a list resource templates call
 func RecordListResourceTemplates(ctx context.Context, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordListResourceTemplates: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordListResourceTemplates: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] List resource templates called\n")
-	}
+	debugLog("List resource templates called")
 
-	recordListResourceTemplates(ctx, clientName)
+	recordCounter(ctx, MetricListResourceTemplates, 1, map[string]string{
+		"mcp.client.name": clientName,
+	})
 }
 
 // RecordResourceTemplateRead records a resource template read operation
 func RecordResourceTemplateRead(ctx context.Context, uriTemplate string, serverName string, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateRead: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceTemplateRead: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource template read: %s from server %s\n", uriTemplate, serverName)
-	}
+	debugLog("Resource template read: %s from server %s", uriTemplate, serverName)
 
-	recordResourceTemplateRead(ctx, uriTemplate, serverName, clientName)
+	recordCounter(ctx, MetricResourceTemplateReads, 1, map[string]string{
+		"mcp.resource_template.uri": uriTemplate,
+		"mcp.server.origin":         serverName,
+		"mcp.client.name":           clientName,
+	})
 }
 
 // RecordResourceTemplateDuration records the duration of a resource template operation
 func RecordResourceTemplateDuration(ctx context.Context, uriTemplate string, serverName string, durationMs float64, clientName string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateDuration: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceTemplateDuration: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource template duration: %s from %s took %.2fms\n",
-			uriTemplate, serverName, durationMs)
-	}
+	debugLog("Resource template duration: %s from %s took %.2fms", uriTemplate, serverName, durationMs)
 
-	recordResourceTemplateDuration(ctx, uriTemplate, serverName, durationMs, clientName)
+	recordHistogram(ctx, MetricResourceTemplateDur, durationMs, map[string]string{
+		"mcp.resource_template.uri": uriTemplate,
+		"mcp.server.origin":         serverName,
+		"mcp.client.name":           clientName,
+	})
 }
 
 // RecordResourceTemplateError records a resource template operation error
 func RecordResourceTemplateError(ctx context.Context, uriTemplate string, serverName string, errorType string) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateError: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceTemplateError: no telemetry plugin registered")
+		return
 	}
 
-	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource template error: %s from %s, error: %s\n",
-			uriTemplate, serverName, errorType)
-	}
+	debugLog("Resource template error: %s from %s, error: %s", uriTemplate, serverName, errorType)
 
-	recordResourceTemplateError(ctx, uriTemplate, serverName, errorType)
+	recordCounter(ctx, MetricResourceTemplateErrors, 1, map[string]string{
+		"mcp.resource_template.uri": uriTemplate,
+		"mcp.server.origin":         serverName,
+		"mcp.error.type":            errorType,
+	})
 }
 
 // RecordResourceTemplateList records the number of resource templates discovered from a server
 func RecordResourceTemplateList(ctx context.Context, serverName string, templateCount int) {
-	if !IsMCPClientInitialized() {
-		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] WARNING: Skipping RecordResourceTemplateList: telemetry not initialized\n")
-		}
-		return // Telemetry not initialized
+	if !hasPlugin() {
+		debugLog("WARNING: Skipping RecordResourceTemplateList: no telemetry plugin registered")
+		return
 	}
 
+	debugLog("Resource templates discovered: %d from server %s", templateCount, serverName)
+
+	recordGauge(ctx, MetricResourceTemplatesDisc, int64(templateCount), map[string]string{
+		"mcp.server.origin": serverName,
+	})
+}
+
+func debugLog(format string, args ...any) {
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Resource templates discovered: %d from server %s\n",
-			templateCount, serverName)
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] "+format+"\n", args...)
 	}
-
-	recordResourceTemplatesDiscovered(ctx, serverName, templateCount)
 }

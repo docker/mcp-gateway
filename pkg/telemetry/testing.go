@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 
+	"github.com/docker/mcp-gateway/pkg/plugin"
 	telemetryserver "github.com/docker/mcp-gateway/telemetry-server"
 )
 
@@ -69,7 +70,7 @@ func SetupTestTelemetryServer(t *testing.T) *TestTelemetryServer {
 		cleanup: func() {
 			_ = CloseMCPClient()
 			_ = server.Stop()
-			ResetForTesting()
+			plugin.Global().ResetForTesting()
 		},
 	}
 }
