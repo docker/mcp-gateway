@@ -1,0 +1,20 @@
+name: my-mcp
+title: My MCP
+type: server
+image: myimage:latest
+description: Server that runs my MCP code
+env:
+  - name: MODE
+    value: "{{my-mcp.mode}}"
+secrets:
+  - name: my-mcp.SECRET_KEY
+    env: SECRET_KEY
+config:
+  - name: my-mcp
+    description: The configuration for the mcp server
+    type: object
+    properties:
+      mode:
+        type: string
+    required:
+      - mode

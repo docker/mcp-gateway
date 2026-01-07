@@ -15,8 +15,8 @@ type topLevel struct {
 // MCP Servers
 
 type Server struct {
-	Name           string    `yaml:"name,omitempty" json:"name,omitempty"`
-	Type           string    `yaml:"type" json:"type"`
+	Name           string    `yaml:"name,omitempty" json:"name,omitempty" validate:"required,min=1"`
+	Type           string    `yaml:"type" json:"type" validate:"required,oneof=server remote poci"`
 	Image          string    `yaml:"image" json:"image"`
 	Description    string    `yaml:"description,omitempty" json:"description,omitempty"`
 	Title          string    `yaml:"title,omitempty" json:"title,omitempty"`
@@ -33,7 +33,7 @@ type Server struct {
 	DisableNetwork bool      `yaml:"disableNetwork,omitempty" json:"disableNetwork,omitempty"`
 	AllowHosts     []string  `yaml:"allowHosts,omitempty" json:"allowHosts,omitempty"`
 	ExtraHosts     []string  `yaml:"extraHosts,omitempty" json:"extraHosts,omitempty"`
-	Tools          []Tool    `yaml:"tools,omitempty" json:"tools,omitempty"`
+	Tools          []Tool    `yaml:"tools,omitempty" json:"tools,omitempty" validate:"dive"`
 	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
 	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 	Metadata       *Metadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
@@ -107,7 +107,7 @@ type ToolGroup struct {
 }
 
 type Tool struct {
-	Name        string     `yaml:"name" json:"name"`
+	Name        string     `yaml:"name" json:"name" validate:"required,min=1"`
 	Description string     `yaml:"description" json:"description"`
 	Container   Container  `yaml:"container" json:"container"`
 	Parameters  Parameters `yaml:"parameters" json:"parameters"`

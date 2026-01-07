@@ -22,7 +22,7 @@ func Import(ctx context.Context, dao db.DAO, ociService oci.Service, filename st
 	}
 
 	var workingSet WorkingSet
-	if strings.HasSuffix(strings.ToLower(filename), ".yaml") {
+	if strings.HasSuffix(strings.ToLower(filename), ".yaml") || strings.HasSuffix(strings.ToLower(filename), ".yml") {
 		if err := yaml.Unmarshal(workingSetBuf, &workingSet); err != nil {
 			return fmt.Errorf("failed to unmarshal profile: %w", err)
 		}

@@ -1,6 +1,8 @@
 package workingset
 
 import (
+	"embed"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -16,6 +18,9 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
+
+//go:embed testdata/*
+var testData embed.FS
 
 // setupTestDB creates a temporary database for testing
 func setupTestDB(t *testing.T) db.DAO {
@@ -414,6 +419,27 @@ func TestWorkingSetValidate(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			// More details tests of the server snapshot are in other tests below.
+			name: "invalid server snapshot",
+			ws: WorkingSet{
+				Version: CurrentWorkingSetVersion,
+				ID:      "test-id",
+				Name:    "Test",
+				Servers: []Server{
+					{
+						Type: ServerTypeImage,
+						Snapshot: &ServerSnapshot{
+							Server: catalog.Server{
+								// Fails due to missing info like config
+								Name: "test-server",
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
 			name: "duplicate server name",
 			ws: WorkingSet{
 				Version: CurrentWorkingSetVersion,
@@ -451,6 +477,420 @@ func TestWorkingSetValidate(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateServerSnapshot(t *testing.T) {
+	tests := []struct {
+		name      string
+		snapshot  ServerSnapshot
+		expectErr string
+	}{
+		{
+			name: "valid server snapshot",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "test-server",
+							"description": "test-server",
+							"type":        "object",
+							"properties": map[string]any{
+								"mode": map[string]any{
+									"type": "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid with multiple property types",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "config description",
+							"type":        "object",
+							"properties": map[string]any{
+								"strProp": map[string]any{
+									"type": "string",
+								},
+								"intProp": map[string]any{
+									"type": "integer",
+								},
+								"numProp": map[string]any{
+									"type": "number",
+								},
+								"boolProp": map[string]any{
+									"type": "boolean",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid with nested object",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "config description",
+							"type":        "object",
+							"properties": map[string]any{
+								"nested": map[string]any{
+									"type": "object",
+									"properties": map[string]any{
+										"innerProp": map[string]any{
+											"type": "string",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid with array of strings",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "config description",
+							"type":        "object",
+							"properties": map[string]any{
+								"tags": map[string]any{
+									"type": "array",
+									"items": map[string]any{
+										"type": "string",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid with nil config",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name:   "test-server",
+					Config: nil,
+				},
+			},
+		},
+		{
+			name:      "config item is not a map",
+			expectErr: "config[0] is not a map",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name:   "test-server",
+					Config: []any{"not a map"},
+				},
+			},
+		},
+		{
+			name:      "config item missing name field",
+			expectErr: "config[0] has no name field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"description": "desc",
+							"type":        "object",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "config item missing description field",
+			expectErr: "config[0] has no description field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name": "config",
+							"type": "object",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "config item missing type field",
+			expectErr: "config[0] has no type field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "config item type is not object",
+			expectErr: "config[0].type must be 'object', got 'string'",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "string",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "config item properties is not a map",
+			expectErr: "config[0].properties is not a map",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties":  "not a map",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "property is not a map",
+			expectErr: "config[0].properties.badProp is not a map",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"badProp": "not a map",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "property missing type field",
+			expectErr: "config[0].properties.noType has no type field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"noType": map[string]any{
+									"description": "missing type",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "property has unsupported type",
+			expectErr: "config[0].properties.badType.type null is not supported",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"badType": map[string]any{
+									"type": "null",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "nested object missing properties",
+			expectErr: "config[0].properties.nested is type 'object' but has no properties field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"nested": map[string]any{
+									"type": "object",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "array missing items field",
+			expectErr: "config[0].properties.arr is type 'array' but has no items field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"arr": map[string]any{
+									"type": "array",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "array items missing type",
+			expectErr: "config[0].properties.arr.items has no type field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"arr": map[string]any{
+									"type":  "array",
+									"items": map[string]any{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "array items type must be string",
+			expectErr: "config[0].properties.arr.items type must be string",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"arr": map[string]any{
+									"type": "array",
+									"items": map[string]any{
+										"type": "integer",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "error in second config item",
+			expectErr: "config[1] has no name field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config1",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"prop": map[string]any{
+									"type": "string",
+								},
+							},
+						},
+						map[string]any{
+							"description": "missing name",
+							"type":        "object",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "deeply nested object validation error",
+			expectErr: "config[0].properties.level1.level2 has no type field",
+			snapshot: ServerSnapshot{
+				Server: catalog.Server{
+					Name: "test-server",
+					Config: []any{
+						map[string]any{
+							"name":        "config",
+							"description": "desc",
+							"type":        "object",
+							"properties": map[string]any{
+								"level1": map[string]any{
+									"type": "object",
+									"properties": map[string]any{
+										"level2": map[string]any{
+											"description": "missing type",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.snapshot.ValidateInnerConfig()
+			if tt.expectErr != "" {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.expectErr)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -651,6 +1091,199 @@ func TestResolveServerFromString(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tt.expected, server)
+			}
+		})
+	}
+}
+
+func TestResolveFile(t *testing.T) {
+	// Files come from testdata/
+	tests := []struct {
+		name        string
+		file        string
+		input       string
+		expected    []Server
+		expectedErr string
+	}{
+		{
+			name:  "valid yaml file",
+			file:  "server.yaml",
+			input: "file://testdata/server.yaml",
+			expected: []Server{
+				{
+					Type:    ServerTypeImage,
+					Image:   "myimage:latest",
+					Secrets: "default",
+					Snapshot: &ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-mcp",
+							Type:        "server",
+							Image:       "myimage:latest",
+							Description: "Server that runs my MCP code",
+							Title:       "My MCP",
+							Env: []catalog.Env{
+								{
+									Name:  "MODE",
+									Value: "{{my-mcp.mode}}",
+								},
+							},
+							Secrets: []catalog.Secret{
+								{
+									Name: "my-mcp.SECRET_KEY",
+									Env:  "SECRET_KEY",
+								},
+							},
+							Config: []any{
+								map[string]any{
+									"name":        "my-mcp",
+									"description": "The configuration for the mcp server",
+									"type":        "object",
+									"properties": map[string]any{
+										"mode": map[string]any{
+											"type": "string",
+										},
+									},
+									"required": []any{"mode"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "valid json file",
+			file:  "server.json",
+			input: "file://testdata/server.json",
+			expected: []Server{
+				{
+					Type:    ServerTypeImage,
+					Image:   "myimage:latest",
+					Secrets: "default",
+					Snapshot: &ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-mcp",
+							Type:        "server",
+							Image:       "myimage:latest",
+							Description: "Server that runs my MCP code",
+							Title:       "My MCP",
+							Env: []catalog.Env{
+								{
+									Name:  "MODE",
+									Value: "{{my-mcp.mode}}",
+								},
+							},
+							Secrets: []catalog.Secret{
+								{
+									Name: "my-mcp.SECRET_KEY",
+									Env:  "SECRET_KEY",
+								},
+							},
+							Config: []any{
+								map[string]any{
+									"name":        "my-mcp",
+									"description": "The configuration for the mcp server",
+									"type":        "object",
+									"properties": map[string]any{
+										"mode": map[string]any{
+											"type": "string",
+										},
+									},
+									"required": []any{"mode"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "valid full catalog yaml file",
+			file:  "legacy-catalog.yaml",
+			input: "file://testdata/legacy-catalog.yaml",
+			expected: []Server{
+				{
+					Type:    ServerTypeImage,
+					Image:   "myimage:latest",
+					Secrets: "default",
+					Snapshot: &ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-mcp",
+							Type:        "server",
+							Image:       "myimage:latest",
+							Description: "Server that runs my MCP code",
+							Title:       "My MCP",
+							Env: []catalog.Env{
+								{
+									Name:  "MODE",
+									Value: "{{my-mcp.mode}}",
+								},
+							},
+							Secrets: []catalog.Secret{
+								{
+									Name: "my-mcp.SECRET_KEY",
+									Env:  "SECRET_KEY",
+								},
+							},
+							Config: []any{
+								map[string]any{
+									"name":        "my-mcp",
+									"description": "The configuration for the mcp server",
+									"type":        "object",
+									"properties": map[string]any{
+										"mode": map[string]any{
+											"type": "string",
+										},
+									},
+									"required": []any{"mode"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "invalid yaml file",
+			file:        "invalid-yaml.yaml",
+			input:       "file://testdata/invalid-yaml.yaml",
+			expectedErr: "failed to unmarshal server",
+		},
+		{
+			name:        "invalid type yaml file",
+			file:        "invalid-type.yaml",
+			input:       "file://testdata/invalid-type.yaml",
+			expectedErr: "unsupported server type: invalid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// write temp file to disk
+			tempDir := t.TempDir()
+			if tt.file != "" {
+				content, err := testData.ReadFile("testdata/" + tt.file)
+				require.NoError(t, err)
+				tempFile := filepath.Join(tempDir, "testdata", tt.file)
+				_ = os.MkdirAll(filepath.Dir(tempFile), 0o755)
+				err = os.WriteFile(tempFile, content, 0o644)
+				require.NoError(t, err)
+				defer os.Remove(tempFile)
+			}
+
+			cwd, err := os.Getwd()
+			require.NoError(t, err)
+			defer os.Chdir(cwd) //nolint:errcheck
+			err = os.Chdir(tempDir)
+			require.NoError(t, err)
+
+			server, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), setupTestDB(t), tt.input)
+			if tt.expectedErr != "" {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expected, server)
 			}
 		})
 	}

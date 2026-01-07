@@ -138,7 +138,19 @@ func (catalog *Catalog) Validate() error {
 	if err := validate.Get().Struct(catalog); err != nil {
 		return err
 	}
-	return catalog.validateUniqueServerNames()
+	if err := catalog.validateUniqueServerNames(); err != nil {
+		return err
+	}
+	return catalog.validateServerSnapshots()
+}
+
+func (catalog *Catalog) validateServerSnapshots() error {
+	for _, server := range catalog.Servers {
+		if err := server.Snapshot.ValidateInnerConfig(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (catalog *Catalog) validateUniqueServerNames() error {
