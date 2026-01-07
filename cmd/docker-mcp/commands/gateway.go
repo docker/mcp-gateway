@@ -219,8 +219,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 
 	// Very experimental features
 	_ = runCmd.Flags().MarkHidden("log")
-	_ = runCmd.Flags().MarkHidden("telemetry-mcp-server-host")
-	_ = runCmd.Flags().MarkHidden("telemetry-mcp-server-port")
 
 	cmd.AddCommand(runCmd)
 
