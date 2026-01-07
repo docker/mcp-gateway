@@ -232,8 +232,8 @@ func TestTelemetryMetricRecording(t *testing.T) {
 // TestTelemetryErrorRecording tests error recording in telemetry
 func TestTelemetryErrorRecording(t *testing.T) {
 	// Set up telemetry MCP server for Record* functions
-	cleanup := telemetry.SetupTestTelemetryServer(t)
-	defer cleanup()
+	ts := telemetry.SetupTestTelemetryServer(t)
+	defer ts.Cleanup()
 
 	spanRecorder, _ := setupTestTelemetry(t)
 
@@ -261,9 +261,30 @@ func TestTelemetryErrorRecording(t *testing.T) {
 	assert.Equal(t, "mcp.tool.call", recordedSpan.Name())
 	assert.Equal(t, otelcodes.Error, recordedSpan.Status().Code)
 
-	// Note: Error counter is now recorded by the telemetry MCP server, not locally.
-	// The MCP client successfully sent the tool call to the server.
-	// The server's metrics would show mcp.tool.errors incremented.
+	// Verify error counter was recorded by the telemetry MCP server
+	rm := &metricdata.ResourceMetrics{}
+	err := ts.MetricReader.Collect(ctx, rm)
+	require.NoError(t, err)
+
+	var foundErrorCounter bool
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name == "mcp.tool.errors" {
+				foundErrorCounter = true
+				data, ok := m.Data.(metricdata.Sum[int64])
+				require.True(t, ok)
+				require.Len(t, data.DataPoints, 1)
+				assert.Equal(t, int64(1), data.DataPoints[0].Value)
+
+				// Verify attributes
+				attrs := data.DataPoints[0].Attributes
+				assertMetricAttribute(t, attrs, "mcp.server.name", serverName)
+				assertMetricAttribute(t, attrs, "mcp.server.type", serverType)
+				assertMetricAttribute(t, attrs, "mcp.tool.name", toolName)
+			}
+		}
+	}
+	assert.True(t, foundErrorCounter, "mcp.tool.errors metric not found in telemetry server")
 }
 
 // TestHandlerInstrumentationIntegration is a placeholder for full integration test

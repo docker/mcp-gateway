@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
@@ -35,8 +36,8 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 
 	t.Run("records resource read metrics", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -52,14 +53,62 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		// Record resource read - sends to MCP telemetry server
 		telemetry.RecordResourceRead(ctx, resourceURI, serverConfig.Name, clientName)
 
-		// Note: Metrics are now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Check that we have metrics
+		assert.NotEmpty(t, rm.ScopeMetrics, "Should have scope metrics")
+
+		// Find our counter metric in telemetry server
+		foundCounter := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource.reads" {
+					foundCounter = true
+					// Verify it's a sum (counter)
+					sum, ok := m.Data.(metricdata.Sum[int64])
+					assert.True(t, ok, "Should be a Sum metric")
+					assert.NotEmpty(t, sum.DataPoints, "Should have data points")
+
+					// Check the value
+					if len(sum.DataPoints) > 0 {
+						assert.Equal(t, int64(1), sum.DataPoints[0].Value, "Counter should be 1")
+
+						// Check attributes
+						attrs := sum.DataPoints[0].Attributes
+						hasURI := false
+						hasServer := false
+						hasClient := false
+						for _, attr := range attrs.ToSlice() {
+							if attr.Key == "mcp.resource.uri" {
+								assert.Equal(t, resourceURI, attr.Value.AsString())
+								hasURI = true
+							}
+							if attr.Key == "mcp.server.origin" {
+								assert.Equal(t, serverConfig.Name, attr.Value.AsString())
+								hasServer = true
+							}
+							if attr.Key == "mcp.client.name" {
+								assert.Equal(t, clientName, attr.Value.AsString())
+								hasClient = true
+							}
+						}
+						assert.True(t, hasURI, "Should have resource URI attribute")
+						assert.True(t, hasServer, "Should have server origin attribute")
+						assert.True(t, hasClient, "Should have client name attribute")
+					}
+				}
+			}
+		}
+		assert.True(t, foundCounter, "Should have found mcp.resource.reads counter in telemetry server")
 	})
 
 	t.Run("records resource duration histogram", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -71,14 +120,36 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		// Record duration - sends to MCP telemetry server
 		telemetry.RecordResourceDuration(ctx, resourceURI, serverName, duration, clientName)
 
-		// Note: Duration histogram is now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Find histogram in telemetry server
+		foundHistogram := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource.duration" {
+					foundHistogram = true
+					hist, ok := m.Data.(metricdata.Histogram[float64])
+					assert.True(t, ok, "Should be a Histogram metric")
+					assert.NotEmpty(t, hist.DataPoints, "Should have data points")
+
+					if len(hist.DataPoints) > 0 {
+						dp := hist.DataPoints[0]
+						assert.Equal(t, uint64(1), dp.Count, "Should have 1 observation")
+						assert.InEpsilon(t, duration, dp.Sum, 0.01, "Sum should equal duration")
+					}
+				}
+			}
+		}
+		assert.True(t, foundHistogram, "Should have found mcp.resource.duration histogram in telemetry server")
 	})
 
 	t.Run("records resource errors", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -88,8 +159,39 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		// Record error - sends to MCP telemetry server
 		telemetry.RecordResourceError(ctx, resourceURI, serverName, "not_found")
 
-		// Note: Error counter is now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Find error counter in telemetry server
+		foundErrorCounter := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource.errors" {
+					foundErrorCounter = true
+					sum, ok := m.Data.(metricdata.Sum[int64])
+					assert.True(t, ok, "Should be a Sum metric")
+					assert.NotEmpty(t, sum.DataPoints, "Should have data points")
+
+					if len(sum.DataPoints) > 0 {
+						assert.Equal(t, int64(1), sum.DataPoints[0].Value, "Error counter should be 1")
+
+						// Check for error type attribute
+						attrs := sum.DataPoints[0].Attributes
+						hasErrorType := false
+						for _, attr := range attrs.ToSlice() {
+							if attr.Key == "mcp.error.type" {
+								assert.Equal(t, "not_found", attr.Value.AsString())
+								hasErrorType = true
+							}
+						}
+						assert.True(t, hasErrorType, "Should have error type attribute")
+					}
+				}
+			}
+		}
+		assert.True(t, foundErrorCounter, "Should have found mcp.resource.errors counter in telemetry server")
 	})
 
 	t.Run("creates resource span with attributes", func(t *testing.T) {
@@ -152,8 +254,8 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 
 	t.Run("records resource template read metrics", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -164,8 +266,28 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 		// Record resource template read - sends to MCP telemetry server
 		telemetry.RecordResourceTemplateRead(ctx, uriTemplate, serverName, clientName)
 
-		// Note: Metrics are now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Find counter in telemetry server
+		foundCounter := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource_template.reads" {
+					foundCounter = true
+					sum, ok := m.Data.(metricdata.Sum[int64])
+					assert.True(t, ok, "Should be a Sum metric")
+					assert.NotEmpty(t, sum.DataPoints, "Should have data points")
+
+					if len(sum.DataPoints) > 0 {
+						assert.Equal(t, int64(1), sum.DataPoints[0].Value, "Counter should be 1")
+					}
+				}
+			}
+		}
+		assert.True(t, foundCounter, "Should have found mcp.resource_template.reads counter in telemetry server")
 	})
 
 	t.Run("creates resource template span", func(t *testing.T) {
@@ -225,8 +347,8 @@ func TestResourceDiscoveryMetrics(t *testing.T) {
 
 	t.Run("records resources discovered", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -236,14 +358,34 @@ func TestResourceDiscoveryMetrics(t *testing.T) {
 		// Record discovery - sends to MCP telemetry server
 		telemetry.RecordResourceList(ctx, serverName, resourceCount)
 
-		// Note: Gauge is now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Find gauge in telemetry server
+		foundGauge := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resources.discovered" {
+					foundGauge = true
+					gauge, ok := m.Data.(metricdata.Gauge[int64])
+					assert.True(t, ok, "Should be a Gauge metric")
+					assert.NotEmpty(t, gauge.DataPoints, "Should have data points")
+
+					if len(gauge.DataPoints) > 0 {
+						assert.Equal(t, int64(resourceCount), gauge.DataPoints[0].Value)
+					}
+				}
+			}
+		}
+		assert.True(t, foundGauge, "Should have found mcp.resources.discovered gauge in telemetry server")
 	})
 
 	t.Run("records resource templates discovered", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test data
 		ctx := context.Background()
@@ -253,8 +395,28 @@ func TestResourceDiscoveryMetrics(t *testing.T) {
 		// Record discovery - sends to MCP telemetry server
 		telemetry.RecordResourceTemplateList(ctx, serverName, templateCount)
 
-		// Note: Gauge is now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Collect metrics from the telemetry server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Find gauge in telemetry server
+		foundGauge := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource_templates.discovered" {
+					foundGauge = true
+					gauge, ok := m.Data.(metricdata.Gauge[int64])
+					assert.True(t, ok, "Should be a Gauge metric")
+					assert.NotEmpty(t, gauge.DataPoints, "Should have data points")
+
+					if len(gauge.DataPoints) > 0 {
+						assert.Equal(t, int64(templateCount), gauge.DataPoints[0].Value)
+					}
+				}
+			}
+		}
+		assert.True(t, foundGauge, "Should have found mcp.resource_templates.discovered gauge in telemetry server")
 	})
 }
 
@@ -266,8 +428,8 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 
 	t.Run("handler records telemetry on success", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Set up span recorder
 		spanRecorder := tracetest.NewSpanRecorder()
@@ -316,14 +478,32 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		spans := spanRecorder.Ended()
 		require.Len(t, spans, 1, "Should have created one span")
 
-		// Note: Metrics are now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool calls to the server.
+		// Verify metrics were recorded by the telemetry MCP server
+		var rm metricdata.ResourceMetrics
+		err := ts.MetricReader.Collect(ctx, &rm)
+		require.NoError(t, err)
+
+		// Check for counter and histogram in telemetry server
+		foundCounter := false
+		foundHistogram := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				switch m.Name {
+				case "mcp.resource.reads":
+					foundCounter = true
+				case "mcp.resource.duration":
+					foundHistogram = true
+				}
+			}
+		}
+		assert.True(t, foundCounter, "Should have recorded counter in telemetry server")
+		assert.True(t, foundHistogram, "Should have recorded duration in telemetry server")
 	})
 
 	t.Run("handler records error telemetry on failure", func(t *testing.T) {
 		// Set up telemetry MCP server for Record* functions
-		cleanup := telemetry.SetupTestTelemetryServer(t)
-		defer cleanup()
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Set up span recorder
 		spanRecorder := tracetest.NewSpanRecorder()
@@ -369,7 +549,18 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		require.Len(t, spans, 1)
 		assert.Len(t, spans[0].Events(), 1, "Should have error event")
 
-		// Note: Error counter is now recorded by the telemetry MCP server, not locally.
-		// The MCP client successfully sent the tool call to the server.
+		// Verify error counter was recorded by the telemetry MCP server
+		var rm metricdata.ResourceMetrics
+		require.NoError(t, ts.MetricReader.Collect(ctx, &rm))
+
+		foundErrorCounter := false
+		for _, sm := range rm.ScopeMetrics {
+			for _, m := range sm.Metrics {
+				if m.Name == "mcp.resource.errors" {
+					foundErrorCounter = true
+				}
+			}
+		}
+		assert.True(t, foundErrorCounter, "Should have recorded error counter in telemetry server")
 	})
 }
