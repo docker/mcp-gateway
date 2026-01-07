@@ -75,6 +75,23 @@ func CloseMCPClient() error {
 	return nil
 }
 
+// ResetForTesting resets the MCP client state for testing purposes.
+// This should only be called from tests.
+func ResetForTesting() {
+	mcpClientMu.Lock()
+	defer mcpClientMu.Unlock()
+	mcpSession = nil
+	mcpClientOnce = sync.Once{}
+}
+
+// SetSessionForTesting sets the MCP session for testing purposes.
+// This allows tests to inject a mock session.
+func SetSessionForTesting(session *mcp.ClientSession) {
+	mcpClientMu.Lock()
+	defer mcpClientMu.Unlock()
+	mcpSession = session
+}
+
 // callTool makes an MCP tool call to the telemetry server
 func callTool(ctx context.Context, toolName string, args any) error {
 	mcpClientMu.RLock()
