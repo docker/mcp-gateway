@@ -66,6 +66,7 @@ allowHosts:
 |-------|------|----------|-------------|
 | `name` | string | Yes | Name of the secret. Must be prefixed by unique name of the server (e.g., `brave.api_key`). |
 | `env` | string | Yes | Environment variable name to inject the secret as (e.g., `BRAVE_API_KEY`). |
+| `example` | string | Yes | An example value for the key (e.g. `your_api_key`) |
 
 **OAuth Object Structure:**
 
