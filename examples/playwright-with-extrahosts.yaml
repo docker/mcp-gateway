@@ -1,0 +1,17 @@
+registry:
+  playwright:
+    description: Playwright MCP server.
+    title: Playwright
+    type: server
+    longLived: true
+    dateAdded: "2025-05-05T20:04:34Z"
+    image: mcp/playwright@sha256:53da89d1da3dfbb61c10f707c1713cfee1f870f7fba5334e126c6c765e37db56
+    ref: ""
+    readme: http://desktop.docker.com/mcp/catalog/v3/readme/playwright.md
+    toolsUrl: http://desktop.docker.com/mcp/catalog/v3/tools/playwright.json
+    source: https://github.com/microsoft/playwright-mcp/tree/64f65ccd105842204e3e1b1e1a7b28825492b089
+    upstream: https://github.com/microsoft/playwright-mcp
+    icon: https://avatars.githubusercontent.com/u/6154722?v=4
+    extraHosts:
+      - "myapp.local:192.168.1.100"
+      - "testserver:10.0.0.5"
