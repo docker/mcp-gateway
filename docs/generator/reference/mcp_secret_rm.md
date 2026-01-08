@@ -1,7 +1,7 @@
 # docker mcp secret rm
 
 <!---MARKER_GEN_START-->
-Remove secrets from Docker Desktop's secret store
+Remove secrets from the local OS Keychain
 
 ### Options
 

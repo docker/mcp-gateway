@@ -6,10 +6,9 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
-func Restore(ctx context.Context, backupData []byte) error {
+func Restore(_ context.Context, backupData []byte) error {
 	var backup Backup
 	if err := json.Unmarshal(backupData, &backup); err != nil {
 		return err
@@ -48,37 +47,6 @@ func Restore(ctx context.Context, backupData []byte) error {
 				return err
 			}
 		}
-	}
-
-	secretsClient := desktop.NewSecretsClient()
-
-	secretsBefore, err := secretsClient.ListJfsSecrets(ctx)
-	if err != nil {
-		return err
-	}
-
-	secretsKeep := map[string]bool{}
-	for _, secret := range backup.Secrets {
-		if err := secretsClient.SetJfsSecret(ctx, desktop.Secret{
-			Name:     secret.Name,
-			Value:    secret.Value,
-			Provider: secret.Provider,
-		}); err != nil {
-			return err
-		}
-		secretsKeep[secret.Name] = true
-	}
-
-	for _, secret := range secretsBefore {
-		if !secretsKeep[secret.Name] {
-			if err := secretsClient.DeleteJfsSecret(ctx, secret.Name); err != nil {
-				return err
-			}
-		}
-	}
-
-	if err := secretsClient.SetJfsPolicy(ctx, backup.Policy); err != nil {
-		return err
 	}
 
 	return nil

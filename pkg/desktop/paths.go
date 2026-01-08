@@ -6,7 +6,6 @@ type DockerDesktopPaths struct {
 	AdminSettingPath     string
 	BackendSocket        string
 	RawDockerSocket      string
-	JFSSocket            string
 	ToolsSocket          string
 	CredentialHelperPath func() string
 }
