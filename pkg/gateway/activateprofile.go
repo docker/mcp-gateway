@@ -13,7 +13,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
-	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 // ActivateProfileResult contains the result of profile activation
@@ -25,46 +24,36 @@ type ActivateProfileResult struct {
 
 // ActivateProfile activates a profile by name, loading its servers into the gateway
 func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error {
-	// Load profile from database
+	// Create database connection
 	dao, err := db.New()
 	if err != nil {
 		return fmt.Errorf("failed to create database client: %w", err)
 	}
 	defer dao.Close()
 
-	dbWorkingSet, err := dao.GetWorkingSet(ctx, profileName)
+	// Create a temporary WorkingSetConfiguration to load the profile
+	wsConfig := NewWorkingSetConfiguration(
+		Config{WorkingSet: profileName},
+		oci.NewService(),
+		g.docker,
+	)
+
+	// Load the full profile configuration using the existing readOnce method
+	profileConfig, err := wsConfig.readOnce(ctx, dao)
 	if err != nil {
-		return fmt.Errorf("profile '%s' not found", profileName)
+		return fmt.Errorf("failed to load profile '%s': %w", profileName, err)
 	}
 
-	// Convert and resolve snapshots
-	ws := workingset.NewFromDb(dbWorkingSet)
-
-	// Resolve server snapshots (OCI metadata)
-	ociService := oci.NewService()
-	if err := ws.EnsureSnapshotsResolved(ctx, ociService); err != nil {
-		return fmt.Errorf("failed to resolve server snapshots: %w", err)
-	}
-
-	// Filter servers: only process image and remote servers that are not already active
-	var serversToActivate []workingset.Server
+	// Filter servers: only activate servers that are not already active
+	var serversToActivate []string
 	var skippedServers []string
 
-	for _, server := range ws.Servers {
-		// Skip registry servers (not supported for direct activation)
-		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
-			continue
-		}
-
-		serverName := server.Snapshot.Server.Name
-
-		// Skip servers that are already active
+	for _, serverName := range profileConfig.serverNames {
 		if slices.Contains(g.configuration.serverNames, serverName) {
 			skippedServers = append(skippedServers, serverName)
-			continue
+		} else {
+			serversToActivate = append(serversToActivate, serverName)
 		}
-
-		serversToActivate = append(serversToActivate, server)
 	}
 
 	// If no servers to activate, return early
@@ -80,52 +69,21 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 	// Validate ALL servers before activating any (all-or-nothing)
 	var validationErrors []serverValidation
 
-	for _, server := range serversToActivate {
-		serverName := server.Snapshot.Server.Name
-		serverConfig := server.Snapshot.Server
+	for _, serverName := range serversToActivate {
+		serverConfig := profileConfig.servers[serverName]
 		validation := serverValidation{serverName: serverName}
-
-		// Temporarily add server to configuration to fetch updated secrets
-		originalServerNames := slices.Clone(g.configuration.serverNames)
-		g.configuration.serverNames = append(g.configuration.serverNames, serverName)
-
-		// Add server to servers map for secret resolution
-		g.configuration.servers[serverName] = serverConfig
-
-		// Fetch updated secrets for validation
-		if g.configurator != nil {
-			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-			if err != nil {
-				log.Log(fmt.Errorf("failed to read DockerDesktop secrets: %w", err))
-			} else {
-				g.configuration.secrets = updatedSecrets
-			}
-		}
 
 		// Check if all required secrets are set
 		for _, secret := range serverConfig.Secrets {
-			secretName := secret.Name
-			// Handle namespaced secrets from profile
-			if server.Secrets != "" {
-				secretName = server.Secrets + "_" + secret.Name
-			}
-
-			if value, exists := g.configuration.secrets[secretName]; !exists || value == "" {
+			if value, exists := profileConfig.secrets[secret.Name]; !exists || value == "" {
 				validation.missingSecrets = append(validation.missingSecrets, secret.Name)
 			}
 		}
 
 		// Check if all required config values are set and validate against schema
 		if len(serverConfig.Config) > 0 {
-			canonicalServerName := oci.CanonicalizeServerName(serverName)
-
-			// Get config from profile or existing configuration
-			var serverConfigMap map[string]any
-			if server.Config != nil {
-				serverConfigMap = server.Config
-			} else if g.configuration.config != nil {
-				serverConfigMap = g.configuration.config[canonicalServerName]
-			}
+			// Get config from profile
+			serverConfigMap := profileConfig.config[serverName]
 
 			for _, configItem := range serverConfig.Config {
 				// Config items should be schema objects with a "name" property
@@ -188,10 +146,6 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 			}
 		}
 
-		// Restore original server names and servers map (rollback temporary changes)
-		g.configuration.serverNames = originalServerNames
-		delete(g.configuration.servers, serverName)
-
 		// Collect validation errors
 		if len(validation.missingSecrets) > 0 || len(validation.missingConfig) > 0 || validation.imagePullError != nil {
 			validationErrors = append(validationErrors, validation)
@@ -222,43 +176,55 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 		return fmt.Errorf("%s", strings.Join(errorMessages, "\n"))
 	}
 
-	// All validations passed - activate all servers
+	// All validations passed - merge configuration into current gateway
 	var activatedServers []string
 
-	for _, server := range serversToActivate {
-		serverName := server.Snapshot.Server.Name
-		serverConfig := server.Snapshot.Server
+	// Merge secrets once (they're already namespaced in profileConfig)
+	for secretName, secretValue := range profileConfig.secrets {
+		g.configuration.secrets[secretName] = secretValue
+	}
 
-		// Add server to configuration
+	for _, serverName := range serversToActivate {
+		// Add server name to the list
 		g.configuration.serverNames = append(g.configuration.serverNames, serverName)
-		g.configuration.servers[serverName] = serverConfig
 
-		// Add server config from profile
-		if server.Config != nil {
+		// Add server definition
+		g.configuration.servers[serverName] = profileConfig.servers[serverName]
+
+		// Merge server config
+		if profileConfig.config[serverName] != nil {
 			if g.configuration.config == nil {
 				g.configuration.config = make(map[string]map[string]any)
 			}
-			canonicalServerName := oci.CanonicalizeServerName(serverName)
-			g.configuration.config[canonicalServerName] = server.Config
+			g.configuration.config[serverName] = profileConfig.config[serverName]
 		}
 
-		// Refresh secrets for the updated server list
-		if g.configurator != nil {
-			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-			if err == nil {
-				g.configuration.secrets = updatedSecrets
-			} else {
-				log.Log("Warning: Failed to update secrets:", err)
+		// Merge tools configuration
+		if tools, exists := profileConfig.tools.ServerTools[serverName]; exists {
+			if g.configuration.tools.ServerTools == nil {
+				g.configuration.tools.ServerTools = make(map[string][]string)
 			}
+			g.configuration.tools.ServerTools[serverName] = tools
 		}
 
 		// Reload server capabilities
-		_, err := g.reloadServerCapabilities(ctx, serverName, nil)
+		oldCaps, err := g.reloadServerCapabilities(ctx, serverName, nil)
 		if err != nil {
 			log.Log(fmt.Sprintf("Warning: Failed to reload capabilities for server '%s': %v", serverName, err))
 			// Continue with other servers even if this one fails
 			continue
 		}
+
+		// Update g.mcpServer with the new capabilities
+		g.capabilitiesMu.Lock()
+		newCaps := g.allCapabilities(serverName)
+		if err := g.updateServerCapabilities(serverName, oldCaps, newCaps, nil); err != nil {
+			g.capabilitiesMu.Unlock()
+			log.Log(fmt.Sprintf("Warning: Failed to update server capabilities for '%s': %v", serverName, err))
+			// Continue with other servers even if this one fails
+			continue
+		}
+		g.capabilitiesMu.Unlock()
 
 		activatedServers = append(activatedServers, serverName)
 	}

@@ -269,12 +269,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
 				}
 			}
-
-			// Load profiles from profiles.json if client is claude-code
-			if g.UseProfiles {
-				// LoadProfilesForClient handles Claude Code detection and profile loading
-				_ = project.LoadProfilesForClient(ctx, clientInfo, g)
-			}
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -283,6 +277,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Add interceptor middleware to the server (includes telemetry)
 	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
+
+	// Add profile loading middleware for initialize method
+	if g.UseProfiles {
+		middlewares = append(middlewares, g.profileLoadingMiddleware())
+	}
+
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
@@ -724,3 +724,31 @@ func (g *Gateway) ReloadConfiguration(ctx context.Context, configuration Configu
 func (g *Gateway) PullAndVerify(ctx context.Context, configuration Configuration) error {
 	return g.pullAndVerify(ctx, configuration)
 }
+
+// profileLoadingMiddleware creates middleware that loads profiles when the initialize method is received
+func (g *Gateway) profileLoadingMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			// Only handle initialize method
+			if method != "initialize" {
+				return next(ctx, method, req)
+			}
+
+			// Call the next handler first
+			result, err := next(ctx, method, req)
+
+			// After the initialize method has been handled, load profiles
+			session := req.GetSession()
+			if serverSession, ok := session.(*mcp.ServerSession); ok {
+				initParams := serverSession.InitializeParams()
+				if initParams != nil && initParams.ClientInfo != nil {
+					// Load profiles from profiles.json if client is claude-code
+					_ = project.LoadProfilesForClient(ctx, initParams.ClientInfo, g)
+				}
+			}
+
+			return result, err
+		}
+	}
+}
+
