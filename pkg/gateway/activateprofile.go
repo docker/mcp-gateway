@@ -27,6 +27,9 @@ type ActivateProfileResult struct {
 func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error {
 	// Load profile from database
 	dao, err := db.New()
+	if dao != nil {
+		defer dao.Close()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create database client: %w", err)
 	}
@@ -95,6 +98,7 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 		if g.configurator != nil {
 			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
 			if err == nil {
+				log.Log(fmt.Errorf("failed to read DockerDesktop secrets: %w", err))
 				g.configuration.secrets = updatedSecrets
 			}
 		}
@@ -185,8 +189,9 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 			}
 		}
 
-		// Restore original server names (rollback temporary change)
+		// Restore original server names and servers map (rollback temporary changes)
 		g.configuration.serverNames = originalServerNames
+		delete(g.configuration.servers, serverName)
 
 		// Collect validation errors
 		if len(validation.missingSecrets) > 0 || len(validation.missingConfig) > 0 || validation.imagePullError != nil {

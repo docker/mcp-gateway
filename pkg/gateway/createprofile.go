@@ -47,6 +47,7 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create database client: %w", err)
 		}
+		defer dao.Close()
 
 		ociService := oci.NewService()
 
