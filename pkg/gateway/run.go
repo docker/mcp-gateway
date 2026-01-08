@@ -253,7 +253,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(ctx context.Context, req *mcp.InitializedRequest) {
+		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
 			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
 
@@ -751,4 +751,3 @@ func (g *Gateway) profileLoadingMiddleware() mcp.Middleware {
 		}
 	}
 }
-

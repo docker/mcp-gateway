@@ -318,6 +318,8 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 // updateServerCapabilities updates g.mcpServer with capabilities from the server.
 // If toolFilter is non-nil, only tools in the filter will be added.
 // This function expects g.capabilitiesMu to be locked by the caller.
+//
+//nolint:unparam // toolFilter is designed for future use - selective tool activation
 func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *ServerCapabilities, toolFilter []string) error {
 	// Get the full capabilities from serverAvailableCapabilities
 	newServerCaps := g.serverAvailableCapabilities[serverName]
