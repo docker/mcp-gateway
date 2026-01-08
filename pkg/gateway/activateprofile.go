@@ -97,6 +97,7 @@ func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error
 			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
 			if err != nil {
 				log.Log(fmt.Errorf("failed to read DockerDesktop secrets: %w", err))
+			} else {
 				g.configuration.secrets = updatedSecrets
 			}
 		}
