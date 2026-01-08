@@ -27,12 +27,10 @@ type ActivateProfileResult struct {
 func (g *Gateway) ActivateProfile(ctx context.Context, profileName string) error {
 	// Load profile from database
 	dao, err := db.New()
-	if dao != nil {
-		defer dao.Close()
-	}
 	if err != nil {
 		return fmt.Errorf("failed to create database client: %w", err)
 	}
+	defer dao.Close()
 
 	dbWorkingSet, err := dao.GetWorkingSet(ctx, profileName)
 	if err != nil {
