@@ -1,0 +1,255 @@
+# Alternative deployment: Separate pods for each component
+# This provides better resource isolation and independent scaling
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server-duckduckgo
+  labels:
+    app: mcp-server
+    server: duckduckgo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+      server: duckduckgo
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+        server: duckduckgo
+    spec:
+      initContainers:
+      - name: copy-bridge
+        image: docker/mcp-gateway:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            mkdir -p /mcp-bridge/misc
+            cp /misc/docker-mcp-bridge /mcp-bridge/misc/
+            chmod +x /mcp-bridge/misc/docker-mcp-bridge
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      containers:
+      - name: server
+        image: mcp/duckduckgo@sha256:68eb20db6109f5c312a695fc5ec3386ad15d93ffb765a0b4eb1baf4328dec14f
+        command: ["/mcp-bridge/misc/docker-mcp-bridge"]
+        args: ["python", "-m", "duckduckgo_mcp_server.server"]
+        ports:
+        - containerPort: 4444
+          name: mcp
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        readinessProbe:
+          tcpSocket:
+            port: 4444
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+
+      volumes:
+      - name: docker-mcp-tools
+        emptyDir: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server-fetch
+  labels:
+    app: mcp-server
+    server: fetch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+      server: fetch
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+        server: fetch
+    spec:
+      initContainers:
+      - name: copy-bridge
+        image: docker/mcp-gateway:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            mkdir -p /mcp-bridge/misc
+            cp /misc/docker-mcp-bridge /mcp-bridge/misc/
+            chmod +x /mcp-bridge/misc/docker-mcp-bridge
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      containers:
+      - name: server
+        image: mcp/fetch@sha256:ef9535a3f07249142f9ca5a6033d7024950afdb6dc05e98292794a23e9f5dfbe
+        command: ["/mcp-bridge/misc/docker-mcp-bridge"]
+        args: ["mcp-server-fetch"]
+        ports:
+        - containerPort: 4444
+          name: mcp
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: docker-mcp-tools
+          mountPath: /mcp-bridge
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        readinessProbe:
+          tcpSocket:
+            port: 4444
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+
+      volumes:
+      - name: docker-mcp-tools
+        emptyDir: {}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-gateway
+  labels:
+    app: mcp-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-gateway
+  template:
+    metadata:
+      labels:
+        app: mcp-gateway
+    spec:
+      initContainers:
+      # WORKAROUND: Wait for MCP servers to be ready before starting gateway
+      #
+      # The gateway currently initializes connections to all MCP servers during startup.
+      # This init container ensures servers are listening before the gateway starts.
+      #
+      # FUTURE: The gateway should use lazy initialization - connect to servers on-demand
+      # when clients connect, not during gateway startup. This would eliminate the need
+      # for this init container and allow servers to come/go dynamically.
+      - name: wait-for-mcp-servers
+        image: busybox:1.36
+        command: ['sh', '-c']
+        args:
+          - |
+            echo "Waiting for MCP servers to be ready..."
+
+            # Wait for duckduckgo server
+            until nc -zv mcp-duckduckgo 4444; do
+              echo "Waiting for mcp-duckduckgo:4444..."
+              sleep 2
+            done
+            echo "✓ mcp-duckduckgo is ready"
+
+            # Add more servers here as needed
+            # until nc -zv mcp-fetch 4444; do
+            #   echo "Waiting for mcp-fetch:4444..."
+            #   sleep 2
+            # done
+            # echo "✓ mcp-fetch is ready"
+
+            echo "All MCP servers are ready!"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+
+      containers:
+      - name: gateway
+        image: docker/mcp-gateway:latest
+        args:
+          - --transport=streaming
+          - --port=8811
+          - --static=true
+          - --servers=duckduckgo
+          - --verbose
+        ports:
+        - containerPort: 8811
+          name: mcp
+          protocol: TCP
+        env:
+        - name: MCP_GATEWAY_AUTH_TOKEN
+          value: "test-token-123"
+        - name: DOCKER_MCP_IN_CONTAINER
+          value: "1"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8811
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer test-token-123"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8811
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer test-token-123"
+          initialDelaySeconds: 5
+          periodSeconds: 10
