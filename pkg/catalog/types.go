@@ -21,6 +21,7 @@ type Server struct {
 	Description    string    `yaml:"description,omitempty" json:"description,omitempty"`
 	Title          string    `yaml:"title,omitempty" json:"title,omitempty"`
 	Icon           string    `yaml:"icon,omitempty" json:"icon,omitempty"`
+	ReadmeURL      string    `yaml:"readme,omitempty" json:"readme,omitempty"`
 	LongLived      bool      `yaml:"longLived,omitempty" json:"longLived,omitempty"`
 	Remote         Remote    `yaml:"remote" json:"remote"`
 	SSEEndpoint    string    `yaml:"sseEndpoint,omitempty" json:"sseEndpoint,omitempty"` // Deprecated: Use Remote instead
@@ -107,10 +108,16 @@ type ToolGroup struct {
 }
 
 type Tool struct {
-	Name        string     `yaml:"name" json:"name" validate:"required,min=1"`
-	Description string     `yaml:"description" json:"description"`
-	Container   Container  `yaml:"container" json:"container"`
-	Parameters  Parameters `yaml:"parameters" json:"parameters"`
+	Name        string `yaml:"name" json:"name" validate:"required,min=1"`
+	Description string `yaml:"description" json:"description"`
+
+	// These will only be set for oci catalogs (not legacy catalogs)
+	Arguments   *[]ToolArgument  `yaml:"arguments,omitempty" json:"arguments,omitempty"`
+	Annotations *ToolAnnotations `yaml:"annotations,omitempty" json:"annotations,omitempty"`
+
+	// This is only used for POCIs
+	Container  Container  `yaml:"container,omitempty" json:"container,omitempty"`
+	Parameters Parameters `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type Parameters struct {
@@ -154,6 +161,22 @@ func (p *Properties) ToMap() map[string]any {
 	}
 
 	return m
+}
+
+type ToolArgument struct {
+	Name        string `json:"name" yaml:"name"`
+	Type        string `json:"type" yaml:"type"`
+	Items       *Items `json:"items,omitempty" yaml:"items,omitempty"`
+	Description string `json:"desc" yaml:"desc"`
+	Optional    bool   `json:"optional,omitempty" yaml:"optional,omitempty"`
+}
+
+type ToolAnnotations struct {
+	Title           string `json:"title,omitempty" yaml:"title,omitempty"`
+	ReadOnlyHint    *bool  `json:"readOnlyHint,omitempty" yaml:"readOnlyHint,omitempty"`
+	DestructiveHint *bool  `json:"destructiveHint,omitempty" yaml:"destructiveHint,omitempty"`
+	IdempotentHint  *bool  `json:"idempotentHint,omitempty" yaml:"idempotentHint,omitempty"`
+	OpenWorldHint   *bool  `json:"openWorldHint,omitempty" yaml:"openWorldHint,omitempty"`
 }
 
 // Config
