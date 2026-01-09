@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
+	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -254,6 +256,19 @@ func (g *Gateway) Run(ctx context.Context) error {
 		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
 			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+
+			// Log current working directory
+			if pwd, err := os.Getwd(); err == nil {
+				log.Log(fmt.Sprintf("- Current working directory: %s", pwd))
+			}
+
+			// Log entire initialize request
+			initParams := req.Session.InitializeParams()
+			if initParams != nil {
+				if initJSON, err := json.MarshalIndent(initParams, "  ", "  "); err == nil {
+					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
+				}
+			}
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -262,6 +277,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Add interceptor middleware to the server (includes telemetry)
 	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
+
+	// Add profile loading middleware for initialize method
+	if g.UseProfiles {
+		middlewares = append(middlewares, g.profileLoadingMiddleware())
+	}
+
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
@@ -702,4 +723,31 @@ func (g *Gateway) ReloadConfiguration(ctx context.Context, configuration Configu
 // This is useful when programmatically initializing the gateway
 func (g *Gateway) PullAndVerify(ctx context.Context, configuration Configuration) error {
 	return g.pullAndVerify(ctx, configuration)
+}
+
+// profileLoadingMiddleware creates middleware that loads profiles when the initialize method is received
+func (g *Gateway) profileLoadingMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			// Only handle initialize method
+			if method != "initialize" {
+				return next(ctx, method, req)
+			}
+
+			// Call the next handler first
+			result, err := next(ctx, method, req)
+
+			// After the initialize method has been handled, load profiles
+			session := req.GetSession()
+			if serverSession, ok := session.(*mcp.ServerSession); ok {
+				initParams := serverSession.InitializeParams()
+				if initParams != nil && initParams.ClientInfo != nil {
+					// Load profiles from profiles.json if client is claude-code
+					_ = project.LoadProfilesForClient(ctx, initParams.ClientInfo, g)
+				}
+			}
+
+			return result, err
+		}
+	}
 }

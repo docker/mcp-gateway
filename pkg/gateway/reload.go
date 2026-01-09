@@ -123,11 +123,20 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
 
-		// Add mcp-create-profile tool
-		log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
-		mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
-		g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
-		g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+		// Add profile tools only if profiles feature is enabled
+		if g.UseProfiles {
+			// Add mcp-create-profile tool
+			log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
+			mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
+			g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
+			g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+
+			// Add mcp-activate-profile tool
+			log.Log("  > mcp-activate-profile: tool for activating saved profiles")
+			mcpActivateProfileTool := g.createMcpActivateProfileTool(clientConfig)
+			g.mcpServer.AddTool(mcpActivateProfileTool.Tool, mcpActivateProfileTool.Handler)
+			g.toolRegistrations[mcpActivateProfileTool.Tool.Name] = *mcpActivateProfileTool
+		}
 
 		// Add find-tools tool only if embeddings client is configured
 		if g.embeddingsClient != nil {
@@ -309,6 +318,8 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 // updateServerCapabilities updates g.mcpServer with capabilities from the server.
 // If toolFilter is non-nil, only tools in the filter will be added.
 // This function expects g.capabilitiesMu to be locked by the caller.
+//
+//nolint:unparam // toolFilter is designed for future use - selective tool activation
 func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *ServerCapabilities, toolFilter []string) error {
 	// Get the full capabilities from serverAvailableCapabilities
 	newServerCaps := g.serverAvailableCapabilities[serverName]
