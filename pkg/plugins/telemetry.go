@@ -1,5 +1,5 @@
-// Package plugin provides interfaces and registry for MCP Gateway plugins.
-package plugin
+// Package plugins provides interfaces and registry for MCP Gateway plugins.
+package plugins
 
 import (
 	"context"

@@ -10,10 +10,10 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/docker/mcp-gateway/pkg/plugin"
+	"github.com/docker/mcp-gateway/pkg/plugins"
 )
 
-// TelemetryAdapter implements plugin.TelemetryPlugin using MCP tool calls.
+// TelemetryAdapter implements plugins.TelemetryPlugin using MCP tool calls.
 // It translates generic telemetry interface calls (counters, histograms, gauges)
 // into MCP tool calls to a telemetry server.
 type TelemetryAdapter struct {
@@ -53,7 +53,7 @@ func NewTelemetryAdapter(ctx context.Context, host string, port int) (*Telemetry
 	}, nil
 }
 
-// RecordCounter implements plugin.TelemetryPlugin.
+// RecordCounter implements plugins.TelemetryPlugin.
 func (a *TelemetryAdapter) RecordCounter(ctx context.Context, name string, value int64, attrs map[string]string) {
 	_ = a.callTool(ctx, "record-counter", map[string]any{
 		"name":       name,
@@ -62,7 +62,7 @@ func (a *TelemetryAdapter) RecordCounter(ctx context.Context, name string, value
 	})
 }
 
-// RecordHistogram implements plugin.TelemetryPlugin.
+// RecordHistogram implements plugins.TelemetryPlugin.
 func (a *TelemetryAdapter) RecordHistogram(ctx context.Context, name string, value float64, attrs map[string]string) {
 	_ = a.callTool(ctx, "record-histogram", map[string]any{
 		"name":       name,
@@ -71,7 +71,7 @@ func (a *TelemetryAdapter) RecordHistogram(ctx context.Context, name string, val
 	})
 }
 
-// RecordGauge implements plugin.TelemetryPlugin.
+// RecordGauge implements plugins.TelemetryPlugin.
 func (a *TelemetryAdapter) RecordGauge(ctx context.Context, name string, value int64, attrs map[string]string) {
 	_ = a.callTool(ctx, "record-gauge", map[string]any{
 		"name":       name,
@@ -80,7 +80,7 @@ func (a *TelemetryAdapter) RecordGauge(ctx context.Context, name string, value i
 	})
 }
 
-// Close implements plugin.TelemetryPlugin.
+// Close implements plugins.TelemetryPlugin.
 func (a *TelemetryAdapter) Close() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -132,8 +132,8 @@ func (a *TelemetryAdapter) callTool(ctx context.Context, toolName string, args a
 	return err
 }
 
-// Verify TelemetryAdapter implements plugin.TelemetryPlugin
-var _ plugin.TelemetryPlugin = (*TelemetryAdapter)(nil)
+// Verify TelemetryAdapter implements plugins.TelemetryPlugin
+var _ plugins.TelemetryPlugin = (*TelemetryAdapter)(nil)
 
 func debugLog(format string, args ...any) {
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {

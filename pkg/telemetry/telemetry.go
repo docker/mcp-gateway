@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/docker/mcp-gateway/pkg/plugin"
+	"github.com/docker/mcp-gateway/pkg/plugins"
 )
 
 const (
@@ -242,13 +242,13 @@ func logMetricError(name string, err error) {
 }
 
 // getPlugin returns the telemetry plugin if registered, or nil
-func getPlugin() plugin.TelemetryPlugin {
-	return plugin.Global().TelemetryPlugin()
+func getPlugin() plugins.TelemetryPlugin {
+	return plugins.Global().TelemetryPlugin()
 }
 
 // recordCounter records a counter metric via plugin or locally
 //
-//nolint:unparam // value is kept for interface consistency with plugin.TelemetryPlugin
+//nolint:unparam // value is kept for interface consistency with plugins.TelemetryPlugin
 func recordCounter(ctx context.Context, name string, value int64, attrs map[string]string) {
 	if p := getPlugin(); p != nil {
 		p.RecordCounter(ctx, name, value, attrs)
@@ -272,7 +272,7 @@ func recordGauge(ctx context.Context, name string, value int64, attrs map[string
 
 // hasPlugin returns true if a telemetry plugin is registered
 func hasPlugin() bool {
-	return plugin.Global().HasTelemetryPlugin()
+	return plugins.Global().HasTelemetryPlugin()
 }
 
 // StartToolCallSpan starts a new span for a tool call with server attribution
