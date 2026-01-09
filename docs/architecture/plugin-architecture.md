@@ -1,24 +1,90 @@
 # Plugin Architecture
 
-This document describes the plugin architecture for MCP Gateway, which enables extensibility through a unified interface that works across different deployment models.
+This document describes the plugin architecture for MCP Gateway, based on [Design Decision 0000: Plugin Model and Sidecar Strategy](https://github.com/docker/mcp-gateway-enterprise/blob/main/docs/design/0000-plugin-model-and-sidecar-strategy.md).
 
 ## Overview
 
-The plugin architecture provides a way to extend MCP Gateway functionality without modifying the core codebase. Plugins can provide capabilities like:
+The plugin architecture provides a way to extend MCP Gateway functionality without modifying the core codebase. It supports both Desktop and Kubernetes (BYOC) deployments from a shared core.
 
-- **Telemetry** - Custom metrics, tracing, and logging backends
-- **Authentication** - Custom authentication providers
-- **Authorization** - Access control and policy enforcement
-- **Audit** - Event logging and compliance
-- **Credential Storage** - Secure credential management
+**Key Requirements**:
+- Support Desktop deployment (maintain existing functionality, no regressions)
+- Support Kubernetes deployment (multi-user, multi-tenant, enterprise auth, access control)
+- Pluggable architecture (customers can integrate with their infrastructure)
+- Open source core (no proprietary dependencies)
 
-## Design Goals
+## Provider Types
 
-1. **Deployment Agnostic** - Same plugin interface works for Desktop (subprocess) and Kubernetes (sidecar)
-2. **Language Independent** - Plugins communicate via HTTP/JSON, enabling any language
-3. **Loosely Coupled** - Gateway and plugins can evolve independently
-4. **Testable** - Easy to mock plugins for testing
-5. **Observable** - Lifecycle hooks for monitoring plugin health
+The architecture supports two provider types:
+
+### 1. In-Memory Provider
+
+Runs Go code directly in the gateway process.
+
+**Characteristics**:
+- In-process (no network calls, no containers)
+- Direct function calls
+- Lowest latency
+- No isolation from gateway process
+
+**Use Cases**:
+- Simple plugins (always-allow policy, stdout logger)
+- Performance-critical hot paths (authentication validation)
+- Plugins without external dependencies
+
+**Configuration**:
+```yaml
+plugins:
+  auth_provider:
+    provider: in-memory
+    implementation: desktop-implicit
+
+  audit_sink:
+    provider: in-memory
+    implementation: stdout
+```
+
+### 2. MCP Provider
+
+Uses MCP protocol (JSON-RPC over HTTP) to communicate with plugin implementations.
+
+**Protocol**: MCP strict subset
+- Tools only (tools/list, tools/call)
+- No prompts, no resources, no sampling
+- Lifecycle management (health checks, graceful shutdown)
+
+**MCP Server Types**:
+
+**Local MCP (Containerized)**:
+- Desktop: Gateway uses Docker Engine API to start container
+- Kubernetes: Container runs as sidecar in gateway pod
+- Same container image works for both
+
+**Remote MCP (HTTP Endpoint)**:
+- MCP server already running (customer infrastructure)
+- Gateway communicates via remote URL
+
+**Configuration**:
+```yaml
+plugins:
+  # Catalog reference (string)
+  credential_storage:
+    provider: mcp
+    server: catalog://docker.io/docker/mcp-plugins:v1/credstore-k8s-secret
+
+  # Inline server definition - type: image
+  auth_proxy:
+    provider: mcp
+    server:
+      type: image
+      image: docker.io/docker/mcp-authproxy:latest
+
+  # Inline server definition - type: remote
+  policy_evaluator:
+    provider: mcp
+    server:
+      type: remote
+      endpoint: https://policy.customer.internal:9000
+```
 
 ## Architecture Diagram
 
@@ -30,396 +96,238 @@ The plugin architecture provides a way to extend MCP Gateway functionality witho
 │  │                       Plugin Registry                           │  │
 │  │                                                                 │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │  │
-│  │  │  Telemetry  │  │    Auth     │  │   Audit     │   ...        │  │
-│  │  │   Plugin    │  │  Provider   │  │    Sink     │              │  │
+│  │  │    Auth     │  │ Credential  │  │   Policy    │   ...        │  │
+│  │  │  Provider   │  │  Storage    │  │  Evaluator  │              │  │
 │  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │  │
 │  └─────────┼────────────────┼────────────────┼─────────────────────┘  │
 │            │                │                │                        │
 │  ┌─────────▼────────────────▼────────────────▼─────────────────────┐  │
-│  │                    PluginClient Interface                       │  │
+│  │                    PluginProvider Interface                     │  │
 │  │                                                                 │  │
-│  │  - Call(method, params) → result                                │  │
-│  │  - Close()                                                      │  │
+│  │  - CreateAuthProvider(config) → AuthProvider                    │  │
+│  │  - CreateCredentialStorage(config) → CredentialStorage          │  │
+│  │  - CreateAuditSink(config) → AuditSink                          │  │
 │  └─────────┬────────────────────────────────┬──────────────────────┘  │
 │            │                                │                         │
 └────────────┼────────────────────────────────┼─────────────────────────┘
              │                                │
     ┌────────▼────────┐              ┌────────▼────────┐
-    │   Subprocess    │              │    Sidecar      │
-    │    Transport    │              │   Transport     │
+    │   In-Memory     │              │      MCP        │
+    │    Provider     │              │    Provider     │
     │                 │              │                 │
-    │  - Exec binary  │              │  - HTTP client  │
-    │  - stdio/HTTP   │              │  - localhost    │
-    │  - Lifecycle    │              │  - K8s managed  │
-    └────────┬────────┘              └────────┬────────┘
-             │                                │
-    ┌────────▼────────┐              ┌────────▼────────┐
-    │  Desktop Mode   │              │ Kubernetes Mode │
-    │                 │              │                 │
-    │  Plugin binary  │              │Sidecar container│
-    │  as subprocess  │              │  in same pod    │
-    └─────────────────┘              └─────────────────┘
+    │  - Direct Go    │              │  - JSON-RPC/HTTP│
+    │  - In-process   │              │  - Containers   │
+    │  - Lowest lat.  │              │  - Remote URLs  │
+    └─────────────────┘              └────────┬────────┘
+                                              │
+                                     ┌────────▼────────┐
+                                     │  MCP Servers    │
+                                     │                 │
+                                     │  - Local (K8s   │
+                                     │    sidecars)    │
+                                     │  - Remote URLs  │
+                                     └─────────────────┘
 ```
 
-## Core Components
+## Plugin Code Interfaces (The Stable Contract)
 
-### PluginClient Interface
-
-The `PluginClient` interface abstracts communication with plugins:
-
-```go
-type PluginClient interface {
-    // Call invokes a method on the plugin
-    Call(ctx context.Context, method string, params any) ([]byte, error)
-
-    // Close shuts down the connection
-    Close() error
-}
-```
-
-### PluginTransport Interface
-
-The `PluginTransport` interface defines how to establish connections:
-
-```go
-type PluginTransport interface {
-    // Connect establishes a connection and returns a client
-    Connect(ctx context.Context) (PluginClient, error)
-}
-```
-
-### Plugin Registry
-
-The registry manages plugin instances and provides type-safe access:
-
-```go
-type Registry struct {
-    telemetryPlugin TelemetryPlugin
-    // ... other plugin types
-}
-
-func (r *Registry) TelemetryPlugin() TelemetryPlugin
-func (r *Registry) RegisterTelemetryPlugin(p TelemetryPlugin) error
-```
-
-### Plugin Loader
-
-The loader handles plugin discovery and lifecycle:
-
-```go
-type Loader struct {
-    plugins map[string]*loadedPlugin
-    hooks   *PluginLifecycleHooks
-}
-
-func (l *Loader) Load(ctx context.Context, config PluginConfig) error
-func (l *Loader) Unload(name string) error
-func (l *Loader) Reload(ctx context.Context, name string) error
-```
-
-## Transport Implementations
-
-### Subprocess Transport (Desktop)
-
-For Desktop deployments, plugins run as subprocess:
-
-1. Gateway spawns plugin binary
-2. Plugin outputs `PORT=<port>` on stdout
-3. Gateway connects via HTTP to localhost:port
-4. Gateway manages plugin lifecycle (restart on crash)
-
-**Configuration:**
-```yaml
-plugins:
-  telemetry:
-    type: subprocess
-    subprocess:
-      exec: /usr/local/bin/telemetry-plugin
-      args: ["--port", "0"]
-      env:
-        LOG_LEVEL: debug
-```
-
-### Sidecar Transport (Kubernetes)
-
-For Kubernetes deployments, plugins run as sidecars:
-
-1. Kubernetes starts sidecar containers
-2. Gateway connects via HTTP to localhost URLs
-3. Kubernetes manages sidecar lifecycle
-4. Gateway handles reconnection on failures
-
-**Configuration:**
-```yaml
-plugins:
-  telemetry:
-    type: sidecar
-    sidecar:
-      url: http://localhost:8081
-      headers:
-        X-Plugin-Token: "${PLUGIN_TOKEN}"
-```
-
-## Plugin Communication Protocol
-
-Plugins communicate via HTTP/JSON-RPC style calls:
-
-### Request Format
-```json
-{
-  "method": "record-counter",
-  "params": {
-    "name": "mcp.tool.calls",
-    "value": 1,
-    "attributes": {
-      "mcp.tool.name": "docker_ps"
-    }
-  }
-}
-```
-
-### Response Format
-```json
-{
-  "result": "ok"
-}
-```
-
-### Health Check
-Plugins must implement a health endpoint:
-- `GET /health` → `200 OK` when ready
-
-### Call Endpoint
-Plugins must implement a call endpoint:
-- `POST /call` → Process method call
-
-## Plugin Types
-
-### TelemetryPlugin
-
-Records metrics, traces, and logs:
-
-```go
-type TelemetryPlugin interface {
-    RecordCounter(ctx, name, value, attrs)
-    RecordHistogram(ctx, name, value, attrs)
-    RecordGauge(ctx, name, value, attrs)
-    Close() error
-}
-```
-
-### AuthProvider (Planned)
-
-Validates credentials and returns user principals:
+Gateway defines Go interfaces for all plugin types:
 
 ```go
 type AuthProvider interface {
-    ValidateCredential(ctx, credential) (*UserPrincipal, error)
-    Close() error
+    ValidateCredential(ctx context.Context, creds Credentials) (*UserPrincipal, error)
 }
-```
 
-### AuditSink (Planned)
+type CredentialStorage interface {
+    Store(ctx context.Context, userID, server, credType, value string) error
+    Retrieve(ctx context.Context, userID, server, credType string) (string, error)
+    Delete(ctx context.Context, userID, server, credType string) error
+    List(ctx context.Context, userID string) ([]CredentialInfo, error)
+}
 
-Records audit events:
+type AuthProxy interface {
+    InjectCredentials(ctx context.Context, req *ProxyRequest) (*ProxyResponse, error)
+}
 
-```go
 type AuditSink interface {
-    LogEvent(ctx, event) error
+    LogEvent(ctx context.Context, event *AuditEvent) error
+}
+
+type PolicyEvaluator interface {
+    CheckAccess(ctx context.Context, principal *UserPrincipal, mcpServer string) error
+}
+
+type MCPProvisioner interface {
+    Provision(ctx context.Context, server *ServerDef, userID string) (*ProvisionedServer, error)
+    Deprovision(ctx context.Context, serverID string) error
+    List(ctx context.Context, userID string) ([]*ProvisionedServer, error)
+}
+
+type TelemetryPlugin interface {
+    RecordCounter(ctx context.Context, name string, value int64, attrs map[string]string)
+    RecordHistogram(ctx context.Context, name string, value float64, attrs map[string]string)
+    RecordGauge(ctx context.Context, name string, value int64, attrs map[string]string)
     Close() error
 }
 ```
 
-## Lifecycle Management
+## Desktop Deployment
 
-### Plugin Startup
+**Local MCP Plugin Containers**:
+1. Gateway resolves catalog reference to server definition
+2. Server definition contains Docker image reference with digest
+3. Gateway uses Docker Engine API to start container
+4. Container lifecycle managed by gateway (start, health check, stop)
+5. Communication via localhost:port
 
-1. Load configuration
-2. Create appropriate transport
-3. Connect to plugin
-4. Wait for health check
-5. Register with registry
-6. Call `OnStart` hook
+**In-Memory Plugins**:
+- Auth provider: `desktop-implicit` (always returns desktop-user principal)
+- Policy evaluator: `always-allow`
+- Audit sink: `stdout` or `stderr`
 
-### Plugin Shutdown
+## Kubernetes Deployment
 
-1. Call `Close()` on client
-2. For subprocess: send SIGTERM, wait, then SIGKILL
-3. For sidecar: just close HTTP client
-4. Unregister from registry
-5. Call `OnStop` hook
+**Sidecar MCP Plugin Containers**:
+1. Plugin server references resolved from catalog at deployment time
+2. Helm chart templates use catalog references to populate sidecar images
+3. Kubernetes starts containers alongside gateway (pod lifecycle)
+4. Communication via localhost:port (standard sidecar pattern)
 
-### Error Handling
+**Pod Configuration** (Helm template):
+```yaml
+spec:
+  containers:
+  - name: gateway
+    image: mcp-gateway:latest
+    ports:
+    - containerPort: 8811
 
-1. On connection failure: retry with backoff
-2. On call failure: return error to caller
-3. On crash (subprocess): restart and call `OnRestart` hook
+  # Auth provider sidecar
+  - name: auth-provider
+    image: {{ .Values.plugins.authProvider.image }}
+    ports:
+    - containerPort: 8081
 
-## Configuration
+  # Credential storage sidecar
+  - name: credential-storage
+    image: {{ .Values.plugins.credentialStorage.image }}
+    ports:
+    - containerPort: 8083
+```
 
-### Desktop Mode (Config File)
+## MCP Tool Conventions
 
+Plugin MCP servers implement tools following these conventions:
+
+### Auth Provider
+- Tool: `validate_credential`
+- Input: `{type: "api_key", value: "..."}`
+- Output: `{user_id: "...", tenant_id: "...", roles: [...], groups: [...]}`
+
+### Credential Storage
+- Tools: `store_credential`, `retrieve_credential`, `delete_credential`, `list_credentials`
+
+### Auth Proxy
+- Tool: `inject_credentials`
+- Input: `{user_id: "...", mcp_server: "...", target_url: "...", method: "...", headers: {...}, body: "..."}`
+- Output: `{headers: {...}, body: "..."}`
+
+### Audit Sink
+- Tool: `log_event`
+- Input: `{timestamp: "...", event_type: "...", user_id: "...", mcp_server: "...", tool: "...", result: "..."}`
+
+### Policy Evaluator
+- Tool: `check_access`
+- Input: `{user_id: "...", tenant_id: "...", roles: [...], groups: [...], mcp_server: "..."}`
+- Output: `{allowed: true/false, reason: "..."}`
+
+### Telemetry
+- Tools: `record-counter`, `record-histogram`, `record-gauge`
+
+## Package Structure
+
+```
+pkg/plugins/
+├── interface.go              # Plugin interfaces and types
+├── loader.go                 # PluginRegistry and loading
+├── mcp/
+│   └── telemetry_adapter.go  # Existing MCP telemetry adapter
+└── providers/
+    ├── inmemory/
+    │   ├── provider.go       # In-memory provider
+    │   └── defaults.go       # Default implementations
+    └── mcp/
+        ├── provider.go       # MCP provider
+        └── adapters.go       # MCP tool adapters
+```
+
+## Configuration Example
+
+### Desktop Mode
 ```yaml
 plugins:
-  telemetry:
-    type: subprocess
-    subprocess:
-      exec: /usr/local/bin/telemetry-plugin
-      args: ["--port", "0"]
+  auth_provider:
+    provider: in-memory
+    implementation: desktop-implicit
 
-  auth:
-    type: subprocess
-    subprocess:
-      exec: /usr/local/bin/auth-plugin
+  credential_storage:
+    provider: mcp
+    server:
+      type: image
+      image: docker.io/docker/mcp-credstore-keychain:latest
+
+  audit_sink:
+    provider: in-memory
+    implementation: stdout
+
+  policy_evaluator:
+    provider: in-memory
+    implementation: always-allow
 ```
 
-### Kubernetes Mode (ConfigMap)
-
+### Kubernetes Mode
 ```yaml
 plugins:
-  telemetry:
-    type: sidecar
-    sidecar:
-      url: http://localhost:8081
+  auth_provider:
+    provider: mcp
+    server: catalog://docker.io/docker/mcp-plugins:v1/auth-k8s-secret
 
-  auth:
-    type: sidecar
-    sidecar:
-      url: http://localhost:8082
+  credential_storage:
+    provider: mcp
+    server: catalog://docker.io/docker/mcp-plugins:v1/credstore-k8s-secret
+
+  auth_proxy:
+    provider: mcp
+    server: catalog://docker.io/docker/mcp-plugins:v1/authproxy-bearer
+
+  audit_sink:
+    provider: in-memory
+    implementation: stdout
+
+  policy_evaluator:
+    provider: mcp
+    server:
+      type: remote
+      endpoint: https://policy.internal.example.com:9000
 ```
 
-## Implementing a Plugin
+## Implementation Status
 
-### Go Example
+### Completed
+- [x] Plugin code interfaces (AuthProvider, CredentialStorage, etc.)
+- [x] PluginRegistry with provider pattern
+- [x] In-memory provider with default implementations
+- [x] MCP provider with tool adapters
+- [x] TelemetryPlugin interface and MCP adapter
+- [x] Configuration types
 
-```go
-package main
+### Planned
+- [ ] Catalog reference resolution
+- [ ] Container manager for Desktop (Docker Engine API)
+- [ ] Integration tests
+- [ ] V1 MCP plugin containers (auth-k8s-secret, credstore-k8s-secret)
 
-import (
-    "encoding/json"
-    "net/http"
-    "fmt"
-)
+## References
 
-func main() {
-    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusOK)
-    })
-
-    http.HandleFunc("/call", func(w http.ResponseWriter, r *http.Request) {
-        var req struct {
-            Method string         `json:"method"`
-            Params map[string]any `json:"params"`
-        }
-        json.NewDecoder(r.Body).Decode(&req)
-
-        // Handle method
-        switch req.Method {
-        case "record-counter":
-            // Process counter
-        }
-
-        json.NewEncoder(w).Encode(map[string]string{"result": "ok"})
-    })
-
-    // Listen on random port and output it
-    listener, _ := net.Listen("tcp", "127.0.0.1:0")
-    port := listener.Addr().(*net.TCPAddr).Port
-    fmt.Printf("PORT=%d\n", port)
-
-    http.Serve(listener, nil)
-}
-```
-
-### Python Example
-
-```python
-from flask import Flask, request, jsonify
-import sys
-
-app = Flask(__name__)
-
-@app.route('/health')
-def health():
-    return '', 200
-
-@app.route('/call', methods=['POST'])
-def call():
-    data = request.json
-    method = data.get('method')
-    params = data.get('params', {})
-
-    if method == 'record-counter':
-        # Process counter
-        pass
-
-    return jsonify({'result': 'ok'})
-
-if __name__ == '__main__':
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('127.0.0.1', 0))
-    port = sock.getsockname()[1]
-    sock.close()
-
-    print(f'PORT={port}', flush=True)
-    app.run(host='127.0.0.1', port=port)
-```
-
-## Security Considerations
-
-1. **Subprocess Isolation** - Plugins run in separate processes with limited privileges
-2. **Network Isolation** - Sidecar plugins only accessible via localhost
-3. **Input Validation** - All plugin inputs are validated
-4. **Credential Handling** - Sensitive data passed via environment variables
-5. **Health Monitoring** - Unhealthy plugins are detected and can be restarted
-
-## Testing
-
-### Unit Testing
-
-Mock the `PluginClient` interface:
-
-```go
-type MockPluginClient struct {
-    CallFunc func(ctx context.Context, method string, params any) ([]byte, error)
-}
-
-func (m *MockPluginClient) Call(ctx context.Context, method string, params any) ([]byte, error) {
-    return m.CallFunc(ctx, method, params)
-}
-```
-
-### Integration Testing
-
-Use the actual plugin with subprocess transport in tests:
-
-```go
-func TestTelemetryPlugin(t *testing.T) {
-    loader := plugins.NewLoader(nil)
-    err := loader.Load(ctx, plugins.PluginConfig{
-        Name: "telemetry",
-        Type: "subprocess",
-        Subprocess: &plugins.SubprocessConfig{
-            Exec: "./test-telemetry-plugin",
-        },
-    })
-    require.NoError(t, err)
-    defer loader.UnloadAll()
-
-    client, _ := loader.Get("telemetry")
-    result, err := client.Call(ctx, "record-counter", map[string]any{
-        "name": "test.counter",
-        "value": 1,
-    })
-    require.NoError(t, err)
-}
-```
-
-## Future Enhancements
-
-1. **gRPC Support** - Add gRPC transport for performance-critical plugins
-2. **Plugin Marketplace** - Curated collection of community plugins
-3. **Hot Reload** - Reload plugins without gateway restart
-4. **Plugin Versioning** - Version compatibility checking
-5. **Plugin Dependencies** - Plugins that depend on other plugins
+- [Design Decision 0000: Plugin Model and Sidecar Strategy](https://github.com/docker/mcp-gateway-enterprise/blob/main/docs/design/0000-plugin-model-and-sidecar-strategy.md)
+- [MCP Protocol Specification](https://modelcontextprotocol.io)

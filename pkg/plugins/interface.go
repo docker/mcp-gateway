@@ -1,113 +1,224 @@
+// Package plugins provides interfaces and registry for MCP Gateway plugins.
+//
+// The plugin architecture supports two provider types:
+//   - In-Memory Provider: Direct Go code execution (in-process)
+//   - MCP Provider: JSON-RPC over HTTP to MCP servers (local containerized or remote)
+//
+// This design allows the same plugin interfaces to work across Desktop and Kubernetes
+// deployments, with different provider implementations for each environment.
 package plugins
 
 import (
 	"context"
-	"io"
 )
 
-// PluginClient defines the interface for communicating with plugins.
-// This interface abstracts the transport layer, allowing the same plugin
-// interface to work with both subprocess (Desktop) and sidecar (Kubernetes)
-// deployment models.
-type PluginClient interface {
-	// Call invokes a method on the plugin with the given parameters.
-	// The params are JSON-serializable and the result is returned as raw JSON.
-	Call(ctx context.Context, method string, params any) ([]byte, error)
+// Plugin Code Interfaces (The Stable Contract)
+// These interfaces define what plugins must implement. Gateway code depends on these
+// interfaces, not on specific implementations.
 
-	// Close shuts down the connection to the plugin.
+// AuthProvider validates credentials and returns user principals.
+type AuthProvider interface {
+	ValidateCredential(ctx context.Context, creds Credentials) (*UserPrincipal, error)
+}
+
+// Credentials represents authentication credentials to validate.
+type Credentials struct {
+	Type  string `json:"type"`  // e.g., "api_key", "oauth_token", "jwt"
+	Value string `json:"value"` // The credential value
+}
+
+// UserPrincipal represents an authenticated user.
+type UserPrincipal struct {
+	UserID   string            `json:"user_id"`
+	TenantID string            `json:"tenant_id,omitempty"`
+	Roles    []string          `json:"roles,omitempty"`
+	Groups   []string          `json:"groups,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// CredentialStorage stores and retrieves credentials for users.
+type CredentialStorage interface {
+	Store(ctx context.Context, userID, server, credType, value string) error
+	Retrieve(ctx context.Context, userID, server, credType string) (string, error)
+	Delete(ctx context.Context, userID, server, credType string) error
+	List(ctx context.Context, userID string) ([]CredentialInfo, error)
+}
+
+// CredentialInfo contains metadata about a stored credential.
+type CredentialInfo struct {
+	Server     string `json:"server"`
+	CredType   string `json:"cred_type"`
+	CreatedAt  string `json:"created_at,omitempty"`
+	ExpiresAt  string `json:"expires_at,omitempty"`
+}
+
+// AuthProxy injects credentials into outgoing requests.
+type AuthProxy interface {
+	InjectCredentials(ctx context.Context, req *ProxyRequest) (*ProxyResponse, error)
+}
+
+// ProxyRequest represents a request that needs credential injection.
+type ProxyRequest struct {
+	UserID    string            `json:"user_id"`
+	TenantID  string            `json:"tenant_id,omitempty"`
+	MCPServer string            `json:"mcp_server"`
+	TargetURL string            `json:"target_url"`
+	Method    string            `json:"method"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	Body      string            `json:"body,omitempty"`
+}
+
+// ProxyResponse contains the modified request with injected credentials.
+type ProxyResponse struct {
+	Headers map[string]string `json:"headers"`
+	Body    string            `json:"body,omitempty"`
+}
+
+// AuditSink logs audit events.
+type AuditSink interface {
+	LogEvent(ctx context.Context, event *AuditEvent) error
+}
+
+// AuditEvent represents an audit log entry.
+type AuditEvent struct {
+	Timestamp string            `json:"timestamp"`
+	EventType string            `json:"event_type"`
+	TenantID  string            `json:"tenant_id,omitempty"`
+	UserID    string            `json:"user_id,omitempty"`
+	MCPServer string            `json:"mcp_server,omitempty"`
+	Tool      string            `json:"tool,omitempty"`
+	Result    string            `json:"result,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+}
+
+// PolicyEvaluator checks access permissions.
+type PolicyEvaluator interface {
+	CheckAccess(ctx context.Context, principal *UserPrincipal, mcpServer string) error
+}
+
+// MCPProvisioner provisions and manages MCP server instances.
+type MCPProvisioner interface {
+	Provision(ctx context.Context, server *ServerDef, userID string) (*ProvisionedServer, error)
+	Deprovision(ctx context.Context, serverID string) error
+	List(ctx context.Context, userID string) ([]*ProvisionedServer, error)
+}
+
+// ServerDef defines an MCP server to provision.
+type ServerDef struct {
+	Name   string            `json:"name"`
+	Type   string            `json:"type"`   // "image", "remote", "registry"
+	Image  string            `json:"image,omitempty"`
+	Source string            `json:"source,omitempty"`
+	Endpoint string          `json:"endpoint,omitempty"`
+	Env    map[string]string `json:"env,omitempty"`
+}
+
+// ProvisionedServer represents a running MCP server instance.
+type ProvisionedServer struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Endpoint  string `json:"endpoint"`
+	Status    string `json:"status"`
+	UserID    string `json:"user_id"`
+}
+
+// TelemetryPlugin defines the interface for telemetry plugins.
+// This interface mirrors OpenTelemetry's metric instruments, allowing
+// plugins to receive telemetry data in a generic format.
+type TelemetryPlugin interface {
+	RecordCounter(ctx context.Context, name string, value int64, attrs map[string]string)
+	RecordHistogram(ctx context.Context, name string, value float64, attrs map[string]string)
+	RecordGauge(ctx context.Context, name string, value int64, attrs map[string]string)
 	Close() error
 }
 
-// PluginTransport defines how to establish a connection to a plugin.
-// Different transports support different deployment models.
-type PluginTransport interface {
-	// Connect establishes a connection to the plugin and returns a PluginClient.
-	Connect(ctx context.Context) (PluginClient, error)
+// Plugin Provider Types
+// Providers are responsible for creating plugin instances based on configuration.
+
+// PluginProvider creates plugin instances from configuration.
+type PluginProvider interface {
+	// Name returns the provider name (e.g., "in-memory", "mcp").
+	Name() string
+
+	// CreateAuthProvider creates an AuthProvider from configuration.
+	CreateAuthProvider(ctx context.Context, config PluginConfig) (AuthProvider, error)
+
+	// CreateCredentialStorage creates a CredentialStorage from configuration.
+	CreateCredentialStorage(ctx context.Context, config PluginConfig) (CredentialStorage, error)
+
+	// CreateAuthProxy creates an AuthProxy from configuration.
+	CreateAuthProxy(ctx context.Context, config PluginConfig) (AuthProxy, error)
+
+	// CreateAuditSink creates an AuditSink from configuration.
+	CreateAuditSink(ctx context.Context, config PluginConfig) (AuditSink, error)
+
+	// CreatePolicyEvaluator creates a PolicyEvaluator from configuration.
+	CreatePolicyEvaluator(ctx context.Context, config PluginConfig) (PolicyEvaluator, error)
+
+	// CreateMCPProvisioner creates an MCPProvisioner from configuration.
+	CreateMCPProvisioner(ctx context.Context, config PluginConfig) (MCPProvisioner, error)
+
+	// CreateTelemetryPlugin creates a TelemetryPlugin from configuration.
+	CreateTelemetryPlugin(ctx context.Context, config PluginConfig) (TelemetryPlugin, error)
 }
 
-// PluginInfo contains metadata about a plugin.
-type PluginInfo struct {
-	// Name is the unique identifier for the plugin.
-	Name string
+// Configuration Types
 
-	// Type indicates the plugin category (e.g., "telemetry", "auth", "audit").
-	Type string
-
-	// Version is the plugin version.
-	Version string
-}
-
-// Plugin represents a loaded plugin instance.
-type Plugin interface {
-	// Info returns metadata about the plugin.
-	Info() PluginInfo
-
-	// Client returns the underlying client for making calls to the plugin.
-	Client() PluginClient
-
-	// Close shuts down the plugin and releases resources.
-	Close() error
-}
-
-// PluginConfig defines the configuration for loading a plugin.
+// PluginConfig defines configuration for a plugin.
 type PluginConfig struct {
-	// Name is the plugin name used for registration.
-	Name string `json:"name" yaml:"name"`
+	// Provider is the provider type: "in-memory" or "mcp".
+	Provider string `json:"provider" yaml:"provider"`
 
-	// Type is the transport type: "subprocess" or "sidecar".
+	// Implementation is the implementation name (for in-memory provider).
+	// Examples: "desktop-implicit", "stdout", "always-allow"
+	Implementation string `json:"implementation,omitempty" yaml:"implementation,omitempty"`
+
+	// Server is the MCP server reference (for mcp provider).
+	// Can be a catalog reference string or inline server definition.
+	// Examples:
+	//   - "catalog://docker.io/docker/mcp-plugins:v1/auth-k8s-secret"
+	//   - ServerConfig object for inline definition
+	Server any `json:"server,omitempty" yaml:"server,omitempty"`
+}
+
+// ServerConfig defines an inline MCP server configuration.
+type ServerConfig struct {
+	// Type is the server type: "image", "remote", or "registry".
 	Type string `json:"type" yaml:"type"`
 
-	// Subprocess configuration (used when Type is "subprocess").
-	Subprocess *SubprocessConfig `json:"subprocess,omitempty" yaml:"subprocess,omitempty"`
+	// Image is the container image (for type: image).
+	Image string `json:"image,omitempty" yaml:"image,omitempty"`
 
-	// Sidecar configuration (used when Type is "sidecar").
-	Sidecar *SidecarConfig `json:"sidecar,omitempty" yaml:"sidecar,omitempty"`
-}
+	// Endpoint is the HTTP endpoint (for type: remote).
+	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 
-// SubprocessConfig defines configuration for subprocess-based plugins.
-type SubprocessConfig struct {
-	// Exec is the path to the plugin executable.
-	Exec string `json:"exec" yaml:"exec"`
+	// Source is the registry source URL (for type: registry).
+	Source string `json:"source,omitempty" yaml:"source,omitempty"`
 
-	// Args are command-line arguments to pass to the plugin.
-	Args []string `json:"args,omitempty" yaml:"args,omitempty"`
+	// Port is the port the server listens on.
+	Port int `json:"port,omitempty" yaml:"port,omitempty"`
 
-	// Env are environment variables to set for the plugin process.
+	// Env are environment variables for the server.
 	Env map[string]string `json:"env,omitempty" yaml:"env,omitempty"`
-
-	// WorkDir is the working directory for the plugin process.
-	WorkDir string `json:"workdir,omitempty" yaml:"workdir,omitempty"`
 }
 
-// SidecarConfig defines configuration for sidecar-based plugins.
-type SidecarConfig struct {
-	// URL is the base URL for the plugin's HTTP endpoint.
-	URL string `json:"url" yaml:"url"`
-
-	// Headers are additional HTTP headers to include in requests.
-	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+// PluginsConfig represents the plugins section of gateway configuration.
+type PluginsConfig struct {
+	AuthProvider      *PluginConfig `json:"auth_provider,omitempty" yaml:"auth_provider,omitempty"`
+	CredentialStorage *PluginConfig `json:"credential_storage,omitempty" yaml:"credential_storage,omitempty"`
+	AuthProxy         *PluginConfig `json:"auth_proxy,omitempty" yaml:"auth_proxy,omitempty"`
+	AuditSink         *PluginConfig `json:"audit_sink,omitempty" yaml:"audit_sink,omitempty"`
+	PolicyEvaluator   *PluginConfig `json:"policy_evaluator,omitempty" yaml:"policy_evaluator,omitempty"`
+	MCPProvisioner    *PluginConfig `json:"mcp_provisioner,omitempty" yaml:"mcp_provisioner,omitempty"`
+	Telemetry         *PluginConfig `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
 }
 
-// PluginLifecycleHooks provides callbacks for plugin lifecycle events.
-type PluginLifecycleHooks struct {
-	// OnStart is called when a plugin starts successfully.
-	OnStart func(info PluginInfo)
+// ContainerManager manages plugin containers.
+// Desktop uses Docker Engine API, Kubernetes uses noop (sidecars pre-started).
+type ContainerManager interface {
+	// EnsureRunning ensures the container is running and returns its endpoint.
+	EnsureRunning(ctx context.Context, config ServerConfig) (endpoint string, err error)
 
-	// OnStop is called when a plugin stops.
-	OnStop func(info PluginInfo, err error)
-
-	// OnError is called when a plugin encounters an error.
-	OnError func(info PluginInfo, err error)
-
-	// OnRestart is called when a plugin is restarted.
-	OnRestart func(info PluginInfo, attempt int)
-}
-
-// PluginOutput represents output streams from a subprocess plugin.
-type PluginOutput struct {
-	// Stdout is the plugin's standard output stream.
-	Stdout io.Reader
-
-	// Stderr is the plugin's standard error stream.
-	Stderr io.Reader
+	// Stop stops a container.
+	Stop(ctx context.Context, endpoint string) error
 }

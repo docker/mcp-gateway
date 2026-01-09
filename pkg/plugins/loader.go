@@ -6,233 +6,261 @@ import (
 	"sync"
 )
 
-// Loader manages plugin discovery, loading, and lifecycle.
-type Loader struct {
-	mu      sync.RWMutex
-	plugins map[string]*loadedPlugin
-	hooks   *PluginLifecycleHooks
+// PluginRegistry manages plugin providers and loaded plugin instances.
+type PluginRegistry struct {
+	mu        sync.RWMutex
+	providers map[string]PluginProvider
+
+	// Loaded plugin instances
+	authProvider      AuthProvider
+	credentialStorage CredentialStorage
+	authProxy         AuthProxy
+	auditSink         AuditSink
+	policyEvaluator   PolicyEvaluator
+	mcpProvisioner    MCPProvisioner
+	telemetryPlugin   TelemetryPlugin
 }
 
-// loadedPlugin wraps a plugin with its transport and client.
-type loadedPlugin struct {
-	config    PluginConfig
-	transport PluginTransport
-	client    PluginClient
-	info      PluginInfo
+// globalRegistry is the default plugin registry instance.
+var globalRegistry = &PluginRegistry{
+	providers: make(map[string]PluginProvider),
 }
 
-// NewLoader creates a new plugin loader.
-func NewLoader(hooks *PluginLifecycleHooks) *Loader {
-	return &Loader{
-		plugins: make(map[string]*loadedPlugin),
-		hooks:   hooks,
-	}
+// Global returns the global plugin registry.
+func Global() *PluginRegistry {
+	return globalRegistry
 }
 
-// Load loads a plugin based on its configuration.
-func (l *Loader) Load(ctx context.Context, config PluginConfig) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+// RegisterProvider registers a plugin provider.
+func (r *PluginRegistry) RegisterProvider(provider PluginProvider) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.providers[provider.Name()] = provider
+}
 
-	// Check if already loaded
-	if _, exists := l.plugins[config.Name]; exists {
-		return fmt.Errorf("plugin %s is already loaded", config.Name)
+// GetProvider returns a registered provider by name.
+func (r *PluginRegistry) GetProvider(name string) (PluginProvider, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	provider, ok := r.providers[name]
+	return provider, ok
+}
+
+// LoadPlugins loads all plugins from configuration.
+func (r *PluginRegistry) LoadPlugins(ctx context.Context, config PluginsConfig) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Load auth provider
+	if config.AuthProvider != nil {
+		provider, err := r.getProvider(config.AuthProvider.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load auth provider: %w", err)
+		}
+		r.authProvider, err = provider.CreateAuthProvider(ctx, *config.AuthProvider)
+		if err != nil {
+			return fmt.Errorf("failed to load auth provider: %w", err)
+		}
 	}
 
-	// Create transport based on type
-	transport, err := l.createTransport(config)
-	if err != nil {
-		return fmt.Errorf("failed to create transport for plugin %s: %w", config.Name, err)
+	// Load credential storage
+	if config.CredentialStorage != nil {
+		provider, err := r.getProvider(config.CredentialStorage.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load credential storage: %w", err)
+		}
+		r.credentialStorage, err = provider.CreateCredentialStorage(ctx, *config.CredentialStorage)
+		if err != nil {
+			return fmt.Errorf("failed to load credential storage: %w", err)
+		}
 	}
 
-	// Connect to plugin
-	client, err := transport.Connect(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to plugin %s: %w", config.Name, err)
+	// Load auth proxy
+	if config.AuthProxy != nil {
+		provider, err := r.getProvider(config.AuthProxy.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load auth proxy: %w", err)
+		}
+		r.authProxy, err = provider.CreateAuthProxy(ctx, *config.AuthProxy)
+		if err != nil {
+			return fmt.Errorf("failed to load auth proxy: %w", err)
+		}
 	}
 
-	// Create plugin info
-	info := PluginInfo{
-		Name:    config.Name,
-		Type:    config.Type,
-		Version: "unknown", // Could be fetched from plugin
+	// Load audit sink
+	if config.AuditSink != nil {
+		provider, err := r.getProvider(config.AuditSink.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load audit sink: %w", err)
+		}
+		r.auditSink, err = provider.CreateAuditSink(ctx, *config.AuditSink)
+		if err != nil {
+			return fmt.Errorf("failed to load audit sink: %w", err)
+		}
 	}
 
-	// Store loaded plugin
-	l.plugins[config.Name] = &loadedPlugin{
-		config:    config,
-		transport: transport,
-		client:    client,
-		info:      info,
+	// Load policy evaluator
+	if config.PolicyEvaluator != nil {
+		provider, err := r.getProvider(config.PolicyEvaluator.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load policy evaluator: %w", err)
+		}
+		r.policyEvaluator, err = provider.CreatePolicyEvaluator(ctx, *config.PolicyEvaluator)
+		if err != nil {
+			return fmt.Errorf("failed to load policy evaluator: %w", err)
+		}
 	}
 
-	// Call lifecycle hook
-	if l.hooks != nil && l.hooks.OnStart != nil {
-		l.hooks.OnStart(info)
+	// Load MCP provisioner
+	if config.MCPProvisioner != nil {
+		provider, err := r.getProvider(config.MCPProvisioner.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load MCP provisioner: %w", err)
+		}
+		r.mcpProvisioner, err = provider.CreateMCPProvisioner(ctx, *config.MCPProvisioner)
+		if err != nil {
+			return fmt.Errorf("failed to load MCP provisioner: %w", err)
+		}
+	}
+
+	// Load telemetry plugin
+	if config.Telemetry != nil {
+		provider, err := r.getProvider(config.Telemetry.Provider)
+		if err != nil {
+			return fmt.Errorf("failed to load telemetry plugin: %w", err)
+		}
+		r.telemetryPlugin, err = provider.CreateTelemetryPlugin(ctx, *config.Telemetry)
+		if err != nil {
+			return fmt.Errorf("failed to load telemetry plugin: %w", err)
+		}
 	}
 
 	return nil
 }
 
-// createTransport creates the appropriate transport for the plugin configuration.
-func (l *Loader) createTransport(config PluginConfig) (PluginTransport, error) {
-	switch config.Type {
-	case "subprocess":
-		if config.Subprocess == nil {
-			return nil, fmt.Errorf("subprocess configuration is required")
-		}
-		return NewSubprocessTransport(*config.Subprocess, l.hooks), nil
-
-	case "sidecar":
-		if config.Sidecar == nil {
-			return nil, fmt.Errorf("sidecar configuration is required")
-		}
-		return NewSidecarTransport(*config.Sidecar, l.hooks), nil
-
-	default:
-		return nil, fmt.Errorf("unknown plugin type: %s", config.Type)
+// getProvider returns a provider by name, must be called with lock held.
+func (r *PluginRegistry) getProvider(name string) (PluginProvider, error) {
+	provider, ok := r.providers[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown provider: %s", name)
 	}
+	return provider, nil
 }
 
-// LoadAll loads multiple plugins from configuration.
-func (l *Loader) LoadAll(ctx context.Context, configs []PluginConfig) error {
-	for _, config := range configs {
-		if err := l.Load(ctx, config); err != nil {
-			return err
+// AuthProvider returns the loaded auth provider.
+func (r *PluginRegistry) AuthProvider() AuthProvider {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.authProvider
+}
+
+// CredentialStorage returns the loaded credential storage.
+func (r *PluginRegistry) CredentialStorage() CredentialStorage {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.credentialStorage
+}
+
+// AuthProxy returns the loaded auth proxy.
+func (r *PluginRegistry) AuthProxy() AuthProxy {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.authProxy
+}
+
+// AuditSink returns the loaded audit sink.
+func (r *PluginRegistry) AuditSink() AuditSink {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.auditSink
+}
+
+// PolicyEvaluator returns the loaded policy evaluator.
+func (r *PluginRegistry) PolicyEvaluator() PolicyEvaluator {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.policyEvaluator
+}
+
+// MCPProvisioner returns the loaded MCP provisioner.
+func (r *PluginRegistry) MCPProvisioner() MCPProvisioner {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.mcpProvisioner
+}
+
+// TelemetryPlugin returns the loaded telemetry plugin.
+func (r *PluginRegistry) TelemetryPlugin() TelemetryPlugin {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.telemetryPlugin
+}
+
+// HasTelemetryPlugin returns true if a telemetry plugin is loaded.
+func (r *PluginRegistry) HasTelemetryPlugin() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.telemetryPlugin != nil
+}
+
+// RegisterTelemetryPlugin directly registers a telemetry plugin.
+// This is used for backwards compatibility with existing telemetry initialization.
+func (r *PluginRegistry) RegisterTelemetryPlugin(plugin TelemetryPlugin) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.telemetryPlugin != nil {
+		return fmt.Errorf("telemetry plugin already registered")
+	}
+	r.telemetryPlugin = plugin
+	return nil
+}
+
+// UnregisterTelemetryPlugin removes the registered telemetry plugin.
+func (r *PluginRegistry) UnregisterTelemetryPlugin() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.telemetryPlugin != nil {
+		if err := r.telemetryPlugin.Close(); err != nil {
+			return fmt.Errorf("failed to close telemetry plugin: %w", err)
 		}
+		r.telemetryPlugin = nil
 	}
 	return nil
 }
 
-// Get returns a loaded plugin by name.
-func (l *Loader) Get(name string) (PluginClient, bool) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
+// Close shuts down all loaded plugins.
+func (r *PluginRegistry) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	plugin, exists := l.plugins[name]
-	if !exists {
-		return nil, false
-	}
-	return plugin.client, true
-}
-
-// GetInfo returns information about a loaded plugin.
-func (l *Loader) GetInfo(name string) (PluginInfo, bool) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	plugin, exists := l.plugins[name]
-	if !exists {
-		return PluginInfo{}, false
-	}
-	return plugin.info, true
-}
-
-// List returns information about all loaded plugins.
-func (l *Loader) List() []PluginInfo {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	infos := make([]PluginInfo, 0, len(l.plugins))
-	for _, plugin := range l.plugins {
-		infos = append(infos, plugin.info)
-	}
-	return infos
-}
-
-// Unload stops and removes a plugin.
-func (l *Loader) Unload(name string) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	plugin, exists := l.plugins[name]
-	if !exists {
-		return fmt.Errorf("plugin %s is not loaded", name)
+	if r.telemetryPlugin != nil {
+		_ = r.telemetryPlugin.Close()
+		r.telemetryPlugin = nil
 	}
 
-	// Close the client
-	err := plugin.client.Close()
-
-	// Remove from map
-	delete(l.plugins, name)
-
-	// Call lifecycle hook
-	if l.hooks != nil && l.hooks.OnStop != nil {
-		l.hooks.OnStop(plugin.info, err)
-	}
-
-	return err
-}
-
-// UnloadAll stops and removes all plugins.
-func (l *Loader) UnloadAll() error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	var firstErr error
-	for name, plugin := range l.plugins {
-		err := plugin.client.Close()
-		if err != nil && firstErr == nil {
-			firstErr = fmt.Errorf("failed to unload plugin %s: %w", name, err)
-		}
-
-		// Call lifecycle hook
-		if l.hooks != nil && l.hooks.OnStop != nil {
-			l.hooks.OnStop(plugin.info, err)
-		}
-	}
-
-	// Clear all plugins
-	l.plugins = make(map[string]*loadedPlugin)
-
-	return firstErr
-}
-
-// Reload reloads a plugin by unloading and loading it again.
-func (l *Loader) Reload(ctx context.Context, name string) error {
-	l.mu.Lock()
-	plugin, exists := l.plugins[name]
-	if !exists {
-		l.mu.Unlock()
-		return fmt.Errorf("plugin %s is not loaded", name)
-	}
-	config := plugin.config
-	l.mu.Unlock()
-
-	// Unload first
-	if err := l.Unload(name); err != nil {
-		return fmt.Errorf("failed to unload plugin %s: %w", name, err)
-	}
-
-	// Load again
-	if err := l.Load(ctx, config); err != nil {
-		return fmt.Errorf("failed to reload plugin %s: %w", name, err)
-	}
-
-	// Call lifecycle hook
-	if l.hooks != nil && l.hooks.OnRestart != nil {
-		l.hooks.OnRestart(plugin.info, 1)
-	}
+	// Other plugins don't have Close methods currently
+	r.authProvider = nil
+	r.credentialStorage = nil
+	r.authProxy = nil
+	r.auditSink = nil
+	r.policyEvaluator = nil
+	r.mcpProvisioner = nil
 
 	return nil
 }
 
-// PluginsConfig represents the plugins section of a configuration file.
-type PluginsConfig struct {
-	Plugins map[string]PluginConfig `json:"plugins" yaml:"plugins"`
-}
+// ResetForTesting resets the registry state for testing purposes.
+func (r *PluginRegistry) ResetForTesting() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-// LoadFromConfig loads plugins from a configuration structure.
-// This is typically used when reading from a config file.
-func (l *Loader) LoadFromConfig(ctx context.Context, config PluginsConfig) error {
-	for name, pluginConfig := range config.Plugins {
-		// Set the name if not already set
-		if pluginConfig.Name == "" {
-			pluginConfig.Name = name
-		}
-		if err := l.Load(ctx, pluginConfig); err != nil {
-			return fmt.Errorf("failed to load plugin %s: %w", name, err)
-		}
-	}
-	return nil
+	r.authProvider = nil
+	r.credentialStorage = nil
+	r.authProxy = nil
+	r.auditSink = nil
+	r.policyEvaluator = nil
+	r.mcpProvisioner = nil
+	r.telemetryPlugin = nil
 }
