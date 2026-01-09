@@ -66,6 +66,15 @@ docker mcp --help
 
 ## Usage
 
+> [!NOTE]
+> **Running without Docker Desktop Feature Flags**
+>
+> If you encounter "Docker Desktop is not running" errors when the Docker daemon is active, you can bypass Desktop feature checks by setting:
+> ```bash
+> export DOCKER_MCP_IN_CONTAINER=1
+> ```
+> This is useful when running in WSL2, containerized environments, or Docker CE where Desktop backend sockets are unavailable.
+
 ### Catalog Management
 
 Manage the catalogs available to the MCP gateway. The [default catalog](https://hub.docker.com/mcp) is available with the name 'docker-mcp'.
