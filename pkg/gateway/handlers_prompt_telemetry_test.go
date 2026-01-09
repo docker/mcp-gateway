@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -19,21 +18,9 @@ import (
 
 func TestPromptHandlerTelemetry(t *testing.T) {
 	t.Run("records prompt counter metrics", func(t *testing.T) {
-		// Set up test telemetry
-		spanRecorder := tracetest.NewSpanRecorder()
-		tracerProvider := sdktrace.NewTracerProvider(
-			sdktrace.WithSpanProcessor(spanRecorder),
-		)
-		otel.SetTracerProvider(tracerProvider)
-
-		reader := sdkmetric.NewManualReader()
-		meterProvider := sdkmetric.NewMeterProvider(
-			sdkmetric.WithReader(reader),
-		)
-		otel.SetMeterProvider(meterProvider)
-
-		// Initialize telemetry
-		telemetry.Init()
+		// Set up telemetry MCP server for Record* functions
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Create test server config
 		serverConfig := &catalog.ServerConfig{
@@ -46,16 +33,16 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		// Test prompt name
 		promptName := "test-prompt"
 
-		// Record prompt call
+		// Record prompt call - sends to MCP telemetry server
 		ctx := context.Background()
 		telemetry.RecordPromptGet(ctx, promptName, serverConfig.Name, "test-client")
 
-		// Collect metrics
+		// Collect metrics from the telemetry server
 		var rm metricdata.ResourceMetrics
-		err := reader.Collect(ctx, &rm)
+		err := ts.MetricReader.Collect(ctx, &rm)
 		require.NoError(t, err)
 
-		// Find prompt counter metric
+		// Find prompt counter metric in telemetry server
 		var foundCounter bool
 		for _, sm := range rm.ScopeMetrics {
 			for _, metric := range sm.Metrics {
@@ -84,19 +71,13 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 				}
 			}
 		}
-		assert.True(t, foundCounter, "mcp.prompt.gets metric not found")
+		assert.True(t, foundCounter, "mcp.prompt.gets metric not found in telemetry server")
 	})
 
 	t.Run("records prompt duration histogram", func(t *testing.T) {
-		// Set up test telemetry
-		reader := sdkmetric.NewManualReader()
-		meterProvider := sdkmetric.NewMeterProvider(
-			sdkmetric.WithReader(reader),
-		)
-		otel.SetMeterProvider(meterProvider)
-
-		// Initialize telemetry
-		telemetry.Init()
+		// Set up telemetry MCP server for Record* functions
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Create test server config
 		serverConfig := &catalog.ServerConfig{
@@ -110,16 +91,16 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		promptName := "test-prompt-duration"
 		duration := float64(150) // milliseconds
 
-		// Record prompt duration
+		// Record prompt duration - sends to MCP telemetry server
 		ctx := context.Background()
 		telemetry.RecordPromptDuration(ctx, promptName, serverConfig.Name, duration, "test-client")
 
-		// Collect metrics
+		// Collect metrics from the telemetry server
 		var rm metricdata.ResourceMetrics
-		err := reader.Collect(ctx, &rm)
+		err := ts.MetricReader.Collect(ctx, &rm)
 		require.NoError(t, err)
 
-		// Find prompt duration metric
+		// Find prompt duration metric in telemetry server
 		var foundHistogram bool
 		for _, sm := range rm.ScopeMetrics {
 			for _, metric := range sm.Metrics {
@@ -149,19 +130,13 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 				}
 			}
 		}
-		assert.True(t, foundHistogram, "mcp.prompt.duration metric not found")
+		assert.True(t, foundHistogram, "mcp.prompt.duration metric not found in telemetry server")
 	})
 
 	t.Run("records prompt errors", func(t *testing.T) {
-		// Set up test telemetry
-		reader := sdkmetric.NewManualReader()
-		meterProvider := sdkmetric.NewMeterProvider(
-			sdkmetric.WithReader(reader),
-		)
-		otel.SetMeterProvider(meterProvider)
-
-		// Initialize telemetry
-		telemetry.Init()
+		// Set up telemetry MCP server for Record* functions
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
 		// Test error recording
 		ctx := context.Background()
@@ -169,14 +144,15 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		serverName := "error-server"
 		errorType := "prompt_not_found"
 
+		// Record prompt error - sends to MCP telemetry server
 		telemetry.RecordPromptError(ctx, promptName, serverName, errorType)
 
-		// Collect metrics
+		// Collect metrics from the telemetry server
 		var rm metricdata.ResourceMetrics
-		err := reader.Collect(ctx, &rm)
+		err := ts.MetricReader.Collect(ctx, &rm)
 		require.NoError(t, err)
 
-		// Find error counter metric
+		// Find error counter metric in telemetry server
 		var foundErrorCounter bool
 		for _, sm := range rm.ScopeMetrics {
 			for _, metric := range sm.Metrics {
@@ -205,7 +181,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 				}
 			}
 		}
-		assert.True(t, foundErrorCounter, "mcp.prompt.errors metric not found")
+		assert.True(t, foundErrorCounter, "mcp.prompt.errors metric not found in telemetry server")
 	})
 
 	t.Run("creates spans with correct attributes", func(t *testing.T) {
@@ -346,29 +322,23 @@ func TestPromptHandlerIntegration(t *testing.T) {
 // TestPromptListHandler tests telemetry for prompt list operations
 func TestPromptListHandlerTelemetry(t *testing.T) {
 	t.Run("records prompt list counter", func(t *testing.T) {
-		// Set up test telemetry
-		reader := sdkmetric.NewManualReader()
-		meterProvider := sdkmetric.NewMeterProvider(
-			sdkmetric.WithReader(reader),
-		)
-		otel.SetMeterProvider(meterProvider)
+		// Set up telemetry MCP server for Record* functions
+		ts := telemetry.SetupTestTelemetryServer(t)
+		defer ts.Cleanup()
 
-		// Initialize telemetry
-		telemetry.Init()
-
-		// Record prompt list
+		// Record prompt list - sends to MCP telemetry server
 		ctx := context.Background()
 		serverName := "prompt-list-server"
 		promptCount := 5
 
 		telemetry.RecordPromptList(ctx, serverName, promptCount)
 
-		// Collect metrics
+		// Collect metrics from the telemetry server
 		var rm metricdata.ResourceMetrics
-		err := reader.Collect(ctx, &rm)
+		err := ts.MetricReader.Collect(ctx, &rm)
 		require.NoError(t, err)
 
-		// Find prompt list metric
+		// Find prompt list metric in telemetry server
 		var foundGauge bool
 		for _, sm := range rm.ScopeMetrics {
 			for _, metric := range sm.Metrics {
@@ -393,6 +363,6 @@ func TestPromptListHandlerTelemetry(t *testing.T) {
 				}
 			}
 		}
-		assert.True(t, foundGauge, "mcp.prompts.discovered metric not found")
+		assert.True(t, foundGauge, "mcp.prompts.discovered metric not found in telemetry server")
 	})
 }

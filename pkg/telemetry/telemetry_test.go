@@ -286,8 +286,9 @@ func TestStartCommandSpan(t *testing.T) {
 }
 
 func TestRecordToolError(t *testing.T) {
-	_, metricReader := setupTestTelemetry(t)
-	Init()
+	// Set up telemetry MCP server - RecordToolError sends to MCP server
+	ts := SetupTestTelemetryServer(t)
+	defer ts.Cleanup()
 
 	ctx := context.Background()
 	toolName := "test_tool"
@@ -297,12 +298,12 @@ func TestRecordToolError(t *testing.T) {
 	// Record a tool error (nil span is ok for testing)
 	RecordToolError(ctx, nil, serverName, serverType, toolName)
 
-	// Collect metrics
+	// Collect metrics from the telemetry server
 	var rm metricdata.ResourceMetrics
-	err := metricReader.Collect(ctx, &rm)
+	err := ts.MetricReader.Collect(ctx, &rm)
 	require.NoError(t, err)
 
-	// Find the error counter
+	// Find the error counter in the telemetry server's metrics
 	found := false
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
@@ -325,7 +326,7 @@ func TestRecordToolError(t *testing.T) {
 			}
 		}
 	}
-	assert.True(t, found, "tool error should be recorded")
+	assert.True(t, found, "tool error should be recorded in telemetry server")
 }
 
 func TestConcurrentMetricRecording(t *testing.T) {
