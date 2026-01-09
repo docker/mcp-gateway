@@ -47,7 +47,7 @@ func (r *PluginRegistry) GetProvider(name string) (PluginProvider, bool) {
 }
 
 // LoadPlugins loads all plugins from configuration.
-func (r *PluginRegistry) LoadPlugins(ctx context.Context, config PluginsConfig) error {
+func (r *PluginRegistry) LoadPlugins(ctx context.Context, config Config) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

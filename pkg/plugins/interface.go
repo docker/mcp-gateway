@@ -202,8 +202,8 @@ type ServerConfig struct {
 	Env map[string]string `json:"env,omitempty" yaml:"env,omitempty"`
 }
 
-// PluginsConfig represents the plugins section of gateway configuration.
-type PluginsConfig struct {
+// Config represents the plugins section of gateway configuration.
+type Config struct {
 	AuthProvider      *PluginConfig `json:"auth_provider,omitempty" yaml:"auth_provider,omitempty"`
 	CredentialStorage *PluginConfig `json:"credential_storage,omitempty" yaml:"credential_storage,omitempty"`
 	AuthProxy         *PluginConfig `json:"auth_proxy,omitempty" yaml:"auth_proxy,omitempty"`

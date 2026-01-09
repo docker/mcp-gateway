@@ -69,7 +69,8 @@ type NoopTelemetry struct{}
 func (n *NoopTelemetry) RecordCounter(_ context.Context, _ string, _ int64, _ map[string]string) {}
 
 // RecordHistogram does nothing.
-func (n *NoopTelemetry) RecordHistogram(_ context.Context, _ string, _ float64, _ map[string]string) {}
+func (n *NoopTelemetry) RecordHistogram(_ context.Context, _ string, _ float64, _ map[string]string) {
+}
 
 // RecordGauge does nothing.
 func (n *NoopTelemetry) RecordGauge(_ context.Context, _ string, _ int64, _ map[string]string) {}
