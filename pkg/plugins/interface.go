@@ -46,10 +46,10 @@ type CredentialStorage interface {
 
 // CredentialInfo contains metadata about a stored credential.
 type CredentialInfo struct {
-	Server     string `json:"server"`
-	CredType   string `json:"cred_type"`
-	CreatedAt  string `json:"created_at,omitempty"`
-	ExpiresAt  string `json:"expires_at,omitempty"`
+	Server    string `json:"server"`
+	CredType  string `json:"cred_type"`
+	CreatedAt string `json:"created_at,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
 }
 
 // AuthProxy injects credentials into outgoing requests.
@@ -105,21 +105,21 @@ type MCPProvisioner interface {
 
 // ServerDef defines an MCP server to provision.
 type ServerDef struct {
-	Name   string            `json:"name"`
-	Type   string            `json:"type"`   // "image", "remote", "registry"
-	Image  string            `json:"image,omitempty"`
-	Source string            `json:"source,omitempty"`
-	Endpoint string          `json:"endpoint,omitempty"`
-	Env    map[string]string `json:"env,omitempty"`
+	Name     string            `json:"name"`
+	Type     string            `json:"type"` // "image", "remote", "registry"
+	Image    string            `json:"image,omitempty"`
+	Source   string            `json:"source,omitempty"`
+	Endpoint string            `json:"endpoint,omitempty"`
+	Env      map[string]string `json:"env,omitempty"`
 }
 
 // ProvisionedServer represents a running MCP server instance.
 type ProvisionedServer struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Endpoint  string `json:"endpoint"`
-	Status    string `json:"status"`
-	UserID    string `json:"user_id"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Endpoint string `json:"endpoint"`
+	Status   string `json:"status"`
+	UserID   string `json:"user_id"`
 }
 
 // TelemetryPlugin defines the interface for telemetry plugins.
