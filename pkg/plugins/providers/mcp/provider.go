@@ -18,7 +18,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/docker/mcp-gateway/pkg/plugins"
@@ -28,14 +27,6 @@ import (
 type Provider struct {
 	containerMgr plugins.ContainerManager
 	httpClient   *http.Client
-	mu           sync.RWMutex
-	servers      map[string]*mcpServer // endpoint -> server
-}
-
-// mcpServer represents a connected MCP server.
-type mcpServer struct {
-	endpoint string
-	tools    []string
 }
 
 // NewProvider creates a new MCP provider.
@@ -47,7 +38,6 @@ func NewProvider(containerMgr plugins.ContainerManager) *Provider {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		servers: make(map[string]*mcpServer),
 	}
 }
 
@@ -76,7 +66,7 @@ func (p *Provider) resolveServer(ctx context.Context, config plugins.PluginConfi
 }
 
 // resolveServerString resolves a server string (catalog:// or direct endpoint).
-func (p *Provider) resolveServerString(ctx context.Context, serverStr string) (string, error) {
+func (p *Provider) resolveServerString(_ context.Context, serverStr string) (string, error) {
 	// Catalog reference: catalog://docker.io/docker/mcp-plugins:v1/auth-k8s-secret
 	if strings.HasPrefix(serverStr, "catalog://") {
 		// TODO: Implement catalog resolution
