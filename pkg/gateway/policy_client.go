@@ -1,15 +1,14 @@
 package gateway
 
 import (
-	"os"
+	"context"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
-func newPolicyClient() policy.Client {
-	paths := desktop.Paths()
-	if _, err := os.Stat(paths.BackendSocket); err != nil {
+func newPolicyClient(ctx context.Context) policy.Client {
+	if !desktop.IsRunningInDockerDesktop(ctx) {
 		return policy.NoopClient{}
 	}
 	return policy.NewDesktopClient()

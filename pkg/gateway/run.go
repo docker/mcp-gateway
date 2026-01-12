@@ -120,7 +120,6 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		serverCapabilities:          make(map[string]*ServerCapabilities),
 		serverAvailableCapabilities: make(map[string]*Capabilities),
 		toolRegistrations:           make(map[string]ToolRegistration),
-		policyClient:                newPolicyClient(),
 		refreshingServers:           make(map[string]bool),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
@@ -137,6 +136,10 @@ func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
 func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
+
+	if g.policyClient == nil {
+		g.policyClient = newPolicyClient(ctx)
+	}
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
