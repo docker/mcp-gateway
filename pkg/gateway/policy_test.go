@@ -126,32 +126,6 @@ func TestFilterByPolicy(t *testing.T) {
 			"blocked tool should be removed, allowed tool should remain")
 	})
 
-	t.Run("allows_on_error_failopen", func(t *testing.T) {
-		// Setup: policy returns error - should fail open (allow)
-		mock := newMockPolicyClient()
-		mock.failWith("test-server", "", policy.ActionLoad, errors.New("policy service unavailable"))
-
-		cfg := &Configuration{
-			serverNames: []string{"test-server"},
-			servers: map[string]catalog.Server{
-				"test-server": {Image: "test-image"},
-			},
-			config: make(map[string]map[string]any),
-			tools: config.ToolsConfig{
-				ServerTools: make(map[string][]string),
-			},
-		}
-
-		// Execute
-		err := cfg.FilterByPolicy(context.Background(), mock)
-
-		// Assert: server should remain (fail-open behavior)
-		require.NoError(t, err)
-		assert.Equal(t, []string{"test-server"}, cfg.serverNames,
-			"server should remain when policy check fails (fail-open)")
-		assert.Contains(t, cfg.servers, "test-server")
-	})
-
 	t.Run("nil_policy_client_allows_all", func(t *testing.T) {
 		// Setup: nil policy client should be a no-op
 		cfg := &Configuration{
@@ -213,20 +187,19 @@ func TestMcpServerToolHandler_PolicyEnforcement(t *testing.T) {
 		assert.Contains(t, err.Error(), "test-tool")
 		assert.Contains(t, err.Error(), "tool blocked by admin")
 	})
-
-	t.Run("allows_on_error_failopen", func(t *testing.T) {
-		// Setup: policy returns error - should fail open
+	t.Run("denies_on_error", func(t *testing.T) {
+		// Setup: policy returns error - should fail closed
 		mock := newMockPolicyClient()
 		mock.failWith("test-server", "test-tool", policy.ActionInvoke, errors.New("policy service down"))
 
 		g := &Gateway{
-			policyClient: mock,
 			configuration: Configuration{
 				serverNames: []string{"test-server"},
 				servers: map[string]catalog.Server{
-					"test-server": {Image: "test-image"},
+					"test-server": {Image: "img"},
 				},
 			},
+			policyClient: mock,
 		}
 
 		handler := g.mcpServerToolHandler("test-server", nil, nil, "test-tool")
@@ -237,30 +210,9 @@ func TestMcpServerToolHandler_PolicyEnforcement(t *testing.T) {
 			},
 		}
 
-		// Execute - handler will continue past policy check (fail-open) but may
-		// panic/fail later due to missing telemetry setup. We use recover to
-		// verify the failure is NOT due to policy denial.
-		var err error
-		var panicValue any
-		func() {
-			defer func() {
-				panicValue = recover()
-			}()
-			_, err = handler(context.Background(), req)
-		}()
-
-		// Assert: whether we got an error or panic, it should NOT be policy-related.
-		// The key assertion is that the handler continued past the policy check.
-		if err != nil {
-			assert.NotContains(t, err.Error(), "policy denied",
-				"error should not be policy-related when policy check fails (fail-open)")
-		}
-		if panicValue != nil {
-			// Panic occurred after policy check (proves fail-open worked)
-			panicStr := fmt.Sprintf("%v", panicValue)
-			assert.NotContains(t, panicStr, "policy",
-				"panic should not be policy-related (fail-open allowed handler to continue)")
-		}
+		_, err := handler(context.Background(), req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "policy")
 	})
 }
 
@@ -335,8 +287,8 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 		assert.Contains(t, textContent.Text, "dangerous-tool")
 	})
 
-	t.Run("allows_on_error_failopen", func(t *testing.T) {
-		// Setup: policy returns error - should fail open and execute tool
+	t.Run("denies_on_error", func(t *testing.T) {
+		// Setup: policy returns error - should fail closed and not execute tool
 		mock := newMockPolicyClient()
 		mock.failWith("backend-server", "test-tool", policy.ActionInvoke, errors.New("policy unavailable"))
 
@@ -345,7 +297,6 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 			Version: "1.0.0",
 		}, nil)
 
-		// Create a mock tool that SHOULD be called (fail-open allows it)
 		toolCalled := false
 		mockToolHandler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			toolCalled = true
@@ -358,6 +309,12 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 			policyClient:      mock,
 			mcpServer:         mcpServer,
 			toolRegistrations: make(map[string]ToolRegistration),
+			configuration: Configuration{
+				serverNames: []string{"backend-server"},
+				servers: map[string]catalog.Server{
+					"backend-server": {Image: "img"},
+				},
+			},
 		}
 
 		g.toolRegistrations["test-tool"] = ToolRegistration{
@@ -382,19 +339,38 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 			},
 		}
 
-		// Execute
 		result, err := mcpExecHandler(context.Background(), req)
-
-		// Assert: tool should have been called (fail-open)
-		require.NoError(t, err)
+		require.NoError(t, err) // handler returns JSON payload even on denial
 		require.NotNil(t, result)
-		assert.True(t, toolCalled, "tool SHOULD be called when policy check fails (fail-open)")
+		assert.False(t, toolCalled, "tool should NOT be called when policy check errors (fail-closed)")
 
-		// Check result is from the tool, not a policy block
 		require.Len(t, result.Content, 1)
 		textContent, ok := result.Content[0].(*mcp.TextContent)
 		require.True(t, ok)
-		assert.Equal(t, "tool executed successfully", textContent.Text)
-		assert.NotContains(t, textContent.Text, "blocked by policy")
+		assert.Contains(t, textContent.Text, "policy")
 	})
+}
+
+func TestMcpPrompts_PolicyEnforcement(t *testing.T) {
+	// denied prompt should error
+	mock := newMockPolicyClient()
+	mock.deny("prompt-server", "summarize", policy.ActionPrompt, "prompt blocked")
+
+	g := &Gateway{
+		policyClient: mock,
+		configuration: Configuration{
+			serverNames: []string{"prompt-server"},
+			servers: map[string]catalog.Server{
+				"prompt-server": {Image: "img"},
+			},
+		},
+	}
+
+	h := g.mcpServerPromptHandler("prompt-server", nil)
+	req := &mcp.GetPromptRequest{Params: &mcp.GetPromptParams{Name: "summarize"}}
+
+	_, err := h(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "policy")
+	assert.Contains(t, err.Error(), "summarize")
 }
