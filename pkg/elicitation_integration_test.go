@@ -43,7 +43,8 @@ func buildElicitImage(t *testing.T) {
 	}
 	dockerfilePath := filepath.Join("test", "servers", "elicit", "Dockerfile")
 
-	cmd := exec.Command("docker", "build", "-t", "elicit:latest", "-f", dockerfilePath, ".")
+	ctx := context.Background()
+	cmd := exec.CommandContext(ctx, "docker", "build", "-t", "elicit:latest", "-f", dockerfilePath, ".")
 	cmd.Dir = projectRoot
 	output, err := cmd.CombinedOutput()
 	if err != nil {

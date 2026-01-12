@@ -15,8 +15,8 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/retry"
 	"github.com/docker/mcp-gateway/pkg/user"
-	"github.com/docker/mcp-gateway/pkg/utils"
 
 	// This enables to sqlite driver
 	_ "modernc.org/sqlite"
@@ -97,7 +97,7 @@ func New(opts ...Option) (DAO, error) {
 	// A race condition can happen if two instances of the CLI try to run migrations at the same time
 	// This doesn't harm the state of the database, but the second process will fail with an error
 	// We work around this by retrying the migration up to 5 times.
-	err = utils.Retry(5, 300*time.Millisecond, func() error {
+	err = retry.Retry(5, 300*time.Millisecond, func() error {
 		err := mig.Up()
 		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			return err

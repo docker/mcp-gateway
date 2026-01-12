@@ -15,7 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
-	"github.com/docker/mcp-gateway/pkg/utils"
+	"github.com/docker/mcp-gateway/pkg/retry"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -32,7 +32,7 @@ func MigrateConfig(ctx context.Context, docker docker.Client, dao db.DAO) {
 	var acquired bool
 	// It's possible another cli instance is already running the migration,
 	// so retry this 5 times as long as the error is errMigrationAlreadyRunning
-	err := utils.RetryIfErrorIs(5, 300*time.Millisecond, func() error {
+	err := retry.IfErrorIs(5, 300*time.Millisecond, func() error {
 		migrationStatus, ac, err := dao.TryAcquireMigration(ctx, MigrationStatusPending)
 		if err != nil {
 			var sqliteErr *sqlite.Error

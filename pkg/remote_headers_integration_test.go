@@ -81,7 +81,9 @@ func newTestMCPServer(t *testing.T) *testMCPServer {
 	s := &testMCPServer{}
 
 	// Create a listener to get a random port
-	listener, err := net.Listen("tcp", ":0")
+	ctx := context.Background()
+	lc := &net.ListenConfig{}
+	listener, err := lc.Listen(ctx, "tcp", ":0")
 	require.NoError(t, err, "Failed to create listener")
 
 	s.listener = listener

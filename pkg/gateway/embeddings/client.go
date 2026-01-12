@@ -172,7 +172,8 @@ func (c *VectorDBClient) Close() error {
 	// This properly signals the container to shut down
 	if c.containerName != "" {
 		log.Logf("Stopping container: %s", c.containerName)
-		stopCmd := exec.Command("docker", "stop", "-t", "2", c.containerName)
+		ctx := context.Background()
+		stopCmd := exec.CommandContext(ctx, "docker", "stop", "-t", "2", c.containerName)
 		if err := stopCmd.Run(); err != nil {
 			// Container might already be stopped or removed - that's fine
 			log.Logf("Container %s stop result: %v (this is expected if already stopped)", c.containerName, err)
