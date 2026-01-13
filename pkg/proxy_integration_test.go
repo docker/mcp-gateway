@@ -186,15 +186,15 @@ func waitForProxyReady(t *testing.T, proxyDir string) {
 		case <-ctx.Done():
 			t.Fatal("Proxy server did not become ready within timeout")
 		case <-ticker.C:
-			if isProxyReady(proxyDir) {
+			if isProxyReady(ctx, proxyDir) {
 				return
 			}
 		}
 	}
 }
 
-func isProxyReady(proxyDir string) bool {
-	cmd := exec.Command("docker", "compose", "ps", "--services", "--filter", "status=running")
+func isProxyReady(ctx context.Context, proxyDir string) bool {
+	cmd := exec.CommandContext(ctx, "docker", "compose", "ps", "--services", "--filter", "status=running")
 	cmd.Dir = proxyDir
 	out, err := cmd.Output()
 	if err != nil {

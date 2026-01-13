@@ -40,18 +40,19 @@ func TestSSEServerAuthentication(t *testing.T) {
 	g.authToken = token
 	g.authTokenWasGenerated = wasGenerated
 
+	// Start the SSE server in a goroutine
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Create a listener on a random available port
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	lc := &net.ListenConfig{}
+	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
 	}
 	defer ln.Close()
 
 	port := ln.Addr().(*net.TCPAddr).Port
-
-	// Start the SSE server in a goroutine
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	serverErr := make(chan error, 1)
 	go func() {
@@ -174,18 +175,19 @@ func TestStreamingServerAuthentication(t *testing.T) {
 	g.authToken = token
 	g.authTokenWasGenerated = wasGenerated
 
+	// Start the streaming server in a goroutine
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Create a listener on a random available port
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	lc := &net.ListenConfig{}
+	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to create listener: %v", err)
 	}
 	defer ln.Close()
 
 	port := ln.Addr().(*net.TCPAddr).Port
-
-	// Start the streaming server in a goroutine
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	serverErr := make(chan error, 1)
 	go func() {

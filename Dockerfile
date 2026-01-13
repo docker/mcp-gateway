@@ -1,9 +1,9 @@
 #syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.24.6
+ARG GO_VERSION=1.25.5
 ARG DOCS_FORMATS="md,yaml"
 
-FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.1.6-alpine AS lint-base
+FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.8.0-alpine AS lint-base
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
 RUN apk add --no-cache git rsync
@@ -127,8 +127,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=source=./tools/docker-mcp-bridge,target=. \
     go build -trimpath -ldflags "-s -w" -o /docker-mcp-bridge .
 
-FROM alpine:3.22@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 AS mcp-gateway
-RUN apk add --no-cache docker-cli socat jq
+FROM alpine:3.23@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62 AS mcp-gateway
+RUN apk update && apk upgrade --no-cache && apk add --no-cache docker-cli socat jq
 VOLUME /misc
 COPY --from=build-mcp-bridge /docker-mcp-bridge /misc/
 ENV DOCKER_MCP_IN_CONTAINER=1
@@ -142,7 +142,7 @@ RUN rm /usr/local/bin/docker-compose \
 
 FROM scratch AS mcp-gateway-dind
 COPY --from=dind / /
-RUN apk add --no-cache socat jq
+RUN apk update && apk upgrade --no-cache && apk add --no-cache socat jq
 COPY --from=docker/mcp-gateway /docker-mcp /
 RUN cat <<-'EOF' >/run.sh
 	#!/usr/bin/env sh

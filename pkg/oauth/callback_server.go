@@ -54,7 +54,9 @@ func NewCallbackServer() (*CallbackServer, error) {
 	port := getOAuthPort()
 
 	// Bind to the fixed port
-	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	ctx := context.Background()
+	lc := &net.ListenConfig{}
+	listener, err := lc.Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return nil, fmt.Errorf(
 			"OAuth callback port %d is already in use.\n\n"+
