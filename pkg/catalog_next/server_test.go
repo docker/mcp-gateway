@@ -600,6 +600,49 @@ func TestListServersCatalogNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get catalog")
 }
 
+func TestListServersNormalizesCatalogRef(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with a normalized reference (what the db would store)
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name: "my-server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	// Query with a non-normalized reference (without :latest tag)
+	// This should still find the catalog because the code normalizes the ref
+	output := captureStdout(t, func() {
+		err := ListServers(ctx, dao, "test/catalog", []string{}, workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result map[string]any
+	err = json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+
+	servers := result["servers"].([]any)
+	assert.Len(t, servers, 1)
+}
+
 func TestListServersYAMLFormat(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

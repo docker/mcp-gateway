@@ -71,6 +71,16 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 		return err
 	}
 
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+	}
+
+	catalogRef = oci.FullNameWithoutDigest(ref)
+
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
 	if err != nil {
