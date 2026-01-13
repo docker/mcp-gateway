@@ -6,12 +6,102 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 )
 
 var oneServerError = "at least one server must be specified"
+
+func TestInspectServer(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test Working Set", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	}, []string{})
+	require.NoError(t, err)
+
+	t.Run("JSON format", func(t *testing.T) {
+		output := captureStdout(func() {
+			err := InspectServer(ctx, dao, "test-set", "My Image", OutputFormatJSON)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := json.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
+		assert.Equal(t, "myimage:latest", server.Image)
+	})
+
+	t.Run("YAML format", func(t *testing.T) {
+		output := captureStdout(func() {
+			err := InspectServer(ctx, dao, "test-set", "My Image", OutputFormatYAML)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := yaml.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
+		assert.Equal(t, "myimage:latest", server.Image)
+	})
+
+	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
+		output := captureStdout(func() {
+			err := InspectServer(ctx, dao, "test-set", "My Image", OutputFormatHumanReadable)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := yaml.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
+	})
+}
+
+func TestInspectServerNotFound(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test Working Set", []string{
+		"docker://myimage:latest",
+	}, []string{})
+	require.NoError(t, err)
+
+	err = InspectServer(ctx, dao, "test-set", "nonexistent-server", OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "server nonexistent-server not found in profile test-set")
+}
+
+func TestInspectServerProfileNotFound(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := InspectServer(ctx, dao, "nonexistent-profile", "some-server", OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "profile nonexistent-profile not found")
+}
+
+func TestInspectServerUnsupportedFormat(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test Working Set", []string{
+		"docker://myimage:latest",
+	}, []string{})
+	require.NoError(t, err)
+
+	err = InspectServer(ctx, dao, "test-set", "My Image", OutputFormat("unsupported"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported format: unsupported")
+}
 
 func TestAddOneServerToWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)

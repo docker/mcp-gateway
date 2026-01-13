@@ -134,6 +134,38 @@ docker mcp profile server rm dev-tools --name github
 - Server names are determined by the server's snapshot (not the image name or source URL)
 - Use `docker mcp profile show <profile-id>` to see available server names in a profile
 
+### Inspecting a Server in a Profile
+
+View detailed information about a specific server within a profile:
+
+```bash
+# Inspect a server (human-readable/YAML format)
+docker mcp profile server inspect my-profile github
+
+# Inspect in JSON format
+docker mcp profile server inspect my-profile github --format json
+
+# Inspect in YAML format
+docker mcp profile server inspect my-profile github --format yaml
+```
+
+**Output includes:**
+- Server type (image, registry, or remote)
+- Image reference or source URL
+- Server snapshot with name, title, and description
+- Configuration schema and current config values
+- Available tools with their descriptions and input schemas
+- Secrets configuration
+
+**Output formats:**
+- `human` (default): YAML format for readability
+- `json`: Complete JSON representation
+- `yaml`: Complete YAML representation
+
+**Notes:**
+- The server name must match the name from the server's snapshot
+- Use `docker mcp profile show <profile-id>` to see available server names in a profile
+
 ### Listing Servers Across Profiles
 
 View all servers grouped by profile, with filtering capabilities:
@@ -877,6 +909,23 @@ Error: tool 'invalid_tool' not found in server 'github'
 - Tool names are case-sensitive and must match exactly
 - Check the server's documentation for available tool names
 
+### Server Not Found When Inspecting
+
+```bash
+Error: server github not found in profile my-profile
+```
+
+or
+
+```bash
+Error: server github not found in catalog mcp/docker-mcp-catalog:latest
+```
+
+**Solution**:
+- Ensure the server name is spelled correctly (names are case-sensitive)
+- Use `docker mcp profile show <profile-id>` or `docker mcp catalog-next show <oci-reference>` to see available server names
+- Server names come from the server's snapshot, not the image name or source URL
+
 ## Limitations and Future Enhancements
 
 ### Current Limitations
@@ -929,6 +978,18 @@ docker mcp catalog-next push myorg/my-catalog:latest
 
 # Pull catalog from OCI registry
 docker mcp catalog-next pull myorg/my-catalog:latest
+
+# List servers in a catalog
+docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+
+# Filter servers by name
+docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+
+# Inspect a specific server in a catalog
+docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github
+
+# Inspect in JSON format
+docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --format json
 ```
 
 **Key points:**

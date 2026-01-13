@@ -134,6 +134,19 @@ func (catalogArtifact *CatalogArtifact) Digest() (string, error) {
 	return oci.GetArtifactDigest(MCPCatalogArtifactType, catalogArtifact)
 }
 
+func (catalog *Catalog) FindServer(serverName string) *Server {
+	for i := range len(catalog.Servers) {
+		if catalog.Servers[i].Snapshot == nil {
+			// TODO(cody): Can happen with registry (for now)
+			continue
+		}
+		if catalog.Servers[i].Snapshot.Server.Name == serverName {
+			return &catalog.Servers[i]
+		}
+	}
+	return nil
+}
+
 func (catalog *Catalog) Validate() error {
 	if err := validate.Get().Struct(catalog); err != nil {
 		return err

@@ -17,6 +17,42 @@ import (
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 )
 
+func InspectServer(ctx context.Context, dao db.DAO, id string, serverName string, format OutputFormat) error {
+	dbWorkingSet, err := dao.GetWorkingSet(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("profile %s not found", id)
+		}
+		return fmt.Errorf("failed to get profile: %w", err)
+	}
+
+	workingSet := NewFromDb(dbWorkingSet)
+
+	server := workingSet.FindServer(serverName)
+	if server == nil {
+		return fmt.Errorf("server %s not found in profile %s", serverName, id)
+	}
+
+	var data []byte
+
+	switch format {
+	case OutputFormatJSON:
+		data, err = json.MarshalIndent(server, "", "  ")
+	case OutputFormatYAML, OutputFormatHumanReadable:
+		data, err = yaml.Marshal(server)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal server: %w", err)
+	}
+
+	fmt.Println(string(data))
+
+	return nil
+}
+
 func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, servers []string) error {
 	if len(servers) == 0 {
 		return fmt.Errorf("at least one server must be specified")
