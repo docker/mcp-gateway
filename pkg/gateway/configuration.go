@@ -32,6 +32,12 @@ type Configuration struct {
 	config      map[string]map[string]any
 	tools       config.ToolsConfig
 	secrets     map[string]string
+	// serverCatalogs maps server names to catalog identifiers.
+	serverCatalogs map[string]string
+	// serverSourceTypeOverrides maps server names to explicit source type identifiers.
+	serverSourceTypeOverrides map[string]string
+	// workingSet is the profile identifier for this configuration.
+	workingSet string
 }
 
 func (c *Configuration) ServerNames() []string {
@@ -107,10 +113,8 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 	}
 
 	for _, name := range c.serverNames {
-		decision, err := pc.Evaluate(ctx, policy.Request{
-			Server: name,
-			Action: policy.ActionLoad,
-		})
+		req := c.policyRequest(name, "", policy.ActionLoad)
+		decision, err := pc.Evaluate(ctx, req)
 		if err != nil {
 			log.Logf("policy check failed for server %s: %v (denying)", name, err)
 		}
@@ -120,11 +124,8 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 			// Filter tools for this server if any.
 			if tools, ok := c.tools.ServerTools[name]; ok {
 				for _, t := range tools {
-					toolDecision, tErr := pc.Evaluate(ctx, policy.Request{
-						Server: name,
-						Tool:   t,
-						Action: policy.ActionLoad,
-					})
+					toolReq := c.policyRequest(name, t, policy.ActionLoad)
+					toolDecision, tErr := pc.Evaluate(ctx, toolReq)
 					if tErr != nil {
 						log.Logf("policy check failed for tool %s/%s: %v (denying)", name, t, tErr)
 					}
@@ -159,6 +160,96 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 	c.tools = filteredTools
 	// c.secrets unchanged
 	return nil
+}
+
+// policyRequest builds a policy request for the provided server/tool/action.
+func (c *Configuration) policyRequest(serverName, tool string, action policy.Action) policy.Request {
+	req := policy.Request{
+		Catalog:    c.serverCatalogs[serverName],
+		WorkingSet: c.workingSet,
+		Server:     serverName,
+		Tool:       tool,
+		Action:     action,
+	}
+
+	server, ok := c.servers[serverName]
+	if !ok {
+		return req
+	}
+
+	serverSourceType := c.serverSourceTypeOverrides[serverName]
+	if serverSourceType == "" {
+		serverSourceType = inferServerSourceType(server)
+	}
+
+	req.ServerType = serverSourceType
+	req.ServerSource = inferPolicyServerSource(serverSourceType, server)
+	req.Transport = inferPolicyServerTransportType(server)
+	return req
+}
+
+// inferServerSourceType determines the policy server source type from a catalog entry.
+func inferServerSourceType(server catalog.Server) string {
+	if server.Type != "" {
+		return server.Type
+	}
+	if server.Remote.URL != "" || server.SSEEndpoint != "" {
+		return "remote"
+	}
+	if server.Image != "" {
+		return "image"
+	}
+	return ""
+}
+
+// inferPolicyServerSource determines the policy server source from a catalog entry.
+func inferPolicyServerSource(serverSourceType string, server catalog.Server) string {
+	if serverSourceType == "registry" && server.Image != "" {
+		return server.Image
+	}
+	if serverSourceType == "image" && server.Image != "" {
+		return server.Image
+	}
+	if serverSourceType == "remote" {
+		return inferPolicyServerEndpoint(server)
+	}
+	if server.Image != "" {
+		return server.Image
+	}
+	return inferPolicyServerEndpoint(server)
+}
+
+// inferPolicyServerEndpoint returns the best endpoint for a remote server.
+func inferPolicyServerEndpoint(server catalog.Server) string {
+	if server.SSEEndpoint != "" {
+		return server.SSEEndpoint
+	}
+	if server.Remote.URL != "" {
+		return server.Remote.URL
+	}
+	return ""
+}
+
+// inferPolicyServerTransportType determines the policy transport value for a server.
+// The policy vocabulary uses stdio, sse, and streamable for transport type.
+// These values intentionally differ from telemetry transport labels.
+func inferPolicyServerTransportType(server catalog.Server) string {
+	if server.SSEEndpoint != "" {
+		return "sse"
+	}
+	switch server.Remote.Transport {
+	case "sse":
+		return "sse"
+	case "http":
+		return "streamable"
+	}
+	if server.Remote.URL != "" {
+		return "streamable"
+	}
+	if server.Image != "" {
+		return "stdio"
+	}
+	return ""
 }
 
 type FileBasedConfiguration struct {
@@ -287,6 +378,8 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	log.Log("- Reading configuration...")
 
 	var serverNames []string
+	serverCatalogs := make(map[string]string)
+	serverSourceTypeOverrides := make(map[string]string)
 	if len(c.ServerNames) > 0 {
 		serverNames = c.ServerNames
 	} else {
@@ -296,6 +389,13 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 
 		serverNames = registryConfig.ServerNames()
+		for name, tile := range registryConfig.Servers {
+			if tile.Ref != "" {
+				serverCatalogs[name] = tile.Ref
+			}
+			// Registry indicates the server definition came from a catalog source.
+			serverSourceTypeOverrides[name] = "registry"
+		}
 	}
 
 	// check for docker.io self-contained servers
@@ -306,9 +406,16 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	serverNames = updatedServerNames
 
 	// read local caalog files
-	mcpCatalog, err := c.readCatalog(ctx)
+	mcpCatalog, catalogRefs, err := c.readCatalog(ctx)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("reading catalog: %w", err)
+	}
+	for name, catalogRef := range catalogRefs {
+		if _, exists := serverCatalogs[name]; !exists {
+			serverCatalogs[name] = catalogRef
+			// Registry indicates the server definition came from a catalog source.
+			serverSourceTypeOverrides[name] = "registry"
+		}
 	}
 
 	// merge self-contained servers with local catalog
@@ -318,7 +425,7 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	}
 
 	// Read servers from OCI references if any are provided
-	ociServers, err := c.readServersFromOci(ctx)
+	ociServers, ociCatalogRefs, err := c.readServersFromOci(ctx)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("reading servers from OCI: %w", err)
 	}
@@ -329,6 +436,11 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 			log.Log(fmt.Sprintf("Warning: server '%s' from OCI reference overwrites server from catalog", serverName))
 		}
 		servers[serverName] = server
+		if catalogRef := ociCatalogRefs[serverName]; catalogRef != "" {
+			serverCatalogs[serverName] = catalogRef
+			// Registry indicates the server definition came from a catalog source.
+			serverSourceTypeOverrides[serverName] = "registry"
+		}
 
 		// Add to serverNames list if not already present
 		found := false
@@ -421,17 +533,47 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 
 	log.Log("- Configuration read in", time.Since(start))
 	return Configuration{
-		serverNames: serverNames,
-		servers:     servers,
-		config:      serversConfig,
-		tools:       serverToolsConfig,
-		secrets:     secrets,
+		serverNames:               serverNames,
+		servers:                   servers,
+		config:                    serversConfig,
+		tools:                     serverToolsConfig,
+		secrets:                   secrets,
+		serverCatalogs:            serverCatalogs,
+		serverSourceTypeOverrides: serverSourceTypeOverrides,
+		workingSet:                "",
 	}, nil
 }
 
-func (c *FileBasedConfiguration) readCatalog(ctx context.Context) (catalog.Catalog, error) {
+func (c *FileBasedConfiguration) readCatalog(ctx context.Context) (catalog.Catalog, map[string]string, error) {
 	log.Log("  - Reading catalog from", c.CatalogPath)
-	return catalog.ReadFrom(ctx, c.CatalogPath)
+
+	mergedServers := map[string]catalog.Server{}
+	serverCatalogs := map[string]string{}
+
+	for _, catalogPath := range c.CatalogPath {
+		if catalogPath == "" {
+			continue
+		}
+		cat, name, _, err := catalog.ReadOne(ctx, catalogPath)
+		if err != nil {
+			return catalog.Catalog{}, nil, err
+		}
+		catalogID := name
+		if catalogID == "" {
+			catalogID = catalogPath
+		}
+		for key, server := range cat.Servers {
+			if _, exists := mergedServers[key]; exists {
+				log.Log(fmt.Sprintf("Warning: overlapping key '%s' found in catalog '%s', overwriting previous value", key, catalogPath))
+			}
+			mergedServers[key] = server
+			if _, exists := serverCatalogs[key]; !exists {
+				serverCatalogs[key] = catalogID
+			}
+		}
+	}
+
+	return catalog.Catalog{Servers: mergedServers}, serverCatalogs, nil
 }
 
 func (c *FileBasedConfiguration) readRegistry(ctx context.Context) (config.Registry, error) {
@@ -620,11 +762,12 @@ func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path s
 }
 
 // readServersFromOci fetches and parses server definitions from OCI references
-func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[string]catalog.Server, error) {
+func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[string]catalog.Server, map[string]string, error) {
 	ociServers := make(map[string]catalog.Server)
+	ociCatalogs := make(map[string]string)
 
 	if len(c.OciRef) == 0 {
-		return ociServers, nil
+		return ociServers, ociCatalogs, nil
 	}
 
 	log.Log("  - Reading servers from OCI references", c.OciRef)
@@ -637,7 +780,7 @@ func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[stri
 		// Use the existing oci.ReadArtifact function to get the Catalog data
 		ociCatalog, err := oci.ReadArtifact[oci.Catalog](ociRef, oci.MCPServerArtifactType)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
+			return nil, nil, fmt.Errorf("failed to read OCI artifact %s: %w", ociRef, err)
 		}
 
 		// Process each server in the OCI catalog registry
@@ -658,9 +801,10 @@ func (c *FileBasedConfiguration) readServersFromOci(_ context.Context) (map[stri
 				log.Log(fmt.Sprintf("Warning: overlapping server '%s' found in OCI reference '%s', overwriting previous value", serverName, ociRef))
 			}
 			ociServers[serverName] = server
+			ociCatalogs[serverName] = ociRef
 			log.Log(fmt.Sprintf("  - Added server '%s' from OCI reference %s", serverName, ociRef))
 		}
 	}
 
-	return ociServers, nil
+	return ociServers, ociCatalogs, nil
 }

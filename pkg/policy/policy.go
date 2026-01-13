@@ -15,9 +15,17 @@ const (
 // Request is a policy evaluation request.
 type Request struct {
 	Catalog string `json:"catalog,omitempty"`
-	Server  string `json:"server,omitempty"`
-	Tool    string `json:"tool,omitempty"`
-	Action  Action `json:"action,omitempty"`
+	// WorkingSet identifies the working set (profile) for the request.
+	WorkingSet string `json:"workingSet,omitempty"`
+	Server     string `json:"server,omitempty"`
+	// ServerType identifies the server source type for the request.
+	ServerType string `json:"serverType,omitempty"`
+	// ServerSource identifies the server source for the request.
+	ServerSource string `json:"serverSource,omitempty"`
+	// Transport identifies the server transport type for the request.
+	Transport string `json:"transport,omitempty"`
+	Tool      string `json:"tool,omitempty"`
+	Action    Action `json:"action,omitempty"`
 }
 
 // Decision is a policy evaluation result.

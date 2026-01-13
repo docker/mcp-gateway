@@ -499,7 +499,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		}
 
 		// Start span (as handler would)
-		serverType := inferServerType(serverConfig)
+		serverType := inferServerTransportType(serverConfig)
 		ctx, span := telemetry.StartResourceSpan(ctx, params.URI,
 			attribute.String("mcp.server.origin", serverConfig.Name),
 			attribute.String("mcp.server.type", serverType),
@@ -576,7 +576,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		}
 
 		// Start span
-		serverType := inferServerType(serverConfig)
+		serverType := inferServerTransportType(serverConfig)
 		ctx, span := telemetry.StartResourceSpan(ctx, params.URI,
 			attribute.String("mcp.server.origin", serverConfig.Name),
 			attribute.String("mcp.server.type", serverType),

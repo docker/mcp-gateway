@@ -160,11 +160,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	for _, prompt := range capabilities.Prompts {
 		// Enforce policy for prompts: deny if ActionPrompt is blocked.
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
-				Server: prompt.ServerName,
-				Tool:   prompt.Prompt.Name,
-				Action: policy.ActionPrompt,
-			})
+			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt))
 			if err != nil {
 				log.Logf("policy check failed for prompt %s/%s: %v (denying)", prompt.ServerName, prompt.Prompt.Name, err)
 				continue
@@ -325,11 +321,7 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	for _, tool := range newServerCaps.Tools {
 		// Policy check for dynamically added tools
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, policy.Request{
-				Server: serverName,
-				Tool:   tool.Tool.Name,
-				Action: policy.ActionLoad,
-			})
+			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(serverName, tool.Tool.Name, policy.ActionLoad))
 			if err != nil {
 				log.Logf("policy check failed for dynamic tool %s/%s: %v (allowing)", serverName, tool.Tool.Name, err)
 			}
