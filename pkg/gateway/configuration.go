@@ -19,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
+	"github.com/docker/mcp-gateway/pkg/policycontext"
 )
 
 type Configurator interface {
@@ -177,79 +178,12 @@ func (c *Configuration) policyRequest(serverName, tool string, action policy.Act
 		return req
 	}
 
-	serverSourceType := c.serverSourceTypeOverrides[serverName]
-	if serverSourceType == "" {
-		serverSourceType = inferServerSourceType(server)
+	ctx := policycontext.Context{
+		Catalog:                  c.serverCatalogs[serverName],
+		WorkingSet:               c.workingSet,
+		ServerSourceTypeOverride: c.serverSourceTypeOverrides[serverName],
 	}
-
-	req.ServerType = serverSourceType
-	req.ServerSource = inferPolicyServerSource(serverSourceType, server)
-	req.Transport = inferPolicyServerTransportType(server)
-	return req
-}
-
-// inferServerSourceType determines the policy server source type from a catalog entry.
-func inferServerSourceType(server catalog.Server) string {
-	if server.Type != "" {
-		return server.Type
-	}
-	if server.Remote.URL != "" || server.SSEEndpoint != "" {
-		return "remote"
-	}
-	if server.Image != "" {
-		return "image"
-	}
-	return ""
-}
-
-// inferPolicyServerSource determines the policy server source from a catalog entry.
-func inferPolicyServerSource(serverSourceType string, server catalog.Server) string {
-	if serverSourceType == "registry" && server.Image != "" {
-		return server.Image
-	}
-	if serverSourceType == "image" && server.Image != "" {
-		return server.Image
-	}
-	if serverSourceType == "remote" {
-		return inferPolicyServerEndpoint(server)
-	}
-	if server.Image != "" {
-		return server.Image
-	}
-	return inferPolicyServerEndpoint(server)
-}
-
-// inferPolicyServerEndpoint returns the best endpoint for a remote server.
-func inferPolicyServerEndpoint(server catalog.Server) string {
-	if server.SSEEndpoint != "" {
-		return server.SSEEndpoint
-	}
-	if server.Remote.URL != "" {
-		return server.Remote.URL
-	}
-	return ""
-}
-
-// inferPolicyServerTransportType determines the policy transport value for a server.
-// The policy vocabulary uses stdio, sse, and streamable for transport type.
-// These values intentionally differ from telemetry transport labels.
-func inferPolicyServerTransportType(server catalog.Server) string {
-	if server.SSEEndpoint != "" {
-		return "sse"
-	}
-	switch server.Remote.Transport {
-	case "sse":
-		return "sse"
-	case "http":
-		return "streamable"
-	}
-	if server.Remote.URL != "" {
-		return "streamable"
-	}
-	if server.Image != "" {
-		return "stdio"
-	}
-	return ""
+	return policycontext.BuildRequest(ctx, serverName, server, tool, action)
 }
 
 type FileBasedConfiguration struct {

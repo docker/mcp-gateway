@@ -1,4 +1,4 @@
-package gateway
+package policycontext
 
 import (
 	"testing"
@@ -29,14 +29,14 @@ func TestInferServerSourceType(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := inferServerSourceType(tc.server)
+			result := InferServerSourceType(tc.server)
 			require.Equal(t, tc.expected, result)
 		})
 	}
 }
 
-// TestInferPolicyServerSource verifies policy server source selection behavior.
-func TestInferPolicyServerSource(t *testing.T) {
+// TestInferServerSource verifies policy server source selection behavior.
+func TestInferServerSource(t *testing.T) {
 	tests := []struct {
 		name           string
 		serverSource   string
@@ -89,14 +89,14 @@ func TestInferPolicyServerSource(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := inferPolicyServerSource(tc.serverSource, tc.server)
+			result := InferServerSource(tc.serverSource, tc.server)
 			require.Equal(t, tc.expectedSource, result)
 		})
 	}
 }
 
-// TestInferPolicyServerTransportType verifies policy transport inference behavior.
-func TestInferPolicyServerTransportType(t *testing.T) {
+// TestInferServerTransportType verifies policy transport inference behavior.
+func TestInferServerTransportType(t *testing.T) {
 	tests := []struct {
 		name     string
 		server   catalog.Server
@@ -144,14 +144,14 @@ func TestInferPolicyServerTransportType(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := inferPolicyServerTransportType(tc.server)
+			result := InferServerTransportType(tc.server)
 			require.Equal(t, tc.expected, result)
 		})
 	}
 }
 
-// TestInferPolicyServerEndpoint verifies endpoint inference behavior.
-func TestInferPolicyServerEndpoint(t *testing.T) {
+// TestInferServerEndpoint verifies endpoint inference behavior.
+func TestInferServerEndpoint(t *testing.T) {
 	tests := []struct {
 		name     string
 		server   catalog.Server
@@ -176,7 +176,7 @@ func TestInferPolicyServerEndpoint(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := inferPolicyServerEndpoint(tc.server)
+			result := InferServerEndpoint(tc.server)
 			require.Equal(t, tc.expected, result)
 		})
 	}

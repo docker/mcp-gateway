@@ -1,6 +1,10 @@
 package policy
 
-import "context"
+import (
+	"context"
+
+	"github.com/docker/mcp-gateway/pkg/desktop"
+)
 
 // Action identifies the type of operation being evaluated.
 // It is optional; when empty callers should treat it as "invoke".
@@ -44,4 +48,12 @@ type NoopClient struct{}
 
 func (NoopClient) Evaluate(_ context.Context, _ Request) (Decision, error) {
 	return Decision{Allowed: true}, nil
+}
+
+// NewDefaultClient returns a policy client appropriate for the current context.
+func NewDefaultClient(ctx context.Context) Client {
+	if !desktop.IsRunningInDockerDesktop(ctx) {
+		return NoopClient{}
+	}
+	return NewDesktopClient()
 }
