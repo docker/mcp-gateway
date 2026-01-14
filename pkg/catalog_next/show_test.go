@@ -16,7 +16,7 @@ func TestShowNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever, false)
+	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "catalog test/nonexistent:latest not found")
 }
@@ -26,20 +26,15 @@ func TestShowHumanReadable(t *testing.T) {
 	ctx := t.Context()
 
 	catalog := Catalog{
-		Ref:    "test/catalog:latest",
-		Source: "test-source",
+		Ref:    "test/yaml-test:latest",
+		Source: "yaml-source",
 		CatalogArtifact: CatalogArtifact{
-			Title: "test-catalog",
+			Title: "yaml-test",
 			Servers: []Server{
 				{
-					Type:  workingset.ServerTypeImage,
-					Image: "docker/test:v1",
-					Tools: []string{"tool1", "tool2"},
-				},
-				{
 					Type:   workingset.ServerTypeRegistry,
-					Source: "https://example.com/api",
-					Tools:  []string{"tool3"},
+					Source: "https://yaml.example.com",
+					Tools:  []string{"deploy"},
 				},
 			},
 		},
@@ -51,19 +46,25 @@ func TestShowHumanReadable(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatHumanReadable, PullOptionNever, false)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatHumanReadable, PullOptionNever, "")
 		require.NoError(t, err)
 	})
 
-	// Verify human-readable format
-	assert.Contains(t, output, "Reference: "+catalog.Ref)
-	assert.Contains(t, output, "Title: test-catalog")
-	assert.Contains(t, output, "Source: test-source")
-	assert.Contains(t, output, "Servers:")
-	assert.Contains(t, output, "Type: image")
-	assert.Contains(t, output, "Image: docker/test:v1")
-	assert.Contains(t, output, "Type: registry")
-	assert.Contains(t, output, "Source: https://example.com/api")
+	// Human readable is the same as yaml output
+	// Parse and verify YAML
+	var result CatalogWithDigest
+	err = yaml.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+
+	digest, err := catalog.Digest()
+	require.NoError(t, err)
+	assert.Equal(t, digest, result.Digest)
+	assert.Equal(t, "yaml-test", result.Title)
+	assert.Equal(t, "yaml-source", result.Source)
+	assert.Len(t, result.Servers, 1)
+	assert.Equal(t, workingset.ServerTypeRegistry, result.Servers[0].Type)
+	assert.Equal(t, "https://yaml.example.com", result.Servers[0].Source)
+	assert.Equal(t, []string{"deploy"}, result.Servers[0].Tools)
 }
 
 func TestShowJSON(t *testing.T) {
@@ -91,7 +92,7 @@ func TestShowJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatJSON, PullOptionNever, false)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatJSON, PullOptionNever, "")
 		require.NoError(t, err)
 	})
 
@@ -136,7 +137,7 @@ func TestShowYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatYAML, PullOptionNever, false)
+		err := Show(ctx, dao, getMockOciService(), catalog.Ref, workingset.OutputFormatYAML, PullOptionNever, "")
 		require.NoError(t, err)
 	})
 
@@ -187,7 +188,7 @@ func TestShowWithSnapshot(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, false)
+		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, "")
 		require.NoError(t, err)
 	})
 
@@ -204,12 +205,12 @@ func TestShowInvalidReferenceWithDigest(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever, false)
+	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reference test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1 must be a valid OCI reference without a digest")
 }
 
-func TestShowWithNoTools(t *testing.T) {
+func TestShowWithYQExpressionNoTools(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
@@ -249,23 +250,89 @@ func TestShowWithNoTools(t *testing.T) {
 	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
-	output := captureStdout(t, func() {
-		err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, true)
-		require.NoError(t, err)
-	})
+	testCases := []struct {
+		format workingset.OutputFormat
+		parser func(t *testing.T, data []byte) CatalogWithDigest
+	}{
+		{
+			format: workingset.OutputFormatJSON,
+			parser: func(t *testing.T, data []byte) CatalogWithDigest {
+				t.Helper()
+				var result CatalogWithDigest
+				err := json.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+		{
+			format: workingset.OutputFormatYAML,
+			parser: func(t *testing.T, data []byte) CatalogWithDigest {
+				t.Helper()
+				var result CatalogWithDigest
+				err := yaml.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+		{
+			format: workingset.OutputFormatHumanReadable,
+			parser: func(t *testing.T, data []byte) CatalogWithDigest {
+				t.Helper()
+				var result CatalogWithDigest
+				err := yaml.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+	}
 
-	var result CatalogWithDigest
-	err = json.Unmarshal([]byte(output), &result)
+	for _, testCase := range testCases {
+		t.Run(string(testCase.format), func(t *testing.T) {
+			output := captureStdout(t, func() {
+				err := Show(ctx, dao, getMockOciService(), catalogObj.Ref, testCase.format, PullOptionNever, "del(.servers[].tools, .servers[].snapshot.server.tools)")
+				require.NoError(t, err)
+			})
+
+			result := testCase.parser(t, []byte(output))
+
+			// Verify tools are filtered out
+			assert.Len(t, result.Servers, 2)
+			assert.Nil(t, result.Servers[0].Tools)
+			assert.Nil(t, result.Servers[1].Tools)
+
+			// Verify snapshot tools are also filtered out
+			require.NotNil(t, result.Servers[0].Snapshot)
+			assert.Nil(t, result.Servers[0].Snapshot.Server.Tools)
+		})
+	}
+}
+
+func TestShowWithInvalidYQExpression(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	catalogObj := Catalog{
+		Ref: "test/invalid-yq-catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "invalid-yq-catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/test:v1",
+					Tools: []string{"tool1"},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
-	// Verify tools are filtered out
-	assert.Len(t, result.Servers, 2)
-	assert.Nil(t, result.Servers[0].Tools)
-	assert.Nil(t, result.Servers[1].Tools)
-
-	// Verify snapshot tools are also filtered out
-	require.NotNil(t, result.Servers[0].Snapshot)
-	assert.Nil(t, result.Servers[0].Snapshot.Server.Tools)
+	err = Show(ctx, dao, getMockOciService(), catalogObj.Ref, workingset.OutputFormatJSON, PullOptionNever, ".invalid[")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to evaluate YQ expression")
 }
 
 // TODO(cody): Add tests for pull once we have proper mocks in place
@@ -273,7 +340,7 @@ func TestInvalidPullOption(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid", false)
+	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse pull option invalid: should be missing, never, always, or duration (e.g. '1h', '1d')")
 }

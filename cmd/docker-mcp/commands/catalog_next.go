@@ -86,7 +86,7 @@ func tagCatalogNextCommand() *cobra.Command {
 func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
 	pullOption := string(catalognext.PullOptionNever)
-	var noTools bool
+	var yqExpr string
 
 	cmd := &cobra.Command{
 		Use:   "show <oci-reference> [--pull <pull-option>]",
@@ -102,14 +102,14 @@ func showCatalogNextCommand() *cobra.Command {
 				return err
 			}
 			ociService := oci.NewService()
-			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption, noTools)
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption, yqExpr)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s, or duration (e.g. '1h', '1d'). Duration represents time since last update.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
-	flags.BoolVar(&noTools, "no-tools", false, "Exclude tools from output")
+	flags.StringVar(&yqExpr, "yq", "", "YQ expression to apply to the output")
 	return cmd
 }
 

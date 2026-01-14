@@ -36,17 +36,20 @@ func TestShowHumanReadable(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatHumanReadable, false)
+		err := Show(ctx, dao, "test-set", OutputFormatHumanReadable, false, "")
 		require.NoError(t, err)
 	})
 
-	// Verify output contains key information
-	assert.Contains(t, output, "ID: test-set")
-	assert.Contains(t, output, "Name: Test Working Set")
-	assert.Contains(t, output, "Type: registry")
-	assert.Contains(t, output, "Source: https://example.com/server")
-	assert.Contains(t, output, "Secrets: default")
-	assert.Contains(t, output, "Provider: docker-desktop-store")
+	// Human readable is the same as yaml output
+	// Parse YAML output
+	var workingSet WorkingSet
+	err = yaml.Unmarshal([]byte(output), &workingSet)
+	require.NoError(t, err)
+
+	assert.Equal(t, "test-set", workingSet.ID)
+	assert.Equal(t, "Test Working Set", workingSet.Name)
+	assert.Len(t, workingSet.Servers, 1)
+	assert.Equal(t, ServerTypeRegistry, workingSet.Servers[0].Type)
 }
 
 func TestShowJSON(t *testing.T) {
@@ -70,7 +73,7 @@ func TestShowJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -107,7 +110,7 @@ func TestShowYAML(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatYAML, false)
+		err := Show(ctx, dao, "test-set", OutputFormatYAML, false, "")
 		require.NoError(t, err)
 	})
 
@@ -143,7 +146,7 @@ func TestShowYAMLToolsShouldBeOmittedWhenAllEnabled(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatYAML, false)
+		err := Show(ctx, dao, "test-set", OutputFormatYAML, false, "")
 		require.NoError(t, err)
 	})
 
@@ -172,7 +175,7 @@ func TestShowYAMLToolsShouldBeEmptyArrayWhenAllDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatYAML, false)
+		err := Show(ctx, dao, "test-set", OutputFormatYAML, false, "")
 		require.NoError(t, err)
 	})
 
@@ -183,7 +186,7 @@ func TestShowNonExistentWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Show(ctx, dao, "non-existent", OutputFormatJSON, false)
+	err := Show(ctx, dao, "non-existent", OutputFormatJSON, false, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -201,7 +204,7 @@ func TestShowUnsupportedFormat(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = Show(ctx, dao, "test-set", OutputFormat("invalid"), false)
+	err = Show(ctx, dao, "test-set", OutputFormat("invalid"), false, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported format")
 }
@@ -243,7 +246,7 @@ func TestShowComplexWorkingSet(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "complex-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "complex-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -281,7 +284,7 @@ func TestShowEmptyWorkingSet(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "empty-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "empty-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -292,75 +295,6 @@ func TestShowEmptyWorkingSet(t *testing.T) {
 	assert.Equal(t, "empty-set", workingSet.ID)
 	assert.Empty(t, workingSet.Servers)
 	assert.Empty(t, workingSet.Secrets)
-}
-
-func TestPrintHumanReadableWithImageServer(t *testing.T) {
-	workingSet := WorkingSet{
-		Version: CurrentWorkingSetVersion,
-		ID:      "test-id",
-		Name:    "Test Working Set",
-		Servers: []Server{
-			{
-				Type:    ServerTypeImage,
-				Image:   "docker/test:latest",
-				Config:  map[string]any{},
-				Secrets: "default",
-				Tools:   []string{"tool1"},
-			},
-		},
-		Secrets: map[string]Secret{
-			"default": {Provider: SecretProviderDockerDesktop},
-		},
-	}
-
-	output := printHumanReadable(workingSet)
-
-	assert.Contains(t, output, "Type: image")
-	assert.Contains(t, output, "Image: docker/test:latest")
-}
-
-func TestPrintHumanReadableMultipleServers(t *testing.T) {
-	workingSet := WorkingSet{
-		Version: CurrentWorkingSetVersion,
-		ID:      "test-id",
-		Name:    "Test Working Set",
-		Servers: []Server{
-			{
-				Type:   ServerTypeRegistry,
-				Source: "https://example.com/server1",
-			},
-			{
-				Type:  ServerTypeImage,
-				Image: "docker/test:latest",
-			},
-		},
-		Secrets: map[string]Secret{},
-	}
-
-	output := printHumanReadable(workingSet)
-
-	// Verify both servers are in output
-	assert.Contains(t, output, "https://example.com/server1")
-	assert.Contains(t, output, "docker/test:latest")
-}
-
-func TestPrintHumanReadableMultipleSecrets(t *testing.T) {
-	workingSet := WorkingSet{
-		Version: CurrentWorkingSetVersion,
-		ID:      "test-id",
-		Name:    "Test Working Set",
-		Servers: []Server{},
-		Secrets: map[string]Secret{
-			"secret1": {Provider: SecretProviderDockerDesktop},
-			"secret2": {Provider: SecretProviderDockerDesktop},
-		},
-	}
-
-	output := printHumanReadable(workingSet)
-
-	// Verify both secrets are in output
-	assert.Contains(t, output, "Name: secret1")
-	assert.Contains(t, output, "Name: secret2")
 }
 
 func TestShowPreservesVersion(t *testing.T) {
@@ -377,7 +311,7 @@ func TestShowPreservesVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -408,7 +342,7 @@ func TestShowWithNilConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -439,7 +373,7 @@ func TestShowWithEmptyTools(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -472,7 +406,7 @@ func TestShowWithNilTools(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -513,7 +447,7 @@ func TestShowSnapshotWithIcon(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
-		err := Show(ctx, dao, "test-set", OutputFormatJSON, false)
+		err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 		require.NoError(t, err)
 	})
 
@@ -522,6 +456,113 @@ func TestShowSnapshotWithIcon(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://example.com/icon.png", workingSet.Servers[0].Snapshot.Server.Icon)
+}
+
+func TestShowWithYQExpressionNoTools(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:  "image",
+				Image: "docker/test:v1",
+				Tools: []string{"tool1", "tool2", "tool3"},
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name:        "snapshot-server",
+						Description: "A server with snapshot",
+						Tools: []catalog.Tool{
+							{Name: "snapshot-tool1", Description: "First snapshot tool"},
+							{Name: "snapshot-tool2", Description: "Second snapshot tool"},
+						},
+					},
+				},
+			},
+			{
+				Type:   "registry",
+				Source: "https://example.com/api",
+				Tools:  []string{"tool4", "tool5"},
+			},
+		},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	testCases := []struct {
+		format OutputFormat
+		parser func(t *testing.T, data []byte) WorkingSet
+	}{
+		{
+			format: OutputFormatJSON,
+			parser: func(t *testing.T, data []byte) WorkingSet {
+				t.Helper()
+				var result WorkingSet
+				err := json.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+		{
+			format: OutputFormatYAML,
+			parser: func(t *testing.T, data []byte) WorkingSet {
+				t.Helper()
+				var result WorkingSet
+				err := yaml.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+		{
+			format: OutputFormatHumanReadable,
+			parser: func(t *testing.T, data []byte) WorkingSet {
+				t.Helper()
+				var result WorkingSet
+				err := yaml.Unmarshal(data, &result)
+				require.NoError(t, err)
+				return result
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(string(testCase.format), func(t *testing.T) {
+			output := captureStdout(func() {
+				err := Show(ctx, dao, "test-set", testCase.format, false, "del(.servers[].tools, .servers[].snapshot.server.tools)")
+				require.NoError(t, err)
+			})
+
+			result := testCase.parser(t, []byte(output))
+
+			// Verify tools are filtered out
+			assert.Len(t, result.Servers, 2)
+			assert.Nil(t, result.Servers[0].Tools)
+			assert.Nil(t, result.Servers[1].Tools)
+
+			// Verify snapshot tools are also filtered out
+			require.NotNil(t, result.Servers[0].Snapshot)
+			assert.Nil(t, result.Servers[0].Snapshot.Server.Tools)
+		})
+	}
+}
+
+func TestShowWithInvalidYQExpression(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:      "test-set",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	err = Show(ctx, dao, "test-set", OutputFormatJSON, false, ".invalid[")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to evaluate YQ expression")
 }
 
 func TestShowWithClientsFlag(t *testing.T) {
@@ -545,7 +586,7 @@ func TestShowWithClientsFlag(t *testing.T) {
 
 	t.Run("JSON with clients flag", func(t *testing.T) {
 		output := captureStdout(func() {
-			err := Show(ctx, dao, "test-set", OutputFormatJSON, true)
+			err := Show(ctx, dao, "test-set", OutputFormatJSON, true, "")
 			require.NoError(t, err)
 		})
 
@@ -559,7 +600,7 @@ func TestShowWithClientsFlag(t *testing.T) {
 
 	t.Run("YAML with clients flag", func(t *testing.T) {
 		output := captureStdout(func() {
-			err := Show(ctx, dao, "test-set", OutputFormatYAML, true)
+			err := Show(ctx, dao, "test-set", OutputFormatYAML, true, "")
 			require.NoError(t, err)
 		})
 

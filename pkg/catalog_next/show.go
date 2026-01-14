@@ -19,7 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOptionParam string, noTools bool) error {
+func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOptionParam string, yqExpr string) error {
 	pullOption, pullInterval, err := parsePullOption(pullOptionParam)
 	if err != nil {
 		return err
@@ -77,17 +77,11 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 
 	catalog := NewFromDb(dbCatalog)
 
-	if noTools {
-		catalog = filterCatalogTools(catalog)
-	}
-
 	var data []byte
 	switch format {
-	case workingset.OutputFormatHumanReadable:
-		data = []byte(printHumanReadable(catalog))
 	case workingset.OutputFormatJSON:
 		data, err = json.MarshalIndent(catalog, "", "  ")
-	case workingset.OutputFormatYAML:
+	case workingset.OutputFormatYAML, workingset.OutputFormatHumanReadable:
 		data, err = yaml.Marshal(catalog)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
@@ -96,44 +90,16 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return fmt.Errorf("failed to marshal catalog: %w", err)
 	}
 
+	if yqExpr != "" {
+		data, err = workingset.ApplyYqExpression(data, format, yqExpr)
+		if err != nil {
+			return err // wrapping error here would be redundant
+		}
+	}
+
 	fmt.Println(string(data))
 
 	return nil
-}
-
-func printHumanReadable(catalog CatalogWithDigest) string {
-	servers := ""
-	for _, server := range catalog.Servers {
-		servers += fmt.Sprintf("  - Type: %s\n", server.Type)
-		switch server.Type {
-		case workingset.ServerTypeRegistry:
-			servers += fmt.Sprintf("    Source: %s\n", server.Source)
-		case workingset.ServerTypeImage:
-			servers += fmt.Sprintf("    Image: %s\n", server.Image)
-		case workingset.ServerTypeRemote:
-			servers += fmt.Sprintf("    Endpoint: %s\n", server.Endpoint)
-		}
-	}
-	servers = strings.TrimSuffix(servers, "\n")
-	return fmt.Sprintf("Reference: %s\nTitle: %s\nSource: %s\nServers:\n%s", catalog.Ref, catalog.Title, catalog.Source, servers)
-}
-
-func filterCatalogTools(catalog CatalogWithDigest) CatalogWithDigest {
-	filteredServers := make([]Server, len(catalog.Servers))
-	for i, server := range catalog.Servers {
-		filteredServer := server
-		filteredServer.Tools = nil
-		if filteredServer.Snapshot != nil {
-			snapshotCopy := *filteredServer.Snapshot
-			serverCopy := snapshotCopy.Server
-			serverCopy.Tools = nil
-			snapshotCopy.Server = serverCopy
-			filteredServer.Snapshot = &snapshotCopy
-		}
-		filteredServers[i] = filteredServer
-	}
-	catalog.Servers = filteredServers
-	return catalog
 }
 
 func parsePullOption(pullOptionParam string) (PullOption, time.Duration, error) {
