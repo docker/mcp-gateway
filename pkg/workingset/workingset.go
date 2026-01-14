@@ -513,6 +513,7 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 
 	filteredServers := make([]db.CatalogServer, 0, len(dbCatalog.Servers))
 	foundPatterns := make(map[string]bool)
+	foundServers := make(map[string]bool) // avoid duplicates
 	for _, name := range serverNames {
 		for _, server := range dbCatalog.Servers {
 			// Glob support for selecting servers by name
@@ -521,13 +522,22 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 				return nil, fmt.Errorf("bad pattern for catalog server '%s': %w", name, err)
 			}
 			if matched {
-				filteredServers = append(filteredServers, server)
+				if !foundServers[server.Snapshot.Server.Name] {
+					// Only add to avoid duplicates
+					filteredServers = append(filteredServers, server)
+					foundServers[server.Snapshot.Server.Name] = true
+				}
 				foundPatterns[name] = true
 			}
 		}
 	}
 
-	if len(foundPatterns) != len(serverNames) {
+	uniqueServerNames := make(map[string]bool)
+	for _, serverName := range serverNames {
+		uniqueServerNames[serverName] = true
+	}
+
+	if len(foundPatterns) != len(uniqueServerNames) {
 		f := make([]string, 0, len(foundPatterns))
 		for pattern := range foundPatterns {
 			f = append(f, pattern)
