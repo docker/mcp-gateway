@@ -406,7 +406,7 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 				foundHistogram = true
 				histogram := m.Data.(metricdata.Histogram[float64])
 				require.Len(t, histogram.DataPoints, 1)
-				assert.Equal(t, float64(123.45), histogram.DataPoints[0].Sum)
+				assert.InDelta(t, float64(123.45), histogram.DataPoints[0].Sum, 0.001)
 			}
 		}
 	}
