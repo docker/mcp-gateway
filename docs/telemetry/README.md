@@ -104,9 +104,16 @@ When using the Docker CLI directly (not through the gateway):
 ### Catalog Management
 
 Operations for managing MCP server configurations:
-- **`mcp.catalog.operations`** - Catalog management operations (ls, add, rm, create)
+- **`mcp.catalog.operations`** - Catalog management operations (ls, add, rm, create, push, pull, remove)
 - **`mcp.catalog.operation.duration`** - Duration of catalog operations
 - **`mcp.catalog.servers`** - Gauge showing number of servers in catalogs
+
+### Working Set Operations
+
+Operations for managing working sets (profiles) of servers:
+- **`mcp.workingset.operations`** - Working set operations (create, push, pull, remove)
+- **`mcp.workingset.operation.duration`** - Duration of working set operations
+- **`mcp.workingset.servers`** - Gauge showing number of servers in working sets
 
 ## Metric Attributes
 
@@ -126,6 +133,16 @@ All metrics include contextual attributes for filtering and aggregation:
 - **`mcp.resource.uri`** - URI of the resource being read
 - **`mcp.operation.error`** - Error message if operation failed
 - **`mcp.transport.mode`** - Gateway transport mode (stdio, sse, streaming)
+
+### Catalog Attributes
+- **`mcp.catalog.operation`** - Type of catalog operation (ls, add, rm, create, push, pull, remove)
+- **`mcp.catalog.name`** - Name or reference of the catalog
+- **`mcp.catalog.success`** - Boolean indicating operation success
+
+### Working Set Attributes
+- **`mcp.workingset.operation`** - Type of working set operation (create, push, pull, remove)
+- **`mcp.workingset.id`** - Working set identifier
+- **`mcp.workingset.success`** - Boolean indicating operation success
 
 ## Distributed Tracing
 

@@ -3,22 +3,35 @@ package catalognext
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordCatalogOperation(ctx, "pull", refStr, float64(duration.Milliseconds()), success)
+	}()
 	catalog, err := pullCatalog(ctx, dao, ociService, refStr)
 	if err != nil {
 		return err
 	}
 
+	// Record server count
+	telemetry.RecordCatalogServers(ctx, catalog.Ref, int64(len(catalog.Servers)))
+
 	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
+	success = true
 	return nil
 }
 

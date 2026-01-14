@@ -3,18 +3,29 @@ package workingset
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	var id string
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordWorkingSetOperation(ctx, "pull", id, float64(duration.Milliseconds()), success)
+	}()
+
 	workingSet, err := oci.ReadArtifact[WorkingSet](ref, MCPWorkingSetArtifactType)
 	if err != nil {
 		return fmt.Errorf("failed to read OCI profile: %w", err)
 	}
 
-	id, err := createWorkingSetID(ctx, workingSet.Name, dao)
+	id, err = createWorkingSetID(ctx, workingSet.Name, dao)
 	if err != nil {
 		return fmt.Errorf("failed to create profile id: %w", err)
 	}
@@ -42,7 +53,11 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) e
 		return fmt.Errorf("failed to create profile: %w", err)
 	}
 
+	// Record server count
+	telemetry.RecordWorkingSetServers(ctx, id, int64(len(workingSet.Servers)))
+
 	fmt.Printf("Profile %s imported as %s\n", workingSet.Name, id)
 
+	success = true
 	return nil
 }

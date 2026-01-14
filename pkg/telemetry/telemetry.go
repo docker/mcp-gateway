@@ -53,6 +53,11 @@ var (
 	CatalogOperationDuration metric.Float64Histogram
 	CatalogServersGauge      metric.Int64Gauge
 
+	// Working set operation metrics
+	WorkingSetOperationsCounter metric.Int64Counter
+	WorkingSetOperationDuration metric.Float64Histogram
+	WorkingSetServersGauge      metric.Int64Gauge
+
 	// Tool discovery metrics
 	ToolsDiscovered metric.Int64Gauge
 
@@ -195,6 +200,37 @@ func Init() {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating catalog servers gauge: %v\n", err)
+		}
+	}
+
+	// Initialize working set metrics
+	WorkingSetOperationsCounter, err = meter.Int64Counter("mcp.workingset.operations",
+		metric.WithDescription("Number of working set operations"),
+		metric.WithUnit("1"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set operations counter: %v\n", err)
+		}
+	}
+
+	WorkingSetOperationDuration, err = meter.Float64Histogram("mcp.workingset.operation.duration",
+		metric.WithDescription("Duration of working set operations"),
+		metric.WithUnit("ms"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set duration histogram: %v\n", err)
+		}
+	}
+
+	WorkingSetServersGauge, err = meter.Int64Gauge("mcp.workingset.servers",
+		metric.WithDescription("Number of servers in working sets"),
+		metric.WithUnit("1"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set servers gauge: %v\n", err)
 		}
 	}
 
@@ -580,6 +616,43 @@ func RecordCatalogServers(ctx context.Context, catalogName string, serverCount i
 	CatalogServersGauge.Record(ctx, serverCount,
 		metric.WithAttributes(
 			attribute.String("mcp.catalog.name", catalogName),
+		))
+}
+
+// RecordWorkingSetOperation records a working set operation with duration
+func RecordWorkingSetOperation(ctx context.Context, operation string, workingSetID string, durationMs float64, success bool) {
+	if WorkingSetOperationsCounter == nil || WorkingSetOperationDuration == nil {
+		return // Telemetry not initialized
+	}
+
+	attrs := []attribute.KeyValue{
+		attribute.String("mcp.workingset.operation", operation),
+		attribute.String("mcp.workingset.id", workingSetID),
+		attribute.Bool("mcp.workingset.success", success),
+	}
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Working set operation: %s on %s, duration: %.2fms, success: %v\n",
+			operation, workingSetID, durationMs, success)
+	}
+
+	WorkingSetOperationsCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+	WorkingSetOperationDuration.Record(ctx, durationMs, metric.WithAttributes(attrs...))
+}
+
+// RecordWorkingSetServers records the number of servers in working sets
+func RecordWorkingSetServers(ctx context.Context, workingSetID string, serverCount int64) {
+	if WorkingSetServersGauge == nil {
+		return // Telemetry not initialized
+	}
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Working set %s has %d servers\n", workingSetID, serverCount)
+	}
+
+	WorkingSetServersGauge.Record(ctx, serverCount,
+		metric.WithAttributes(
+			attribute.String("mcp.workingset.id", workingSetID),
 		))
 }
 
