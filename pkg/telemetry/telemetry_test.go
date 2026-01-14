@@ -447,3 +447,85 @@ func TestRecordWorkingSetServers(t *testing.T) {
 
 	assert.True(t, found, "Working set servers gauge metric not found")
 }
+
+func TestRecordGatewayStart(t *testing.T) {
+	tests := []struct {
+		name             string
+		transport        string
+		workingSetID     string
+		wantTransport    string
+		wantWorkingSetID string
+	}{
+		{
+			name:             "stdio without working set",
+			transport:        "stdio",
+			workingSetID:     "",
+			wantTransport:    "stdio",
+			wantWorkingSetID: "",
+		},
+		{
+			name:             "stdio with working set",
+			transport:        "stdio",
+			workingSetID:     "my-workingset",
+			wantTransport:    "stdio",
+			wantWorkingSetID: "my-workingset",
+		},
+		{
+			name:             "sse with working set",
+			transport:        "sse",
+			workingSetID:     "test-workingset",
+			wantTransport:    "sse",
+			wantWorkingSetID: "test-workingset",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup fresh telemetry for each test case to avoid metric accumulation
+			_, metricReader := setupTestTelemetry(t)
+			Init()
+			ctx := context.Background()
+
+			// Record gateway start
+			RecordGatewayStart(ctx, tt.transport, tt.workingSetID)
+
+			// Collect and verify metrics
+			var rm metricdata.ResourceMetrics
+			err := metricReader.Collect(ctx, &rm)
+			require.NoError(t, err)
+
+			// Find and verify the counter metric
+			found := false
+			for _, sm := range rm.ScopeMetrics {
+				for _, m := range sm.Metrics {
+					if m.Name == "mcp.gateway.starts" {
+						found = true
+						sum := m.Data.(metricdata.Sum[int64])
+						require.Len(t, sum.DataPoints, 1, "should have exactly one data point")
+
+						dp := sum.DataPoints[0]
+						attrs := dp.Attributes
+
+						// Verify transport attribute
+						transportAttr, hasTransport := attrs.Value(attribute.Key("mcp.gateway.transport"))
+						assert.True(t, hasTransport, "transport attribute should be present")
+						assert.Equal(t, tt.wantTransport, transportAttr.AsString())
+
+						// Verify working set attribute if expected
+						workingSetAttr, hasWorkingSet := attrs.Value(attribute.Key("mcp.gateway.workingset"))
+						if tt.wantWorkingSetID != "" {
+							assert.True(t, hasWorkingSet, "working set attribute should be present")
+							assert.Equal(t, tt.wantWorkingSetID, workingSetAttr.AsString())
+						} else {
+							assert.False(t, hasWorkingSet, "working set attribute should not be present when empty")
+						}
+
+						assert.Equal(t, int64(1), dp.Value)
+					}
+				}
+			}
+
+			assert.True(t, found, "Gateway starts counter metric not found")
+		})
+	}
+}

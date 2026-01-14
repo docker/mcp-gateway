@@ -176,7 +176,14 @@ func (g *Gateway) Run(ctx context.Context) error {
 	if g.Port != 0 {
 		transportMode = "sse"
 	}
-	telemetry.RecordGatewayStart(ctx, transportMode)
+
+	// Extract working set ID if using WorkingSetConfiguration
+	workingSetID := ""
+	if wsConfig, ok := g.configurator.(*WorkingSetConfiguration); ok {
+		workingSetID = wsConfig.config.WorkingSet
+	}
+
+	telemetry.RecordGatewayStart(ctx, transportMode, workingSetID)
 
 	// Start periodic metric export for long-running gateway
 	// This is critical because Docker CLI's ManualReader only exports on shutdown

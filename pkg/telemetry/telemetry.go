@@ -508,19 +508,25 @@ func StartInterceptorSpan(ctx context.Context, when, interceptorType string, att
 }
 
 // RecordGatewayStart records a gateway start event
-func RecordGatewayStart(ctx context.Context, transportMode string) {
+func RecordGatewayStart(ctx context.Context, transportMode string, workingSetID string) {
 	if GatewayStartCounter == nil {
 		return // Telemetry not initialized
 	}
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Gateway started with transport: %s\n", transportMode)
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Gateway started with transport: %s, working set: %s\n", transportMode, workingSetID)
 	}
 
-	GatewayStartCounter.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.String("mcp.gateway.transport", transportMode),
-		))
+	attrs := []attribute.KeyValue{
+		attribute.String("mcp.gateway.transport", transportMode),
+	}
+
+	// Only add working set attribute if a working set ID is provided
+	if workingSetID != "" {
+		attrs = append(attrs, attribute.String("mcp.gateway.workingset", workingSetID))
+	}
+
+	GatewayStartCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 func RecordInitialize(ctx context.Context, params *mcp.InitializeParams) {
