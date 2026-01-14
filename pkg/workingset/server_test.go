@@ -484,7 +484,7 @@ func TestAddServersFromCatalogMissingServer(t *testing.T) {
 	// Try to add a server that doesn't exist in the catalog
 	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/catalog-server-1+nonexistent-server"})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "servers were not found in catalog")
+	assert.Contains(t, err.Error(), "servers matching the following patterns were not found in catalog: [nonexistent-server]")
 	assert.Contains(t, err.Error(), "nonexistent-server")
 }
 
@@ -640,6 +640,161 @@ func createTestCatalog(t *testing.T, dao db.DAO, servers []testCatalogServer) db
 	require.NoError(t, err)
 
 	return catalog
+}
+
+func TestAddServersFromCatalogUsingGlobPattern(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with multiple servers that share a naming pattern
+	catalog := createTestCatalog(t, dao, []testCatalogServer{
+		{
+			name:       "cloudflare-docs",
+			serverType: "remote",
+			endpoint:   "https://docs.mcp.cloudflare.com/sse",
+		},
+		{
+			name:       "cloudflare-audit-logs",
+			serverType: "remote",
+			endpoint:   "https://auditlogs.mcp.cloudflare.com/sse",
+		},
+		{
+			name:       "cloudflare-workers",
+			serverType: "remote",
+			endpoint:   "https://workers.mcp.cloudflare.com/sse",
+		},
+		{
+			name:       "other-server",
+			serverType: "image",
+			image:      "other-image:latest",
+		},
+	})
+
+	// Create a working set
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:      "test-set",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	// Add servers using a glob pattern that matches all cloudflare-* servers
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/cloudflare-*"})
+	require.NoError(t, err)
+
+	// Verify only the cloudflare servers were added (3 of them)
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	require.NotNil(t, dbSet)
+	assert.Len(t, dbSet.Servers, 3)
+
+	// Verify the correct servers were added
+	serverNames := make([]string, len(dbSet.Servers))
+	for i, server := range dbSet.Servers {
+		serverNames[i] = server.Snapshot.Server.Name
+	}
+	assert.Contains(t, serverNames, "cloudflare-docs")
+	assert.Contains(t, serverNames, "cloudflare-audit-logs")
+	assert.Contains(t, serverNames, "cloudflare-workers")
+	assert.NotContains(t, serverNames, "other-server")
+}
+
+func TestAddServersFromCatalogUsingMultipleGlobPatterns(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers that match different patterns
+	catalog := createTestCatalog(t, dao, []testCatalogServer{
+		{
+			name:       "cloudflare-docs",
+			serverType: "remote",
+			endpoint:   "https://docs.mcp.cloudflare.com/sse",
+		},
+		{
+			name:       "cloudflare-audit-logs",
+			serverType: "remote",
+			endpoint:   "https://auditlogs.mcp.cloudflare.com/sse",
+		},
+		{
+			name:       "github-repos",
+			serverType: "remote",
+			endpoint:   "https://github.com/mcp/repos",
+		},
+		{
+			name:       "github-issues",
+			serverType: "remote",
+			endpoint:   "https://github.com/mcp/issues",
+		},
+		{
+			name:       "other-server",
+			serverType: "image",
+			image:      "other-image:latest",
+		},
+	})
+
+	// Create a working set
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:      "test-set",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	// Add servers using multiple glob patterns joined with +
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/cloudflare-*+github-*"})
+	require.NoError(t, err)
+
+	// Verify 4 servers were added (2 cloudflare + 2 github)
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	require.NotNil(t, dbSet)
+	assert.Len(t, dbSet.Servers, 4)
+
+	// Verify the correct servers were added
+	serverNames := make([]string, len(dbSet.Servers))
+	for i, server := range dbSet.Servers {
+		serverNames[i] = server.Snapshot.Server.Name
+	}
+	assert.Contains(t, serverNames, "cloudflare-docs")
+	assert.Contains(t, serverNames, "cloudflare-audit-logs")
+	assert.Contains(t, serverNames, "github-repos")
+	assert.Contains(t, serverNames, "github-issues")
+	assert.NotContains(t, serverNames, "other-server")
+}
+
+func TestAddServersFromCatalogGlobPatternNoMatch(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalog := createTestCatalog(t, dao, []testCatalogServer{
+		{
+			name:       "cloudflare-docs",
+			serverType: "remote",
+			endpoint:   "https://docs.mcp.cloudflare.com/sse",
+		},
+	})
+
+	// Create a working set
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:      "test-set",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{},
+	})
+	require.NoError(t, err)
+
+	// Try to add servers using a glob pattern that doesn't match anything
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/nonexistent-*"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "servers matching the following patterns were not found in catalog")
+	assert.Contains(t, err.Error(), "nonexistent-*")
 }
 
 func TestListServersNoFilters(t *testing.T) {
