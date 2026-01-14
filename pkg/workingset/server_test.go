@@ -2,6 +2,8 @@ package workingset
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 var oneServerError = "at least one server must be specified"
@@ -31,11 +34,12 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := json.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
 		assert.Equal(t, "myimage:latest", server.Image)
+		assert.Empty(t, server.ReadmeContent)
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
@@ -44,11 +48,12 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
 		assert.Equal(t, "myimage:latest", server.Image)
+		assert.Empty(t, server.ReadmeContent)
 	})
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
@@ -57,11 +62,57 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "My Image", server.Snapshot.Server.Name)
+		assert.Empty(t, server.ReadmeContent)
 	})
+}
+
+func TestInspectServerWithReadme(t *testing.T) {
+	readmeContent := "# Notion Remote\n\nThis is a remote server"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/readme.md":
+			w.Header().Set("Content-Type", "text/markdown")
+			_, _ = w.Write([]byte(readmeContent))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(func() { server.Close() })
+
+	mockOciService := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "myimage:latest",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: My Image\ntype: server\nimage: myimage:latest\nreadme: " + server.URL + "/readme.md",
+			},
+			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+		},
+	}))
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a working set with servers
+	err := Create(ctx, dao, getMockRegistryClient(), mockOciService, "test-set", "Test Working Set", []string{
+		"docker://myimage:latest",
+	}, []string{})
+	require.NoError(t, err)
+
+	output := captureStdout(func() {
+		err := InspectServer(ctx, dao, "test-set", "My Image", OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "My Image", inspectResult.Snapshot.Server.Name)
+	assert.Equal(t, readmeContent, inspectResult.ReadmeContent)
 }
 
 func TestInspectServerNotFound(t *testing.T) {

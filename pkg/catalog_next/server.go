@@ -11,9 +11,15 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/fetch"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
+
+type InspectResult struct {
+	Server        `yaml:",inline"`
+	ReadmeContent string `json:"readmeContent,omitempty" yaml:"readmeContent,omitempty"`
+}
 
 type serverFilter struct {
 	key   string
@@ -44,13 +50,25 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 		return fmt.Errorf("server %s not found in catalog %s", serverName, catalogRef)
 	}
 
+	inspectResult := InspectResult{
+		Server: *server,
+	}
+
+	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
+		readmeContent, err := fetch.Do(ctx, server.Snapshot.Server.ReadmeURL)
+		if err != nil {
+			return fmt.Errorf("failed to fetch readme: %w", err)
+		}
+		inspectResult.ReadmeContent = string(readmeContent)
+	}
+
 	var data []byte
 
 	switch format {
 	case workingset.OutputFormatJSON:
-		data, err = json.MarshalIndent(server, "", "  ")
+		data, err = json.MarshalIndent(inspectResult, "", "  ")
 	case workingset.OutputFormatYAML, workingset.OutputFormatHumanReadable:
-		data, err = yaml.Marshal(server)
+		data, err = yaml.Marshal(inspectResult)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}

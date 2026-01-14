@@ -2,6 +2,8 @@ package catalognext
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -57,11 +59,12 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := json.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
+		assert.Empty(t, server.ReadmeContent)
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
@@ -70,11 +73,12 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
+		assert.Empty(t, server.ReadmeContent)
 	})
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
@@ -83,11 +87,68 @@ func TestInspectServer(t *testing.T) {
 			require.NoError(t, err)
 		})
 
-		var server Server
+		var server InspectResult
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
+		assert.Empty(t, server.ReadmeContent)
 	})
+}
+
+func TestInspectServerWithReadme(t *testing.T) {
+	readmeContent := "# Notion Remote\n\nThis is a remote server"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/readme.md":
+			w.Header().Set("Content-Type", "text/markdown")
+			_, _ = w.Write([]byte(readmeContent))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(func() { server.Close() })
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-server",
+							Description: "My test server",
+							ReadmeURL:   server.URL + "/readme.md",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
+	assert.Equal(t, "docker/server1:v1", inspectResult.Image)
+	assert.Equal(t, readmeContent, inspectResult.ReadmeContent)
 }
 
 func TestInspectServerNotFound(t *testing.T) {
