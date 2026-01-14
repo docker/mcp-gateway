@@ -2,7 +2,10 @@
 
 This document defines the specification for MCP server entries in the Docker MCP Gateway catalog system.
 
-Server entries can be found in legacy catalog files such as `.docker/mcp/catalogs/docker-mcp.yaml` under the `registry` property. They can also be used to define an mcp server by writing a yaml file and using it as a CLI flag for profiles or catalogs via `--server file://my-server.yaml`.
+Server entries can be defined for an mcp server by writing a yaml file and using it as a CLI flag for profiles or catalogs via `--server file://my-server.yaml`.
+
+**A note about legacy catalogs:** Legacy catalogs such as `.docker/mcp/catalogs/docker-mcp.yaml` or http://desktop.docker.com/mcp/catalog/v3/catalog.yaml use a similar schema for servers under the `registry` property. However, this spec is intended for defining server configurations for MCP Profiles and OCI Catalogs. Thus, it's expected that this spec will drift from what exists in legacy catalogs.
+
 
 ## Example Server Entry YAML
 
@@ -27,6 +30,7 @@ allowHosts:
 | `title` | string | **Yes** | Human-readable display name for the server. |
 | `description` | string | **Yes** | Brief description of the server's capabilities and purpose. |
 | `icon` | string | No | URL to an icon/logo representing the server. |
+| `readme` | string | No | URL to a README file with detailed documentation for the server. |
 
 ### Container Configuration (for type: "server")
 
@@ -115,33 +119,28 @@ allowHosts:
 |-------|------|----------|-------------|
 | `name` | string | Yes | Tool identifier (unique within the server). |
 | `description` | string | No | Human-readable description of what the tool does. |
-| `parameters` | Parameters | No | JSON Schema for tool input parameters. |
-| `container` | Container | No | Container configuration for POCI (per-invocation) tools. |
+| `arguments` | []ToolArgument | No | Tool argument definitions (only set for OCI catalogs, not legacy catalogs). |
+| `annotations` | ToolAnnotations | No | Tool annotations with hints about behavior (only set for OCI catalogs). |
 
-**Parameters Object Structure:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | JSON Schema type (typically `object`). |
-| `properties` | map[string]Property | Yes | Parameter definitions. |
-| `required` | []string | No | List of required parameter names. |
-
-**Property Object Structure:**
+**ToolArgument Object Structure:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | Yes | JSON Schema type (`string`, `number`, `boolean`, `array`, etc.). |
-| `description` | string | No | Parameter description. |
+| `name` | string | Yes | Argument name. |
+| `type` | string | No | JSON Schema type (`string`, `number`, `boolean`, `array`, etc.). |
+| `desc` | string | No | Description of the argument. |
 | `items` | Items | No | For array types, defines the item schema. |
+| `optional` | boolean | No | Whether the argument is optional. Default: false. |
 
-**Container Object Structure (for POCI tools):**
+**ToolAnnotations Object Structure:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `image` | string | Yes | Docker image for tool execution. |
-| `command` | []string | No | Command to execute in the container. |
-| `volumes` | []string | No | Volume mounts for tool execution. |
-| `user` | string | No | User to run the tool container as. |
+| `title` | string | No | Human-readable title for the tool. |
+| `readOnlyHint` | boolean | No | Hint that the tool only reads data and does not modify state. |
+| `destructiveHint` | boolean | No | Hint that the tool may perform destructive operations. |
+| `idempotentHint` | boolean | No | Hint that the tool is idempotent (repeated calls have the same effect). |
+| `openWorldHint` | boolean | No | Hint that the tool interacts with external systems/world. |
 
 ### Configuration Schema
 
@@ -360,40 +359,6 @@ remote:
   transport_type: sse
   url: https://docs.mcp.cloudflare.com/sse
 icon: https://www.cloudflare.com/favicon.ico
-```
-
-### Type: "poci"
-
-POCI (Per-Invocation Container) servers where each tool invocation runs in an isolated container.
-
-**Required fields:**
-- `name`
-- `type: "poci"`
-- `tools` (with container configurations)
-
-**Example:**
-```yaml
-name: curl
-description: Standard curl tool.
-title: Curl
-type: poci
-tools:
-  - name: curl
-    description: Run a curl command.
-    parameters:
-      type: object
-      properties:
-        args:
-          type: array
-          description: The arguments to pass to curl
-          items:
-            type: string
-      required:
-        - args
-    container:
-      image: alpine/curl@sha256:91d382c9e54af78781801b670ae3fbba5af04adf3274ba51960ab0030a417099
-      command:
-        - '{{args|into}}'
 ```
 
 ## Best Practices
