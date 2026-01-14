@@ -368,36 +368,6 @@ func workingsetServerCommand() *cobra.Command {
 	cmd.AddCommand(listServersCommand())
 	cmd.AddCommand(addServerCommand())
 	cmd.AddCommand(removeServerCommand())
-	cmd.AddCommand(inspectServerCommand())
-
-	return cmd
-}
-
-func inspectServerCommand() *cobra.Command {
-	var opts struct {
-		Format string
-	}
-
-	cmd := &cobra.Command{
-		Use:   "inspect <profile-id> <server-name>",
-		Short: "Inspect a server in a profile",
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
-			if !supported {
-				return fmt.Errorf("unsupported format: %s", opts.Format)
-			}
-
-			dao, err := db.New()
-			if err != nil {
-				return err
-			}
-			return workingset.InspectServer(cmd.Context(), dao, args[0], args[1], workingset.OutputFormat(opts.Format))
-		},
-	}
-
-	flags := cmd.Flags()
-	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 
 	return cmd
 }
