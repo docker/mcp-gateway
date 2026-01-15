@@ -806,7 +806,7 @@ func TestAddServersFromCatalogUsingMultipleGlobPatternsWithDuplicates(t *testing
 	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{"catalog://" + catalog.Ref + "/cloudflare-*+cloudflare-*"})
 	require.NoError(t, err)
 
-	// Verify 4 servers were added (2 cloudflare + 2 github)
+	// Verify 2 servers were added
 	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
