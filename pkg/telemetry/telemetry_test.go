@@ -377,8 +377,8 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 	Init()
 	ctx := context.Background()
 
-	// Test successful working set operation
-	RecordWorkingSetOperation(ctx, "create", "test-workingset", 123.45, true)
+	// Test successful profile operation
+	RecordWorkingSetOperation(ctx, "create", "test-profile", 123.45, true)
 
 	// Collect and verify metrics
 	var rm metricdata.ResourceMetrics
@@ -390,7 +390,7 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 	foundHistogram := false
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
-			if m.Name == "mcp.workingset.operations" {
+			if m.Name == "mcp.profile.operations" {
 				foundCounter = true
 				sum := m.Data.(metricdata.Sum[int64])
 				require.Len(t, sum.DataPoints, 1)
@@ -398,11 +398,11 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 
 				// Verify attributes
 				attrs := sum.DataPoints[0].Attributes
-				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.workingset.operation", "create"))
-				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.workingset.id", "test-workingset"))
-				assert.Contains(t, attrs.ToSlice(), attribute.Bool("mcp.workingset.success", true))
+				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.operation", "create"))
+				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.id", "test-profile"))
+				assert.Contains(t, attrs.ToSlice(), attribute.Bool("mcp.profile.success", true))
 			}
-			if m.Name == "mcp.workingset.operation.duration" {
+			if m.Name == "mcp.profile.operation.duration" {
 				foundHistogram = true
 				histogram := m.Data.(metricdata.Histogram[float64])
 				require.Len(t, histogram.DataPoints, 1)
@@ -411,8 +411,8 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 		}
 	}
 
-	assert.True(t, foundCounter, "Working set operations counter metric not found")
-	assert.True(t, foundHistogram, "Working set operation duration histogram not found")
+	assert.True(t, foundCounter, "Profile operations counter metric not found")
+	assert.True(t, foundHistogram, "Profile operation duration histogram not found")
 }
 
 func TestRecordWorkingSetServers(t *testing.T) {
@@ -420,8 +420,8 @@ func TestRecordWorkingSetServers(t *testing.T) {
 	Init()
 	ctx := context.Background()
 
-	// Record server count for a working set
-	RecordWorkingSetServers(ctx, "test-workingset", 5)
+	// Record server count for a profile
+	RecordWorkingSetServers(ctx, "test-profile", 5)
 
 	// Collect and verify metrics
 	var rm metricdata.ResourceMetrics
@@ -432,7 +432,7 @@ func TestRecordWorkingSetServers(t *testing.T) {
 	found := false
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
-			if m.Name == "mcp.workingset.servers" {
+			if m.Name == "mcp.profile.servers" {
 				found = true
 				gauge := m.Data.(metricdata.Gauge[int64])
 				require.Len(t, gauge.DataPoints, 1)
@@ -440,12 +440,12 @@ func TestRecordWorkingSetServers(t *testing.T) {
 
 				// Verify attributes
 				attrs := gauge.DataPoints[0].Attributes
-				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.workingset.id", "test-workingset"))
+				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.id", "test-profile"))
 			}
 		}
 	}
 
-	assert.True(t, found, "Working set servers gauge metric not found")
+	assert.True(t, found, "Profile servers gauge metric not found")
 }
 
 func TestRecordGatewayStart(t *testing.T) {
@@ -457,25 +457,25 @@ func TestRecordGatewayStart(t *testing.T) {
 		wantWorkingSetID string
 	}{
 		{
-			name:             "stdio without working set",
+			name:             "stdio without profile",
 			transport:        "stdio",
 			workingSetID:     "",
 			wantTransport:    "stdio",
 			wantWorkingSetID: "",
 		},
 		{
-			name:             "stdio with working set",
+			name:             "stdio with profile",
 			transport:        "stdio",
-			workingSetID:     "my-workingset",
+			workingSetID:     "my-profile",
 			wantTransport:    "stdio",
-			wantWorkingSetID: "my-workingset",
+			wantWorkingSetID: "my-profile",
 		},
 		{
-			name:             "sse with working set",
+			name:             "sse with profile",
 			transport:        "sse",
-			workingSetID:     "test-workingset",
+			workingSetID:     "test-profile",
 			wantTransport:    "sse",
-			wantWorkingSetID: "test-workingset",
+			wantWorkingSetID: "test-profile",
 		},
 	}
 
@@ -511,13 +511,13 @@ func TestRecordGatewayStart(t *testing.T) {
 						assert.True(t, hasTransport, "transport attribute should be present")
 						assert.Equal(t, tt.wantTransport, transportAttr.AsString())
 
-						// Verify working set attribute if expected
-						workingSetAttr, hasWorkingSet := attrs.Value(attribute.Key("mcp.gateway.workingset"))
+						// Verify profile attribute if expected
+						profileAttr, hasProfile := attrs.Value(attribute.Key("mcp.gateway.profile"))
 						if tt.wantWorkingSetID != "" {
-							assert.True(t, hasWorkingSet, "working set attribute should be present")
-							assert.Equal(t, tt.wantWorkingSetID, workingSetAttr.AsString())
+							assert.True(t, hasProfile, "profile attribute should be present")
+							assert.Equal(t, tt.wantWorkingSetID, profileAttr.AsString())
 						} else {
-							assert.False(t, hasWorkingSet, "working set attribute should not be present when empty")
+							assert.False(t, hasProfile, "profile attribute should not be present when empty")
 						}
 
 						assert.Equal(t, int64(1), dp.Value)

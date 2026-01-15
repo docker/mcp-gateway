@@ -203,34 +203,34 @@ func Init() {
 		}
 	}
 
-	// Initialize working set metrics
-	WorkingSetOperationsCounter, err = meter.Int64Counter("mcp.workingset.operations",
-		metric.WithDescription("Number of working set operations"),
+	// Initialize working set metrics (metric names use "profile" for consistency)
+	WorkingSetOperationsCounter, err = meter.Int64Counter("mcp.profile.operations",
+		metric.WithDescription("Number of profile operations"),
 		metric.WithUnit("1"))
 	if err != nil {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set operations counter: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating profile operations counter: %v\n", err)
 		}
 	}
 
-	WorkingSetOperationDuration, err = meter.Float64Histogram("mcp.workingset.operation.duration",
-		metric.WithDescription("Duration of working set operations"),
+	WorkingSetOperationDuration, err = meter.Float64Histogram("mcp.profile.operation.duration",
+		metric.WithDescription("Duration of profile operations"),
 		metric.WithUnit("ms"))
 	if err != nil {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set duration histogram: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating profile duration histogram: %v\n", err)
 		}
 	}
 
-	WorkingSetServersGauge, err = meter.Int64Gauge("mcp.workingset.servers",
-		metric.WithDescription("Number of servers in working sets"),
+	WorkingSetServersGauge, err = meter.Int64Gauge("mcp.profile.servers",
+		metric.WithDescription("Number of servers in profiles"),
 		metric.WithUnit("1"))
 	if err != nil {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating working set servers gauge: %v\n", err)
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating profile servers gauge: %v\n", err)
 		}
 	}
 
@@ -514,16 +514,16 @@ func RecordGatewayStart(ctx context.Context, transportMode string, workingSetID 
 	}
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Gateway started with transport: %s, working set: %s\n", transportMode, workingSetID)
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Gateway started with transport: %s, profile: %s\n", transportMode, workingSetID)
 	}
 
 	attrs := []attribute.KeyValue{
 		attribute.String("mcp.gateway.transport", transportMode),
 	}
 
-	// Only add working set attribute if a working set ID is provided
+	// Only add profile attribute if a profile ID is provided
 	if workingSetID != "" {
-		attrs = append(attrs, attribute.String("mcp.gateway.workingset", workingSetID))
+		attrs = append(attrs, attribute.String("mcp.gateway.profile", workingSetID))
 	}
 
 	GatewayStartCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
@@ -632,13 +632,13 @@ func RecordWorkingSetOperation(ctx context.Context, operation string, workingSet
 	}
 
 	attrs := []attribute.KeyValue{
-		attribute.String("mcp.workingset.operation", operation),
-		attribute.String("mcp.workingset.id", workingSetID),
-		attribute.Bool("mcp.workingset.success", success),
+		attribute.String("mcp.profile.operation", operation),
+		attribute.String("mcp.profile.id", workingSetID),
+		attribute.Bool("mcp.profile.success", success),
 	}
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Working set operation: %s on %s, duration: %.2fms, success: %v\n",
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Profile operation: %s on %s, duration: %.2fms, success: %v\n",
 			operation, workingSetID, durationMs, success)
 	}
 
@@ -653,12 +653,12 @@ func RecordWorkingSetServers(ctx context.Context, workingSetID string, serverCou
 	}
 
 	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Working set %s has %d servers\n", workingSetID, serverCount)
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Profile %s has %d servers\n", workingSetID, serverCount)
 	}
 
 	WorkingSetServersGauge.Record(ctx, serverCount,
 		metric.WithAttributes(
-			attribute.String("mcp.workingset.id", workingSetID),
+			attribute.String("mcp.profile.id", workingSetID),
 		))
 }
 
