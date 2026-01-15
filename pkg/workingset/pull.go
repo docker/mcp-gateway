@@ -53,9 +53,6 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, ref string) e
 		return fmt.Errorf("failed to create profile: %w", err)
 	}
 
-	// Record server count
-	telemetry.RecordWorkingSetServers(ctx, id, int64(len(workingSet.Servers)))
-
 	fmt.Printf("Profile %s imported as %s\n", workingSet.Name, id)
 
 	success = true

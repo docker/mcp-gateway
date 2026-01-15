@@ -88,9 +88,6 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		}
 	}
 
-	// Record server count
-	telemetry.RecordWorkingSetServers(ctx, workingSet.ID, int64(len(workingSet.Servers)))
-
 	fmt.Printf("Created profile %s with %d servers\n", id, len(workingSet.Servers))
 	if len(connectClients) > 0 {
 		fmt.Printf("Connected to clients: %s\n", strings.Join(connectClients, ", "))

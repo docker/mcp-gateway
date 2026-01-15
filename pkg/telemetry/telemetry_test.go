@@ -415,39 +415,6 @@ func TestRecordWorkingSetOperation(t *testing.T) {
 	assert.True(t, foundHistogram, "Profile operation duration histogram not found")
 }
 
-func TestRecordWorkingSetServers(t *testing.T) {
-	_, metricReader := setupTestTelemetry(t)
-	Init()
-	ctx := context.Background()
-
-	// Record server count for a profile
-	RecordWorkingSetServers(ctx, "test-profile", 5)
-
-	// Collect and verify metrics
-	var rm metricdata.ResourceMetrics
-	err := metricReader.Collect(ctx, &rm)
-	require.NoError(t, err)
-
-	// Find and verify the gauge metric
-	found := false
-	for _, sm := range rm.ScopeMetrics {
-		for _, m := range sm.Metrics {
-			if m.Name == "mcp.profile.servers" {
-				found = true
-				gauge := m.Data.(metricdata.Gauge[int64])
-				require.Len(t, gauge.DataPoints, 1)
-				assert.Equal(t, int64(5), gauge.DataPoints[0].Value)
-
-				// Verify attributes
-				attrs := gauge.DataPoints[0].Attributes
-				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.id", "test-profile"))
-			}
-		}
-	}
-
-	assert.True(t, found, "Profile servers gauge metric not found")
-}
-
 func TestRecordGatewayStart(t *testing.T) {
 	tests := []struct {
 		name             string

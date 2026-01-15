@@ -26,9 +26,6 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return err
 	}
 
-	// Record server count
-	telemetry.RecordCatalogServers(ctx, catalog.Ref, int64(len(catalog.Servers)))
-
 	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
 	success = true

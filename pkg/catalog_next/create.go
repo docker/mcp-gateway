@@ -84,9 +84,6 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		return fmt.Errorf("failed to create catalog: %w", err)
 	}
 
-	// Record server count
-	telemetry.RecordCatalogServers(ctx, catalog.Ref, int64(len(catalog.Servers)))
-
 	fmt.Printf("Catalog %s created\n", catalog.Ref)
 
 	success = true
