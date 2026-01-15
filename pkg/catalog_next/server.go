@@ -55,7 +55,7 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	}
 
 	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
-		readmeContent, err := fetch.Do(ctx, server.Snapshot.Server.ReadmeURL)
+		readmeContent, err := fetch.Untrusted(ctx, server.Snapshot.Server.ReadmeURL)
 		if err != nil {
 			return fmt.Errorf("failed to fetch readme: %w", err)
 		}
