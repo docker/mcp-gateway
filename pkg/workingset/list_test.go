@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
 // captureStdout captures stdout during function execution
@@ -32,7 +33,7 @@ func captureStdout(f func()) string {
 
 func TestListEmpty(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := features.WithNoDockerDesktop(t.Context())
 
 	output := captureStdout(func() {
 		err := List(ctx, dao, OutputFormatHumanReadable)
@@ -44,7 +45,7 @@ func TestListEmpty(t *testing.T) {
 
 func TestListHumanReadable(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := features.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -69,17 +70,17 @@ func TestListHumanReadable(t *testing.T) {
 	})
 
 	// Verify header
-	assert.Contains(t, output, "ID\tName")
-	assert.Contains(t, output, "----\t----")
+	assert.Contains(t, output, "ID\tName\tPolicy")
+	assert.Contains(t, output, "----\t----\t------")
 
 	// Verify data
-	assert.Contains(t, output, "set-1\tFirst Set")
-	assert.Contains(t, output, "set-2\tSecond Set")
+	assert.Contains(t, output, "set-1\tFirst Set\tAllowed")
+	assert.Contains(t, output, "set-2\tSecond Set\tAllowed")
 }
 
 func TestListJSON(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := features.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -113,7 +114,7 @@ func TestListJSON(t *testing.T) {
 
 func TestListYAML(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := features.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -147,7 +148,7 @@ func TestListYAML(t *testing.T) {
 
 func TestListMultipleWorkingSets(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := features.WithNoDockerDesktop(t.Context())
 
 	// Create multiple working sets
 	for i := 1; i <= 5; i++ {

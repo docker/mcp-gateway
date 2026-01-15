@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/terminal"
 )
 
@@ -66,14 +67,15 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 					colWidths := calculateColumnWidths(termWidth)
 
 					// Calculate total table width (sum of columns + spaces between columns)
-					totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4 // 4 spaces between columns
+					totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.policy + colWidths.description + 5 // 5 spaces between columns
 
 					// Print table headers
-					fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+					fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s %-*s\n",
 						colWidths.name, "NAME",
 						colWidths.oauth, "OAUTH",
 						colWidths.secrets, "SECRETS",
 						colWidths.config, "CONFIG",
+						colWidths.policy, "POLICY",
 						colWidths.description, "DESCRIPTION")
 					fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", totalWidth))
 
@@ -83,15 +85,17 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 						secretsText := entry.Secrets.DisplayString()
 						configText := entry.Config.DisplayString()
 						oauthText := entry.OAuth.DisplayString()
+						policyText := policycli.StatusLabel(entry.Policy)
 
 						// Truncate description to fit within the available column width
 						description := truncateString(entry.Description, colWidths.description)
 
-						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s %-*s\n",
 							colWidths.name, truncateString(entry.Name, colWidths.name),
 							colWidths.oauth, oauthText,
 							colWidths.secrets, secretsText,
 							colWidths.config, configText,
+							colWidths.policy, policyText,
 							colWidths.description, description)
 					}
 
@@ -205,6 +209,7 @@ type columnWidths struct {
 	oauth       int
 	secrets     int
 	config      int
+	policy      int
 	description int
 }
 
@@ -215,11 +220,12 @@ func calculateColumnWidths(termWidth int) columnWidths {
 		oauth:       10,
 		secrets:     10,
 		config:      10,
+		policy:      8,
 		description: 20,
 	}
 
 	// Calculate minimum total width needed
-	minTotal := minWidths.name + minWidths.oauth + minWidths.secrets + minWidths.config + minWidths.description + 4 // 4 spaces
+	minTotal := minWidths.name + minWidths.oauth + minWidths.secrets + minWidths.config + minWidths.policy + minWidths.description + 5 // 5 spaces
 
 	// If terminal is too narrow, use minimum widths
 	if termWidth < minTotal+20 {
@@ -229,12 +235,13 @@ func calculateColumnWidths(termWidth int) columnWidths {
 	// Available space after minimums and spacing
 	available := termWidth - minTotal
 
-	// Allocate extra space: 50% to description, 25% to name, 25% split between oauth/secrets/config
+	// Allocate extra space: 50% to description, 25% to name, 25% split between oauth/secrets/config/policy.
 	result := columnWidths{
 		name:        minWidths.name + available/4,
-		oauth:       minWidths.oauth + available/12,
-		secrets:     minWidths.secrets + available/12,
-		config:      minWidths.config + available/12,
+		oauth:       minWidths.oauth + available/16,
+		secrets:     minWidths.secrets + available/16,
+		config:      minWidths.config + available/16,
+		policy:      minWidths.policy + available/16,
 		description: minWidths.description + available/2,
 	}
 

@@ -48,6 +48,15 @@ func (m *mockPolicyClient) Evaluate(_ context.Context, req policy.Request) (poli
 	return m.fallback, nil
 }
 
+// EvaluateBatch evaluates multiple requests.
+func (m *mockPolicyClient) EvaluateBatch(ctx context.Context, reqs []policy.Request) ([]policy.Decision, error) {
+	decisions := make([]policy.Decision, len(reqs))
+	for i, req := range reqs {
+		decisions[i], _ = m.Evaluate(ctx, req)
+	}
+	return decisions, nil
+}
+
 // deny configures the mock to deny a specific server/tool/action combination.
 func (m *mockPolicyClient) deny(server, tool string, action policy.Action, reason string) {
 	key := policyKey(server, tool, string(action))

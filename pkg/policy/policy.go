@@ -16,6 +16,28 @@ const (
 	ActionPrompt Action = "prompt" // prompt retrieval
 )
 
+// TargetType identifies the policy target type.
+type TargetType string
+
+const (
+	// TargetCatalog identifies a catalog target.
+	TargetCatalog TargetType = "catalog"
+	// TargetWorkingSet identifies a working set target.
+	TargetWorkingSet TargetType = "workingSet"
+	// TargetServer identifies a server target.
+	TargetServer TargetType = "server"
+	// TargetTool identifies a tool target.
+	TargetTool TargetType = "tool"
+)
+
+// Target identifies the policy target for a request.
+type Target struct {
+	// Type identifies the target type.
+	Type TargetType `json:"type,omitempty"`
+	// Name identifies the target name.
+	Name string `json:"name,omitempty"`
+}
+
 // Request is a policy evaluation request.
 type Request struct {
 	Catalog string `json:"catalog,omitempty"`
@@ -28,26 +50,46 @@ type Request struct {
 	ServerSource string `json:"serverSource,omitempty"`
 	// Transport identifies the server transport type for the request.
 	Transport string `json:"transport,omitempty"`
-	Tool      string `json:"tool,omitempty"`
-	Action    Action `json:"action,omitempty"`
+	// Tool identifies the tool name for the request.
+	Tool string `json:"tool,omitempty"`
+	// Action identifies the action for the request.
+	Action Action `json:"action,omitempty"`
+	// Target identifies the policy target for the request.
+	Target *Target `json:"target,omitempty"`
 }
 
 // Decision is a policy evaluation result.
 type Decision struct {
 	Allowed bool   `json:"allowed"`
 	Reason  string `json:"reason,omitempty"`
+	// Error is the error string for evaluation failures.
+	Error string `json:"error,omitempty"`
 }
 
 // Client performs policy checks.
 type Client interface {
+	// Evaluate performs a single policy evaluation.
 	Evaluate(ctx context.Context, req Request) (Decision, error)
+	// EvaluateBatch performs multiple policy evaluations in a single call.
+	// Returns decisions in the same order as requests.
+	EvaluateBatch(ctx context.Context, reqs []Request) ([]Decision, error)
 }
 
 // NoopClient always allows.
 type NoopClient struct{}
 
+// Evaluate always returns an allowed decision.
 func (NoopClient) Evaluate(_ context.Context, _ Request) (Decision, error) {
 	return Decision{Allowed: true}, nil
+}
+
+// EvaluateBatch returns allowed decisions for all requests.
+func (NoopClient) EvaluateBatch(_ context.Context, reqs []Request) ([]Decision, error) {
+	decisions := make([]Decision, len(reqs))
+	for i := range decisions {
+		decisions[i] = Decision{Allowed: true}
+	}
+	return decisions, nil
 }
 
 // NewDefaultClient returns a policy client appropriate for the current context.

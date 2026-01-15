@@ -1,4 +1,4 @@
-package policycontext
+package context
 
 import (
 	"testing"

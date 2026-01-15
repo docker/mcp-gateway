@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -19,7 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
-	"github.com/docker/mcp-gateway/pkg/policycontext"
+	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 )
 
 type Configurator interface {
@@ -101,11 +100,97 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 }
 
 // FilterByPolicy removes servers and tools that are denied by the policy client.
+// It uses batch evaluation to minimize HTTP overhead.
 func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) error {
 	if pc == nil {
 		return nil
 	}
 
+	// Metadata for mapping batch results back to servers/tools.
+	type serverMeta struct {
+		name  string
+		index int // Index in batch request.
+	}
+	type toolMeta struct {
+		serverName string
+		toolName   string
+		index      int // Index in batch request.
+	}
+
+	var requests []policy.Request
+	var serverMetas []serverMeta
+	var toolMetas []toolMeta
+
+	// Build batch request with all policy evaluations.
+	for _, name := range c.serverNames {
+		serverMetas = append(serverMetas, serverMeta{name: name, index: len(requests)})
+		requests = append(requests, c.policyRequest(name, "", policy.ActionLoad))
+
+		// Add tool policy requests for this server.
+		if tools, ok := c.tools.ServerTools[name]; ok {
+			for _, t := range tools {
+				toolMetas = append(toolMetas, toolMeta{
+					serverName: name,
+					toolName:   t,
+					index:      len(requests),
+				})
+				requests = append(requests, c.policyRequest(name, t, policy.ActionLoad))
+			}
+		}
+	}
+
+	if len(requests) == 0 {
+		return nil
+	}
+
+	// Evaluate all requests in a single batch call.
+	decisions, err := pc.EvaluateBatch(ctx, requests)
+	if err != nil {
+		log.Logf("batch policy check failed: %v (denying all)", err)
+		c.serverNames = nil
+		c.servers = make(map[string]catalog.Server)
+		c.config = make(map[string]map[string]any)
+		c.tools = config.ToolsConfig{ServerTools: make(map[string][]string)}
+		return nil
+	}
+	if len(decisions) != len(requests) {
+		log.Logf("batch policy check returned %d decisions for %d requests (denying all)",
+			len(decisions), len(requests))
+		c.serverNames = nil
+		c.servers = make(map[string]catalog.Server)
+		c.config = make(map[string]map[string]any)
+		c.tools = config.ToolsConfig{ServerTools: make(map[string][]string)}
+		return nil
+	}
+
+	// Build set of allowed servers from batch results.
+	allowedServers := make(map[string]bool)
+	for _, sm := range serverMetas {
+		if decisions[sm.index].Allowed {
+			allowedServers[sm.name] = true
+		} else {
+			log.Logf("policy denied server %s: %s", sm.name, decisions[sm.index].Reason)
+		}
+	}
+
+	// Build set of allowed tools from batch results.
+	allowedTools := make(map[string]map[string]bool) // serverName -> toolName -> allowed
+	for _, tm := range toolMetas {
+		if !allowedServers[tm.serverName] {
+			continue // Server already denied.
+		}
+		if allowedTools[tm.serverName] == nil {
+			allowedTools[tm.serverName] = make(map[string]bool)
+		}
+		if decisions[tm.index].Allowed {
+			allowedTools[tm.serverName][tm.toolName] = true
+		} else {
+			log.Logf("policy denied tool %s/%s: %s",
+				tm.serverName, tm.toolName, decisions[tm.index].Reason)
+		}
+	}
+
+	// Apply filtering based on batch results.
 	filteredServers := make(map[string]catalog.Server)
 	filteredServerNames := make([]string, 0, len(c.serverNames))
 	filteredConfig := make(map[string]map[string]any)
@@ -114,44 +199,36 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 	}
 
 	for _, name := range c.serverNames {
-		req := c.policyRequest(name, "", policy.ActionLoad)
-		decision, err := pc.Evaluate(ctx, req)
-		if err != nil {
-			log.Logf("policy check failed for server %s: %v (denying)", name, err)
+		if !allowedServers[name] {
+			continue
 		}
-		if decision.Allowed && err == nil {
-			server := c.servers[name]
 
-			// Filter tools for this server if any.
-			if tools, ok := c.tools.ServerTools[name]; ok {
-				for _, t := range tools {
-					toolReq := c.policyRequest(name, t, policy.ActionLoad)
-					toolDecision, tErr := pc.Evaluate(ctx, toolReq)
-					if tErr != nil {
-						log.Logf("policy check failed for tool %s/%s: %v (denying)", name, t, tErr)
-					}
-					if toolDecision.Allowed && tErr == nil {
-						filteredTools.ServerTools[name] = append(filteredTools.ServerTools[name], t)
-					}
-				}
-				// Also trim catalog.Tools slice if present.
-				if len(server.Tools) > 0 {
-					var kept []catalog.Tool
-					for _, tool := range server.Tools {
-						if slices.Contains(filteredTools.ServerTools[name], tool.Name) {
-							kept = append(kept, tool)
-						}
-					}
-					server.Tools = kept
+		server := c.servers[name]
+
+		// Filter tools for this server if any.
+		if tools, ok := c.tools.ServerTools[name]; ok {
+			for _, t := range tools {
+				if allowedTools[name][t] {
+					filteredTools.ServerTools[name] = append(filteredTools.ServerTools[name], t)
 				}
 			}
-
-			filteredServers[name] = server
-			filteredServerNames = append(filteredServerNames, name)
-			canon := oci.CanonicalizeServerName(name)
-			if cfg, ok := c.config[canon]; ok {
-				filteredConfig[canon] = cfg
+			// Also trim catalog.Tools slice if present.
+			if len(server.Tools) > 0 {
+				var kept []catalog.Tool
+				for _, tool := range server.Tools {
+					if allowedTools[name][tool.Name] {
+						kept = append(kept, tool)
+					}
+				}
+				server.Tools = kept
 			}
+		}
+
+		filteredServers[name] = server
+		filteredServerNames = append(filteredServerNames, name)
+		canon := oci.CanonicalizeServerName(name)
+		if cfg, ok := c.config[canon]; ok {
+			filteredConfig[canon] = cfg
 		}
 	}
 

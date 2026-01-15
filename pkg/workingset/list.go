@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 )
 
 func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
@@ -23,8 +24,10 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 	}
 
 	workingSets := make([]WorkingSet, len(dbSets))
+	policyClient := policycli.ClientForCLI(ctx)
 	for i, dbWorkingSet := range dbSets {
 		workingSets[i] = NewFromDb(&dbWorkingSet)
+		attachWorkingSetPolicy(ctx, policyClient, &workingSets[i], true)
 	}
 
 	var data []byte
@@ -50,8 +53,13 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 func printListHumanReadable(workingSets []WorkingSet) string {
 	lines := ""
 	for _, workingSet := range workingSets {
-		lines += fmt.Sprintf("%s\t%s\n", workingSet.ID, workingSet.Name)
+		lines += fmt.Sprintf(
+			"%s\t%s\t%s\n",
+			workingSet.ID,
+			workingSet.Name,
+			policycli.StatusLabel(workingSet.Policy),
+		)
 	}
 	lines = strings.TrimSuffix(lines, "\n")
-	return fmt.Sprintf("ID\tName\n----\t----\n%s", lines)
+	return fmt.Sprintf("ID\tName\tPolicy\n----\t----\t------\n%s", lines)
 }

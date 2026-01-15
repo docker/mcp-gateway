@@ -9,6 +9,9 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
+	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 )
 
 type ConfigStatus string
@@ -26,6 +29,8 @@ type ListEntry struct {
 	Secrets     ConfigStatus `json:"secrets"`
 	Config      ConfigStatus `json:"config"`
 	OAuth       ConfigStatus `json:"oauth"`
+	// Policy describes the policy decision for this server.
+	Policy *policy.Decision `json:"policy,omitempty"`
 }
 
 func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
@@ -38,6 +43,16 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 	catalogData, err := catalog.Get(ctx)
 	if err != nil {
 		return nil, err
+	}
+	catalogID := catalog.DockerCatalogFilename
+	if _, name, _, err := catalog.ReadOne(ctx, catalog.DockerCatalogFilename); err == nil && name != "" {
+		catalogID = name
+	}
+	policyClient := policycli.ClientForCLI(ctx)
+	policyCtx := policycontext.Context{
+		Catalog:                  catalogID,
+		WorkingSet:               "",
+		ServerSourceTypeOverride: "registry",
 	}
 
 	// Get the map of configured secret names
@@ -65,8 +80,31 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 		}
 	}
 
+	// Build batch request for all server policy evaluations.
+	serverNames := registry.ServerNames()
+	var requests []policy.Request
+	serverIndices := make(map[string]int) // Map server name to request index.
+	for _, serverName := range serverNames {
+		if server, found := catalogData.Servers[serverName]; found {
+			serverIndices[serverName] = len(requests)
+			requests = append(requests, policycontext.BuildRequest(
+				policyCtx,
+				serverName,
+				server,
+				"",
+				policy.ActionLoad,
+			))
+		}
+	}
+
+	// Evaluate all requests in a single batch call.
+	var decisions []policy.Decision
+	if policyClient != nil && len(requests) > 0 {
+		decisions, _ = policyClient.EvaluateBatch(ctx, requests)
+	}
+
 	var entries []ListEntry
-	for _, serverName := range registry.ServerNames() {
+	for _, serverName := range serverNames {
 		entry := ListEntry{
 			Name:        serverName,
 			Description: "",
@@ -78,6 +116,9 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 		// Get description and check configuration from catalog
 		if server, found := catalogData.Servers[serverName]; found {
 			entry.Description = server.Description
+			if idx, ok := serverIndices[serverName]; ok && idx < len(decisions) {
+				entry.Policy = decisionToPtr(decisions[idx])
+			}
 
 			// Check secrets configuration
 			if len(server.Secrets) > 0 {

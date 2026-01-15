@@ -1,4 +1,4 @@
-package policycontext
+package context
 
 import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -27,6 +27,7 @@ func BuildRequest(
 	if serverSourceType == "" {
 		serverSourceType = InferServerSourceType(server)
 	}
+	target := buildTarget(serverName, tool)
 
 	return policy.Request{
 		Catalog:      ctx.Catalog,
@@ -37,6 +38,52 @@ func BuildRequest(
 		Transport:    InferServerTransportType(server),
 		Tool:         tool,
 		Action:       action,
+		Target:       target,
+	}
+}
+
+// BuildCatalogRequest creates a policy request for a catalog target.
+func BuildCatalogRequest(ctx Context, catalogID string, action policy.Action) policy.Request {
+	target := &policy.Target{
+		Type: policy.TargetCatalog,
+		Name: catalogID,
+	}
+	return policy.Request{
+		Catalog:    catalogID,
+		WorkingSet: ctx.WorkingSet,
+		Action:     action,
+		Target:     target,
+	}
+}
+
+// BuildWorkingSetRequest creates a policy request for a working set target.
+func BuildWorkingSetRequest(ctx Context, workingSetID string, action policy.Action) policy.Request {
+	target := &policy.Target{
+		Type: policy.TargetWorkingSet,
+		Name: workingSetID,
+	}
+	return policy.Request{
+		Catalog:    ctx.Catalog,
+		WorkingSet: workingSetID,
+		Action:     action,
+		Target:     target,
+	}
+}
+
+// buildTarget derives a policy target from server and tool details.
+func buildTarget(serverName, tool string) *policy.Target {
+	if tool != "" {
+		return &policy.Target{
+			Type: policy.TargetTool,
+			Name: tool,
+		}
+	}
+	if serverName == "" {
+		return nil
+	}
+	return &policy.Target{
+		Type: policy.TargetServer,
+		Name: serverName,
 	}
 }
 

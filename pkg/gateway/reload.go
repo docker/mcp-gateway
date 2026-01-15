@@ -157,18 +157,39 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("  > mcp-discover: prompt for learning about dynamic server management")
 	}
 
-	for _, prompt := range capabilities.Prompts {
-		// Enforce policy for prompts: deny if ActionPrompt is blocked.
-		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt))
-			if err != nil {
-				log.Logf("policy check failed for prompt %s/%s: %v (denying)", prompt.ServerName, prompt.Prompt.Name, err)
-				continue
+	// Evaluate prompt policies in batch if policy client is available.
+	promptAllowed := make([]bool, len(capabilities.Prompts))
+	if g.policyClient != nil && len(capabilities.Prompts) > 0 {
+		requests := make([]policy.Request, len(capabilities.Prompts))
+		for i, prompt := range capabilities.Prompts {
+			requests[i] = g.configuration.policyRequest(
+				prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt,
+			)
+		}
+		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		if err != nil {
+			log.Logf("batch policy check failed for prompts: %v (denying all)", err)
+		} else {
+			for i, dec := range decisions {
+				if dec.Allowed {
+					promptAllowed[i] = true
+				} else {
+					prompt := capabilities.Prompts[i]
+					log.Logf("policy denied prompt %s/%s: %s",
+						prompt.ServerName, prompt.Prompt.Name, dec.Reason)
+				}
 			}
-			if !decision.Allowed {
-				log.Logf("policy denied prompt %s/%s: %s", prompt.ServerName, prompt.Prompt.Name, decision.Reason)
-				continue
-			}
+		}
+	} else {
+		// No policy client - allow all prompts.
+		for i := range promptAllowed {
+			promptAllowed[i] = true
+		}
+	}
+
+	for i, prompt := range capabilities.Prompts {
+		if !promptAllowed[i] {
+			continue
 		}
 
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
@@ -317,18 +338,41 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 			delete(g.toolRegistrations, toolName)
 		}
 	}
-	// Add new tool registrations from the server (with policy filtering)
-	for _, tool := range newServerCaps.Tools {
-		// Policy check for dynamically added tools
-		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(serverName, tool.Tool.Name, policy.ActionLoad))
-			if err != nil {
-				log.Logf("policy check failed for dynamic tool %s/%s: %v (allowing)", serverName, tool.Tool.Name, err)
+	// Evaluate tool policies in batch if policy client is available.
+	toolAllowed := make([]bool, len(newServerCaps.Tools))
+	if g.policyClient != nil && len(newServerCaps.Tools) > 0 {
+		requests := make([]policy.Request, len(newServerCaps.Tools))
+		for i, tool := range newServerCaps.Tools {
+			requests[i] = g.configuration.policyRequest(
+				serverName, tool.Tool.Name, policy.ActionLoad,
+			)
+		}
+		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		if err != nil {
+			// Fail-closed: deny all tools on batch error.
+			log.Logf("batch policy check failed for dynamic tools: %v (denying all)", err)
+		} else {
+			for i, dec := range decisions {
+				if dec.Allowed {
+					toolAllowed[i] = true
+				} else {
+					tool := newServerCaps.Tools[i]
+					log.Logf("policy denied dynamic tool %s/%s: %s",
+						serverName, tool.Tool.Name, dec.Reason)
+				}
 			}
-			if !decision.Allowed && err == nil {
-				log.Logf("policy denied dynamic tool %s/%s: %s", serverName, tool.Tool.Name, decision.Reason)
-				continue
-			}
+		}
+	} else {
+		// No policy client - allow all tools.
+		for i := range toolAllowed {
+			toolAllowed[i] = true
+		}
+	}
+
+	// Add new tool registrations from the server (with policy filtering).
+	for i, tool := range newServerCaps.Tools {
+		if !toolAllowed[i] {
+			continue
 		}
 		g.toolRegistrations[tool.Tool.Name] = tool
 	}
