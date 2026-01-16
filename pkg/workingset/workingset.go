@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -493,7 +493,7 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 
 	serverNames := strings.Split(serverList, "+")
 
-	if len(serverNames) == 0 {
+	if len(serverNames) == 0 || len(serverList) == 0 {
 		return nil, fmt.Errorf("no servers specified in catalog URL: catalog://%s", value)
 	}
 
@@ -512,14 +512,38 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 	}
 
 	filteredServers := make([]db.CatalogServer, 0, len(dbCatalog.Servers))
-	for _, server := range dbCatalog.Servers {
-		if slices.Contains(serverNames, server.Snapshot.Server.Name) {
-			filteredServers = append(filteredServers, server)
+	foundPatterns := make(map[string]bool)
+	foundServers := make(map[string]bool) // avoid duplicates
+	for _, name := range serverNames {
+		for _, server := range dbCatalog.Servers {
+			// Glob support for selecting servers by name
+			matched, err := path.Match(name, server.Snapshot.Server.Name)
+			if err != nil {
+				return nil, fmt.Errorf("bad pattern for catalog server '%s': %w", name, err)
+			}
+			if matched {
+				if !foundServers[server.Snapshot.Server.Name] {
+					// Only add to avoid duplicates
+					filteredServers = append(filteredServers, server)
+					foundServers[server.Snapshot.Server.Name] = true
+				}
+				foundPatterns[name] = true
+			}
 		}
 	}
-	if len(filteredServers) != len(serverNames) {
-		missingServers := sliceutil.Difference(serverNames, sliceutil.Map(filteredServers, func(server db.CatalogServer) string { return server.Snapshot.Server.Name }))
-		return nil, fmt.Errorf("servers were not found in catalog: %v", missingServers)
+
+	uniqueServerNames := make(map[string]bool)
+	for _, serverName := range serverNames {
+		uniqueServerNames[serverName] = true
+	}
+
+	if len(foundPatterns) != len(uniqueServerNames) {
+		f := make([]string, 0, len(foundPatterns))
+		for pattern := range foundPatterns {
+			f = append(f, pattern)
+		}
+		missingPatterns := sliceutil.Difference(serverNames, f)
+		return nil, fmt.Errorf("servers matching the following patterns were not found in catalog: %v", missingPatterns)
 	}
 
 	return mapCatalogServersToWorkingSetServers(filteredServers, "default"), nil
