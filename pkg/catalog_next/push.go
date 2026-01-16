@@ -5,14 +5,23 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
 func Push(ctx context.Context, dao db.DAO, refStr string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordCatalogOperation(ctx, "push", refStr, float64(duration.Milliseconds()), success)
+	}()
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse reference: %w", err)
@@ -41,5 +50,6 @@ func Push(ctx context.Context, dao db.DAO, refStr string) error {
 
 	fmt.Printf("Pushed catalog to %s@sha256:%s\n", oci.FullName(ref), hash)
 
+	success = true
 	return nil
 }

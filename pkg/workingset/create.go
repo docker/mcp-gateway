@@ -6,14 +6,23 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/docker/mcp-gateway/pkg/client"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
 func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, name string, servers []string, connectClients []string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordWorkingSetOperation(ctx, "create", id, float64(duration.Milliseconds()), success)
+	}()
 	var cfg client.Config
 	if len(connectClients) > 0 {
 		cfg = *client.ReadConfig()
@@ -84,6 +93,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		fmt.Printf("Connected to clients: %s\n", strings.Join(connectClients, ", "))
 	}
 
+	success = true
 	return nil
 }
 

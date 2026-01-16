@@ -371,3 +371,128 @@ func TestConcurrentMetricRecording(t *testing.T) {
 	}
 	assert.True(t, found, "concurrent metrics should be recorded")
 }
+
+func TestRecordWorkingSetOperation(t *testing.T) {
+	_, metricReader := setupTestTelemetry(t)
+	Init()
+	ctx := t.Context()
+
+	// Test successful profile operation
+	RecordWorkingSetOperation(ctx, "create", "test-profile", 123.45, true)
+
+	// Collect and verify metrics
+	var rm metricdata.ResourceMetrics
+	err := metricReader.Collect(ctx, &rm)
+	require.NoError(t, err)
+
+	// Find and verify the counter metric
+	foundCounter := false
+	foundHistogram := false
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name == "mcp.profile.operations" {
+				foundCounter = true
+				sum := m.Data.(metricdata.Sum[int64])
+				require.Len(t, sum.DataPoints, 1)
+				assert.Equal(t, int64(1), sum.DataPoints[0].Value)
+
+				// Verify attributes
+				attrs := sum.DataPoints[0].Attributes
+				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.operation", "create"))
+				assert.Contains(t, attrs.ToSlice(), attribute.String("mcp.profile.id", "test-profile"))
+				assert.Contains(t, attrs.ToSlice(), attribute.Bool("mcp.profile.success", true))
+			}
+			if m.Name == "mcp.profile.operation.duration" {
+				foundHistogram = true
+				histogram := m.Data.(metricdata.Histogram[float64])
+				require.Len(t, histogram.DataPoints, 1)
+				assert.InDelta(t, float64(123.45), histogram.DataPoints[0].Sum, 0.001)
+			}
+		}
+	}
+
+	assert.True(t, foundCounter, "Profile operations counter metric not found")
+	assert.True(t, foundHistogram, "Profile operation duration histogram not found")
+}
+
+func TestRecordGatewayStart(t *testing.T) {
+	tests := []struct {
+		name             string
+		transport        string
+		workingSetID     string
+		wantTransport    string
+		wantWorkingSetID string
+	}{
+		{
+			name:             "stdio without profile",
+			transport:        "stdio",
+			workingSetID:     "",
+			wantTransport:    "stdio",
+			wantWorkingSetID: "",
+		},
+		{
+			name:             "stdio with profile",
+			transport:        "stdio",
+			workingSetID:     "my-profile",
+			wantTransport:    "stdio",
+			wantWorkingSetID: "my-profile",
+		},
+		{
+			name:             "sse with profile",
+			transport:        "sse",
+			workingSetID:     "test-profile",
+			wantTransport:    "sse",
+			wantWorkingSetID: "test-profile",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup fresh telemetry for each test case to avoid metric accumulation
+			_, metricReader := setupTestTelemetry(t)
+			Init()
+			ctx := t.Context()
+
+			// Record gateway start
+			RecordGatewayStart(ctx, tt.transport, tt.workingSetID)
+
+			// Collect and verify metrics
+			var rm metricdata.ResourceMetrics
+			err := metricReader.Collect(ctx, &rm)
+			require.NoError(t, err)
+
+			// Find and verify the counter metric
+			found := false
+			for _, sm := range rm.ScopeMetrics {
+				for _, m := range sm.Metrics {
+					if m.Name == "mcp.gateway.starts" {
+						found = true
+						sum := m.Data.(metricdata.Sum[int64])
+						require.Len(t, sum.DataPoints, 1, "should have exactly one data point")
+
+						dp := sum.DataPoints[0]
+						attrs := dp.Attributes
+
+						// Verify transport attribute
+						transportAttr, hasTransport := attrs.Value(attribute.Key("mcp.gateway.transport"))
+						assert.True(t, hasTransport, "transport attribute should be present")
+						assert.Equal(t, tt.wantTransport, transportAttr.AsString())
+
+						// Verify profile attribute if expected
+						profileAttr, hasProfile := attrs.Value(attribute.Key("mcp.gateway.profile"))
+						if tt.wantWorkingSetID != "" {
+							assert.True(t, hasProfile, "profile attribute should be present")
+							assert.Equal(t, tt.wantWorkingSetID, profileAttr.AsString())
+						} else {
+							assert.False(t, hasProfile, "profile attribute should not be present when empty")
+						}
+
+						assert.Equal(t, int64(1), dp.Value)
+					}
+				}
+			}
+
+			assert.True(t, found, "Gateway starts counter metric not found")
+		})
+	}
+}
