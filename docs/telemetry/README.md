@@ -108,12 +108,11 @@ Operations for managing MCP server configurations:
 - **`mcp.catalog.operation.duration`** - Duration of catalog operations
 - **`mcp.catalog.servers`** - Gauge showing number of servers in catalogs
 
-### Working Set Operations
+### Profile Operations
 
 Operations for managing working sets (profiles) of servers:
-- **`mcp.workingset.operations`** - Working set operations (create, push, pull, remove)
-- **`mcp.workingset.operation.duration`** - Duration of working set operations
-- **`mcp.workingset.servers`** - Gauge showing number of servers in working sets
+- **`mcp.profile.operations`** - Profile operations (create, push, pull, remove)
+- **`mcp.profile.operation.duration`** - Duration of profile operations
 
 ## Metric Attributes
 
@@ -139,10 +138,10 @@ All metrics include contextual attributes for filtering and aggregation:
 - **`mcp.catalog.name`** - Name or reference of the catalog
 - **`mcp.catalog.success`** - Boolean indicating operation success
 
-### Working Set Attributes
-- **`mcp.workingset.operation`** - Type of working set operation (create, push, pull, remove)
-- **`mcp.workingset.id`** - Working set identifier
-- **`mcp.workingset.success`** - Boolean indicating operation success
+### Profile Attributes
+- **`mcp.profile.operation`** - Type of profile operation (create, push, pull, remove)
+- **`mcp.profile.id`** - Profile identifier
+- **`mcp.profile.success`** - Boolean indicating operation success
 
 ## Distributed Tracing
 

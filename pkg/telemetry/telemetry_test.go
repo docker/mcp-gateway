@@ -375,7 +375,7 @@ func TestConcurrentMetricRecording(t *testing.T) {
 func TestRecordWorkingSetOperation(t *testing.T) {
 	_, metricReader := setupTestTelemetry(t)
 	Init()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test successful profile operation
 	RecordWorkingSetOperation(ctx, "create", "test-profile", 123.45, true)
@@ -451,7 +451,7 @@ func TestRecordGatewayStart(t *testing.T) {
 			// Setup fresh telemetry for each test case to avoid metric accumulation
 			_, metricReader := setupTestTelemetry(t)
 			Init()
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Record gateway start
 			RecordGatewayStart(ctx, tt.transport, tt.workingSetID)
