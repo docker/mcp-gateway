@@ -68,7 +68,14 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 		}
 
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(serverConfig.Name, originalToolName, policy.ActionInvoke))
+			policyReq := g.configuration.policyRequest(
+				serverConfig.Name,
+				originalToolName,
+				policy.ActionInvoke,
+			)
+			decision, err := g.policyClient.Evaluate(ctx, policyReq)
+			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
+			submitAuditEvent(g.policyClient, event)
 			if err != nil {
 				telemetry.RecordToolError(ctx, nil, serverConfig.Name, inferServerTransportType(serverConfig), req.Params.Name)
 				return nil, fmt.Errorf("policy check failed for %s/%s: %w", serverConfig.Name, originalToolName, err)
@@ -180,7 +187,14 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		}
 
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(serverConfig.Name, req.Params.Name, policy.ActionPrompt))
+			policyReq := g.configuration.policyRequest(
+				serverConfig.Name,
+				req.Params.Name,
+				policy.ActionPrompt,
+			)
+			decision, err := g.policyClient.Evaluate(ctx, policyReq)
+			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
+			submitAuditEvent(g.policyClient, event)
 			if err != nil {
 				return nil, fmt.Errorf("policy check failed for prompt %s on server %s: %w", req.Params.Name, serverConfig.Name, err)
 			}

@@ -73,6 +73,8 @@ type Client interface {
 	// EvaluateBatch performs multiple policy evaluations in a single call.
 	// Returns decisions in the same order as requests.
 	EvaluateBatch(ctx context.Context, reqs []Request) ([]Decision, error)
+	// SubmitAudit submits a policy audit event.
+	SubmitAudit(ctx context.Context, event AuditEvent) error
 }
 
 // NoopClient always allows.
@@ -90,6 +92,11 @@ func (NoopClient) EvaluateBatch(_ context.Context, reqs []Request) ([]Decision, 
 		decisions[i] = Decision{Allowed: true}
 	}
 	return decisions, nil
+}
+
+// SubmitAudit ignores audit events for the noop client.
+func (NoopClient) SubmitAudit(_ context.Context, _ AuditEvent) error {
+	return nil
 }
 
 // NewDefaultClient returns a policy client appropriate for the current context.

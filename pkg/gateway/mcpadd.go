@@ -67,7 +67,10 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// Check if server is allowed by policy before adding
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(serverName, "", policy.ActionLoad))
+			policyReq := g.configuration.policyRequest(serverName, "", policy.ActionLoad)
+			decision, err := g.policyClient.Evaluate(ctx, policyReq)
+			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
+			submitAuditEvent(g.policyClient, event)
 			if err != nil {
 				log.Logf("policy check failed for server %s: %v (denying)", serverName, err)
 				return &mcp.CallToolResult{

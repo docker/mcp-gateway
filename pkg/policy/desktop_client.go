@@ -53,3 +53,12 @@ func (c *DesktopClient) EvaluateBatch(
 	}
 	return resp.Decisions, nil
 }
+
+// SubmitAudit submits an audit event via the Desktop backend.
+func (c *DesktopClient) SubmitAudit(ctx context.Context, event AuditEvent) error {
+	var resp AuditResponse
+	if err := c.client.Post(ctx, "/mcp/audit", event, &resp); err != nil {
+		return err
+	}
+	return nil
+}

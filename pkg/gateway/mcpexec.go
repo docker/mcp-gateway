@@ -81,7 +81,10 @@ func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
 
 		// Policy check before executing the tool
 		if g.policyClient != nil {
-			decision, err := g.policyClient.Evaluate(ctx, g.configuration.policyRequest(toolReg.ServerName, toolName, policy.ActionInvoke))
+			policyReq := g.configuration.policyRequest(toolReg.ServerName, toolName, policy.ActionInvoke)
+			decision, err := g.policyClient.Evaluate(ctx, policyReq)
+			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
+			submitAuditEvent(g.policyClient, event)
 			if err != nil {
 				log.Logf("policy check failed for mcp-exec %s: %v (denying)", toolName, err)
 				return &mcp.CallToolResult{

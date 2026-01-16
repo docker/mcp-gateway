@@ -21,11 +21,11 @@ import (
 // =============================================================================
 
 // mockPolicyClient implements policy.Client for testing policy enforcement.
-// It allows configuring specific decisions and errors for testing both
-// deny scenarios and fail-open behavior.
+// It allows configuring specific decisions and errors for deny scenarios and
+// evaluation error handling.
 type mockPolicyClient struct {
 	decisions map[string]policy.Decision // "server:tool:action" -> decision
-	errors    map[string]error           // "server:tool:action" -> error (for fail-open testing)
+	errors    map[string]error           // "server:tool:action" -> error (for error path testing)
 	fallback  policy.Decision            // default when no match
 }
 
@@ -55,6 +55,11 @@ func (m *mockPolicyClient) EvaluateBatch(ctx context.Context, reqs []policy.Requ
 		decisions[i], _ = m.Evaluate(ctx, req)
 	}
 	return decisions, nil
+}
+
+// SubmitAudit is a no-op for testing policy enforcement.
+func (m *mockPolicyClient) SubmitAudit(_ context.Context, _ policy.AuditEvent) error {
+	return nil
 }
 
 // deny configures the mock to deny a specific server/tool/action combination.

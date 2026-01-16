@@ -145,17 +145,13 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 
 	// Evaluate all requests in a single batch call.
 	decisions, err := pc.EvaluateBatch(ctx, requests)
+	decisions, err = normalizePolicyDecisions(requests, decisions, err)
+	for i, req := range requests {
+		event := buildAuditEvent(req, decisions[i], nil, nil)
+		submitAuditEvent(pc, event)
+	}
 	if err != nil {
 		log.Logf("batch policy check failed: %v (denying all)", err)
-		c.serverNames = nil
-		c.servers = make(map[string]catalog.Server)
-		c.config = make(map[string]map[string]any)
-		c.tools = config.ToolsConfig{ServerTools: make(map[string][]string)}
-		return nil
-	}
-	if len(decisions) != len(requests) {
-		log.Logf("batch policy check returned %d decisions for %d requests (denying all)",
-			len(decisions), len(requests))
 		c.serverNames = nil
 		c.servers = make(map[string]catalog.Server)
 		c.config = make(map[string]map[string]any)
@@ -166,11 +162,16 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 	// Build set of allowed servers from batch results.
 	allowedServers := make(map[string]bool)
 	for _, sm := range serverMetas {
-		if decisions[sm.index].Allowed {
+		decision := decisions[sm.index]
+		if decision.Allowed && decision.Error == "" {
 			allowedServers[sm.name] = true
-		} else {
-			log.Logf("policy denied server %s: %s", sm.name, decisions[sm.index].Reason)
+			continue
 		}
+		if decision.Error != "" {
+			log.Logf("policy check failed for server %s: %s (denying)", sm.name, decision.Error)
+			continue
+		}
+		log.Logf("policy denied server %s: %s", sm.name, decision.Reason)
 	}
 
 	// Build set of allowed tools from batch results.
@@ -182,12 +183,18 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 		if allowedTools[tm.serverName] == nil {
 			allowedTools[tm.serverName] = make(map[string]bool)
 		}
-		if decisions[tm.index].Allowed {
+		decision := decisions[tm.index]
+		if decision.Allowed && decision.Error == "" {
 			allowedTools[tm.serverName][tm.toolName] = true
-		} else {
-			log.Logf("policy denied tool %s/%s: %s",
-				tm.serverName, tm.toolName, decisions[tm.index].Reason)
+			continue
 		}
+		if decision.Error != "" {
+			log.Logf("policy check failed for tool %s/%s: %s (denying)",
+				tm.serverName, tm.toolName, decision.Error)
+			continue
+		}
+		log.Logf("policy denied tool %s/%s: %s",
+			tm.serverName, tm.toolName, decision.Reason)
 	}
 
 	// Apply filtering based on batch results.

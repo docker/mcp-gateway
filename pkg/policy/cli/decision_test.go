@@ -32,6 +32,11 @@ func (c fakeClient) EvaluateBatch(ctx context.Context, reqs []policy.Request) ([
 	return decisions, nil
 }
 
+// SubmitAudit is a no-op for test clients.
+func (c fakeClient) SubmitAudit(_ context.Context, _ policy.AuditEvent) error {
+	return nil
+}
+
 // TestDecisionForRequestNilClient verifies nil clients return nil decisions.
 func TestDecisionForRequestNilClient(t *testing.T) {
 	t.Helper()

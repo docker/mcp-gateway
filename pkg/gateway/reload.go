@@ -167,17 +167,27 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 			)
 		}
 		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = normalizePolicyDecisions(requests, decisions, err)
+		for i, req := range requests {
+			event := buildAuditEvent(req, decisions[i], nil, nil)
+			submitAuditEvent(g.policyClient, event)
+		}
 		if err != nil {
 			log.Logf("batch policy check failed for prompts: %v (denying all)", err)
 		} else {
 			for i, dec := range decisions {
-				if dec.Allowed {
+				if dec.Allowed && dec.Error == "" {
 					promptAllowed[i] = true
-				} else {
-					prompt := capabilities.Prompts[i]
-					log.Logf("policy denied prompt %s/%s: %s",
-						prompt.ServerName, prompt.Prompt.Name, dec.Reason)
+					continue
 				}
+				prompt := capabilities.Prompts[i]
+				if dec.Error != "" {
+					log.Logf("policy check failed for prompt %s/%s: %s (denying)",
+						prompt.ServerName, prompt.Prompt.Name, dec.Error)
+					continue
+				}
+				log.Logf("policy denied prompt %s/%s: %s",
+					prompt.ServerName, prompt.Prompt.Name, dec.Reason)
 			}
 		}
 	} else {
@@ -348,18 +358,28 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 			)
 		}
 		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = normalizePolicyDecisions(requests, decisions, err)
+		for i, req := range requests {
+			event := buildAuditEvent(req, decisions[i], nil, nil)
+			submitAuditEvent(g.policyClient, event)
+		}
 		if err != nil {
 			// Fail-closed: deny all tools on batch error.
 			log.Logf("batch policy check failed for dynamic tools: %v (denying all)", err)
 		} else {
 			for i, dec := range decisions {
-				if dec.Allowed {
+				if dec.Allowed && dec.Error == "" {
 					toolAllowed[i] = true
-				} else {
-					tool := newServerCaps.Tools[i]
-					log.Logf("policy denied dynamic tool %s/%s: %s",
-						serverName, tool.Tool.Name, dec.Reason)
+					continue
 				}
+				tool := newServerCaps.Tools[i]
+				if dec.Error != "" {
+					log.Logf("policy check failed for dynamic tool %s/%s: %s (denying)",
+						serverName, tool.Tool.Name, dec.Error)
+					continue
+				}
+				log.Logf("policy denied dynamic tool %s/%s: %s",
+					serverName, tool.Tool.Name, dec.Reason)
 			}
 		}
 	} else {
