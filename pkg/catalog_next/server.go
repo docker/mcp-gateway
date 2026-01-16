@@ -8,14 +8,78 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/google/go-containerregistry/pkg/name"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/fetch"
+	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
+
+type InspectResult struct {
+	Server        `yaml:",inline"`
+	ReadmeContent string `json:"readmeContent,omitempty" yaml:"readmeContent,omitempty"`
+}
 
 type serverFilter struct {
 	key   string
 	value string
+}
+
+func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+	}
+
+	catalogRef = oci.FullNameWithoutDigest(ref)
+
+	// Get the catalog
+	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog %s: %w", catalogRef, err)
+	}
+
+	catalog := NewFromDb(dbCatalog)
+
+	server := catalog.FindServer(serverName)
+	if server == nil {
+		return fmt.Errorf("server %s not found in catalog %s", serverName, catalogRef)
+	}
+
+	inspectResult := InspectResult{
+		Server: *server,
+	}
+
+	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
+		readmeContent, err := fetch.Untrusted(ctx, server.Snapshot.Server.ReadmeURL)
+		if err != nil {
+			return fmt.Errorf("failed to fetch readme: %w", err)
+		}
+		inspectResult.ReadmeContent = string(readmeContent)
+	}
+
+	var data []byte
+
+	switch format {
+	case workingset.OutputFormatJSON:
+		data, err = json.MarshalIndent(inspectResult, "", "  ")
+	case workingset.OutputFormatYAML, workingset.OutputFormatHumanReadable:
+		data, err = yaml.Marshal(inspectResult)
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal server: %w", err)
+	}
+
+	fmt.Println(string(data))
+
+	return nil
 }
 
 // ListServers lists servers in a catalog with optional filtering
@@ -24,6 +88,16 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 	if err != nil {
 		return err
 	}
+
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+	}
+
+	catalogRef = oci.FullNameWithoutDigest(ref)
 
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)

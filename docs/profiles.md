@@ -929,6 +929,18 @@ docker mcp catalog-next push myorg/my-catalog:latest
 
 # Pull catalog from OCI registry
 docker mcp catalog-next pull myorg/my-catalog:latest
+
+# List servers in a catalog
+docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+
+# Filter servers by name
+docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+
+# Inspect a specific server in a catalog
+docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github
+
+# Inspect in JSON format
+docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --format json
 ```
 
 **Key points:**

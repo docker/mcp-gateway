@@ -2,6 +2,8 @@ package catalognext
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -11,6 +13,325 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
+
+func TestInspectServer(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-server",
+							Description: "My test server",
+						},
+					},
+				},
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server2:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "another-server",
+							Description: "Another test server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	t.Run("JSON format", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+			require.NoError(t, err)
+		})
+
+		var server InspectResult
+		err := json.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
+		assert.Equal(t, "docker/server1:v1", server.Image)
+		assert.Empty(t, server.ReadmeContent)
+	})
+
+	t.Run("YAML format", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatYAML)
+			require.NoError(t, err)
+		})
+
+		var server InspectResult
+		err := yaml.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
+		assert.Equal(t, "docker/server1:v1", server.Image)
+		assert.Empty(t, server.ReadmeContent)
+	})
+
+	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatHumanReadable)
+			require.NoError(t, err)
+		})
+
+		var server InspectResult
+		err := yaml.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
+		assert.Empty(t, server.ReadmeContent)
+	})
+}
+
+func TestInspectServerWithReadme(t *testing.T) {
+	readmeContent := "# Notion Remote\n\nThis is a remote server"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/readme.md":
+			w.Header().Set("Content-Type", "text/markdown")
+			_, _ = w.Write([]byte(readmeContent))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(func() { server.Close() })
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-server",
+							Description: "My test server",
+							ReadmeURL:   server.URL + "/readme.md",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
+	assert.Equal(t, "docker/server1:v1", inspectResult.Image)
+	assert.Equal(t, readmeContent, inspectResult.ReadmeContent)
+}
+
+func TestInspectServerNotFound(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name: "my-server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	err = InspectServer(ctx, dao, catalogObj.Ref, "nonexistent-server", workingset.OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "server nonexistent-server not found in catalog test/catalog:latest")
+}
+
+func TestInspectServerCatalogNotFound(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := InspectServer(ctx, dao, "test/nonexistent:latest", "some-server", workingset.OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get catalog")
+}
+
+func TestInspectServerUnsupportedFormat(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with servers
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name: "my-server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	err = InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormat("unsupported"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported format: unsupported")
+}
+
+func TestInspectServerInvalidCatalogRef(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := InspectServer(ctx, dao, ":::invalid-ref", "some-server", workingset.OutputFormatJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse oci-reference")
+}
+
+func TestInspectServerDifferentServerTypes(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with different server types
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/image-server:v1",
+					Tools: []string{"tool1", "tool2"},
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "image-server",
+							Description: "An image-based server",
+						},
+					},
+				},
+				{
+					Type:     workingset.ServerTypeRemote,
+					Endpoint: "https://example.com/mcp",
+					Tools:    []string{"remote-tool"},
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "remote-server",
+							Description: "A remote server",
+						},
+					},
+				},
+				{
+					Type:   workingset.ServerTypeRegistry,
+					Source: "https://registry.example.com/server",
+					Tools:  []string{"registry-tool"},
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "registry-server",
+							Description: "A registry server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	t.Run("inspect image server", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "image-server", workingset.OutputFormatJSON)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := json.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "image-server", server.Snapshot.Server.Name)
+		assert.Equal(t, workingset.ServerTypeImage, server.Type)
+		assert.Equal(t, "docker/image-server:v1", server.Image)
+		assert.Equal(t, []string{"tool1", "tool2"}, server.Tools)
+	})
+
+	t.Run("inspect remote server", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "remote-server", workingset.OutputFormatJSON)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := json.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "remote-server", server.Snapshot.Server.Name)
+		assert.Equal(t, workingset.ServerTypeRemote, server.Type)
+		assert.Equal(t, "https://example.com/mcp", server.Endpoint)
+		assert.Equal(t, []string{"remote-tool"}, server.Tools)
+	})
+
+	t.Run("inspect registry server", func(t *testing.T) {
+		output := captureStdout(t, func() {
+			err := InspectServer(ctx, dao, catalogObj.Ref, "registry-server", workingset.OutputFormatJSON)
+			require.NoError(t, err)
+		})
+
+		var server Server
+		err := json.Unmarshal([]byte(output), &server)
+		require.NoError(t, err)
+		assert.Equal(t, "registry-server", server.Snapshot.Server.Name)
+		assert.Equal(t, workingset.ServerTypeRegistry, server.Type)
+		assert.Equal(t, "https://registry.example.com/server", server.Source)
+		assert.Equal(t, []string{"registry-tool"}, server.Tools)
+	})
+}
 
 func TestListServersNoFilters(t *testing.T) {
 	dao := setupTestDB(t)
@@ -338,6 +659,49 @@ func TestListServersCatalogNotFound(t *testing.T) {
 	err := ListServers(ctx, dao, "test/nonexistent:latest", []string{}, workingset.OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get catalog")
+}
+
+func TestListServersNormalizesCatalogRef(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with a normalized reference (what the db would store)
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name: "my-server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	// Query with a non-normalized reference (without :latest tag)
+	// This should still find the catalog because the code normalizes the ref
+	output := captureStdout(t, func() {
+		err := ListServers(ctx, dao, "test/catalog", []string{}, workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result map[string]any
+	err = json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+
+	servers := result["servers"].([]any)
+	assert.Len(t, servers, 1)
 }
 
 func TestListServersYAMLFormat(t *testing.T) {
