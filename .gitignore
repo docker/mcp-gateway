@@ -1,5 +1,6 @@
 bin
 dist
+docker-mcp
 .idea/
 /.direnv/
 /.vscode/
