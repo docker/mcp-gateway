@@ -25,11 +25,17 @@ type Manager struct {
 
 // NewManager creates a new OAuth manager for CE mode
 func NewManager(credHelper credentials.Helper) *Manager {
+	return NewManagerWithRedirectURI(credHelper, DefaultRedirectURI)
+}
+
+// NewManagerWithRedirectURI creates a new OAuth manager with a custom redirect URI
+// Use this for CE mode with localhost callbacks
+func NewManagerWithRedirectURI(credHelper credentials.Helper, redirectURI string) *Manager {
 	return &Manager{
-		dcrManager:   dcr.NewManager(credHelper, DefaultRedirectURI),
+		dcrManager:   dcr.NewManager(credHelper, redirectURI),
 		tokenStore:   NewTokenStore(credHelper),
 		stateManager: NewStateManager(),
-		redirectURI:  DefaultRedirectURI,
+		redirectURI:  redirectURI,
 	}
 }
 
