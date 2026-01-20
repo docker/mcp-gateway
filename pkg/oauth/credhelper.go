@@ -89,18 +89,16 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 		return "", fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	var tokenJSON []byte
-	if IsCEMode() {
-		// CE mode: credential helper returns base64-encoded JSON
-		var err error
-		tokenJSON, err = base64.StdEncoding.DecodeString(tokenSecret)
-		if err != nil {
-			return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
-		}
-	} else {
-		// Desktop mode: Secrets Engine value is already decoded by json.Unmarshal
-		// (because Envelope.Value is []byte, Go auto-decodes base64 during unmarshal)
-		tokenJSON = []byte(tokenSecret)
+	if !IsCEMode() {
+		// Desktop mode: Secrets Engine now returns raw access token directly
+		// No JSON parsing needed
+		return tokenSecret, nil
+	}
+
+	// CE mode: credential helper returns base64-encoded JSON
+	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
 	}
 
 	// Parse the JSON to extract the actual access token
@@ -167,18 +165,21 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	var tokenJSON []byte
-	if IsCEMode() {
-		// CE mode: credential helper returns base64-encoded JSON
-		var err error
-		tokenJSON, err = base64.StdEncoding.DecodeString(tokenSecret)
-		if err != nil {
-			return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
-		}
-	} else {
-		// Desktop mode: Secrets Engine value is already decoded by json.Unmarshal
-		// (because Envelope.Value is []byte, Go auto-decodes base64 during unmarshal)
-		tokenJSON = []byte(tokenSecret)
+	if !IsCEMode() {
+		// Desktop mode: Tokens are auto-refreshed by Secrets Engine on fetch
+		// Provider loops don't run in Desktop mode, so this code path is unreachable
+		// in normal operation. Return valid status without refresh flag.
+		return TokenStatus{
+			Valid:        true,
+			ExpiresAt:    time.Time{},
+			NeedsRefresh: false,
+		}, nil
+	}
+
+	// CE mode: credential helper returns base64-encoded JSON with expiry
+	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
 	}
 
 	// Parse the JSON to extract token data including expiry

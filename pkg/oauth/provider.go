@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
@@ -103,12 +102,11 @@ func (p *Provider) Run(ctx context.Context) {
 			return
 		}
 
-		// Calculate wait duration and whether to trigger refresh
+		// Calculate wait duration based on token status
 		var waitDuration time.Duration
-		var shouldTriggerRefresh bool
 
 		if status.NeedsRefresh {
-			// Token needs refresh - check if expiry unchanged from last attempt
+			// CE mode: Token needs refresh - check if expiry unchanged from last attempt
 			expiryUnchanged := !p.lastRefreshExpiry.IsZero() && status.ExpiresAt.Equal(p.lastRefreshExpiry)
 
 			if expiryUnchanged {
@@ -131,39 +129,19 @@ func (p *Provider) Run(ctx context.Context) {
 				p.name, p.refreshRetryCount, maxRefreshRetries, waitDuration)
 
 			p.lastRefreshExpiry = status.ExpiresAt
-			shouldTriggerRefresh = true
+
+			// Refresh token directly
+			go func() {
+				if err := p.refreshTokenCE(); err != nil {
+					log.Logf("! Token refresh failed for %s: %v", p.name, err)
+				}
+			}()
 
 		} else {
+			// Token still valid
 			timeUntilExpiry := time.Until(status.ExpiresAt)
 			waitDuration = max(0, timeUntilExpiry-10*time.Second)
 			log.Logf("- Token valid for %s, next check in %v", p.name, waitDuration.Round(time.Second))
-			shouldTriggerRefresh = false
-		}
-
-		// Trigger refresh if needed
-		if shouldTriggerRefresh {
-			if IsCEMode() {
-				// CE mode: Refresh token directly
-				go func() {
-					if err := p.refreshTokenCE(); err != nil {
-						log.Logf("! Token refresh failed for %s: %v", p.name, err)
-					}
-				}()
-			} else {
-				// Desktop mode: Trigger refresh via Desktop API
-				go func() {
-					authClient := desktop.NewAuthClient()
-					app, err := authClient.GetOAuthApp(context.Background(), p.name)
-					if err != nil {
-						log.Logf("! GetOAuthApp failed for %s: %v", p.name, err)
-						return
-					}
-					if !app.Authorized {
-						log.Logf("! GetOAuthApp returned Authorized=false for %s", p.name)
-						return
-					}
-				}()
-			}
 		}
 
 		// Wait pattern - interruptible by SSE events

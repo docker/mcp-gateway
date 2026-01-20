@@ -303,16 +303,18 @@ func (g *Gateway) Run(ctx context.Context) error {
 			monitor.Start(ctx)
 		}
 
-		// Start OAuth provider for each OAuth server
-		// Each provider runs in its own goroutine with dynamic timing based on token expiry
-		log.Log("- Starting OAuth provider loops...")
-		for _, serverName := range configuration.ServerNames() {
-			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
-				continue
-			}
+		// Start OAuth provider for each OAuth server (CE mode only)
+		// In Desktop mode, tokens are auto-refreshed by Secrets Engine - no polling needed
+		if oauth.IsCEMode() {
+			log.Log("- Starting OAuth provider loops (CE mode)...")
+			for _, serverName := range configuration.ServerNames() {
+				serverConfig, _, found := configuration.Find(serverName)
+				if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
+					continue
+				}
 
-			g.startProvider(ctx, serverName)
+				g.startProvider(ctx, serverName)
+			}
 		}
 	}
 
@@ -624,11 +626,14 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 		}
 
 	case oauth.EventTokenRefresh:
-		// Token refreshed - route to provider if exists
 		if exists {
 			provider.SendEvent(event)
+		} else {
+			// Desktop mode: No provider running, directly invalidate connections
+			// Next request will create new connection with fresh token
+			log.Logf("- Invalidating OAuth clients for %s (no provider)", event.Provider)
+			g.clientPool.InvalidateOAuthClients(event.Provider)
 		}
-		// If doesn't exist, drop (another gateway or disabled server)
 
 	case oauth.EventLogoutSuccess:
 		// User logged out - stop provider if exists
