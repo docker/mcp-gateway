@@ -1271,11 +1271,7 @@ func TestResolveFile(t *testing.T) {
 				defer os.Remove(tempFile)
 			}
 
-			cwd, err := os.Getwd()
-			require.NoError(t, err)
-			defer os.Chdir(cwd) //nolint:errcheck
-			err = os.Chdir(tempDir)
-			require.NoError(t, err)
+			t.Chdir(tempDir)
 
 			server, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), setupTestDB(t), tt.input)
 			if tt.expectedErr != "" {
