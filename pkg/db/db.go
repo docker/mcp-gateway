@@ -26,6 +26,7 @@ type DAO interface {
 	WorkingSetDAO
 	CatalogDAO
 	MigrationStatusDAO
+	PullRecordDAO
 
 	// Normally unnecessary to call this
 	Close() error

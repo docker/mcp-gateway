@@ -3,6 +3,7 @@ package catalognext
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
@@ -357,4 +358,512 @@ func TestCatalogToDbAndFromDb(t *testing.T) {
 	assert.Equal(t, catalog.Servers[1].Type, catalogWithDigest.Servers[1].Type)
 	assert.Equal(t, catalog.Servers[1].Source, catalogWithDigest.Servers[1].Source)
 	assert.Equal(t, catalog.Servers[1].Tools, catalogWithDigest.Servers[1].Tools)
+}
+
+// Test NewPullOptionEvaluator
+func TestNewPullOptionEvaluator(t *testing.T) {
+	tests := []struct {
+		name             string
+		pullOptionParam  string
+		pulledPreviously bool
+		wantErr          bool
+		wantOptions      []PullOptionConfig
+	}{
+		{
+			name:             "empty string",
+			pullOptionParam:  "",
+			pulledPreviously: false,
+			wantOptions:      []PullOptionConfig{},
+		},
+		{
+			name:             "missing option",
+			pullOptionParam:  "missing",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionMissing, Interval: 0},
+			},
+		},
+		{
+			name:             "never option",
+			pullOptionParam:  "never",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionNever, Interval: 0},
+			},
+		},
+		{
+			name:             "always option",
+			pullOptionParam:  "always",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionAlways, Interval: 0},
+			},
+		},
+		{
+			name:             "initial option",
+			pullOptionParam:  "initial",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 0},
+			},
+		},
+		{
+			name:             "exists option",
+			pullOptionParam:  "exists",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionExists, Interval: 0},
+			},
+		},
+		{
+			name:             "duration only - hours",
+			pullOptionParam:  "6h",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionDuration, Interval: 6 * time.Hour},
+			},
+		},
+		{
+			name:             "duration only - minutes",
+			pullOptionParam:  "30m",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionDuration, Interval: 30 * time.Minute},
+			},
+		},
+		{
+			name:             "duration only - seconds",
+			pullOptionParam:  "45s",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionDuration, Interval: 45 * time.Second},
+			},
+		},
+		{
+			name:             "always with duration",
+			pullOptionParam:  "always@6h",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionAlways, Interval: 6 * time.Hour},
+			},
+		},
+		{
+			name:             "exists with duration",
+			pullOptionParam:  "exists@1h30m",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionExists, Interval: 1*time.Hour + 30*time.Minute},
+			},
+		},
+		{
+			name:             "initial with duration",
+			pullOptionParam:  "initial@24h",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 24 * time.Hour},
+			},
+		},
+		{
+			name:             "combination initial+exists",
+			pullOptionParam:  "initial+exists",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 0},
+				{PullOption: PullOptionExists, Interval: 0},
+			},
+		},
+		{
+			name:             "combination initial+exists with duration",
+			pullOptionParam:  "initial+exists@6s",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 0},
+				{PullOption: PullOptionExists, Interval: 6 * time.Second},
+			},
+		},
+		{
+			name:             "combination missing+always with duration",
+			pullOptionParam:  "missing+always@12h",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionMissing, Interval: 0},
+				{PullOption: PullOptionAlways, Interval: 12 * time.Hour},
+			},
+		},
+		{
+			name:             "three options combined",
+			pullOptionParam:  "initial+missing+exists@30m",
+			pulledPreviously: false,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 0},
+				{PullOption: PullOptionMissing, Interval: 0},
+				{PullOption: PullOptionExists, Interval: 30 * time.Minute},
+			},
+		},
+		{
+			name:             "pulledPreviously true with initial",
+			pullOptionParam:  "initial",
+			pulledPreviously: true,
+			wantOptions: []PullOptionConfig{
+				{PullOption: PullOptionInitial, Interval: 0},
+			},
+		},
+		{
+			name:             "invalid pull option",
+			pullOptionParam:  "invalid",
+			pulledPreviously: false,
+			wantErr:          true,
+		},
+		{
+			name:             "invalid duration format",
+			pullOptionParam:  "always@invalid",
+			pulledPreviously: false,
+			wantErr:          true,
+		},
+		{
+			name:             "invalid option with duration",
+			pullOptionParam:  "invalid@6h",
+			pulledPreviously: false,
+			wantErr:          true,
+		},
+		{
+			name:             "negative duration",
+			pullOptionParam:  "-1h",
+			pulledPreviously: false,
+			wantErr:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator, err := NewPullOptionEvaluator(tt.pullOptionParam, tt.pulledPreviously)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Nil(t, evaluator)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, evaluator)
+			assert.Equal(t, tt.pulledPreviously, evaluator.pulledPreviously)
+			assert.Len(t, evaluator.pullOptions, len(tt.wantOptions))
+
+			for i, wantOption := range tt.wantOptions {
+				assert.Equal(t, wantOption.PullOption, evaluator.pullOptions[i].PullOption, "PullOption mismatch at index %d", i)
+				assert.Equal(t, wantOption.Interval, evaluator.pullOptions[i].Interval, "Interval mismatch at index %d", i)
+			}
+		})
+	}
+}
+
+func TestPullOptionEvaluatorIsAlways(t *testing.T) {
+	tests := []struct {
+		name            string
+		pullOptionParam string
+		wantIsAlways    bool
+	}{
+		{
+			name:            "always without interval",
+			pullOptionParam: "always",
+			wantIsAlways:    true,
+		},
+		{
+			name:            "always with interval",
+			pullOptionParam: "always@6h",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "missing option",
+			pullOptionParam: "missing",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "never option",
+			pullOptionParam: "never",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "initial option",
+			pullOptionParam: "initial",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "exists option",
+			pullOptionParam: "exists",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "duration only",
+			pullOptionParam: "6h",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "combination with always no interval",
+			pullOptionParam: "initial+always",
+			wantIsAlways:    true,
+		},
+		{
+			name:            "combination with always with interval",
+			pullOptionParam: "initial+always@6h",
+			wantIsAlways:    false,
+		},
+		{
+			name:            "empty string",
+			pullOptionParam: "",
+			wantIsAlways:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator, err := NewPullOptionEvaluator(tt.pullOptionParam, false)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantIsAlways, evaluator.IsAlways())
+		})
+	}
+}
+
+func TestPullOptionEvaluatorEvaluate(t *testing.T) {
+	now := time.Now()
+	ago := func(dur time.Duration) *time.Time {
+		tm := now.Add(-dur)
+		return &tm
+	}
+
+	tests := []struct {
+		name             string
+		pullOptionParam  string
+		pulledPreviously bool
+		dbCatalog        *db.Catalog
+		shouldPull       bool
+	}{
+		// Empty option tests
+		{
+			name:             "empty option with nil catalog",
+			pullOptionParam:  "",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       false,
+		},
+		{
+			name:             "empty option with existing catalog",
+			pullOptionParam:  "",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       false,
+		},
+
+		// Missing option tests
+		{
+			name:             "missing with nil catalog",
+			pullOptionParam:  "missing",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true,
+		},
+		{
+			name:             "missing with existing catalog",
+			pullOptionParam:  "missing",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       false,
+		},
+
+		// Never option tests
+		{
+			name:             "never with nil catalog",
+			pullOptionParam:  "never",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       false,
+		},
+		{
+			name:             "never with existing catalog",
+			pullOptionParam:  "never",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       false,
+		},
+
+		// Always option tests
+		{
+			name:             "always with nil catalog",
+			pullOptionParam:  "always",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true,
+		},
+		{
+			name:             "always with existing catalog",
+			pullOptionParam:  "always",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       true,
+		},
+
+		// Initial option tests
+		{
+			name:             "initial with nil catalog not pulled previously",
+			pullOptionParam:  "initial",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true,
+		},
+		{
+			name:             "initial with nil catalog pulled previously",
+			pullOptionParam:  "initial",
+			pulledPreviously: true,
+			dbCatalog:        nil,
+			shouldPull:       false,
+		},
+		{
+			name:             "initial with existing catalog",
+			pullOptionParam:  "initial",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       false,
+		},
+
+		// Exists option tests
+		{
+			name:             "exists with nil catalog",
+			pullOptionParam:  "exists",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       false,
+		},
+		{
+			name:             "exists with existing catalog no interval",
+			pullOptionParam:  "exists",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       true,
+		},
+
+		// Duration only tests
+		{
+			name:             "duration only with nil catalog",
+			pullOptionParam:  "6h",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true,
+		},
+		{
+			name:             "duration only with catalog updated recently",
+			pullOptionParam:  "6h",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       false,
+		},
+		{
+			name:             "duration only with catalog updated long ago",
+			pullOptionParam:  "30m",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(2 * time.Hour)},
+			shouldPull:       true,
+		},
+
+		// Always with duration tests
+		{
+			name:             "always@1h with catalog updated 30m ago",
+			pullOptionParam:  "always@1h",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(30 * time.Minute)},
+			shouldPull:       false,
+		},
+		{
+			name:             "always@1h with catalog updated 2h ago",
+			pullOptionParam:  "always@1h",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(2 * time.Hour)},
+			shouldPull:       true,
+		},
+
+		// Exists with duration tests
+		{
+			name:             "exists@1h with nil catalog",
+			pullOptionParam:  "exists@1h",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       false,
+		},
+		{
+			name:             "exists@1h with catalog updated 30m ago",
+			pullOptionParam:  "exists@1h",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(30 * time.Minute)},
+			shouldPull:       false,
+		},
+		{
+			name:             "exists@1h with catalog updated 2h ago",
+			pullOptionParam:  "exists@1h",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(2 * time.Hour)},
+			shouldPull:       true,
+		},
+
+		// Combination tests: initial+exists
+		{
+			name:             "initial+exists with nil catalog not pulled previously",
+			pullOptionParam:  "initial+exists",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true, // initial triggers
+		},
+		{
+			name:             "initial+exists with nil catalog pulled previously",
+			pullOptionParam:  "initial+exists",
+			pulledPreviously: true,
+			dbCatalog:        nil,
+			shouldPull:       false, // initial doesn't trigger, exists doesn't trigger for nil
+		},
+		{
+			name:             "initial+exists with existing catalog",
+			pullOptionParam:  "initial+exists",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(time.Hour)},
+			shouldPull:       true, // exists triggers (no interval means always)
+		},
+
+		// Combination tests: initial+exists@6s
+		{
+			name:             "initial+exists@6s with nil catalog not pulled previously",
+			pullOptionParam:  "initial+exists@6s",
+			pulledPreviously: false,
+			dbCatalog:        nil,
+			shouldPull:       true, // initial triggers
+		},
+		{
+			name:             "initial+exists@6s with nil catalog pulled previously",
+			pullOptionParam:  "initial+exists@6s",
+			pulledPreviously: true,
+			dbCatalog:        nil,
+			shouldPull:       false, // neither triggers
+		},
+		{
+			name:             "initial+exists@30s with catalog updated 15s ago",
+			pullOptionParam:  "initial+exists@30s",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(15 * time.Second)},
+			shouldPull:       false, // exists@30s doesn't trigger (only 15s elapsed)
+		},
+		{
+			name:             "initial+exists@6s with catalog updated 30s ago",
+			pullOptionParam:  "initial+exists@6s",
+			pulledPreviously: false,
+			dbCatalog:        &db.Catalog{Ref: "test", LastUpdated: ago(30 * time.Second)},
+			shouldPull:       true, // exists@6s triggers (30s > 6s)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator, err := NewPullOptionEvaluator(tt.pullOptionParam, tt.pulledPreviously)
+			require.NoError(t, err)
+
+			result := evaluator.Evaluate(tt.dbCatalog)
+			assert.Equal(t, tt.shouldPull, result)
+		})
+	}
 }
