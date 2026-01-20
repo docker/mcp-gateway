@@ -33,6 +33,36 @@ Examples:
 {{.Example}}{{end}}
 `
 
+// disableCommand marks a command and all its subcommands as unavailable.
+// The command is hidden and returns exit code 1 when executed.
+func disableCommand(cmd *cobra.Command) *cobra.Command {
+	cmd.Hidden = true
+
+	// Override Args to always fail with our message
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		cmd.PrintErrln("Error: this command is currently unavailable")
+		os.Exit(1)
+		return nil
+	}
+
+	// Override RunE to print error and exit
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		cmd.PrintErrln("Error: this command is currently unavailable")
+		os.Exit(1)
+		return nil
+	}
+
+	// Clear Run if it exists
+	cmd.Run = nil
+
+	// Recursively disable all subcommands
+	for _, subCmd := range cmd.Commands() {
+		disableCommand(subCmd)
+	}
+
+	return cmd
+}
+
 // Root returns the root command for the init plugin
 func Root(ctx context.Context, cwd string, dockerCli command.Cli, features features.Features) *cobra.Command {
 	dockerClient := docker.NewClient(dockerCli)
@@ -89,23 +119,33 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 	_ = cmd.RegisterFlagCompletionFunc("mcp", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{"--help"}, cobra.ShellCompDirectiveNoFileComp
 	})
+	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli, features))
+	cmd.AddCommand(disableCommand(featureCommand(dockerCli, features)))
+	cmd.AddCommand(disableCommand(versionCommand()))
 
 	if features.IsProfilesFeatureEnabled() {
 		cmd.AddCommand(workingSetCommand())
 		cmd.AddCommand(catalogNextCommand())
+		// Disable other commands when profiles feature is enabled
+		cmd.AddCommand(disableCommand(catalogCommand(dockerCli)))
+		cmd.AddCommand(disableCommand(configCommand(dockerClient)))
+		cmd.AddCommand(disableCommand(policyCommand()))
+		cmd.AddCommand(disableCommand(registryCommand()))
+		cmd.AddCommand(disableCommand(secretCommand(dockerClient)))
+		cmd.AddCommand(disableCommand(serverCommand(dockerClient, dockerCli)))
+		cmd.AddCommand(disableCommand(toolsCommand(dockerClient, dockerCli)))
+	} else {
+		// When profiles feature is disabled, enable all commands normally
+		cmd.AddCommand(catalogCommand(dockerCli))
+		cmd.AddCommand(configCommand(dockerClient))
+		cmd.AddCommand(policyCommand())
+		cmd.AddCommand(registryCommand())
+		cmd.AddCommand(secretCommand(dockerClient))
+		cmd.AddCommand(serverCommand(dockerClient, dockerCli))
+		cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
 	}
-	cmd.AddCommand(catalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(dockerCli, cwd, features))
-	cmd.AddCommand(configCommand(dockerClient))
-	cmd.AddCommand(featureCommand(dockerCli, features))
-	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(oauthCommand())
-	cmd.AddCommand(policyCommand())
-	cmd.AddCommand(registryCommand())
-	cmd.AddCommand(secretCommand(dockerClient))
-	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
-	cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
-	cmd.AddCommand(versionCommand())
 
 	if os.Getenv("DOCKER_MCP_SHOW_HIDDEN") == "1" {
 		unhideHiddenCommands(cmd)
