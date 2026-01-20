@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/golang-migrate/migrate/v4"
 	msqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -93,11 +95,36 @@ func New(opts ...Option) (DAO, error) {
 		return nil, err
 	}
 
-	// Migrations are transactional for individual migrations, not for the entire migration process
-	// A race condition can happen if two instances of the CLI try to run migrations at the same time
-	// This doesn't harm the state of the database, but the second process will fail with an error
-	// We work around this by retrying the migration up to 5 times.
-	err = retry.Retry(5, 300*time.Millisecond, func() error {
+	// Use file locking to prevent concurrent migrations across processes
+	// This ensures only one process can run migrations at a time, preventing
+	// "Dirty database version" errors when multiple processes start simultaneously.
+	// See docs/database/README.md
+	//
+	// Note: The lock file persists on disk after Unlock() - this is intentional.
+	// flock.Unlock() only releases the lock and closes the file descriptor
+	lockFile := filepath.Join(filepath.Dir(o.dbFile), ".mcp-toolkit-migration.lock")
+	fileLock := flock.New(lockFile)
+
+	// Try to acquire the lock with a 1 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire migration lock: %w", err)
+	}
+	if !locked {
+		return nil, fmt.Errorf("timeout waiting for migration lock")
+	}
+	defer func() {
+		if err := fileLock.Unlock(); err != nil {
+			log.Logf("failed to unlock migration lock: %v", err)
+		}
+	}()
+
+	// Now safely run migrations with the lock held
+	// We still use a small retry in case of transient SQLite errors
+	err = retry.Retry(3, 200*time.Millisecond, func() error {
 		err := mig.Up()
 		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			return err
