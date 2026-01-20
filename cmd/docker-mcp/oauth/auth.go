@@ -5,18 +5,34 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
 
 func Authorize(ctx context.Context, app string, scopes string) error {
-	// Check if running in CE mode
-	if pkgoauth.IsCEMode() {
+	// Check if running in CE mode AND if this is a remote server
+	// CE mode with localhost redirect only works for remote MCP servers
+	// Container-based servers (like github-official) need Docker Desktop OAuth
+	if pkgoauth.IsCEMode() && isRemoteServer(ctx, app) {
 		return authorizeCEMode(ctx, app, scopes)
 	}
 
-	// Desktop mode - existing implementation
+	// Desktop mode - existing implementation (for container servers or when CE mode is off)
 	return authorizeDesktopMode(ctx, app, scopes)
+}
+
+// isRemoteServer checks if the server is a remote MCP server (not a container)
+func isRemoteServer(ctx context.Context, serverName string) bool {
+	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	if err != nil {
+		return false
+	}
+	server, found := cat.Servers[serverName]
+	if !found {
+		return false
+	}
+	return server.Remote.URL != ""
 }
 
 // authorizeDesktopMode handles OAuth via Docker Desktop (existing behavior)
@@ -42,20 +58,26 @@ func authorizeDesktopMode(ctx context.Context, app string, scopes string) error 
 func authorizeCEMode(ctx context.Context, serverName string, scopes string) error {
 	fmt.Printf("Starting OAuth authorization for %s...\n", serverName)
 
-	// Create OAuth manager with read-write credential helper
-	credHelper := pkgoauth.NewReadWriteCredentialHelper()
-	manager := pkgoauth.NewManager(credHelper)
-
-	// Step 1: Ensure DCR client is registered
-	fmt.Printf("Checking DCR registration...\n")
-	if err := manager.EnsureDCRClient(ctx, serverName, scopes); err != nil {
-		return fmt.Errorf("DCR registration failed: %w", err)
-	}
-
-	// Step 2: Create callback server
+	// Step 1: Create callback server FIRST to get the localhost URL
+	// This allows us to register DCR with localhost redirect instead of mcp.docker.com proxy
 	callbackServer, err := pkgoauth.NewCallbackServer()
 	if err != nil {
 		return fmt.Errorf("failed to create callback server: %w", err)
+	}
+
+	// Use localhost callback URL as redirect URI for DCR registration
+	// This bypasses Docker's OAuth proxy which doesn't know about all providers
+	callbackURL := callbackServer.URL()
+	fmt.Printf("Using localhost redirect: %s\n", callbackURL)
+
+	// Create OAuth manager with localhost redirect URI
+	credHelper := pkgoauth.NewReadWriteCredentialHelper()
+	manager := pkgoauth.NewManagerWithRedirectURI(credHelper, callbackURL)
+
+	// Step 2: Ensure DCR client is registered with localhost redirect
+	fmt.Printf("Checking DCR registration...\n")
+	if err := manager.EnsureDCRClient(ctx, serverName, scopes); err != nil {
+		return fmt.Errorf("DCR registration failed: %w", err)
 	}
 
 	// Start callback server in background
@@ -72,7 +94,7 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 		}
 	}()
 
-	// Step 3: Build authorization URL with callback URL in state
+	// Step 3: Build authorization URL (no proxy state needed - direct localhost redirect)
 	fmt.Printf("Generating authorization URL...\n")
 
 	scopesList := []string{}
@@ -80,9 +102,8 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 		scopesList = []string{scopes}
 	}
 
-	// Pass callback URL - will be embedded in state for mcp-oauth proxy routing
-	callbackURL := callbackServer.URL()
-	authURL, baseState, _, err := manager.BuildAuthorizationURL(ctx, serverName, scopesList, callbackURL)
+	// Empty callbackURL since we're using direct localhost redirect (no proxy routing)
+	authURL, baseState, _, err := manager.BuildAuthorizationURL(ctx, serverName, scopesList, "")
 	if err != nil {
 		return fmt.Errorf("failed to generate authorization URL: %w", err)
 	}
