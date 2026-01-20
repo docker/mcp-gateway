@@ -23,7 +23,7 @@ func TestIntegrationRemoteWithCustomHeaders(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 	// Start a test MCP server that can validate the Authorization header
 	server := newTestMCPServer(t)
-	defer server.close()
+
 	// Create temporary directory for test files
 	tmp := t.TempDir()
 
@@ -78,10 +78,17 @@ type testMCPServer struct {
 func newTestMCPServer(t *testing.T) *testMCPServer {
 	t.Helper()
 
+	ctx := t.Context()
 	s := &testMCPServer{}
 
-	// Create a listener to get a random port
-	ctx := t.Context()
+	t.Cleanup(func() {
+		if s.server != nil {
+			_ = s.server.Shutdown(ctx)
+		}
+		if s.listener != nil {
+			s.listener.Close()
+		}
+	})
 	lc := &net.ListenConfig{}
 	listener, err := lc.Listen(ctx, "tcp", ":0")
 	require.NoError(t, err, "Failed to create listener")
@@ -141,13 +148,4 @@ func newTestMCPServer(t *testing.T) *testMCPServer {
 	time.Sleep(100 * time.Millisecond)
 
 	return s
-}
-
-func (s *testMCPServer) close() {
-	if s.server != nil {
-		_ = s.server.Shutdown(context.Background())
-	}
-	if s.listener != nil {
-		s.listener.Close()
-	}
 }

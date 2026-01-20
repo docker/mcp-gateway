@@ -28,9 +28,22 @@ linters:
 
   settings:
     forbidigo:
+      analyze-types: true
       forbid:
         - pattern: ^os\.UserHomeDir
-          message: "Do not use os.UserHomeDir(). Use user.HomeDir() instead."
+          msg: "Do not use os.UserHomeDir(). Use user.HomeDir() instead."
+        - pattern: ^context\.Background$
+          pkg: ^context$
+          msg: "Do not use context.Background() in tests, use t.Context() instead."
+        - pattern: ^context\.TODO$
+          pkg: ^context$
+          msg: "Do not use context.TODO() in tests, use t.Context() instead."
+        - pattern: ^os\.MkdirTemp$
+          pkg: ^os$
+          msg: "Do not use os.MkdirTemp() in tests, use t.TempDir() instead."
+        - pattern: ^os\.Setenv$
+          pkg: ^os$
+          msg: "Do not use os.Setenv() in tests, use t.Setenv() instead."
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -40,8 +53,20 @@ linters:
     presets:
       - comments
       - std-error-handling
-  issues:
-    exclude-rules:
+    rules:
+      # Test-only forbidigo rules should not apply to non-test files
+      - path-except: '_test\.go$'
+        linters:
+          - forbidigo
+        text: 'use t\.Context'
+      - path-except: '_test\.go$'
+        linters:
+          - forbidigo
+        text: 'use t\.TempDir'
+      - path-except: '_test\.go$'
+        linters:
+          - forbidigo
+        text: 'use t\.Setenv'
       - path: cmd/docker-mcp/internal/gateway/dynamic_mcps.go
         linters:
           - gofmt
