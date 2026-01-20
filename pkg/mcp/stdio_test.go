@@ -29,7 +29,7 @@ func TestStdioClientInitializeAndListTools(t *testing.T) {
 	)
 
 	// Test initialization
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 
 	initParams := &mcp.InitializeParams{
@@ -44,7 +44,7 @@ func TestStdioClientInitializeAndListTools(t *testing.T) {
 	require.NoError(t, err, "Failed to initialize stdio client")
 
 	// Test ListTools
-	toolsCtx, toolsCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	toolsCtx, toolsCancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer toolsCancel()
 
 	tools, err := client.Session().ListTools(toolsCtx, &mcp.ListToolsParams{})

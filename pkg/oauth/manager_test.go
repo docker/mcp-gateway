@@ -1,7 +1,6 @@
 package oauth
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -114,7 +113,7 @@ func TestManager_BuildAuthURL_StateFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			authURL, baseState, verifier, err := manager.BuildAuthorizationURL(
-				context.Background(),
+				t.Context(),
 				serverName,
 				[]string{"read"},
 				tt.callbackURL,
@@ -147,7 +146,7 @@ func TestManager_BuildAuthURL_PKCE(t *testing.T) {
 	setupTestDCRClient(t, manager, serverName)
 
 	authURL, _, verifier, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		serverName,
 		[]string{"read"},
 		"",
@@ -169,7 +168,7 @@ func TestManager_BuildAuthURL_Resource(t *testing.T) {
 	setupTestDCRClient(t, manager, serverName)
 
 	authURL, _, _, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		serverName,
 		[]string{"read"},
 		"",
@@ -186,7 +185,7 @@ func TestManager_BuildAuthURL_NoDCRClient(t *testing.T) {
 
 	// Try to build auth URL without DCR client
 	_, _, _, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		"non-existent-server",
 		[]string{"read"},
 		"",
@@ -205,7 +204,7 @@ func TestManager_BuildAuthURL_InvalidCallbackURL(t *testing.T) {
 
 	// Try with invalid callback URL (no port)
 	_, _, _, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		serverName,
 		[]string{"read"},
 		"http://localhost/callback",
@@ -220,7 +219,7 @@ func TestManager_ExchangeCode_InvalidState(t *testing.T) {
 
 	// Try to exchange code with invalid state
 	err := manager.ExchangeCode(
-		context.Background(),
+		t.Context(),
 		"test-code",
 		"invalid-state-uuid",
 	)
@@ -246,7 +245,7 @@ func TestManager_EnsureDCRClient_AlreadyExists(t *testing.T) {
 	setupTestDCRClient(t, manager, serverName)
 
 	// EnsureDCRClient should succeed without re-registration
-	err := manager.EnsureDCRClient(context.Background(), serverName, "read")
+	err := manager.EnsureDCRClient(t.Context(), serverName, "read")
 	require.NoError(t, err)
 }
 
@@ -278,7 +277,7 @@ func TestManager_BuildAuthURL_ScopeOverride(t *testing.T) {
 	customScopes := []string{"admin", "delete", "write"}
 
 	authURL, _, _, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		serverName,
 		customScopes,
 		"",
@@ -326,7 +325,7 @@ func TestManager_CallbackURLParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, _, _, err := manager.BuildAuthorizationURL(
-				context.Background(),
+				t.Context(),
 				serverName,
 				[]string{"read"},
 				tt.callbackURL,
@@ -351,7 +350,7 @@ func TestManager_StateFormatWithPort(t *testing.T) {
 	setupTestDCRClient(t, manager, serverName)
 
 	authURL, baseState, _, err := manager.BuildAuthorizationURL(
-		context.Background(),
+		t.Context(),
 		serverName,
 		[]string{"read"},
 		"http://localhost:8080/callback",

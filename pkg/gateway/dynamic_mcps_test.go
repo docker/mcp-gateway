@@ -157,7 +157,7 @@ func TestMcpExecTool(t *testing.T) {
 			},
 		}
 
-		result, err := mcpExecHandler(context.Background(), req)
+		result, err := mcpExecHandler(t.Context(), req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.True(t, mockToolCalled, "mock tool should have been called")
@@ -188,7 +188,7 @@ func TestMcpExecTool(t *testing.T) {
 			},
 		}
 
-		result, err := mcpExecHandler(context.Background(), req)
+		result, err := mcpExecHandler(t.Context(), req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -217,7 +217,7 @@ func TestMcpExecTool(t *testing.T) {
 			},
 		}
 
-		result, err := mcpExecHandler(context.Background(), req)
+		result, err := mcpExecHandler(t.Context(), req)
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "name parameter is required")
@@ -262,7 +262,7 @@ func TestMcpExecTool(t *testing.T) {
 			},
 		}
 
-		result, err := mcpExecHandler(context.Background(), req)
+		result, err := mcpExecHandler(t.Context(), req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.True(t, noArgToolCalled, "no-arg tool should have been called")
@@ -363,7 +363,7 @@ func TestMcpExecTool(t *testing.T) {
 		}
 
 		// Test with our handler
-		result, err := testHandler(context.Background(), req)
+		result, err := testHandler(t.Context(), req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.True(t, mockToolCalled, "mock tool should have been called with string arguments")

@@ -1,7 +1,6 @@
 package embeddings_test
 
 import (
-	"context"
 	"os/exec"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ func TestCloseStopsContainer(t *testing.T) {
 		t.Skip("Skipping long-running test in short mode")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Create a temporary data directory for the test
 	tmpDir := t.TempDir()
@@ -86,7 +85,7 @@ func TestCloseIdempotent(t *testing.T) {
 		t.Skip("Skipping long-running test in short mode")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	tmpDir := t.TempDir()
 
 	client, err := embeddings.NewVectorDBClient(ctx, tmpDir, 1536, nil)
@@ -128,7 +127,7 @@ func TestDimensionParameter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 			tmpDir := t.TempDir()
 
 			client, err := embeddings.NewVectorDBClient(ctx, tmpDir, tc.dimension, nil)

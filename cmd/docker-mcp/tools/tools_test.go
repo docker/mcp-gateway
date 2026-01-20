@@ -323,7 +323,7 @@ func withSampleCatalog() option {
 // Unit tests for call
 
 func TestCallNoToolName(t *testing.T) {
-	err := Call(context.Background(), "2", []string{}, false, []string{})
+	err := Call(t.Context(), "2", []string{}, false, []string{})
 	require.Error(t, err)
 	assert.Equal(t, "no tool name provided", err.Error())
 }

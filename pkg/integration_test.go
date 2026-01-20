@@ -224,7 +224,7 @@ func TestIntegrationOpenAIModels(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
 
 	err := c.Initialize(ctx, initParams, false, nil, nil, nil)

@@ -43,7 +43,7 @@ func buildElicitImage(t *testing.T) {
 	}
 	dockerfilePath := filepath.Join("test", "servers", "elicit", "Dockerfile")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cmd := exec.CommandContext(ctx, "docker", "build", "-t", "elicit:latest", "-f", dockerfilePath, ".")
 	cmd.Dir = projectRoot
 	output, err := cmd.CombinedOutput()
@@ -116,8 +116,8 @@ func TestIntegrationWithElicitation(t *testing.T) {
 		},
 	})
 
-	transport := &mcp.CommandTransport{Command: exec.CommandContext(context.TODO(), "docker", args...)}
-	c, err := client.Connect(context.TODO(), transport, nil)
+	transport := &mcp.CommandTransport{Command: exec.CommandContext(t.Context(), "docker", args...)}
+	c, err := client.Connect(t.Context(), transport, nil)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

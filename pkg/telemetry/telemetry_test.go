@@ -1,7 +1,6 @@
 package telemetry
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,7 +52,7 @@ func TestInitialization(t *testing.T) {
 		assert.NotNil(t, tracer, "tracer should be initialized")
 
 		// Create a test span to verify tracer works
-		ctx := context.Background()
+		ctx := t.Context()
 		_, span := tracer.Start(ctx, "test.span")
 		span.End()
 
@@ -72,7 +71,7 @@ func TestInitialization(t *testing.T) {
 		assert.NotNil(t, ToolCallCounter, "ToolCallCounter should be created")
 
 		// Test recording a value
-		ctx := context.Background()
+		ctx := t.Context()
 		ToolCallCounter.Add(ctx, 1,
 			metric.WithAttributes(
 				attribute.String("mcp.tool.name", "test_tool"),
@@ -110,7 +109,7 @@ func TestInitialization(t *testing.T) {
 		assert.NotNil(t, ToolCallDuration, "ToolCallDuration should be created")
 
 		// Test recording a value
-		ctx := context.Background()
+		ctx := t.Context()
 		ToolCallDuration.Record(ctx, 150.5,
 			metric.WithAttributes(
 				attribute.String("mcp.tool.name", "test_tool"),
@@ -141,7 +140,7 @@ func TestInitialization(t *testing.T) {
 		assert.NotNil(t, ToolErrorCounter, "ToolErrorCounter should be created")
 
 		// Test recording an error
-		ctx := context.Background()
+		ctx := t.Context()
 		ToolErrorCounter.Add(ctx, 1,
 			metric.WithAttributes(
 				attribute.String("mcp.tool.name", "test_tool"),
@@ -178,7 +177,7 @@ func TestStartInitializeSpan(t *testing.T) {
 	spanRecorder, _ := setupTestTelemetry(t)
 	Init()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	clientName := "claude-ai"
 	clientVersion := "1.0.0"
 
@@ -216,7 +215,7 @@ func TestStartToolCallSpan(t *testing.T) {
 	spanRecorder, _ := setupTestTelemetry(t)
 	Init()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	toolName := "docker_ps"
 	serverName := "docker_server"
 	serverType := "stdio"
@@ -256,7 +255,7 @@ func TestStartCommandSpan(t *testing.T) {
 	spanRecorder, _ := setupTestTelemetry(t)
 	Init()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	commandPath := "docker mcp gateway run"
 
 	// Start a command span
@@ -289,7 +288,7 @@ func TestRecordToolError(t *testing.T) {
 	_, metricReader := setupTestTelemetry(t)
 	Init()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	toolName := "test_tool"
 	serverName := "test_server"
 	serverType := "docker"
@@ -332,7 +331,7 @@ func TestConcurrentMetricRecording(t *testing.T) {
 	_, metricReader := setupTestTelemetry(t)
 	Init()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Simulate concurrent tool calls
 	done := make(chan bool, 10)

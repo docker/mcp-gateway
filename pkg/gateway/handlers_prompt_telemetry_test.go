@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,7 +46,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		promptName := "test-prompt"
 
 		// Record prompt call
-		ctx := context.Background()
+		ctx := t.Context()
 		telemetry.RecordPromptGet(ctx, promptName, serverConfig.Name, "test-client")
 
 		// Collect metrics
@@ -111,7 +110,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		duration := float64(150) // milliseconds
 
 		// Record prompt duration
-		ctx := context.Background()
+		ctx := t.Context()
 		telemetry.RecordPromptDuration(ctx, promptName, serverConfig.Name, duration, "test-client")
 
 		// Collect metrics
@@ -164,7 +163,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test error recording
-		ctx := context.Background()
+		ctx := t.Context()
 		promptName := "failing-prompt"
 		serverName := "error-server"
 		errorType := "prompt_not_found"
@@ -228,7 +227,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		}
 
 		// Start prompt span
-		ctx := context.Background()
+		ctx := t.Context()
 		promptName := "test-prompt-span"
 		serverType := inferServerType(serverConfig)
 
@@ -357,7 +356,7 @@ func TestPromptListHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Record prompt list
-		ctx := context.Background()
+		ctx := t.Context()
 		serverName := "prompt-list-server"
 		promptCount := 5
 

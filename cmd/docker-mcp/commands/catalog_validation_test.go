@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,7 +22,7 @@ func TestDockerCatalogProtection(t *testing.T) {
 	require.NoError(t, os.MkdirAll(catalogsDir, 0o755))
 
 	// Initialize the catalog system
-	ctx := context.Background()
+	ctx := t.Context()
 	require.NoError(t, catalog.Init(ctx))
 
 	t.Run("TestCreateDockerCatalogPrevented", func(t *testing.T) {

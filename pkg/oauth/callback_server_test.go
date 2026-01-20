@@ -28,7 +28,7 @@ func TestCallbackServer_PortAssignment(t *testing.T) {
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(t.Context())
 	}()
 
 	// Should get a valid port
@@ -44,7 +44,7 @@ func TestCallbackServer_Success(t *testing.T) {
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(t.Context())
 	}()
 
 	// Start server in background
@@ -69,7 +69,7 @@ func TestCallbackServer_Success(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Authorization Successful")
 
 	// Should receive callback data
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 	defer cancel()
 
 	code, state, err := server.Wait(ctx)
@@ -84,7 +84,7 @@ func TestCallbackServer_MissingCode(t *testing.T) {
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(t.Context())
 	}()
 
 	// Make request with only state
@@ -98,7 +98,7 @@ func TestCallbackServer_MissingCode(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Missing authorization code")
 
 	// Should receive error
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 	defer cancel()
 
 	_, _, err = server.Wait(ctx)
@@ -112,7 +112,7 @@ func TestCallbackServer_MissingState(t *testing.T) {
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(t.Context())
 	}()
 
 	// Make request with only code
@@ -126,7 +126,7 @@ func TestCallbackServer_MissingState(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Missing state parameter")
 
 	// Should receive error
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 	defer cancel()
 
 	_, _, err = server.Wait(ctx)
@@ -159,7 +159,7 @@ func TestCallbackServer_OAuthError(t *testing.T) {
 			server, err := NewCallbackServer()
 			require.NoError(t, err)
 			defer func() {
-				_ = server.Shutdown(context.Background())
+				_ = server.Shutdown(t.Context())
 			}()
 
 			// Make request with error parameters
@@ -172,7 +172,7 @@ func TestCallbackServer_OAuthError(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, w.Code)
 
 			// Should receive error
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 1*time.Second)
 			defer cancel()
 
 			_, _, err = server.Wait(ctx)
@@ -188,11 +188,11 @@ func TestCallbackServer_Timeout(t *testing.T) {
 	server, err := NewCallbackServer()
 	require.NoError(t, err)
 	defer func() {
-		_ = server.Shutdown(context.Background())
+		_ = server.Shutdown(t.Context())
 	}()
 
 	// Create context with short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	// Wait should timeout

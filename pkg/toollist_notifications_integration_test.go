@@ -44,7 +44,7 @@ func buildElicitImageForToolNotifications(t *testing.T) {
 	}
 	dockerfilePath := filepath.Join("test", "servers", "elicit", "Dockerfile")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	cmd := exec.CommandContext(ctx, "docker", "build", "-t", "elicit:latest", "-f", dockerfilePath, ".")
 	cmd.Dir = projectRoot
 	output, err := cmd.CombinedOutput()
@@ -123,8 +123,8 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 		},
 	})
 
-	transport := &mcp.CommandTransport{Command: exec.CommandContext(context.TODO(), "docker", args...)}
-	c, err := client.Connect(context.TODO(), transport, nil)
+	transport := &mcp.CommandTransport{Command: exec.CommandContext(t.Context(), "docker", args...)}
+	c, err := client.Connect(t.Context(), transport, nil)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -265,8 +265,8 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 		},
 	})
 
-	transport1 := &mcp.CommandTransport{Command: exec.CommandContext(context.TODO(), "docker", args...)}
-	c1, err := client1.Connect(context.TODO(), transport1, nil)
+	transport1 := &mcp.CommandTransport{Command: exec.CommandContext(t.Context(), "docker", args...)}
+	c1, err := client1.Connect(t.Context(), transport1, nil)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

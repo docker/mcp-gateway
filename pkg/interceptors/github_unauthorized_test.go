@@ -85,7 +85,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "resources/list", &mcp.ListResourcesRequest{})
+		result, err := wrappedHandler(t.Context(), "resources/list", &mcp.ListResourcesRequest{})
 
 		require.NoError(t, err)
 		assert.NotNil(t, result)
@@ -100,7 +100,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr, err)
@@ -120,7 +120,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
@@ -140,7 +140,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddleware()
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
@@ -167,7 +167,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -202,7 +202,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -239,7 +239,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -275,7 +275,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -311,7 +311,7 @@ func TestGitHubUnauthorizedMiddleware(t *testing.T) {
 		middleware := GitHubUnauthorizedMiddlewareWithOAuth(mockOAuth)
 		wrappedHandler := middleware(mockHandler)
 
-		result, err := wrappedHandler(context.Background(), "tools/call", &mcp.CallToolRequest{})
+		result, err := wrappedHandler(t.Context(), "tools/call", &mcp.CallToolRequest{})
 
 		require.NoError(t, err)
 		require.NotNil(t, result)

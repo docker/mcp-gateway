@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -68,15 +67,14 @@ func TestMcpregistryImportCommand(t *testing.T) {
 	defer testServer.Close()
 
 	// Test the import function
-	ctx := context.Background()
-	err := runMcpregistryImport(ctx, testServer.URL, nil)
+	err := runMcpregistryImport(t.Context(), testServer.URL, nil)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
 }
 
 func TestMcpregistryImportCommand_InvalidURL(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test invalid URL
 	err := runMcpregistryImport(ctx, "not-a-url", nil)
@@ -98,8 +96,7 @@ func TestMcpregistryImportCommand_HTTPError(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	ctx := context.Background()
-	err := runMcpregistryImport(ctx, testServer.URL, nil)
+	err := runMcpregistryImport(t.Context(), testServer.URL, nil)
 	if err == nil {
 		t.Error("Expected error for 404 response, got none")
 	}
@@ -117,8 +114,7 @@ func TestMcpregistryImportCommand_InvalidJSON(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	ctx := context.Background()
-	err := runMcpregistryImport(ctx, testServer.URL, nil)
+	err := runMcpregistryImport(t.Context(), testServer.URL, nil)
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got none")
 	}

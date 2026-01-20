@@ -131,7 +131,7 @@ func setupInspectTest(t *testing.T) (context.Context, string, docker.Client) {
 	// Create mock Docker client
 	dockerClient := &fakeDocker{}
 
-	return context.Background(), home, dockerClient
+	return t.Context(), home, dockerClient
 }
 
 func writeCatalogFile(t *testing.T, home, content string) {

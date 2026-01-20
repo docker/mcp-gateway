@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +17,7 @@ func TestCatalogGetWithConfigured(t *testing.T) {
 	// Create test catalog registry and configured catalog
 	setupTestCatalogs(t, tempHome)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test loading with configured catalogs enabled
 	catalog, err := GetWithOptions(ctx, true, nil)
@@ -37,7 +36,7 @@ func TestCatalogGetWithoutConfigured(t *testing.T) {
 	// Create test catalog registry and configured catalog
 	setupTestCatalogs(t, tempHome)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test loading with configured catalogs disabled (current behavior)
 	catalog, err := GetWithOptions(ctx, false, nil)
@@ -110,7 +109,7 @@ func TestCatalogPrecedenceOrder(t *testing.T) {
 	// Create test catalogs with overlapping server name and conflicting tool names
 	setupOverlappingCatalogs(t, tempHome)
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Test precedence order: Docker → Configured → CLI-specified
 	additionalCatalogs := []string{filepath.Join(tempHome, "cli-catalog.yaml")}

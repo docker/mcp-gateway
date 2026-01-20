@@ -40,7 +40,7 @@ func TestSSEServerAuthentication(t *testing.T) {
 	g.authTokenWasGenerated = wasGenerated
 
 	// Start the SSE server in a goroutine
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	// Create a listener on a random available port
@@ -175,7 +175,7 @@ func TestStreamingServerAuthentication(t *testing.T) {
 	g.authTokenWasGenerated = wasGenerated
 
 	// Start the streaming server in a goroutine
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	// Create a listener on a random available port

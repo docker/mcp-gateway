@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -125,7 +124,7 @@ func TestTelemetrySpanCreation(t *testing.T) {
 	spanRecorder, _ := setupTestTelemetry(t)
 
 	// Simulate what the handler would do
-	ctx := context.Background()
+	ctx := t.Context()
 	serverConfig := &catalog.ServerConfig{
 		Name: "test-server",
 		Spec: catalog.Server{
@@ -166,7 +165,7 @@ func TestTelemetrySpanCreation(t *testing.T) {
 func TestTelemetryMetricRecording(t *testing.T) {
 	_, metricReader := setupTestTelemetry(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	serverName := "test-server"
 	serverType := "docker"
 	toolName := "test-tool"
@@ -233,7 +232,7 @@ func TestTelemetryMetricRecording(t *testing.T) {
 func TestTelemetryErrorRecording(t *testing.T) {
 	spanRecorder, metricReader := setupTestTelemetry(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	serverName := "error-server"
 	serverType := "sse"
 	toolName := "error-tool"
@@ -294,7 +293,7 @@ func TestHandlerInstrumentationIntegration(t *testing.T) {
 func TestToolCallDurationMeasurement(t *testing.T) {
 	_, metricReader := setupTestTelemetry(t)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	startTime := time.Now()
 
 	// Simulate some work

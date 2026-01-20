@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,7 +61,7 @@ func TestReadServersFromOci(t *testing.T) {
 				docker: docker.NewClient(nil), // Use nil for default Docker client
 			}
 
-			ctx := context.Background()
+			ctx := t.Context()
 			servers, err := config.readServersFromOci(ctx)
 
 			if tt.expectError {
@@ -113,7 +112,7 @@ func TestReadServersFromOciMultipleRefs(t *testing.T) {
 		docker: docker.NewClient(nil),
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	servers, err := config.readServersFromOci(ctx)
 
 	require.NoError(t, err)
@@ -127,7 +126,7 @@ func TestReadServersFromOciNoRefs(t *testing.T) {
 		docker: docker.NewClient(nil),
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	servers, err := config.readServersFromOci(ctx)
 
 	require.NoError(t, err)

@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -42,7 +41,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		resourceURI := "file:///test/resource.txt"
 		clientName := "test-client"
 		serverConfig := &catalog.ServerConfig{
@@ -119,7 +118,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		resourceURI := "file:///test/resource.txt"
 		serverName := "test-server"
 		clientName := "test-client"
@@ -166,7 +165,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		resourceURI := "file:///test/resource.txt"
 		serverName := "test-server"
 
@@ -220,7 +219,7 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		resourceURI := "file:///test/resource.txt"
 		serverName := "test-server"
 		serverType := "docker"
@@ -268,7 +267,7 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		uriTemplate := "file:///test/{id}/resource.txt"
 		serverName := "test-server"
 		clientName := "test-client"
@@ -312,7 +311,7 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		uriTemplate := "file:///test/{id}/resource.txt"
 		serverName := "test-server"
 
@@ -357,7 +356,7 @@ func TestResourceDiscoveryMetrics(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		serverName := "test-server"
 		resourceCount := 10
 
@@ -400,7 +399,7 @@ func TestResourceDiscoveryMetrics(t *testing.T) {
 		telemetry.Init()
 
 		// Test data
-		ctx := context.Background()
+		ctx := t.Context()
 		serverName := "test-server"
 		templateCount := 5
 
@@ -455,7 +454,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		telemetry.Init()
 
 		// Simulate what the handler would do
-		ctx := context.Background()
+		ctx := t.Context()
 		serverConfig := &catalog.ServerConfig{
 			Name: "test-server",
 			Spec: catalog.Server{
@@ -532,7 +531,7 @@ func TestMcpServerResourceHandlerInstrumentation(t *testing.T) {
 		telemetry.Init()
 
 		// Simulate error case
-		ctx := context.Background()
+		ctx := t.Context()
 		serverConfig := &catalog.ServerConfig{
 			Name: "test-server",
 			Spec: catalog.Server{
