@@ -29,24 +29,17 @@ import (
 func setupTestEnvironment(t *testing.T) string {
 	t.Helper()
 
-	// Save original HOME env var
-	originalHome := os.Getenv("HOME")
-
 	// Create temp directory
 	tempDir := t.TempDir()
 
 	// Override HOME to point to temp directory
-	os.Setenv("HOME", tempDir)
+	t.Setenv("HOME", tempDir)
 
 	// Create .docker/mcp directory structure
 	mcpDir := filepath.Join(tempDir, ".docker", "mcp")
 	catalogsDir := filepath.Join(mcpDir, "catalogs")
 	err := os.MkdirAll(catalogsDir, 0o755)
 	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		os.Setenv("HOME", originalHome)
-	})
 
 	return mcpDir
 }

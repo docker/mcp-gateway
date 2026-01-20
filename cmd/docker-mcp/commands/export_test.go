@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,15 +12,10 @@ import (
 func TestExportCatalogCommand(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry and configured catalog
 	setupTestCatalogRegistry(t, tempHome)
-
-	ctx := context.Background()
 
 	// Test exporting a configured catalog
 	outputFile := filepath.Join(tempHome, "exported-catalog.yaml")
@@ -29,7 +23,7 @@ func TestExportCatalogCommand(t *testing.T) {
 	// Create and execute export command
 	cmd := exportCatalogCommand()
 	cmd.SetArgs([]string{"my-catalog", outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err := cmd.Execute()
 	require.NoError(t, err, "export command should succeed")
@@ -47,12 +41,8 @@ func TestExportCatalogCommand(t *testing.T) {
 }
 
 func TestExportDockerCatalogShouldFail(t *testing.T) {
-	ctx := context.Background()
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry
 	setupTestCatalogRegistry(t, tempHome)
@@ -62,7 +52,7 @@ func TestExportDockerCatalogShouldFail(t *testing.T) {
 
 	cmd := exportCatalogCommand()
 	cmd.SetArgs([]string{"docker-mcp", outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err := cmd.Execute()
 	require.Error(t, err, "exporting Docker catalog should fail")
@@ -70,19 +60,15 @@ func TestExportDockerCatalogShouldFail(t *testing.T) {
 }
 
 func TestExportNonExistentCatalog(t *testing.T) {
-	ctx := context.Background()
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Test exporting non-existent catalog
 	outputFile := filepath.Join(tempHome, "nonexistent.yaml")
 
 	cmd := exportCatalogCommand()
 	cmd.SetArgs([]string{"nonexistent-catalog", outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err := cmd.Execute()
 	require.Error(t, err, "exporting non-existent catalog should fail")
@@ -90,12 +76,8 @@ func TestExportNonExistentCatalog(t *testing.T) {
 }
 
 func TestExportInvalidOutputPath(t *testing.T) {
-	ctx := context.Background()
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry
 	setupTestCatalogRegistry(t, tempHome)
@@ -111,7 +93,7 @@ func TestExportInvalidOutputPath(t *testing.T) {
 
 	cmd := exportCatalogCommand()
 	cmd.SetArgs([]string{"my-catalog", outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err = cmd.Execute()
 	require.Error(t, err, "exporting to invalid path should fail")

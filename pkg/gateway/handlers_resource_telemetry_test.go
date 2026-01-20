@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
 
@@ -22,18 +21,8 @@ import (
 )
 
 func TestResourceHandlerTelemetry(t *testing.T) {
-	// Save original env var
-	originalDebug := os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG")
-	defer func() {
-		if originalDebug != "" {
-			os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", originalDebug)
-		} else {
-			os.Unsetenv("DOCKER_MCP_TELEMETRY_DEBUG")
-		}
-	}()
-
 	// Enable debug logging for tests
-	os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
+	t.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
 
 	t.Run("records resource read metrics", func(t *testing.T) {
 		// Set up span recorder and metric reader
@@ -264,18 +253,8 @@ func TestResourceHandlerTelemetry(t *testing.T) {
 }
 
 func TestResourceTemplateHandlerTelemetry(t *testing.T) {
-	// Save original env var
-	originalDebug := os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG")
-	defer func() {
-		if originalDebug != "" {
-			os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", originalDebug)
-		} else {
-			os.Unsetenv("DOCKER_MCP_TELEMETRY_DEBUG")
-		}
-	}()
-
 	// Enable debug logging for tests
-	os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
+	t.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
 
 	t.Run("records resource template read metrics", func(t *testing.T) {
 		// Set up metric reader
@@ -363,18 +342,8 @@ func TestResourceTemplateHandlerTelemetry(t *testing.T) {
 }
 
 func TestResourceDiscoveryMetrics(t *testing.T) {
-	// Save original env var
-	originalDebug := os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG")
-	defer func() {
-		if originalDebug != "" {
-			os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", originalDebug)
-		} else {
-			os.Unsetenv("DOCKER_MCP_TELEMETRY_DEBUG")
-		}
-	}()
-
 	// Enable debug logging for tests
-	os.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
+	t.Setenv("DOCKER_MCP_TELEMETRY_DEBUG", "1")
 
 	t.Run("records resources discovered", func(t *testing.T) {
 		// Set up metric reader

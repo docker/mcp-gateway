@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -266,8 +265,7 @@ func TestStreamingServerAuthentication(t *testing.T) {
 // TestAuthTokenFromEnvironment tests that the auth token is read from the environment
 func TestAuthTokenFromEnvironment(t *testing.T) {
 	expectedToken := "my-custom-token-from-env"
-	os.Setenv("MCP_GATEWAY_AUTH_TOKEN", expectedToken)
-	defer os.Unsetenv("MCP_GATEWAY_AUTH_TOKEN")
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", expectedToken)
 
 	token, wasGenerated, err := getOrGenerateAuthToken()
 	if err != nil {

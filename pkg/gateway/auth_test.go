@@ -3,7 +3,6 @@ package gateway
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 )
@@ -28,8 +27,7 @@ func TestGenerateAuthToken(t *testing.T) {
 
 func TestGetOrGenerateAuthToken_FromEnvironment(t *testing.T) {
 	expectedToken := "test-token-from-env"
-	os.Setenv("MCP_GATEWAY_AUTH_TOKEN", expectedToken)
-	defer os.Unsetenv("MCP_GATEWAY_AUTH_TOKEN")
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", expectedToken)
 
 	token, wasGenerated, err := getOrGenerateAuthToken()
 	if err != nil {
@@ -46,7 +44,7 @@ func TestGetOrGenerateAuthToken_FromEnvironment(t *testing.T) {
 }
 
 func TestGetOrGenerateAuthToken_Generated(t *testing.T) {
-	os.Unsetenv("MCP_GATEWAY_AUTH_TOKEN")
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", "")
 
 	token, wasGenerated, err := getOrGenerateAuthToken()
 	if err != nil {
@@ -63,8 +61,7 @@ func TestGetOrGenerateAuthToken_Generated(t *testing.T) {
 }
 
 func TestGetOrGenerateAuthToken_EmptyEnvironment(t *testing.T) {
-	os.Setenv("MCP_GATEWAY_AUTH_TOKEN", "")
-	defer os.Unsetenv("MCP_GATEWAY_AUTH_TOKEN")
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", "")
 
 	token, wasGenerated, err := getOrGenerateAuthToken()
 	if err != nil {

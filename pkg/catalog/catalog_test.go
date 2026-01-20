@@ -13,10 +13,7 @@ import (
 func TestCatalogGetWithConfigured(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry and configured catalog
 	setupTestCatalogs(t, tempHome)
@@ -35,10 +32,7 @@ func TestCatalogGetWithConfigured(t *testing.T) {
 func TestCatalogGetWithoutConfigured(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry and configured catalog
 	setupTestCatalogs(t, tempHome)
@@ -57,10 +51,7 @@ func TestCatalogGetWithoutConfigured(t *testing.T) {
 func TestGetConfiguredCatalogsSuccess(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalog registry
 	setupTestCatalogs(t, tempHome)
@@ -76,10 +67,7 @@ func TestGetConfiguredCatalogsSuccess(t *testing.T) {
 func TestGetConfiguredCatalogsMissing(t *testing.T) {
 	// Create temporary home directory with no catalog.json
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Test reading missing catalog registry
 	catalogFiles, err := getConfiguredCatalogs()
@@ -95,10 +83,7 @@ func TestGetConfiguredCatalogsMissing(t *testing.T) {
 func TestGetConfiguredCatalogsCorrupt(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create corrupted catalog.json
 	mcpDir := filepath.Join(tempHome, ".docker", "mcp")
@@ -120,10 +105,7 @@ func TestGetConfiguredCatalogsCorrupt(t *testing.T) {
 func TestCatalogPrecedenceOrder(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create test catalogs with overlapping server name and conflicting tool names
 	setupOverlappingCatalogs(t, tempHome)

@@ -377,20 +377,11 @@ func TestMcpExecTool(t *testing.T) {
 }
 
 func TestShortenURLWithBitly(t *testing.T) {
-	ctx := context.Background()
-
 	t.Run("missing Bitly token", func(t *testing.T) {
-		// Ensure BITLY_ACCESS_TOKEN is not set
-		oldToken := os.Getenv("BITLY_ACCESS_TOKEN")
-		os.Unsetenv("BITLY_ACCESS_TOKEN")
-		defer func() {
-			if oldToken != "" {
-				os.Setenv("BITLY_ACCESS_TOKEN", oldToken)
-			}
-		}()
+		t.Setenv("BITLY_ACCESS_TOKEN", "")
 
 		longURL := "https://example.com/oauth/authorize?client_id=abc123&redirect_uri=https://example.com/callback&response_type=code&state=xyz789"
-		_, err := shortenURL(ctx, longURL)
+		_, err := shortenURL(t.Context(), longURL)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "BITLY_ACCESS_TOKEN not set")
 	})
@@ -404,7 +395,7 @@ func TestShortenURLWithBitly(t *testing.T) {
 		}
 
 		longURL := "https://example.com/oauth/authorize?client_id=abc123&redirect_uri=https://example.com/callback&response_type=code&state=xyz789"
-		shortURL, err := shortenURL(ctx, longURL)
+		shortURL, err := shortenURL(t.Context(), longURL)
 
 		if err != nil {
 			// If we get an error with a valid token, it might be a network issue or rate limit

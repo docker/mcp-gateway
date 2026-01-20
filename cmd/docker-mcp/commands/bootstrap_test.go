@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,15 +15,10 @@ import (
 func TestBootstrapCatalogCommand(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Setup Docker catalog for testing
 	setupTestDockerCatalog(t, tempHome)
-
-	ctx := context.Background()
 
 	// Test bootstrapping a catalog
 	outputFile := filepath.Join(tempHome, "bootstrap-catalog.yaml")
@@ -32,7 +26,7 @@ func TestBootstrapCatalogCommand(t *testing.T) {
 	// Create and execute bootstrap command
 	cmd := bootstrapCatalogCommand()
 	cmd.SetArgs([]string{outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err := cmd.Execute()
 	require.NoError(t, err, "bootstrap command should succeed")
@@ -65,12 +59,8 @@ func TestBootstrapCatalogCommand(t *testing.T) {
 }
 
 func TestBootstrapExistingFile(t *testing.T) {
-	ctx := context.Background()
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Setup Docker catalog for testing
 	setupTestDockerCatalog(t, tempHome)
@@ -83,7 +73,7 @@ func TestBootstrapExistingFile(t *testing.T) {
 	// Test bootstrapping over existing file should fail
 	cmd := bootstrapCatalogCommand()
 	cmd.SetArgs([]string{outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err = cmd.Execute()
 	require.Error(t, err, "bootstrapping over existing file should fail")
@@ -96,12 +86,8 @@ func TestBootstrapExistingFile(t *testing.T) {
 }
 
 func TestBootstrapInvalidPath(t *testing.T) {
-	ctx := context.Background()
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Setup Docker catalog for testing
 	setupTestDockerCatalog(t, tempHome)
@@ -117,7 +103,7 @@ func TestBootstrapInvalidPath(t *testing.T) {
 
 	cmd := bootstrapCatalogCommand()
 	cmd.SetArgs([]string{outputFile})
-	cmd.SetContext(ctx)
+	cmd.SetContext(t.Context())
 
 	err = cmd.Execute()
 	require.Error(t, err, "bootstrapping to invalid path should fail")
@@ -127,15 +113,12 @@ func TestBootstrapInvalidPath(t *testing.T) {
 func TestBootstrapDockerEntriesExtraction(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Setup a more detailed Docker catalog for testing
 	setupDetailedTestDockerCatalog(t, tempHome)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	outputFile := filepath.Join(tempHome, "detailed-bootstrap.yaml")
 
 	// Create and execute bootstrap command

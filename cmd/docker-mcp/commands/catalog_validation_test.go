@@ -15,16 +15,7 @@ import (
 func TestDockerCatalogProtection(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	originalHome := os.Getenv("HOME")
-	defer func() {
-		if originalHome != "" {
-			os.Setenv("HOME", originalHome)
-		}
-	}()
-
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv("HOME", tempHome)
 
 	// Create the MCP directory structure
 	mcpDir := filepath.Join(tempHome, ".docker", "mcp")

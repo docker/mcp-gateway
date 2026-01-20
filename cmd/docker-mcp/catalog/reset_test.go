@@ -14,10 +14,7 @@ import (
 func TestReset(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Setup test environment with user catalogs
 	setupTestCatalogsForReset(t, tempHome)
@@ -67,10 +64,7 @@ func TestReset(t *testing.T) {
 func TestResetEmptyCatalogs(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
-	if err := os.Setenv("HOME", tempHome); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Unsetenv("HOME")
+	t.Setenv("HOME", tempHome)
 
 	// Create minimal directory structure without any catalogs
 	mcpDir := filepath.Join(tempHome, ".docker", "mcp")
