@@ -64,7 +64,11 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	}
 
 	if !pulled && pullOptionEvaluator.Evaluate(dbCatalog) {
-		fmt.Fprintf(os.Stderr, "Pulling catalog %s... (last update was %s ago)\n", refStr, time.Since(*dbCatalog.LastUpdated).Round(time.Second))
+		if dbCatalog == nil || dbCatalog.LastUpdated == nil {
+			fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
+		} else {
+			fmt.Fprintf(os.Stderr, "Pulling catalog %s... (last update was %s ago)\n", refStr, time.Since(*dbCatalog.LastUpdated).Round(time.Second))
+		}
 		_, err := pullCatalog(ctx, dao, ociService, refStr)
 		if err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
