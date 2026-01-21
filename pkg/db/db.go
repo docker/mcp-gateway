@@ -17,7 +17,6 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/docker/mcp-gateway/pkg/log"
-	"github.com/docker/mcp-gateway/pkg/retry"
 	"github.com/docker/mcp-gateway/pkg/user"
 
 	// This enables to sqlite driver
@@ -105,8 +104,8 @@ func New(opts ...Option) (DAO, error) {
 	lockFile := filepath.Join(filepath.Dir(o.dbFile), ".mcp-toolkit-migration.lock")
 	fileLock := flock.New(lockFile)
 
-	// Try to acquire the lock with a 1 second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// Try to acquire the lock with a 5 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond)
@@ -123,15 +122,8 @@ func New(opts ...Option) (DAO, error) {
 	}()
 
 	// Now safely run migrations with the lock held
-	// We still use a small retry in case of transient SQLite errors
-	err = retry.Retry(3, 200*time.Millisecond, func() error {
-		err := mig.Up()
-		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+	err = mig.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
