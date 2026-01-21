@@ -13,6 +13,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
@@ -126,7 +127,7 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	}
 
 	client := &http.Client{
-		Transport: http.DefaultTransport,
+		Transport: desktop.ProxyTransport(),
 	}
 
 	resp, err := client.Do(req)

@@ -8,10 +8,41 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
+	"sync"
 	"time"
 )
 
 var ClientBackend = newRawClient(dialBackend)
+
+var (
+	desktopProxyTransportOnce sync.Once
+	desktopProxyTransportInst http.RoundTripper
+)
+
+// ProxyTransport returns an HTTP transport configured to use Docker Desktop's HTTP proxy socket
+// when Docker Desktop is running. If Docker Desktop is not running, it returns http.DefaultTransport.
+// The transport is initialized once using sync.Once and cached for subsequent calls.
+func ProxyTransport() http.RoundTripper {
+	desktopProxyTransportOnce.Do(func() {
+		ctx := context.Background()
+		if !IsRunningInDockerDesktop(ctx) {
+			desktopProxyTransportInst = http.DefaultTransport
+			return
+		}
+
+		desktopProxyTransportInst = &http.Transport{
+			Proxy: http.ProxyURL(&url.URL{
+				Scheme: "http",
+			}),
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return dialHTTPProxy(ctx)
+			},
+		}
+	})
+
+	return desktopProxyTransportInst
+}
 
 func AvoidResourceSaverMode(ctx context.Context) {
 	_ = ClientBackend.Post(ctx, "/idle/make-busy", nil, nil)

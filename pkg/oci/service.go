@@ -10,6 +10,8 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 type Service interface {
@@ -49,7 +51,7 @@ func (s *service) GetLocalImage(ctx context.Context, ref name.Reference) (v1.Ima
 }
 
 func (s *service) GetRemoteImage(ctx context.Context, ref name.Reference) (v1.Image, error) {
-	return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport()))
 }
 
 func IsNoSuchImageError(err error) bool {

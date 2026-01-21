@@ -8,6 +8,8 @@ import (
 	"time"
 
 	registryapi "github.com/modelcontextprotocol/registry/pkg/api/v0"
+
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 type Client interface {
@@ -21,7 +23,10 @@ type client struct {
 
 func NewClient() Client {
 	return &client{
-		client: &http.Client{Timeout: 20 * time.Second},
+		client: &http.Client{
+			Transport: desktop.ProxyTransport(),
+			Timeout:   20 * time.Second,
+		},
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/tui"
 )
 
@@ -23,13 +24,13 @@ func isValidURL(u string) bool {
 	return true
 }
 
-func DownloadFile(ctx context.Context, url string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func DownloadFile(ctx context.Context, downloadURL string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
 		return nil, err
 	}
 	client := &http.Client{
-		Transport: http.DefaultTransport,
+		Transport: desktop.ProxyTransport(),
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -37,7 +38,7 @@ func DownloadFile(ctx context.Context, url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("downloading %q (status code: %d)", url, resp.StatusCode)
+		return nil, fmt.Errorf("downloading %q (status code: %d)", downloadURL, resp.StatusCode)
 	}
 	return io.ReadAll(resp.Body)
 }
