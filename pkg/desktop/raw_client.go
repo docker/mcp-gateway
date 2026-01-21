@@ -8,10 +8,25 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 var ClientBackend = newRawClient(dialBackend)
+
+// DesktopProxyTransport creates an HTTP transport configured to use Docker Desktop's HTTP proxy socket.
+// This transport routes all HTTP requests through the Docker Desktop proxy for authenticated access.
+func DesktopProxyTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyURL(&url.URL{
+			Scheme: "http",
+		}),
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			dialer := net.Dialer{}
+			return dialer.DialContext(ctx, "unix", Paths().HttpProxySocket)
+		},
+	}
+}
 
 func AvoidResourceSaverMode(ctx context.Context) {
 	_ = ClientBackend.Post(ctx, "/idle/make-busy", nil, nil)

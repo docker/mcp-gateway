@@ -19,6 +19,7 @@ func getDockerDesktopPaths() (DockerDesktopPaths, error) {
 		RawDockerSocket:      `\\.\pipe\docker_engine_linux`,
 		JFSSocket:            `\\.\pipe\dockerJfs`,
 		ToolsSocket:          `\\.\pipe\dockerTools`,
+		HttpProxySocket:      `\\.\pipe\dockerHttpProxy`,
 		CredentialHelperPath: getCredentialHelperPath,
 	}, nil
 }
