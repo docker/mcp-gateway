@@ -35,7 +35,7 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 
 	// Make the HTTP request
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 	resp, err := client.Do(req)
 	if err != nil {

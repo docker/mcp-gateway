@@ -30,7 +30,7 @@ func DownloadFile(ctx context.Context, downloadURL string) ([]byte, error) {
 		return nil, err
 	}
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 	resp, err := client.Do(req)
 	if err != nil {

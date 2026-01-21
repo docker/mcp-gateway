@@ -8,7 +8,7 @@ type DockerDesktopPaths struct {
 	RawDockerSocket      string
 	JFSSocket            string
 	ToolsSocket          string
-	HttpProxySocket      string
+	HTTPProxySocket      string
 	CredentialHelperPath func() string
 }
 

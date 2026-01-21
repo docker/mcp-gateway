@@ -51,7 +51,7 @@ func generateEmbedding(ctx context.Context, text string) ([]float64, error) {
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 	resp, err := client.Do(req)
 	if err != nil {

@@ -188,7 +188,7 @@ func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, erro
 	}
 
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 
 	response, err := client.Do(request)

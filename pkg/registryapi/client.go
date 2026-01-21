@@ -24,7 +24,7 @@ type client struct {
 func NewClient() Client {
 	return &client{
 		client: &http.Client{
-			Transport: desktop.DesktopProxyTransport(),
+			Transport: desktop.ProxyTransport(),
 			Timeout:   20 * time.Second,
 		},
 	}

@@ -84,7 +84,7 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 		}
 
 		client := &http.Client{
-			Transport: desktop.DesktopProxyTransport(),
+			Transport: desktop.ProxyTransport(),
 		}
 
 		resp, err := client.Do(req)

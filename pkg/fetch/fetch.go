@@ -21,7 +21,7 @@ func Untrusted(ctx context.Context, url string) ([]byte, error) {
 
 	client := &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 
 	resp, err := client.Do(req)

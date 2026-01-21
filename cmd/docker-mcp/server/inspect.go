@@ -127,7 +127,7 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	}
 
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 	}
 
 	resp, err := client.Do(req)

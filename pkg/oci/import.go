@@ -23,7 +23,7 @@ func ImportToServer(registryURL string) (catalog.Server, error) {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 		Timeout:   30 * time.Second,
 	}
 
@@ -66,7 +66,7 @@ func Import(registryURL string, ociRepository string, push bool) error {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Transport: desktop.DesktopProxyTransport(),
+		Transport: desktop.ProxyTransport(),
 		Timeout:   30 * time.Second,
 	}
 

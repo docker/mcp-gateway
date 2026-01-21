@@ -20,10 +20,10 @@ var (
 	desktopProxyTransportInst http.RoundTripper
 )
 
-// DesktopProxyTransport returns an HTTP transport configured to use Docker Desktop's HTTP proxy socket
+// ProxyTransport returns an HTTP transport configured to use Docker Desktop's HTTP proxy socket
 // when Docker Desktop is running. If Docker Desktop is not running, it returns http.DefaultTransport.
 // The transport is initialized once using sync.Once and cached for subsequent calls.
-func DesktopProxyTransport() http.RoundTripper {
+func ProxyTransport() http.RoundTripper {
 	desktopProxyTransportOnce.Do(func() {
 		ctx := context.Background()
 		if !IsRunningInDockerDesktop(ctx) {
@@ -37,7 +37,7 @@ func DesktopProxyTransport() http.RoundTripper {
 			}),
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				dialer := net.Dialer{}
-				return dialer.DialContext(ctx, "unix", Paths().HttpProxySocket)
+				return dialer.DialContext(ctx, "unix", Paths().HTTPProxySocket)
 			},
 		}
 	})
