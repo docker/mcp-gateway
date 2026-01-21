@@ -65,7 +65,7 @@ func connectClientCommand(dockerCli command.Cli, cwd string, cfg client.Config, 
 	addGlobalFlag(flags, &opts.Global)
 	addQuietFlag(flags, &opts.Quiet)
 	if features.IsProfilesFeatureEnabled() {
-		addWorkingSetFlag(flags, &opts.WorkingSet)
+		_ = cmd.MarkFlagRequired(addWorkingSetFlag(flags, &opts.WorkingSet))
 	}
 	return cmd
 }
@@ -137,6 +137,7 @@ func addQuietFlag(flags *pflag.FlagSet, p *bool) {
 	flags.BoolVarP(p, "quiet", "q", false, "Only display errors.")
 }
 
-func addWorkingSetFlag(flags *pflag.FlagSet, p *string) {
+func addWorkingSetFlag(flags *pflag.FlagSet, p *string) string {
 	flags.StringVarP(p, "profile", "p", "", "Profile to use for client connection.")
+	return "profile"
 }

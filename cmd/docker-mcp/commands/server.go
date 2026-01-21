@@ -13,154 +13,163 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/server"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/terminal"
 )
 
-func serverCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
+func serverCommand(docker docker.Client, dockerCli command.Cli, features features.Features) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Manage servers",
 	}
 
-	var outputJSON bool
-	lsCommand := &cobra.Command{
-		Use:     "ls",
-		Aliases: []string{"list"},
-		Short:   "List enabled servers",
-		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			list, err := server.List(cmd.Context(), docker, outputJSON)
-			if err != nil {
-				return err
-			}
-
-			if outputJSON {
-				buf, err := json.Marshal(list)
+	if features.IsProfilesFeatureEnabled() {
+		cmd.AddCommand(obsoleteCommand("ls", "See `docker mcp profile server ls --help` instead."))
+		cmd.AddCommand(obsoleteCommand("enable", "See `docker mcp profile server add --help` instead."))
+		cmd.AddCommand(obsoleteCommand("disable", "See `docker mcp profile server remove --help` instead."))
+		cmd.AddCommand(obsoleteCommand("inspect", "See `docker mcp profile server inspect --help` instead."))
+		cmd.AddCommand(obsoleteCommand("reset", "See `docker mcp profile server --help` instead."))
+	} else {
+		var outputJSON bool
+		lsCommand := &cobra.Command{
+			Use:     "ls",
+			Aliases: []string{"list"},
+			Short:   "List enabled servers",
+			Args:    cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				list, err := server.List(cmd.Context(), docker, outputJSON)
 				if err != nil {
 					return err
 				}
-				_, _ = cmd.OutOrStdout().Write(buf)
-			} else if len(list) == 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), "No server is enabled")
-			} else {
-				// Format: $ docker mcp server ls
-				// MCP Servers (7 enabled)
-				//
-				// NAME SECRETS CONFIG DESCRIPTION
-				// atlassian ✓ done ✓ done Confluence and Jira tools
 
-				enabledCount := len(list)
-				fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled)\n\n", enabledCount)
+				if outputJSON {
+					buf, err := json.Marshal(list)
+					if err != nil {
+						return err
+					}
+					_, _ = cmd.OutOrStdout().Write(buf)
+				} else if len(list) == 0 {
+					fmt.Fprintln(cmd.OutOrStdout(), "No server is enabled")
+				} else {
+					// Format: $ docker mcp server ls
+					// MCP Servers (7 enabled)
+					//
+					// NAME SECRETS CONFIG DESCRIPTION
+					// atlassian ✓ done ✓ done Confluence and Jira tools
 
-				// Calculate column widths based on terminal size
-				termWidth := terminal.GetWidthFrom(cmd.OutOrStdout())
-				colWidths := calculateColumnWidths(termWidth)
+					enabledCount := len(list)
+					fmt.Fprintf(cmd.OutOrStdout(), "\nMCP Servers (%d enabled)\n\n", enabledCount)
 
-				// Calculate total table width (sum of columns + spaces between columns)
-				totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4 // 4 spaces between columns
+					// Calculate column widths based on terminal size
+					termWidth := terminal.GetWidthFrom(cmd.OutOrStdout())
+					colWidths := calculateColumnWidths(termWidth)
 
-				// Print table headers
-				fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
-					colWidths.name, "NAME",
-					colWidths.oauth, "OAUTH",
-					colWidths.secrets, "SECRETS",
-					colWidths.config, "CONFIG",
-					colWidths.description, "DESCRIPTION")
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", totalWidth))
+					// Calculate total table width (sum of columns + spaces between columns)
+					totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4 // 4 spaces between columns
 
-				// Print entries
-				for _, entry := range list {
-					// Determine secrets, config, and OAuth display strings
-					secretsText := entry.Secrets.DisplayString()
-					configText := entry.Config.DisplayString()
-					oauthText := entry.OAuth.DisplayString()
-
-					// Truncate description to fit within the available column width
-					description := truncateString(entry.Description, colWidths.description)
-
+					// Print table headers
 					fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
-						colWidths.name, truncateString(entry.Name, colWidths.name),
-						colWidths.oauth, oauthText,
-						colWidths.secrets, secretsText,
-						colWidths.config, configText,
-						colWidths.description, description)
+						colWidths.name, "NAME",
+						colWidths.oauth, "OAUTH",
+						colWidths.secrets, "SECRETS",
+						colWidths.config, "CONFIG",
+						colWidths.description, "DESCRIPTION")
+					fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", totalWidth))
+
+					// Print entries
+					for _, entry := range list {
+						// Determine secrets, config, and OAuth display strings
+						secretsText := entry.Secrets.DisplayString()
+						configText := entry.Config.DisplayString()
+						oauthText := entry.OAuth.DisplayString()
+
+						// Truncate description to fit within the available column width
+						description := truncateString(entry.Description, colWidths.description)
+
+						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+							colWidths.name, truncateString(entry.Name, colWidths.name),
+							colWidths.oauth, oauthText,
+							colWidths.secrets, secretsText,
+							colWidths.config, configText,
+							colWidths.description, description)
+					}
+
+					if hints.Enabled(dockerCli) {
+						fmt.Fprintln(cmd.OutOrStdout(), "")
+						hints.TipCyan.Fprint(cmd.OutOrStdout(), "Tip: To use these servers, connect to a client (IE: claude/cursor) with ")
+						hints.TipCyanBoldItalic.Fprintln(cmd.OutOrStdout(), "docker mcp client connect <client-name>")
+						fmt.Fprintln(cmd.OutOrStdout(), "")
+					}
 				}
 
-				if hints.Enabled(dockerCli) {
-					fmt.Fprintln(cmd.OutOrStdout(), "")
-					hints.TipCyan.Fprint(cmd.OutOrStdout(), "Tip: To use these servers, connect to a client (IE: claude/cursor) with ")
-					hints.TipCyanBoldItalic.Fprintln(cmd.OutOrStdout(), "docker mcp client connect <client-name>")
-					fmt.Fprintln(cmd.OutOrStdout(), "")
-				}
-			}
+				return nil
+			},
+		}
+		lsCommand.Flags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
+		cmd.AddCommand(lsCommand)
 
-			return nil
-		},
+		cmd.AddCommand(&cobra.Command{
+			Use:     "enable",
+			Aliases: []string{"add"},
+			Short:   "Enable a server or multiple servers",
+			Args:    cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+				return server.Enable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
+			},
+		})
+
+		cmd.AddCommand(&cobra.Command{
+			Use:     "disable",
+			Aliases: []string{"remove", "rm"},
+			Short:   "Disable a server or multiple servers",
+			Args:    cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
+				return server.Disable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
+			},
+		})
+
+		cmd.AddCommand(&cobra.Command{
+			Use:   "inspect",
+			Short: "Get information about a server or inspect an OCI artifact",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				arg := args[0]
+
+				// Check if the argument looks like an OCI reference
+				// OCI refs typically contain a registry/repository pattern with optional tag or digest
+				if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
+					// Use OCI inspect for OCI references
+					return oci.InspectArtifact[oci.Catalog](arg, oci.MCPServerArtifactType)
+				}
+
+				// Use regular server inspect for server names
+				info, err := server.Inspect(cmd.Context(), docker, arg)
+				if err != nil {
+					return err
+				}
+
+				buf, err := info.ToJSON()
+				if err != nil {
+					return err
+				}
+
+				_, _ = cmd.OutOrStdout().Write(buf)
+				return nil
+			},
+		})
+
+		cmd.AddCommand(&cobra.Command{
+			Use:   "reset",
+			Short: "Disable all the servers",
+			Args:  cobra.NoArgs,
+			RunE: func(*cobra.Command, []string) error {
+				return config.WriteRegistry(nil)
+			},
+		})
 	}
-	lsCommand.Flags().BoolVar(&outputJSON, "json", false, "Output in JSON format")
-	cmd.AddCommand(lsCommand)
-
-	cmd.AddCommand(&cobra.Command{
-		Use:     "enable",
-		Aliases: []string{"add"},
-		Short:   "Enable a server or multiple servers",
-		Args:    cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			return server.Enable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
-		},
-	})
-
-	cmd.AddCommand(&cobra.Command{
-		Use:     "disable",
-		Aliases: []string{"remove", "rm"},
-		Short:   "Disable a server or multiple servers",
-		Args:    cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			mcpOAuthDcrEnabled := isMcpOAuthDcrFeatureEnabled(dockerCli)
-			return server.Disable(cmd.Context(), docker, dockerCli, args, mcpOAuthDcrEnabled)
-		},
-	})
-
-	cmd.AddCommand(&cobra.Command{
-		Use:   "inspect",
-		Short: "Get information about a server or inspect an OCI artifact",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			arg := args[0]
-
-			// Check if the argument looks like an OCI reference
-			// OCI refs typically contain a registry/repository pattern with optional tag or digest
-			if strings.Contains(arg, "/") && (strings.Contains(arg, ":") || strings.Contains(arg, "@")) {
-				// Use OCI inspect for OCI references
-				return oci.InspectArtifact[oci.Catalog](arg, oci.MCPServerArtifactType)
-			}
-
-			// Use regular server inspect for server names
-			info, err := server.Inspect(cmd.Context(), docker, arg)
-			if err != nil {
-				return err
-			}
-
-			buf, err := info.ToJSON()
-			if err != nil {
-				return err
-			}
-
-			_, _ = cmd.OutOrStdout().Write(buf)
-			return nil
-		},
-	})
-
-	cmd.AddCommand(&cobra.Command{
-		Use:   "reset",
-		Short: "Disable all the servers",
-		Args:  cobra.NoArgs,
-		RunE: func(*cobra.Command, []string) error {
-			return config.WriteRegistry(nil)
-		},
-	})
 
 	var language string
 	var templateName string

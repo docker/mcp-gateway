@@ -6,9 +6,10 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/tools"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
-func toolsCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
+func toolsCommand(docker docker.Client, dockerCli command.Cli, features features.Features) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tools",
 		Short: "Manage tools",
@@ -24,6 +25,35 @@ func toolsCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Verbose output")
 	cmd.PersistentFlags().StringVar(&format, "format", "list", "Output format (json|list)")
 	cmd.PersistentFlags().StringSliceVar(&gatewayArgs, "gateway-arg", nil, "Additional arguments passed to the gateway")
+
+	if features.IsProfilesFeatureEnabled() {
+		cmd.AddCommand(obsoleteCommand("enable", "See `docker mcp profile tools --help` instead."))
+		cmd.AddCommand(obsoleteCommand("disable", "See `docker mcp profile tools --help` instead."))
+	} else {
+		var enableServerName string
+		enableCmd := &cobra.Command{
+			Use:   "enable [tool1] [tool2] ...",
+			Short: "enable one or more tools",
+			Args:  cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return tools.Enable(cmd.Context(), docker, args, enableServerName)
+			},
+		}
+		enableCmd.Flags().StringVar(&enableServerName, "server", "", "Specify which server provides the tools (optional, will auto-discover if not provided)")
+		cmd.AddCommand(enableCmd)
+
+		var disableServerName string
+		disableCmd := &cobra.Command{
+			Use:   "disable [tool1] [tool2] ...",
+			Short: "disable one or more tools",
+			Args:  cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return tools.Disable(cmd.Context(), docker, args, disableServerName)
+			},
+		}
+		disableCmd.Flags().StringVar(&disableServerName, "server", "", "Specify which server provides the tools (optional, will auto-discover if not provided)")
+		cmd.AddCommand(disableCmd)
+	}
 
 	cmd.AddCommand(&cobra.Command{
 		Use:     "ls",
@@ -52,6 +82,7 @@ func toolsCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			return tools.List(cmd.Context(), dockerCli, version, gatewayArgs, verbose, "inspect", args[0], format)
 		},
 	})
+
 	cmd.AddCommand(&cobra.Command{
 		Use:   "call",
 		Short: "Call a tool",
@@ -59,30 +90,6 @@ func toolsCommand(docker docker.Client, dockerCli command.Cli) *cobra.Command {
 			return tools.Call(cmd.Context(), version, gatewayArgs, verbose, args)
 		},
 	})
-
-	var enableServerName string
-	enableCmd := &cobra.Command{
-		Use:   "enable [tool1] [tool2] ...",
-		Short: "enable one or more tools",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return tools.Enable(cmd.Context(), docker, args, enableServerName)
-		},
-	}
-	enableCmd.Flags().StringVar(&enableServerName, "server", "", "Specify which server provides the tools (optional, will auto-discover if not provided)")
-	cmd.AddCommand(enableCmd)
-
-	var disableServerName string
-	disableCmd := &cobra.Command{
-		Use:   "disable [tool1] [tool2] ...",
-		Short: "disable one or more tools",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return tools.Disable(cmd.Context(), docker, args, disableServerName)
-		},
-	}
-	disableCmd.Flags().StringVar(&disableServerName, "server", "", "Specify which server provides the tools (optional, will auto-discover if not provided)")
-	cmd.AddCommand(disableCmd)
 
 	return cmd
 }
