@@ -358,6 +358,7 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 
 	// Make the request
 	client := &http.Client{
+		Transport: desktop.DesktopProxyTransport(),
 		Timeout: 10 * time.Second,
 	}
 	resp, err := client.Do(req)

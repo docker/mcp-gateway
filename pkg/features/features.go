@@ -2,8 +2,6 @@ package features
 
 import (
 	"context"
-	"os"
-	"runtime"
 
 	"github.com/docker/cli/cli/command"
 
@@ -28,7 +26,7 @@ func New(ctx context.Context, dockerCli command.Cli) (result Features) {
 	features := &featuresImpl{}
 	result = features
 
-	features.runningDockerDesktop = IsRunningInDockerDesktop(ctx)
+	features.runningDockerDesktop = desktop.IsRunningInDockerDesktop(ctx)
 
 	features.profilesEnabled, features.initErr = readProfilesFeature(ctx, dockerCli, features.runningDockerDesktop)
 	return
@@ -58,30 +56,6 @@ func (f *featuresImpl) IsProfilesFeatureEnabled() bool {
 
 func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
-}
-
-// IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
-func IsRunningInDockerDesktop(ctx context.Context) bool {
-	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
-	// must not touch the Docker API before the CLI is fully initialized. The
-	// plugin lifecycle initializes the Docker CLI later, so probing here would
-	// fail with "no context store initialized". In this mode we skip probing.
-	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
-		return false
-	}
-
-	// Always running in Docker Desktop on Windows and macOS
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		return true
-	}
-
-	// Otherwise, on Linux check if Docker Desktop is running
-	// Hacky, but it's the only way to check before PersistentPreRunE is called with the plugin
-	if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
-		// If we can't check, assume we're not running in Docker Desktop
-		return false
-	}
-	return true
 }
 
 func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {

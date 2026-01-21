@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -113,4 +114,28 @@ func isFeatureEnabled(featureName string, features map[string]Feature) bool {
 		}
 	}
 	return false
+}
+
+// IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
+func IsRunningInDockerDesktop(ctx context.Context) bool {
+	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
+	// must not touch the Docker API before the CLI is fully initialized. The
+	// plugin lifecycle initializes the Docker CLI later, so probing here would
+	// fail with "no context store initialized". In this mode we skip probing.
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+		return false
+	}
+
+	// Always running in Docker Desktop on Windows and macOS
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return true
+	}
+
+	// Otherwise, on Linux check if Docker Desktop is running
+	// Hacky, but it's the only way to check before PersistentPreRunE is called with the plugin
+	if err := CheckDesktopIsRunning(ctx); err != nil {
+		// If we can't check, assume we're not running in Docker Desktop
+		return false
+	}
+	return true
 }

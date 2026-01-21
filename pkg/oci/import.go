@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 func ImportToServer(registryURL string) (catalog.Server, error) {
@@ -22,7 +23,8 @@ func ImportToServer(registryURL string) (catalog.Server, error) {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: desktop.DesktopProxyTransport(),
+		Timeout:   30 * time.Second,
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
@@ -64,7 +66,8 @@ func Import(registryURL string, ociRepository string, push bool) error {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: desktop.DesktopProxyTransport(),
+		Timeout:   30 * time.Second,
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
