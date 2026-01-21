@@ -81,5 +81,10 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 		return nil, fmt.Errorf("failed to create catalog: %w", err)
 	}
 
+	err = dao.RecordPull(ctx, refStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record pull record: %w", err)
+	}
+
 	return &dbCatalog, nil
 }

@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/goccy/go-yaml"
@@ -20,11 +18,6 @@ import (
 )
 
 func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string, format workingset.OutputFormat, pullOptionParam string, yqExpr string) error {
-	pullOption, pullInterval, err := parsePullOption(pullOptionParam)
-	if err != nil {
-		return err
-	}
-
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
@@ -35,26 +28,34 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 
 	refStr = oci.FullNameWithoutDigest(ref)
 
-	if pullOption == PullOptionAlways {
+	pulledPreviously, err := dao.CheckPullRecord(ctx, refStr)
+	if err != nil {
+		return fmt.Errorf("failed to check pull record: %w", err)
+	}
+	pullOptionEvaluator, err := NewPullOptionEvaluator(pullOptionParam, pulledPreviously)
+	if err != nil {
+		return err // avoid wrapping error for clarity
+	}
+
+	pulled := false
+
+	if pullOptionEvaluator.IsAlways() {
 		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
 		_, err := pullCatalog(ctx, dao, ociService, refStr)
 		if err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
+		pulled = true
 	}
 
 	dbCatalog, err := dao.GetCatalog(ctx, refStr)
-	if err != nil && errors.Is(err, sql.ErrNoRows) && (pullOption == PullOptionMissing || pullOption == PullOptionDuration) {
-		fmt.Fprintf(os.Stderr, "Pulling catalog %s (missing)...\n", refStr)
+	if err != nil && errors.Is(err, sql.ErrNoRows) && !pulled && pullOptionEvaluator.Evaluate(nil) {
+		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
 		_, err = pullCatalog(ctx, dao, ociService, refStr)
 		if err != nil {
-			return fmt.Errorf("failed to pull missing catalog %s: %w", refStr, err)
+			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
-		// Reload the catalog after pulling
-		dbCatalog, err = dao.GetCatalog(ctx, refStr)
-		if err != nil {
-			return fmt.Errorf("failed to get catalog %s: %w", refStr, err)
-		}
+		pulled = true
 	} else if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("catalog %s not found", refStr)
@@ -62,13 +63,21 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return fmt.Errorf("failed to get catalog: %w", err)
 	}
 
-	if pullOption == PullOptionDuration && dbCatalog.LastUpdated != nil && time.Since(*dbCatalog.LastUpdated) > pullInterval {
-		fmt.Fprintf(os.Stderr, "Pulling catalog %s... (last update was %s ago)\n", refStr, time.Since(*dbCatalog.LastUpdated).Round(time.Second))
+	if !pulled && pullOptionEvaluator.Evaluate(dbCatalog) {
+		if dbCatalog == nil || dbCatalog.LastUpdated == nil {
+			fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
+		} else {
+			fmt.Fprintf(os.Stderr, "Pulling catalog %s... (last update was %s ago)\n", refStr, time.Since(*dbCatalog.LastUpdated).Round(time.Second))
+		}
 		_, err := pullCatalog(ctx, dao, ociService, refStr)
 		if err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
-		// Reload the catalog
+		pulled = true
+	}
+
+	if pulled {
+		// Reload the catalog after pulling
 		dbCatalog, err = dao.GetCatalog(ctx, refStr)
 		if err != nil {
 			return fmt.Errorf("failed to get catalog %s: %w", refStr, err)
@@ -100,30 +109,4 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	fmt.Println(string(data))
 
 	return nil
-}
-
-func parsePullOption(pullOptionParam string) (PullOption, time.Duration, error) {
-	if pullOptionParam == "" {
-		return PullOptionNever, 0, nil
-	}
-
-	var pullOption PullOption
-	var pullInterval time.Duration
-	isPullOption := slices.Contains(SupportedPullOptions(), pullOptionParam)
-	if isPullOption {
-		pullOption = PullOption(pullOptionParam)
-	} else {
-		// Maybe duration
-		duration, err := time.ParseDuration(pullOptionParam)
-		if err != nil {
-			return PullOptionNever, 0, fmt.Errorf("failed to parse pull option %s: should be %s, or duration (e.g. '1h', '1d')", pullOptionParam, strings.Join(SupportedPullOptions(), ", "))
-		}
-		if duration < 0 {
-			return PullOptionNever, 0, fmt.Errorf("duration %s must be positive", duration)
-		}
-		pullOption = PullOptionDuration
-		pullInterval = duration
-	}
-
-	return pullOption, pullInterval, nil
 }

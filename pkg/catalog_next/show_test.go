@@ -342,5 +342,5 @@ func TestInvalidPullOption(t *testing.T) {
 
 	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid", "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to parse pull option invalid: should be missing, never, always, or duration (e.g. '1h', '1d')")
+	assert.Contains(t, err.Error(), "failed to parse pull interval duration, should be a duration format (e.g. '1h', '1d').")
 }

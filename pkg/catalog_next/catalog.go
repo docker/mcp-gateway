@@ -2,6 +2,9 @@ package catalognext
 
 import (
 	"fmt"
+	"slices"
+	"strings"
+	"time"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -184,15 +187,143 @@ func (catalog *Catalog) validateUniqueServerNames() error {
 
 type PullOption string
 
+// Options can be used in combination with each other, e.g. "initial+exists@6h".
 const (
 	PullOptionMissing = "missing"
 	PullOptionNever   = "never"
 	PullOptionAlways  = "always"
+	PullOptionInitial = "initial"
+	PullOptionExists  = "exists"
 
 	// Special value for duration-based pull options. Don't add as supported pull option below.
+	// Can be used in combination with exists, initial, or always by appending @duration (e.g. "exists@1h", "always@1w").
 	PullOptionDuration = "duration"
 )
 
 func SupportedPullOptions() []string {
-	return []string{string(PullOptionMissing), string(PullOptionNever), string(PullOptionAlways)}
+	return []string{string(PullOptionMissing), string(PullOptionNever), string(PullOptionAlways), string(PullOptionInitial), string(PullOptionExists)}
+}
+
+type PullOptionConfig struct {
+	PullOption PullOption
+	Interval   time.Duration
+}
+
+type PullOptionEvaluator struct {
+	pullOptions      []PullOptionConfig
+	pulledPreviously bool
+}
+
+func NewPullOptionEvaluator(pullOptionParam string, pulledPreviously bool) (*PullOptionEvaluator, error) {
+	pullOptions := []PullOptionConfig{}
+	parts := strings.Split(pullOptionParam, "+")
+	if len(parts) == 0 || pullOptionParam == "" {
+		return &PullOptionEvaluator{pullOptions: pullOptions, pulledPreviously: pulledPreviously}, nil
+	}
+
+	for _, part := range parts {
+		var pullOption PullOption
+		var pullInterval time.Duration
+
+		innerParts := strings.Split(part, "@")
+		if len(innerParts) == 0 {
+			continue
+		}
+		if len(innerParts) == 2 { // e.g. 'always@6h'
+			duration, err := parseDuration(innerParts[1])
+			if err != nil {
+				return nil, err
+			}
+			pullInterval = duration
+		}
+		// else assume just e.g. 'always' or '6h'
+
+		isPullOption := slices.Contains(SupportedPullOptions(), innerParts[0])
+		if isPullOption {
+			pullOption = PullOption(innerParts[0])
+		} else if pullInterval > 0 { // Already set with an @
+			return nil, fmt.Errorf("invalid pull option %s: should be %s", innerParts[0], strings.Join(SupportedPullOptions(), ", "))
+		} else {
+			// Must be a duration, e.g. '6h'
+			duration, err := parseDuration(innerParts[0])
+			if err != nil {
+				return nil, err
+			}
+			pullInterval = duration
+			pullOption = PullOptionDuration
+		}
+		pullOptions = append(pullOptions, PullOptionConfig{
+			PullOption: pullOption,
+			Interval:   pullInterval,
+		})
+	}
+
+	return &PullOptionEvaluator{pullOptions: pullOptions, pulledPreviously: pulledPreviously}, nil
+}
+
+func parseDuration(durationStr string) (time.Duration, error) {
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse pull interval duration, should be a duration format (e.g. '1h', '1d'). You gave %s: %w", durationStr, err)
+	}
+	if duration < 0 {
+		return 0, fmt.Errorf("duration %s must be positive", duration)
+	}
+	return duration, nil
+}
+
+func (evaluator *PullOptionEvaluator) IsAlways() bool {
+	for _, pullOption := range evaluator.pullOptions {
+		if pullOption.PullOption == PullOptionAlways && pullOption.Interval == 0 {
+			// Always and at no interval will be always unconditionally
+			return true
+		}
+	}
+	return false
+}
+
+func (evaluator *PullOptionEvaluator) Evaluate(dbCatalog *db.Catalog) bool {
+	for _, pullOption := range evaluator.pullOptions {
+		// If any pull option is true, return true
+		if pullOption.Evaluate(dbCatalog, evaluator.pulledPreviously) {
+			return true
+		}
+	}
+	return false
+}
+
+func (pullOptionConfig PullOptionConfig) Evaluate(dbCatalog *db.Catalog, pulledPreviously bool) bool {
+	if dbCatalog == nil {
+		switch pullOptionConfig.PullOption {
+		case PullOptionMissing, PullOptionAlways, PullOptionDuration:
+			return true // Always pull immediately when not found, even if there's a duration
+		case PullOptionInitial:
+			return !pulledPreviously
+		default:
+			return false
+		}
+	}
+
+	switch pullOptionConfig.PullOption {
+	case PullOptionMissing, PullOptionNever, PullOptionInitial:
+		return false
+	case PullOptionDuration, PullOptionExists, PullOptionAlways:
+		return pullOptionConfig.intervalPassed(dbCatalog)
+	default:
+		return false
+	}
+}
+
+func (pullOptionConfig PullOptionConfig) intervalPassed(dbCatalog *db.Catalog) bool {
+	// Special case: no interval means always past
+	if pullOptionConfig.Interval == 0 {
+		return true
+	}
+
+	// Only if last updated was longer ago than the interval
+	if dbCatalog != nil && dbCatalog.LastUpdated != nil && time.Since(*dbCatalog.LastUpdated) > pullOptionConfig.Interval {
+		return true
+	}
+
+	return false
 }
