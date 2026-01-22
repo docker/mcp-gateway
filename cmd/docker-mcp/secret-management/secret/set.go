@@ -17,8 +17,9 @@ const (
 )
 
 type SetOpts struct {
-	// Provider sets the store provider
-	// Deprecated: this field will be removed in the next release
+	// Provider sets the store provider.
+	//
+	// Deprecated: this field will be removed in the next release.
 	Provider string
 }
 

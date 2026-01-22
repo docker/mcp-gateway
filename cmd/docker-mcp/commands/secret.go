@@ -154,7 +154,7 @@ func setSecretCommand() *cobra.Command {
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVar(&opts.Provider, "provider", "", "Supported: credstore, oauth/<provider>")
+	flags.StringVar(&opts.Provider, "provider", "", "Supported: credstore, oauth/<provider>") //nolint:staticcheck // Intentionally using deprecated field for backwards compatibility
 	_ = flags.MarkDeprecated("provider", "all secrets now stored via docker pass in OS Keychain")
 	return cmd
 }

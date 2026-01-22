@@ -667,7 +667,7 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 			}
 			g.capabilitiesMu.Lock()
 			newCaps := g.allCapabilities(event.Provider)
-			g.updateServerCapabilities(event.Provider, oldCaps, newCaps, nil)
+			_ = g.updateServerCapabilities(event.Provider, oldCaps, newCaps, nil)
 			g.capabilitiesMu.Unlock()
 			log.Logf("> OAuth server %s connected after login (Desktop mode)", event.Provider)
 			return
