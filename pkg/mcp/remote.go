@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
@@ -60,10 +61,30 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	}
 
 	// Add OAuth token if remote server has OAuth configuration
-	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
+	oauthConfigPresent := c.config.Spec.OAuth != nil
+	providerCount := 0
+	if oauthConfigPresent {
+		providerCount = len(c.config.Spec.OAuth.Providers)
+	}
+	log.Logf("- Remote client for %s: OAuth config present=%v, providers=%d", c.config.Name, oauthConfigPresent, providerCount)
+
+	if oauthConfigPresent && providerCount > 0 {
 		token := c.getOAuthToken(ctx)
+		log.Logf("- Remote client for %s: getOAuthToken returned token=%v (len=%d)", c.config.Name, token != "", len(token))
 		if token != "" {
 			headers["Authorization"] = "Bearer " + token
+			log.Logf("- Remote client for %s: Added Authorization header", c.config.Name)
+		} else {
+			log.Logf("! Remote client for %s: No token, Authorization header NOT added", c.config.Name)
+		}
+	}
+
+	// Log final headers (mask sensitive values)
+	for k, v := range headers {
+		if k == "Authorization" {
+			log.Logf("- Header: %s = Bearer ***", k)
+		} else {
+			log.Logf("- Header: %s = %s", k, v)
 		}
 	}
 
@@ -148,7 +169,10 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func (c *remoteMCPClient) getOAuthToken(ctx context.Context) string {
+	log.Logf("- getOAuthToken called for %s", c.config.Name)
+
 	if c.config.Spec.OAuth == nil || len(c.config.Spec.OAuth.Providers) == 0 {
+		log.Logf("- getOAuthToken: No OAuth config for %s", c.config.Name)
 		return ""
 	}
 
@@ -157,9 +181,10 @@ func (c *remoteMCPClient) getOAuthToken(ctx context.Context) string {
 	credHelper := oauth.NewOAuthCredentialHelper()
 	token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
 	if err != nil {
-		// Token might not exist if user hasn't authorized yet
+		log.Logf("! getOAuthToken: Error getting token for %s: %v", c.config.Name, err)
 		return ""
 	}
 
+	log.Logf("- getOAuthToken: Successfully retrieved token for %s (len=%d)", c.config.Name, len(token))
 	return token
 }
