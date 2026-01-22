@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 )
 
 type Envelope struct {
@@ -24,18 +26,28 @@ func socketPath() string {
 	return filepath.Join(os.TempDir(), "docker-secrets-engine", "engine.sock")
 }
 
+// Mutex to serialize GetSecrets calls - concurrent Unix socket requests can hang
+var getSecretsMu sync.Mutex
+
 // This is a temporary Client and should be removed once we have the secrets engine
 // client SDK imported.
+// DisableKeepAlives ensures each request uses a fresh connection, avoiding
+// connection state issues with Unix sockets that can cause hangs.
 var c = http.Client{
+	Timeout: 10 * time.Second,
 	Transport: &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 			d := &net.Dialer{}
 			return d.DialContext(ctx, "unix", socketPath())
 		},
+		DisableKeepAlives: true,
 	},
 }
 
 func GetSecrets(ctx context.Context) ([]Envelope, error) {
+	getSecretsMu.Lock()
+	defer getSecretsMu.Unlock()
+
 	pattern := `{"pattern": "docker/mcp/**"}`
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader([]byte(pattern)))
