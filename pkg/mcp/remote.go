@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
@@ -73,7 +74,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	// Create HTTP client with custom headers
 	httpClient := &http.Client{
 		Transport: &headerRoundTripper{
-			base:    http.DefaultTransport,
+			base:    desktop.ProxyTransport(),
 			headers: headers,
 		},
 	}

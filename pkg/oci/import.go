@@ -166,7 +166,7 @@ func Import(registryURL string, ociRepository string, push bool) error {
 	firstRef := ociReferences[0]
 
 	// Verify the reference can be resolved
-	subjectDescriptor, err := remote.Get(firstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	subjectDescriptor, err := remote.Get(firstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithTransport(desktop.ProxyTransport()))
 	if err != nil {
 		return fmt.Errorf("failed to resolve reference %s: %w", firstRef.Name(), err)
 	}

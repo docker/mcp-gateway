@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -49,7 +50,7 @@ func (s *service) GetLocalImage(ctx context.Context, ref name.Reference) (v1.Ima
 }
 
 func (s *service) GetRemoteImage(ctx context.Context, ref name.Reference) (v1.Image, error) {
-	return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	return remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport()))
 }
 
 func IsNoSuchImageError(err error) bool {
