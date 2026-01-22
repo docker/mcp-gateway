@@ -12,7 +12,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -325,52 +324,17 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading tools: %w", err)
 	}
 
-	// Build se:// URIs for secrets
+	// Build se:// URIs for secrets using shared function
 	buildSecretsURIs := func() map[string]string {
-		uris := make(map[string]string)
-
-		allSecrets, _ := secret.GetSecrets(ctx)
-		secrets := make(map[string]string)
-		for _, e := range allSecrets {
-			secrets[e.ID] = string(e.Value)
-		}
-
+		inputs := make([]ServerSecretsInput, 0, len(serverNames))
 		for _, serverName := range serverNames {
 			server := servers[serverName]
-
-			// Server has no OAuth configured - use secret directly
-			if server.OAuth == nil {
-				for _, s := range server.Secrets {
-					key := secret.GetDefaultSecretKey(s.Name)
-					if val := secrets[key]; val != "" {
-						uris[s.Name] = "se://" + key
-					}
-				}
-				continue
-			}
-
-			// Server has OAuth - check OAuth token first, fall back to PAT
-			secretToOAuthKey := make(map[string]string)
-			for _, p := range server.OAuth.Providers {
-				secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
-			}
-
-			for _, s := range server.Secrets {
-				// Try OAuth first
-				if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
-					if _, exists := secrets[oauthKey]; exists {
-						uris[s.Name] = "se://" + oauthKey
-						continue
-					}
-				}
-				// Fallback to PAT (must be non-empty)
-				patKey := secret.GetDefaultSecretKey(s.Name)
-				if val := secrets[patKey]; val != "" {
-					uris[s.Name] = "se://" + patKey
-				}
-			}
+			inputs = append(inputs, ServerSecretsInput{
+				Secrets: server.Secrets,
+				OAuth:   server.OAuth,
+			})
 		}
-		return uris
+		return BuildSecretsURIs(ctx, inputs)
 	}
 
 	var secrets map[string]string

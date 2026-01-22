@@ -8,7 +8,6 @@ import (
 	"maps"
 	"time"
 
-	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -78,18 +77,18 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 
 	cfg := make(map[string]map[string]any)
 
-	// Build se:// URIs for secrets (resolved at runtime by secrets engine)
-	// Keys are prefixed with the secrets provider reference to namespace them
-	secrets := make(map[string]string)
+	// Build se:// URIs for secrets using shared function
+	inputs := make([]ServerSecretsInput, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
-		providerPrefix := ""
-		if server.Secrets != "" {
-			providerPrefix = server.Secrets + "_"
+		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
+			continue
 		}
-		for _, s := range server.Snapshot.Server.Secrets {
-			secrets[providerPrefix+s.Name] = fmt.Sprintf("se://%s", secret.GetDefaultSecretKey(s.Name))
-		}
+		inputs = append(inputs, ServerSecretsInput{
+			Secrets: server.Snapshot.Server.Secrets,
+			OAuth:   server.Snapshot.Server.OAuth,
+		})
 	}
+	secrets := BuildSecretsURIs(ctx, inputs)
 
 	toolsConfig := c.readTools(workingSet)
 
@@ -116,13 +115,6 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		serverNames = append(serverNames, serverName)
 
 		cfg[serverName] = server.Config
-
-		// TODO(cody): temporary hack to namespace secrets to provider
-		if server.Secrets != "" {
-			for i := range server.Snapshot.Server.Secrets {
-				server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
-			}
-		}
 	}
 
 	log.Log("- Configuration read in", time.Since(start))

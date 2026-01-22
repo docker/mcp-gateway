@@ -52,8 +52,11 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	// Secrets to env
 	env := map[string]string{}
 	for _, s := range c.config.Spec.Secrets {
-		// First check if secret was provided via configuration (file-based)
-		// Note: se:// URIs only work for containers, remote servers need actual values
+		// Remote servers need actual secret values for HTTP headers.
+		// se:// URIs only work for containers (Docker Desktop resolves them at runtime).
+		//
+		// Check if we have an actual value (from --secrets=file.env).
+		// If the value is an se:// URI or missing, query Secrets Engine API directly.
 		if value, ok := c.config.Secrets[s.Name]; ok && value != "" && !strings.HasPrefix(value, "se://") {
 			if verbose {
 				log.Logf("    - %s: %s", s.Env, maskSecret(value))
