@@ -101,6 +101,7 @@ func buildAuditEvent(
 }
 
 // submitAuditEvent submits the audit event asynchronously.
+// audit failures are silent
 func submitAuditEvent(client policy.Client, event policy.AuditEvent) {
 	if client == nil {
 		return

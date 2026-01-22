@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // Action identifies the type of operation being evaluated.
@@ -104,5 +105,12 @@ func NewDefaultClient(ctx context.Context) Client {
 	if !desktop.IsRunningInDockerDesktop(ctx) {
 		return NoopClient{}
 	}
+	// Check if governance feature is enabled
+	enabled, err := desktop.CheckFeatureFlagIsEnabled(ctx, "MCPGovernance")
+	if err != nil || !enabled {
+		return NoopClient{}
+	}
+	// Log that governance is enabled (only when ON, silent when OFF)
+	log.Log("MCP governance enabled, policy evaluation active")
 	return NewDesktopClient()
 }
