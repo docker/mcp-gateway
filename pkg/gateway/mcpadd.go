@@ -402,8 +402,10 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
 		}
 
-		// Start provider
-		g.startProvider(ctx, serverName)
+		// Start provider (CE mode only - Desktop mode doesn't need polling)
+		if oauth.IsCEMode() {
+			g.startProvider(ctx, serverName)
+		}
 	}
 
 	// Check if current serverSession supports elicitations

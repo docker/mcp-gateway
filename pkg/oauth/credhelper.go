@@ -165,17 +165,7 @@ func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	if !IsCEMode() {
-		// Desktop mode: Tokens are auto-refreshed by Secrets Engine on fetch
-		// Provider loops don't run in Desktop mode, so this code path is unreachable
-		// in normal operation. Return valid status without refresh flag.
-		return TokenStatus{
-			Valid:        true,
-			ExpiresAt:    time.Time{},
-			NeedsRefresh: false,
-		}, nil
-	}
-
+	// GetTokenStatus is only called from Provider.Run() which only runs in CE mode.
 	// CE mode: credential helper returns base64-encoded JSON with expiry
 	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
 	if err != nil {

@@ -61,8 +61,10 @@ func (p *DCRProvider) GeneratePKCE() string {
 	return oauth2.GenerateVerifier()
 }
 
-// Provider manages OAuth token lifecycle for a single MCP server
-// This is used for background token refresh loops in the gateway
+// Provider manages OAuth token lifecycle for a single MCP server.
+// Used for background token refresh polling in CE mode only.
+// In Desktop mode, token refresh is handled by Docker Desktop's Secrets Engine,
+// and SSE events handle connection invalidation directly in routeEventToProvider.
 type Provider struct {
 	name              string
 	lastRefreshExpiry time.Time
@@ -106,7 +108,7 @@ func (p *Provider) Run(ctx context.Context) {
 		var waitDuration time.Duration
 
 		if status.NeedsRefresh {
-			// CE mode: Token needs refresh - check if expiry unchanged from last attempt
+			// Token needs refresh - check if expiry unchanged from last attempt
 			expiryUnchanged := !p.lastRefreshExpiry.IsZero() && status.ExpiresAt.Equal(p.lastRefreshExpiry)
 
 			if expiryUnchanged {

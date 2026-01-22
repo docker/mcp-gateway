@@ -656,13 +656,30 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 
 	switch event.Type {
 	case oauth.EventLoginSuccess:
-		// User just authorized - ensure provider exists
+		if !oauth.IsCEMode() {
+			// Desktop mode: reload directly, no provider needed
+			log.Logf("- Reloading OAuth server %s after login (Desktop mode)", event.Provider)
+			g.clientPool.InvalidateOAuthClients(event.Provider)
+			oldCaps, err := g.reloadServerCapabilities(context.Background(), event.Provider, nil)
+			if err != nil {
+				log.Logf("! Failed to reload %s after login: %v", event.Provider, err)
+				return
+			}
+			g.capabilitiesMu.Lock()
+			newCaps := g.allCapabilities(event.Provider)
+			g.updateServerCapabilities(event.Provider, oldCaps, newCaps, nil)
+			g.capabilitiesMu.Unlock()
+			log.Logf("> OAuth server %s connected after login (Desktop mode)", event.Provider)
+			return
+		}
+
+		// CE mode: create provider to handle token refresh polling
 		if !exists {
 			log.Logf("- Creating provider for %s after login", event.Provider)
 			g.startProvider(context.Background(), event.Provider)
 		}
 
-		// Always send event to trigger reload (connects server and lists tools)
+		// Send event to trigger reload (connects server and lists tools)
 		// Wait briefly if we just created the provider
 		if !exists {
 			time.Sleep(100 * time.Millisecond)
