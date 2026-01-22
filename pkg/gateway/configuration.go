@@ -12,6 +12,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/docker"
@@ -21,7 +22,6 @@ import (
 
 type Configurator interface {
 	Read(ctx context.Context) (Configuration, chan Configuration, func() error, error)
-	readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error)
 }
 
 type Configuration struct {
@@ -325,24 +325,69 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		return Configuration{}, fmt.Errorf("reading tools: %w", err)
 	}
 
-	var secrets map[string]string
-	if c.SecretsPath == "docker-desktop" {
-		secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
-		if err != nil {
-			return Configuration{}, fmt.Errorf("reading MCP Toolkit's secrets: %w", err)
+	// Build se:// URIs for secrets
+	buildSecretsURIs := func() map[string]string {
+		uris := make(map[string]string)
+
+		allSecrets, _ := secret.GetSecrets(ctx)
+		secrets := make(map[string]string)
+		for _, e := range allSecrets {
+			secrets[e.ID] = string(e.Value)
 		}
-	} else {
-		// Unless SecretsPath is only `docker-desktop`, we don't fail if secrets can't be read.
-		// It's ok for the MCP tookit's to not be available (in Cloud Run, for example).
-		// It's ok for secrets .env file to not exist.
-		var err error
-		for secretPath := range strings.SplitSeq(c.SecretsPath, ":") {
-			if secretPath == "docker-desktop" {
-				secrets, err = c.readDockerDesktopSecrets(ctx, servers, serverNames)
-			} else {
-				secrets, err = c.readSecretsFromFile(ctx, secretPath)
+
+		for _, serverName := range serverNames {
+			server := servers[serverName]
+
+			// Server has no OAuth configured - use secret directly
+			if server.OAuth == nil {
+				for _, s := range server.Secrets {
+					key := secret.GetDefaultSecretKey(s.Name)
+					if val := secrets[key]; val != "" {
+						uris[s.Name] = "se://" + key
+					}
+				}
+				continue
 			}
 
+			// Server has OAuth - check OAuth token first, fall back to PAT
+			secretToOAuthKey := make(map[string]string)
+			for _, p := range server.OAuth.Providers {
+				secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
+			}
+
+			for _, s := range server.Secrets {
+				// Try OAuth first
+				if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
+					if _, exists := secrets[oauthKey]; exists {
+						uris[s.Name] = "se://" + oauthKey
+						continue
+					}
+				}
+				// Fallback to PAT (must be non-empty)
+				patKey := secret.GetDefaultSecretKey(s.Name)
+				if val := secrets[patKey]; val != "" {
+					uris[s.Name] = "se://" + patKey
+				}
+			}
+		}
+		return uris
+	}
+
+	var secrets map[string]string
+	if c.SecretsPath == "docker-desktop" {
+		// Pure Docker Desktop mode: use se:// URIs
+		secrets = buildSecretsURIs()
+	} else {
+		// Mixed or file-only mode: iterate through paths
+		// Unless SecretsPath is only `docker-desktop`, we don't fail if secrets can't be read.
+		// It's ok for the MCP toolkit's to not be available (in Cloud Run, for example).
+		// It's ok for secrets .env file to not exist.
+		for secretPath := range strings.SplitSeq(c.SecretsPath, ":") {
+			if secretPath == "docker-desktop" {
+				secrets = buildSecretsURIs()
+				break
+			}
+			secrets, err = c.readSecretsFromFile(ctx, secretPath)
 			if err == nil {
 				break
 			}
@@ -471,46 +516,6 @@ func (c *FileBasedConfiguration) readToolsConfig(ctx context.Context) (config.To
 	}
 
 	return mergedToolsConfig, nil
-}
-
-func readSecrets(ctx context.Context, docker docker.Client, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	// Use a map to deduplicate secret names
-	uniqueSecretNames := make(map[string]struct{})
-
-	for _, serverName := range serverNames {
-		serverName := strings.TrimSpace(serverName)
-
-		serverSpec, ok := servers[serverName]
-		if !ok {
-			continue
-		}
-
-		for _, s := range serverSpec.Secrets {
-			uniqueSecretNames[s.Name] = struct{}{}
-		}
-	}
-
-	if len(uniqueSecretNames) == 0 {
-		return map[string]string{}, nil
-	}
-
-	// Convert map keys to slice
-	var secretNames []string
-	for name := range uniqueSecretNames {
-		secretNames = append(secretNames, name)
-	}
-
-	log.Log("  - Reading secrets", secretNames)
-	secretsByName, err := docker.ReadSecrets(ctx, secretNames, true)
-	if err != nil {
-		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
-	}
-
-	return secretsByName, nil
-}
-
-func (c *FileBasedConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	return readSecrets(ctx, c.docker, servers, serverNames)
 }
 
 func (c *FileBasedConfiguration) readSecretsFromFile(ctx context.Context, path string) (map[string]string, error) {

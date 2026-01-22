@@ -8,6 +8,7 @@ import (
 	"maps"
 	"time"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -76,16 +77,17 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	}
 
 	cfg := make(map[string]map[string]any)
-	flattenedSecrets := make(map[string]string)
 
-	providerSecrets, err := c.readSecrets(ctx, workingSet)
-	if err != nil {
-		return Configuration{}, fmt.Errorf("failed to read secrets: %w", err)
-	}
-
-	for provider, s := range providerSecrets {
-		for name, value := range s {
-			flattenedSecrets[provider+"_"+name] = value
+	// Build se:// URIs for secrets (resolved at runtime by secrets engine)
+	// Keys are prefixed with the secrets provider reference to namespace them
+	secrets := make(map[string]string)
+	for _, server := range workingSet.Servers {
+		providerPrefix := ""
+		if server.Secrets != "" {
+			providerPrefix = server.Secrets + "_"
+		}
+		for _, s := range server.Snapshot.Server.Secrets {
+			secrets[providerPrefix+s.Name] = fmt.Sprintf("se://%s", secret.GetDefaultSecretKey(s.Name))
 		}
 	}
 
@@ -130,7 +132,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		servers:     servers,
 		config:      cfg,
 		tools:       toolsConfig,
-		secrets:     flattenedSecrets,
+		secrets:     secrets,
 	}, nil
 }
 
@@ -192,69 +194,4 @@ func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) co
 		toolsConfig.ServerTools[server.Snapshot.Server.Name] = server.Tools
 	}
 	return toolsConfig
-}
-
-func (c *WorkingSetConfiguration) readSecrets(ctx context.Context, workingSet workingset.WorkingSet) (map[string]map[string]string, error) {
-	providerSecrets := make(map[string]map[string]string)
-	for providerRef, secretConfig := range workingSet.Secrets {
-		servers := getServersUsingProvider(workingSet, providerRef)
-
-		switch secretConfig.Provider {
-		case workingset.SecretProviderDockerDesktop:
-			secrets, err := c.readDockerDesktopSecretsFromWorkingSet(ctx, servers)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read docker desktop secrets: %w", err)
-			}
-			providerSecrets[providerRef] = secrets
-		default:
-			return nil, fmt.Errorf("unknown secret provider: %s", secretConfig.Provider)
-		}
-	}
-
-	return providerSecrets, nil
-}
-
-func (c *WorkingSetConfiguration) readDockerDesktopSecrets(ctx context.Context, servers map[string]catalog.Server, serverNames []string) (map[string]string, error) {
-	return readSecrets(ctx, c.docker, servers, serverNames)
-}
-
-func (c *WorkingSetConfiguration) readDockerDesktopSecretsFromWorkingSet(ctx context.Context, servers []workingset.Server) (map[string]string, error) {
-	// Use a map to deduplicate secret names
-	uniqueSecretNames := make(map[string]struct{})
-
-	for _, server := range servers {
-		serverSpec := server.Snapshot.Server
-
-		for _, s := range serverSpec.Secrets {
-			uniqueSecretNames[s.Name] = struct{}{}
-		}
-	}
-
-	if len(uniqueSecretNames) == 0 {
-		return map[string]string{}, nil
-	}
-
-	// Convert map keys to slice
-	var secretNames []string
-	for name := range uniqueSecretNames {
-		secretNames = append(secretNames, name)
-	}
-
-	log.Log("  - Reading secrets from Docker Desktop", secretNames)
-	secretsByName, err := c.docker.ReadSecrets(ctx, secretNames, true)
-	if err != nil {
-		return nil, fmt.Errorf("finding secrets %s: %w", secretNames, err)
-	}
-
-	return secretsByName, nil
-}
-
-func getServersUsingProvider(workingSet workingset.WorkingSet, providerRef string) []workingset.Server {
-	servers := make([]workingset.Server, 0)
-	for _, server := range workingSet.Servers {
-		if server.Secrets == providerRef {
-			servers = append(servers, server)
-		}
-	}
-	return servers
 }
