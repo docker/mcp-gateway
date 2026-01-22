@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
 
@@ -14,10 +15,18 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, title string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordCatalogOperation(ctx, "create", refStr, float64(duration.Milliseconds()), success)
+	}()
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
@@ -77,6 +86,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 
 	fmt.Printf("Catalog %s created\n", catalog.Ref)
 
+	success = true
 	return nil
 }
 

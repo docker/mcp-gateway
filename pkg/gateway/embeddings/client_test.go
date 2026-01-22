@@ -21,7 +21,7 @@ func TestCloseStopsContainer(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Count containers before starting
-	countCmd := exec.Command("docker", "ps", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
+	countCmd := exec.CommandContext(ctx, "docker", "ps", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
 	beforeOutput, err := countCmd.Output()
 	if err != nil {
 		t.Fatalf("Failed to check docker containers: %v", err)
@@ -40,7 +40,7 @@ func TestCloseStopsContainer(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Verify container is running by checking docker ps
-	countCmd = exec.Command("docker", "ps", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
+	countCmd = exec.CommandContext(ctx, "docker", "ps", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
 	afterStartOutput, err := countCmd.Output()
 	if err != nil {
 		t.Fatalf("Failed to check docker containers after start: %v", err)
@@ -62,7 +62,7 @@ func TestCloseStopsContainer(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Verify container is stopped and removed
-	countCmd = exec.Command("docker", "ps", "-a", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
+	countCmd = exec.CommandContext(ctx, "docker", "ps", "-a", "-q", "--filter", "ancestor=jimclark106/vector-db:latest")
 	afterCloseOutput, err := countCmd.Output()
 	if err != nil {
 		t.Fatalf("Failed to check docker containers after close: %v", err)
@@ -72,7 +72,7 @@ func TestCloseStopsContainer(t *testing.T) {
 	if containersAfterClose > containersBefore {
 		t.Errorf("Container not cleaned up after Close(). Before: %d, After close: %d", containersBefore, containersAfterClose)
 		// Show the containers that are still running
-		showCmd := exec.Command("docker", "ps", "-a", "--filter", "ancestor=jimclark106/vector-db:latest")
+		showCmd := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "ancestor=jimclark106/vector-db:latest")
 		output, _ := showCmd.Output()
 		t.Logf("Remaining containers:\n%s", string(output))
 	} else {

@@ -186,6 +186,29 @@ user: "1001:2002"
 	assert.Empty(t, env)
 }
 
+func TestApplyConfigExtraHosts(t *testing.T) {
+	catalogYAML := `
+description: Playwright MCP server.
+title: Playwright
+type: server
+longLived: true
+image: mcp/playwright@sha256:53da89d1da3dfbb61c10f707c1713cfee1f870f7fba5334e126c6c765e37db56
+extraHosts:
+  - "myhost:192.168.1.100"
+  - "anotherhost:10.0.0.1"
+  `
+
+	args, env := argsAndEnv(t, "playwright", catalogYAML, "", nil, nil)
+
+	assert.Equal(t, []string{
+		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
+		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=playwright", "-l", "docker-mcp-transport=stdio",
+		"--add-host", "myhost:192.168.1.100",
+		"--add-host", "anotherhost:10.0.0.1",
+	}, args)
+	assert.Empty(t, env)
+}
+
 func TestApplyConfigLongLivedIgnoresReadOnly(t *testing.T) {
 	catalogYAML := `
 longLived: true

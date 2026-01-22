@@ -123,11 +123,20 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		g.mcpServer.AddTool(mcpConfigSetTool.Tool, mcpConfigSetTool.Handler)
 		g.toolRegistrations[mcpConfigSetTool.Tool.Name] = *mcpConfigSetTool
 
-		// Add mcp-create-profile tool
-		log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
-		mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
-		g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
-		g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+		// Add profile tools only if profiles feature is enabled
+		if g.UseProfiles {
+			// Add mcp-create-profile tool
+			log.Log("  > mcp-create-profile: tool for creating or updating profiles with current gateway state")
+			mcpCreateProfileTool := g.createMcpCreateProfileTool(clientConfig)
+			g.mcpServer.AddTool(mcpCreateProfileTool.Tool, mcpCreateProfileTool.Handler)
+			g.toolRegistrations[mcpCreateProfileTool.Tool.Name] = *mcpCreateProfileTool
+
+			// Add mcp-activate-profile tool
+			log.Log("  > mcp-activate-profile: tool for activating saved profiles")
+			mcpActivateProfileTool := g.createMcpActivateProfileTool(clientConfig)
+			g.mcpServer.AddTool(mcpActivateProfileTool.Tool, mcpActivateProfileTool.Handler)
+			g.toolRegistrations[mcpActivateProfileTool.Tool.Name] = *mcpActivateProfileTool
+		}
 
 		// Add find-tools tool only if embeddings client is configured
 		if g.embeddingsClient != nil {
@@ -309,6 +318,8 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 // updateServerCapabilities updates g.mcpServer with capabilities from the server.
 // If toolFilter is non-nil, only tools in the filter will be added.
 // This function expects g.capabilitiesMu to be locked by the caller.
+//
+//nolint:unparam // toolFilter is designed for future use - selective tool activation
 func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *ServerCapabilities, toolFilter []string) error {
 	// Get the full capabilities from serverAvailableCapabilities
 	newServerCaps := g.serverAvailableCapabilities[serverName]
@@ -321,6 +332,15 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 	addedPrompts, removedPrompts := diffStringSlices(oldCaps.PromptNames, newCaps.PromptNames)
 	addedResources, removedResources := diffStringSlices(oldCaps.ResourceURIs, newCaps.ResourceURIs)
 	addedTemplates, removedTemplates := diffStringSlices(oldCaps.ResourceTemplateURIs, newCaps.ResourceTemplateURIs)
+
+	// Early exit if nothing changed - prevents unnecessary updates and potential notification loops
+	if len(addedTools) == 0 && len(removedTools) == 0 &&
+		len(addedPrompts) == 0 && len(removedPrompts) == 0 &&
+		len(addedResources) == 0 && len(removedResources) == 0 &&
+		len(addedTemplates) == 0 && len(removedTemplates) == 0 {
+		log.Log("  - No capability changes detected for", serverName, "- skipping update")
+		return nil
+	}
 
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {

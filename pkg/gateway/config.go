@@ -38,4 +38,5 @@ type Options struct {
 	ToolNamePrefix          bool
 	LogFilePath             string
 	UseEmbeddings           bool
+	UseProfiles             bool
 }

@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/embeddings"
+	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/health"
 	"github.com/docker/mcp-gateway/pkg/interceptors"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -74,6 +76,10 @@ type Gateway struct {
 	// Track all tool registrations for mcp-exec
 	toolRegistrations map[string]ToolRegistration
 
+	// Track ongoing refresh operations per server to prevent concurrent/recursive refreshes
+	refreshMu         sync.Mutex
+	refreshingServers map[string]bool
+
 	// embeddings client for vector search
 	embeddingsClient *embeddings.VectorDBClient
 
@@ -112,6 +118,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 		serverCapabilities:          make(map[string]*ServerCapabilities),
 		serverAvailableCapabilities: make(map[string]*Capabilities),
 		toolRegistrations:           make(map[string]ToolRegistration),
+		refreshingServers:           make(map[string]bool),
 	}
 	g.clientPool = newClientPool(config.Options, docker, g)
 
@@ -169,7 +176,14 @@ func (g *Gateway) Run(ctx context.Context) error {
 	if g.Port != 0 {
 		transportMode = "sse"
 	}
-	telemetry.RecordGatewayStart(ctx, transportMode)
+
+	// Extract working set ID if using WorkingSetConfiguration
+	workingSetID := ""
+	if wsConfig, ok := g.configurator.(*WorkingSetConfiguration); ok {
+		workingSetID = wsConfig.config.WorkingSet
+	}
+
+	telemetry.RecordGatewayStart(ctx, transportMode, workingSetID)
 
 	// Start periodic metric export for long-running gateway
 	// This is critical because Docker CLI's ManualReader only exports on shutdown
@@ -249,6 +263,19 @@ func (g *Gateway) Run(ctx context.Context) error {
 		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
 			clientInfo := req.Session.InitializeParams().ClientInfo
 			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+
+			// Log current working directory
+			if pwd, err := os.Getwd(); err == nil {
+				log.Log(fmt.Sprintf("- Current working directory: %s", pwd))
+			}
+
+			// Log entire initialize request
+			initParams := req.Session.InitializeParams()
+			if initParams != nil {
+				if initJSON, err := json.MarshalIndent(initParams, "  ", "  "); err == nil {
+					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
+				}
+			}
 		},
 		HasPrompts:   true,
 		HasResources: true,
@@ -257,6 +284,12 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Add interceptor middleware to the server (includes telemetry)
 	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
+
+	// Add profile loading middleware for initialize method
+	if g.UseProfiles {
+		middlewares = append(middlewares, g.profileLoadingMiddleware())
+	}
+
 	if len(middlewares) > 0 {
 		g.mcpServer.AddReceivingMiddleware(middlewares...)
 	}
@@ -409,6 +442,24 @@ func (g *Gateway) Run(ctx context.Context) error {
 // RefreshCapabilities implements the CapabilityRefresher interface
 // This method updates the server's capabilities by reloading the configuration
 func (g *Gateway) RefreshCapabilities(ctx context.Context, server *mcp.Server, serverSession *mcp.ServerSession, serverName string) error {
+	// Check if a refresh is already in progress for this server to prevent infinite loops
+	g.refreshMu.Lock()
+	if g.refreshingServers[serverName] {
+		log.Log("- RefreshCapabilities already in progress for", serverName, "- skipping")
+		g.refreshMu.Unlock()
+		return nil
+	}
+	// Mark this server as refreshing
+	g.refreshingServers[serverName] = true
+	g.refreshMu.Unlock()
+
+	// Ensure we clear the refreshing flag when done
+	defer func() {
+		g.refreshMu.Lock()
+		delete(g.refreshingServers, serverName)
+		g.refreshMu.Unlock()
+	}()
+
 	// Create a clientConfig to reuse the existing session for the server that triggered the notification
 	clientConfig := &clientConfig{
 		serverSession: serverSession,
@@ -684,4 +735,31 @@ func (g *Gateway) ReloadConfiguration(ctx context.Context, configuration Configu
 // This is useful when programmatically initializing the gateway
 func (g *Gateway) PullAndVerify(ctx context.Context, configuration Configuration) error {
 	return g.pullAndVerify(ctx, configuration)
+}
+
+// profileLoadingMiddleware creates middleware that loads profiles when the initialize method is received
+func (g *Gateway) profileLoadingMiddleware() mcp.Middleware {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			// Only handle initialize method
+			if method != "initialize" {
+				return next(ctx, method, req)
+			}
+
+			// Call the next handler first
+			result, err := next(ctx, method, req)
+
+			// After the initialize method has been handled, load profiles
+			session := req.GetSession()
+			if serverSession, ok := session.(*mcp.ServerSession); ok {
+				initParams := serverSession.InitializeParams()
+				if initParams != nil && initParams.ClientInfo != nil {
+					// Load profiles from profiles.json if client is claude-code
+					_ = project.LoadProfilesForClient(ctx, initParams.ClientInfo, g)
+				}
+			}
+
+			return result, err
+		}
+	}
 }

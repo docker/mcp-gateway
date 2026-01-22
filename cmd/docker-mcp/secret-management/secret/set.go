@@ -43,7 +43,7 @@ func ParseArg(arg string, opts SetOpts) (*Secret, error) {
 	if !isDirectValueProvider(opts.Provider) {
 		return &Secret{key: arg, val: ""}, nil
 	}
-	parts := strings.Split(arg, "=")
+	parts := strings.SplitN(arg, "=", 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("no key=value pair: %s", arg)
 	}

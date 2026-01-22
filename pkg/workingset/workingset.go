@@ -3,10 +3,13 @@ package workingset
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -172,11 +175,13 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 }
 
 func (workingSet *WorkingSet) Validate() error {
-	err := validate.Get().Struct(workingSet)
-	if err != nil {
+	if err := validate.Get().Struct(workingSet); err != nil {
 		return err
 	}
-	return workingSet.validateUniqueServerNames()
+	if err := workingSet.validateUniqueServerNames(); err != nil {
+		return err
+	}
+	return workingSet.validateServerSnapshots()
 }
 
 func (workingSet *WorkingSet) validateUniqueServerNames() error {
@@ -191,6 +196,106 @@ func (workingSet *WorkingSet) validateUniqueServerNames() error {
 			return fmt.Errorf("duplicate server name %s", name)
 		}
 		seen[name] = true
+	}
+	return nil
+}
+
+func (workingSet *WorkingSet) validateServerSnapshots() error {
+	for _, server := range workingSet.Servers {
+		if err := server.Snapshot.ValidateInnerConfig(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (serverSnapshot *ServerSnapshot) ValidateInnerConfig() error {
+	if serverSnapshot == nil {
+		return nil
+	}
+
+	config := serverSnapshot.Server.Config
+	if config == nil {
+		return nil
+	}
+
+	for i, configItem := range config {
+		configMap, ok := configItem.(map[string]any)
+		if !ok {
+			return fmt.Errorf("config[%d] is not a map", i)
+		}
+
+		_, ok = configMap["name"].(string)
+		if !ok {
+			return fmt.Errorf("config[%d] has no name field", i)
+		}
+
+		_, ok = configMap["description"].(string)
+		if !ok {
+			return fmt.Errorf("config[%d] has no description field", i)
+		}
+
+		t, ok := configMap["type"].(string)
+		if !ok {
+			return fmt.Errorf("config[%d] has no type field", i)
+		}
+		if t != "object" {
+			return fmt.Errorf("config[%d].type must be 'object', got '%s'", i, t)
+		}
+
+		properties, ok := configMap["properties"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("config[%d].properties is not a map", i)
+		}
+
+		if err := recursivePropertiesValidate(properties, fmt.Sprintf("config[%d].properties", i)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func recursivePropertiesValidate(properties map[string]any, path string) error {
+	for key, property := range properties {
+		propertyPath := fmt.Sprintf("%s.%s", path, key)
+
+		propertyMap, ok := property.(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s is not a map", propertyPath)
+		}
+
+		t, ok := propertyMap["type"].(string)
+		if !ok {
+			return fmt.Errorf("%s has no type field", propertyPath)
+		}
+
+		switch t {
+		case "string", "integer", "number", "boolean":
+			continue
+		case "object":
+			innerProperties, ok := propertyMap["properties"].(map[string]any)
+			if !ok {
+				return fmt.Errorf("%s is type 'object' but has no properties field", propertyPath)
+			}
+			if err := recursivePropertiesValidate(innerProperties, propertyPath); err != nil {
+				return err
+			}
+		case "array":
+			items, ok := propertyMap["items"].(map[string]any)
+			if !ok {
+				return fmt.Errorf("%s is type 'array' but has no items field", propertyPath)
+			}
+			itemType, ok := items["type"].(string)
+			if !ok {
+				return fmt.Errorf("%s.items has no type field", propertyPath)
+			}
+			if itemType != "string" {
+				return fmt.Errorf("%s.items type must be string", propertyPath)
+			}
+		default:
+			return fmt.Errorf("%s.type %s is not supported", propertyPath, t)
+		}
 	}
 	return nil
 }
@@ -299,8 +404,83 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 			Secrets: "default",
 			// TODO(cody): add snapshot
 		}}, nil
+	} else if v, ok := strings.CutPrefix(value, "file://"); ok {
+		return ResolveFile(v)
 	}
 	return nil, fmt.Errorf("invalid server value: %s", value)
+}
+
+func ResolveFile(value string) ([]Server, error) {
+	buf, err := os.ReadFile(value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// First, see if it's a full legacy catalog file.
+	// Fallback to a single server if it's not.
+	var probe struct {
+		Registry map[string]catalog.Server `yaml:"registry,omitempty" json:"registry,omitempty"`
+	}
+
+	var servers []catalog.Server
+	switch filepath.Ext(strings.ToLower(value)) {
+	case ".yaml", ".yml":
+		if err := yaml.Unmarshal(buf, &probe); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+		}
+		if probe.Registry == nil {
+			// Fallback to parsing single server
+			var server catalog.Server
+			if err := yaml.Unmarshal(buf, &server); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+			}
+			servers = []catalog.Server{server}
+		}
+	case ".json":
+		if err := json.Unmarshal(buf, &probe); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+		}
+		if probe.Registry == nil {
+			// Fallback to parsing single server
+			var server catalog.Server
+			if err := json.Unmarshal(buf, &server); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+			}
+			servers = []catalog.Server{server}
+		}
+	default:
+		return nil, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", value)
+	}
+
+	if probe.Registry != nil {
+		for name, server := range probe.Registry {
+			server.Name = name
+			servers = append(servers, server)
+		}
+	}
+
+	serversResolved := make([]Server, len(servers))
+	for i, server := range servers {
+		if (server.Type == "server" || server.Type == "poci") && server.Image != "" {
+			serversResolved[i] = Server{
+				Type:     ServerTypeImage,
+				Image:    server.Image,
+				Secrets:  "default",
+				Snapshot: &ServerSnapshot{Server: server},
+			}
+		} else if server.Type == "remote" {
+			serversResolved[i] = Server{
+				Type:     ServerTypeRemote,
+				Endpoint: server.Remote.URL,
+				Secrets:  "default",
+				Snapshot: &ServerSnapshot{Server: server},
+			}
+		} else {
+			return nil, fmt.Errorf("unsupported server type: %s", server.Type)
+		}
+	}
+
+	return serversResolved, nil
 }
 
 func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Server, error) {
@@ -313,7 +493,7 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 
 	serverNames := strings.Split(serverList, "+")
 
-	if len(serverNames) == 0 {
+	if len(serverNames) == 0 || len(serverList) == 0 {
 		return nil, fmt.Errorf("no servers specified in catalog URL: catalog://%s", value)
 	}
 
@@ -332,14 +512,38 @@ func ResolveCatalogServers(ctx context.Context, dao db.DAO, value string) ([]Ser
 	}
 
 	filteredServers := make([]db.CatalogServer, 0, len(dbCatalog.Servers))
-	for _, server := range dbCatalog.Servers {
-		if slices.Contains(serverNames, server.Snapshot.Server.Name) {
-			filteredServers = append(filteredServers, server)
+	foundPatterns := make(map[string]bool)
+	foundServers := make(map[string]bool) // avoid duplicates
+	for _, name := range serverNames {
+		for _, server := range dbCatalog.Servers {
+			// Glob support for selecting servers by name
+			matched, err := path.Match(name, server.Snapshot.Server.Name)
+			if err != nil {
+				return nil, fmt.Errorf("bad pattern for catalog server '%s': %w", name, err)
+			}
+			if matched {
+				if !foundServers[server.Snapshot.Server.Name] {
+					// Only add to avoid duplicates
+					filteredServers = append(filteredServers, server)
+					foundServers[server.Snapshot.Server.Name] = true
+				}
+				foundPatterns[name] = true
+			}
 		}
 	}
-	if len(filteredServers) != len(serverNames) {
-		missingServers := sliceutil.Difference(serverNames, sliceutil.Map(filteredServers, func(server db.CatalogServer) string { return server.Snapshot.Server.Name }))
-		return nil, fmt.Errorf("servers were not found in catalog: %v", missingServers)
+
+	uniqueServerNames := make(map[string]bool)
+	for _, serverName := range serverNames {
+		uniqueServerNames[serverName] = true
+	}
+
+	if len(foundPatterns) != len(uniqueServerNames) {
+		f := make([]string, 0, len(foundPatterns))
+		for pattern := range foundPatterns {
+			f = append(f, pattern)
+		}
+		missingPatterns := sliceutil.Difference(serverNames, f)
+		return nil, fmt.Errorf("servers matching the following patterns were not found in catalog: %v", missingPatterns)
 	}
 
 	return mapCatalogServersToWorkingSetServers(filteredServers, "default"), nil

@@ -18,14 +18,14 @@ func getMockOciService() oci.Service {
 		{
 			Ref: "myimage:latest",
 			Labels: map[string]string{
-				"io.docker.server.metadata": "name: My Image",
+				"io.docker.server.metadata": "name: My Image\ntype: server\nimage: myimage:latest",
 			},
 			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		},
 		{
 			Ref: "anotherimage:v1.0",
 			Labels: map[string]string{
-				"io.docker.server.metadata": "name: Another Image",
+				"io.docker.server.metadata": "name: Another Image\ntype: server\nimage: anotherimage:v1.0",
 			},
 			DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		},

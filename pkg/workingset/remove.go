@@ -5,11 +5,20 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
 func Remove(ctx context.Context, dao db.DAO, id string) error {
+	telemetry.Init()
+	start := time.Now()
+	var success bool
+	defer func() {
+		duration := time.Since(start)
+		telemetry.RecordWorkingSetOperation(ctx, "remove", id, float64(duration.Milliseconds()), success)
+	}()
 	_, err := dao.GetWorkingSet(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -24,5 +33,6 @@ func Remove(ctx context.Context, dao db.DAO, id string) error {
 	}
 
 	fmt.Printf("Removed profile %s\n", id)
+	success = true
 	return nil
 }

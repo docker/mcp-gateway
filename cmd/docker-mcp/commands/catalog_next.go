@@ -87,6 +87,7 @@ func showCatalogNextCommand() *cobra.Command {
 	format := string(workingset.OutputFormatHumanReadable)
 	pullOption := string(catalognext.PullOptionNever)
 	var noTools bool
+	var yqExpr string
 
 	cmd := &cobra.Command{
 		Use:   "show <oci-reference> [--pull <pull-option>]",
@@ -101,15 +102,24 @@ func showCatalogNextCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			if noTools {
+				if yqExpr != "" {
+					return fmt.Errorf("cannot use --no-tools and --yq together")
+				}
+				yqExpr = "del(.servers[].tools, .servers[].snapshot.server.tools)"
+			}
+
 			ociService := oci.NewService()
-			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption, noTools)
+			return catalognext.Show(cmd.Context(), dao, ociService, args[0], workingset.OutputFormat(format), pullOption, yqExpr)
 		},
 	}
 
 	flags := cmd.Flags()
 	flags.StringVar(&format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 	flags.StringVar(&pullOption, "pull", string(catalognext.PullOptionNever), fmt.Sprintf("Supported: %s, or duration (e.g. '1h', '1d'). Duration represents time since last update.", strings.Join(catalognext.SupportedPullOptions(), ", ")))
-	flags.BoolVar(&noTools, "no-tools", false, "Exclude tools from output")
+	flags.BoolVar(&noTools, "no-tools", false, "Exclude tools from output (deprecated, use --yq instead)")
+	flags.StringVar(&yqExpr, "yq", "", "YQ expression to apply to the output")
 	return cmd
 }
 
@@ -194,7 +204,36 @@ func catalogNextServerCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(listCatalogNextServersCommand())
+	cmd.AddCommand(inspectServerCatalogNextCommand())
 
+	return cmd
+}
+
+func inspectServerCatalogNextCommand() *cobra.Command {
+	var opts struct {
+		Format string
+	}
+
+	cmd := &cobra.Command{
+		Use:   "inspect <oci-reference> <server-name>",
+		Short: "Inspect a server in a catalog",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", opts.Format)
+			}
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+
+			return catalognext.InspectServer(cmd.Context(), dao, args[0], args[1], workingset.OutputFormat(opts.Format))
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 	return cmd
 }
 
