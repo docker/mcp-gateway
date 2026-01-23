@@ -156,7 +156,7 @@ func (server Server) snapshotServer() *catalog.Server {
 	return &server.Snapshot.Server
 }
 
-// allowedToolCount returns the number of tools not blocked by policy.
+//nolint:unused // kept for future use
 func allowedToolCount(tools []catalog.Tool) int {
 	return policyutil.AllowedToolCount(tools)
 }

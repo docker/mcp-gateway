@@ -1,4 +1,4 @@
-package context
+package policycontext
 
 import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
