@@ -114,8 +114,8 @@ func Set(ctx context.Context, s Secret, opts SetOpts) error {
 
 	if isCE {
 		return fmt.Errorf(
-			"Docker Desktop is not available. " +
-				"`docker mcp secret set` requires Docker Desktop to manage secrets. " +
+			"Docker Desktop is not available " +
+				"`docker mcp secret set` requires Docker Desktop to manage secrets " +
 				"If you are running Docker Engine in a headless environment, " +
 				"use --secrets with a .env file instead",
 		)
