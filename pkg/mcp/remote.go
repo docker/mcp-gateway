@@ -68,6 +68,9 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 				log.Logf("    - Fetching secret: %s", secret.GetDefaultSecretKey(s.Name))
 			}
 			env[s.Env] = getSecretValue(ctx, s.Name)
+			if verbose {
+				log.Logf("    - Got secret for: %s (len=%d)", s.Name, len(env[s.Env]))
+			}
 		}
 	}
 
@@ -124,9 +127,17 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 
 	c.client.AddRoots(c.roots...)
 
+	if verbose {
+		log.Logf("    - Connecting to remote server: %s (transport=%s)", url, transport)
+	}
+
 	session, err := c.client.Connect(ctx, mcpTransport, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	if verbose {
+		log.Logf("    - Connected successfully to: %s", c.config.Name)
 	}
 
 	c.session = session
