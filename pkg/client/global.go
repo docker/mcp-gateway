@@ -34,6 +34,7 @@ type globalCfg struct {
 	Source            string   `yaml:"source"`
 	Icon              string   `yaml:"icon"`
 	InstallCheckPaths []string `yaml:"installCheckPaths"`
+	Stdio             *bool    `yaml:"stdio"`
 	Paths             `yaml:"paths"`
 	YQ                `yaml:"yq"`
 }
@@ -93,8 +94,19 @@ func NewGlobalCfgProcessor(g globalCfg) (*GlobalCfgProcessor, error) {
 }
 
 func (c *GlobalCfgProcessor) ParseConfig() MCPClientCfg {
-	result := MCPClientCfg{MCPClientCfgBase: MCPClientCfgBase{DisplayName: c.DisplayName, Source: c.Source, Icon: c.Icon}}
+	supportsStdio := true
+	if c.Stdio != nil {
+		supportsStdio = *c.Stdio
+	}
 
+	result := MCPClientCfg{
+		MCPClientCfgBase: MCPClientCfgBase{
+			DisplayName:   c.DisplayName,
+			Source:        c.Source,
+			Icon:          c.Icon,
+			SupportsStdio: supportsStdio,
+		},
+	}
 	paths := c.GetPathsForCurrentOS()
 	if len(paths) == 0 {
 		return result
@@ -106,7 +118,9 @@ func (c *GlobalCfgProcessor) ParseConfig() MCPClientCfg {
 		data, err := os.ReadFile(fullPath)
 		if err == nil {
 			result.IsInstalled = true
-			result.setParseResult(c.p.Parse(data))
+			if result.SupportsStdio {
+				result.setParseResult(c.p.Parse(data))
+			}
 			return result
 		}
 
@@ -138,6 +152,9 @@ func (c *GlobalCfgProcessor) ParseConfig() MCPClientCfg {
 }
 
 func (c *GlobalCfgProcessor) Update(key string, server *MCPServerSTDIO) error {
+	if c.Stdio != nil && !*c.Stdio {
+		return fmt.Errorf("client does not support MCP stdio")
+	}
 	paths := c.GetPathsForCurrentOS()
 	if len(paths) == 0 {
 		return fmt.Errorf("unknown config path for OS %s", runtime.GOOS)
