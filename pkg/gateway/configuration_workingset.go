@@ -78,17 +78,22 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	cfg := make(map[string]map[string]any)
 
 	// Build se:// URIs for secrets using shared function
+	// Keys are prefixed with the secrets provider reference to namespace them
 	inputs := make([]ServerSecretsInput, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
-		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
-			continue
+		providerPrefix := ""
+		if server.Secrets != "" {
+			providerPrefix = server.Secrets + "_"
 		}
 		inputs = append(inputs, ServerSecretsInput{
-			Secrets: server.Snapshot.Server.Secrets,
-			OAuth:   server.Snapshot.Server.OAuth,
+			Secrets:        server.Snapshot.Server.Secrets,
+			OAuth:          server.Snapshot.Server.OAuth,
+			ProviderPrefix: providerPrefix,
 		})
 	}
-	secrets := BuildSecretsURIs(ctx, inputs)
+	secrets := BuildSecretsURIs(ctx, inputs, BuildSecretsURIsOptions{
+		RequireSecretExists: false, // Don't call GetSecrets - Docker Desktop validates separately
+	})
 
 	toolsConfig := c.readTools(workingSet)
 
@@ -115,6 +120,13 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		serverNames = append(serverNames, serverName)
 
 		cfg[serverName] = server.Config
+
+		// TODO(cody): temporary hack to namespace secrets to provider
+		if server.Secrets != "" {
+			for i := range server.Snapshot.Server.Secrets {
+				server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
+			}
+		}
 	}
 
 	log.Log("- Configuration read in", time.Since(start))

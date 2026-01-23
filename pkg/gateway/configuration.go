@@ -334,7 +334,9 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 				OAuth:   server.OAuth,
 			})
 		}
-		return BuildSecretsURIs(ctx, inputs)
+		return BuildSecretsURIs(ctx, inputs, BuildSecretsURIsOptions{
+			RequireSecretExists: true, // Query Secrets Engine to verify secrets exist
+		})
 	}
 
 	var secrets map[string]string
