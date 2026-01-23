@@ -263,7 +263,8 @@ func applyCatalogPolicy(
 	}
 
 	// Evaluate all requests in a single batch call.
-	decisions, _ := client.EvaluateBatch(ctx, requests)
+	decisions, err := client.EvaluateBatch(ctx, requests)
+	decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 
 	// Apply server decisions.
 	for _, sm := range serverMetas {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 	"github.com/docker/mcp-gateway/pkg/policy/policyutil"
 )
@@ -101,7 +102,8 @@ func attachCatalogPolicy(
 	}
 
 	// Evaluate all requests in a single batch call.
-	decisions, _ := client.EvaluateBatch(ctx, requests)
+	decisions, err := client.EvaluateBatch(ctx, requests)
+	decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 
 	// Apply catalog decision.
 	cat.Policy = decisionToPtr(decisions[catalogIndex])

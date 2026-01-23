@@ -39,6 +39,32 @@ func DecisionForRequest(
 	return &decision
 }
 
+// NormalizeBatchDecisions ensures there is a decision for each request.
+func NormalizeBatchDecisions(
+	reqs []policy.Request,
+	decisions []policy.Decision,
+	evalErr error,
+) ([]policy.Decision, error) {
+	if evalErr == nil && len(decisions) == len(reqs) {
+		return decisions, nil
+	}
+
+	if evalErr == nil {
+		evalErr = fmt.Errorf(
+			"batch policy check returned %d decisions for %d requests",
+			len(decisions),
+			len(reqs),
+		)
+	}
+
+	normalized := make([]policy.Decision, len(reqs))
+	errMsg := evalErr.Error()
+	for i := range normalized {
+		normalized[i] = policy.Decision{Allowed: false, Error: errMsg}
+	}
+	return normalized, evalErr
+}
+
 // StatusLabel returns a policy status label for human output.
 func StatusLabel(decision *policy.Decision) string {
 	if decision == nil || decision.Allowed {

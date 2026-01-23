@@ -42,7 +42,8 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	// Evaluate all requests in a single batch call.
 	var decisions []policy.Decision
 	if policyClient != nil && len(requests) > 0 {
-		decisions, _ = policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = policyClient.EvaluateBatch(ctx, requests)
+		decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 	}
 
 	// Build summaries with policy decisions.

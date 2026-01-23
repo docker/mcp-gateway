@@ -192,7 +192,8 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 		}
 
 		// Evaluate all requests in a single batch call.
-		decisions, _ := policyClient.EvaluateBatch(ctx, requests)
+		decisions, err := policyClient.EvaluateBatch(ctx, requests)
+		decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 
 		// Apply tool decisions. Use load result if blocked, otherwise invoke.
 		for _, tm := range toolMetas {
