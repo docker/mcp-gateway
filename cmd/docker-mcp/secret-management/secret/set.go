@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/docker/cli/cli/command"
+
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	dockerenv "github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/tui"
