@@ -100,7 +100,8 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 	// Evaluate all requests in a single batch call.
 	var decisions []policy.Decision
 	if policyClient != nil && len(requests) > 0 {
-		decisions, _ = policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = policyClient.EvaluateBatch(ctx, requests)
+		decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 	}
 
 	var entries []ListEntry
