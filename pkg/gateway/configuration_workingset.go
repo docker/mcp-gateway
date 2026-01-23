@@ -91,7 +91,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 			ProviderPrefix: providerPrefix,
 		})
 	}
-	secrets := BuildSecretsURIs(ctx, inputs)
+	secrets := BuildSecretsURIs(inputs)
 
 	toolsConfig := c.readTools(workingSet)
 
@@ -118,6 +118,13 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		serverNames = append(serverNames, serverName)
 
 		cfg[serverName] = server.Config
+
+		// Namespace secrets to provider for WorkingSet
+		if server.Secrets != "" {
+			for i := range server.Snapshot.Server.Secrets {
+				server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
+			}
+		}
 	}
 
 	log.Log("- Configuration read in", time.Since(start))

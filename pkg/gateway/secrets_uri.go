@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"context"
-
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 )
@@ -10,56 +8,22 @@ import (
 // ServerSecretsInput represents info needed to build secrets URIs
 type ServerSecretsInput struct {
 	Secrets        []catalog.Secret // Secret definitions from server catalog
-	OAuth          *catalog.OAuth   // OAuth config (nil if no OAuth)
+	OAuth          *catalog.OAuth   // Reserved for future OAuth priority handling
 	ProviderPrefix string           // Optional prefix for map keys (WorkingSet namespacing)
 }
 
-// BuildSecretsURIs generates se:// URIs for the given server inputs.
-// Calls GetSecrets() to check availability and handles OAuth priority.
-func BuildSecretsURIs(ctx context.Context, inputs []ServerSecretsInput) map[string]string {
+// BuildSecretsURIs generates se:// URIs for all defined secrets.
+// Does NOT call GetSecrets - URIs are built for all secrets.
+// Docker Desktop resolves se:// URIs at container runtime.
+// Remote servers fetch actual values via remote.go.
+func BuildSecretsURIs(inputs []ServerSecretsInput) map[string]string {
 	uris := make(map[string]string)
 
-	// Get all available secrets
-	allSecrets, _ := secret.GetSecrets(ctx)
-	secretsMap := make(map[string]string)
-	for _, e := range allSecrets {
-		secretsMap[e.ID] = string(e.Value)
-	}
-
 	for _, input := range inputs {
-		// Non-OAuth servers: use default key directly
-		if input.OAuth == nil {
-			for _, s := range input.Secrets {
-				key := secret.GetDefaultSecretKey(s.Name)
-				if secretsMap[key] != "" {
-					mapKey := input.ProviderPrefix + s.Name
-					uris[mapKey] = "se://" + key
-				}
-			}
-			continue
-		}
-
-		// OAuth servers: check OAuth key first, fall back to PAT
-		secretToOAuthKey := make(map[string]string)
-		for _, p := range input.OAuth.Providers {
-			secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
-		}
-
 		for _, s := range input.Secrets {
+			key := secret.GetDefaultSecretKey(s.Name)
 			mapKey := input.ProviderPrefix + s.Name
-
-			// Try OAuth first
-			if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
-				if secretsMap[oauthKey] != "" {
-					uris[mapKey] = "se://" + oauthKey
-					continue
-				}
-			}
-			// Fallback to PAT
-			patKey := secret.GetDefaultSecretKey(s.Name)
-			if secretsMap[patKey] != "" {
-				uris[mapKey] = "se://" + patKey
-			}
+			uris[mapKey] = "se://" + key
 		}
 	}
 	return uris
