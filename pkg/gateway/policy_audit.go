@@ -106,7 +106,7 @@ func submitAuditEvent(client policy.Client, event policy.AuditEvent) {
 	if client == nil {
 		return
 	}
-	go client.SubmitAudit(context.Background(), event)
+	go client.SubmitAudit(context.Background(), event) //nolint:errcheck
 }
 
 // normalizePolicyDecisions ensures a decision for each request.
