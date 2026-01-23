@@ -2,51 +2,24 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
-// ServerSecretsInput represents the information needed to build secrets URIs for a server
+// ServerSecretsInput represents info needed to build secrets URIs
 type ServerSecretsInput struct {
 	Secrets        []catalog.Secret // Secret definitions from server catalog
 	OAuth          *catalog.OAuth   // OAuth config (nil if no OAuth)
-	ProviderPrefix string           // Optional prefix for map keys (e.g., "default_" for WorkingSet namespacing)
-}
-
-// BuildSecretsURIsOptions configures behavior of BuildSecretsURIs
-type BuildSecretsURIsOptions struct {
-	// RequireSecretExists: When true, queries Secrets Engine to verify secrets exist
-	// before building URIs. When false, builds URIs for all secrets without verification.
-	//
-	// Use true for FileBasedConfiguration (legacy mode) - matches original behavior
-	// Use false for WorkingSetConfiguration (profile mode) - Docker Desktop validates separately
-	RequireSecretExists bool
+	ProviderPrefix string           // Optional prefix for map keys (WorkingSet namespacing)
 }
 
 // BuildSecretsURIs generates se:// URIs for the given server inputs.
-//
-// Behavior depends on opts.RequireSecretExists:
-//   - false: Build URIs for all secrets without querying Secrets Engine (WorkingSetConfiguration)
-//   - true: Query Secrets Engine, only build URIs for existing secrets, OAuth priority (FileBasedConfiguration)
-func BuildSecretsURIs(ctx context.Context, inputs []ServerSecretsInput, opts BuildSecretsURIsOptions) map[string]string {
+// Calls GetSecrets() to check availability and handles OAuth priority.
+func BuildSecretsURIs(ctx context.Context, inputs []ServerSecretsInput) map[string]string {
 	uris := make(map[string]string)
 
-	// WorkingSetConfiguration: don't call GetSecrets, just build URIs directly
-	// This preserves the original behavior where no Secrets Engine call was made during config reading
-	if !opts.RequireSecretExists {
-		for _, input := range inputs {
-			for _, s := range input.Secrets {
-				key := secret.GetDefaultSecretKey(s.Name)
-				mapKey := input.ProviderPrefix + s.Name
-				uris[mapKey] = fmt.Sprintf("se://%s", key)
-			}
-		}
-		return uris
-	}
-
-	// FileBasedConfiguration: call GetSecrets to verify secrets exist and handle OAuth
+	// Get all available secrets
 	allSecrets, _ := secret.GetSecrets(ctx)
 	secretsMap := make(map[string]string)
 	for _, e := range allSecrets {
@@ -54,35 +27,38 @@ func BuildSecretsURIs(ctx context.Context, inputs []ServerSecretsInput, opts Bui
 	}
 
 	for _, input := range inputs {
-		// Server has no OAuth configured - use secret directly
+		// Non-OAuth servers: use default key directly
 		if input.OAuth == nil {
 			for _, s := range input.Secrets {
 				key := secret.GetDefaultSecretKey(s.Name)
 				if secretsMap[key] != "" {
-					uris[s.Name] = "se://" + key
+					mapKey := input.ProviderPrefix + s.Name
+					uris[mapKey] = "se://" + key
 				}
 			}
 			continue
 		}
 
-		// Server has OAuth - check OAuth token first, fall back to PAT
+		// OAuth servers: check OAuth key first, fall back to PAT
 		secretToOAuthKey := make(map[string]string)
 		for _, p := range input.OAuth.Providers {
 			secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
 		}
 
 		for _, s := range input.Secrets {
+			mapKey := input.ProviderPrefix + s.Name
+
 			// Try OAuth first
 			if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
 				if secretsMap[oauthKey] != "" {
-					uris[s.Name] = "se://" + oauthKey
+					uris[mapKey] = "se://" + oauthKey
 					continue
 				}
 			}
-			// Fallback to PAT (must be non-empty)
+			// Fallback to PAT
 			patKey := secret.GetDefaultSecretKey(s.Name)
 			if secretsMap[patKey] != "" {
-				uris[s.Name] = "se://" + patKey
+				uris[mapKey] = "se://" + patKey
 			}
 		}
 	}

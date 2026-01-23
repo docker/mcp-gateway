@@ -91,9 +91,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 			ProviderPrefix: providerPrefix,
 		})
 	}
-	secrets := BuildSecretsURIs(ctx, inputs, BuildSecretsURIsOptions{
-		RequireSecretExists: false, // Don't call GetSecrets - Docker Desktop validates separately
-	})
+	secrets := BuildSecretsURIs(ctx, inputs)
 
 	toolsConfig := c.readTools(workingSet)
 
@@ -120,13 +118,6 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		serverNames = append(serverNames, serverName)
 
 		cfg[serverName] = server.Config
-
-		// TODO(cody): temporary hack to namespace secrets to provider
-		if server.Secrets != "" {
-			for i := range server.Snapshot.Server.Secrets {
-				server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
-			}
-		}
 	}
 
 	log.Log("- Configuration read in", time.Since(start))
