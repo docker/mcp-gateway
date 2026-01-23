@@ -82,9 +82,10 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	inputs := make([]ServerSecretsInput, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
 		providerPrefix := ""
-		if server.Secrets != "" {
-			providerPrefix = server.Secrets + "_"
-		}
+		// TODO: Namespace prefix disabled for testing - uncomment to restore
+		// if server.Secrets != "" {
+		// 	providerPrefix = server.Secrets + "_"
+		// }
 		inputs = append(inputs, ServerSecretsInput{
 			Secrets:        server.Snapshot.Server.Secrets,
 			OAuth:          server.Snapshot.Server.OAuth,
@@ -119,12 +120,12 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 
 		cfg[serverName] = server.Config
 
-		// Namespace secrets to provider for WorkingSet
-		if server.Secrets != "" {
-			for i := range server.Snapshot.Server.Secrets {
-				server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
-			}
-		}
+		// TODO: Namespace prefix disabled for testing - uncomment to restore
+		// if server.Secrets != "" {
+		// 	for i := range server.Snapshot.Server.Secrets {
+		// 		server.Snapshot.Server.Secrets[i].Name = server.Secrets + "_" + server.Snapshot.Server.Secrets[i].Name
+		// 	}
+		// }
 	}
 
 	log.Log("- Configuration read in", time.Since(start))
