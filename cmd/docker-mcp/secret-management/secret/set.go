@@ -117,7 +117,7 @@ func Set(ctx context.Context, s Secret, opts SetOpts) error {
 			"Docker Desktop is not available. " +
 				"`docker mcp secret set` requires Docker Desktop to manage secrets. " +
 				"If you are running Docker Engine in a headless environment, " +
-				"use --secrets with a .env file instead.",
+				"use --secrets with a .env file instead",
 		)
 	}
 
