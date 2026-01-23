@@ -67,7 +67,7 @@ func Parse(specs []string) ([]Interceptor, error) {
 
 		w := strings.ToLower(parts[0])
 		if w != "before" && w != "after" {
-			return nil, fmt.Errorf("invalid interceptor when: '%s', expected 'before' or 'after''", w)
+			return nil, fmt.Errorf("invalid interceptor when: %q, expected 'before' or 'after'", w)
 		}
 
 		t := strings.ToLower(parts[1])
@@ -246,9 +246,10 @@ func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, erro
 	// Explicitly declare JSON payload for clarity and interoperability.
 	request.Header.Set("Content-Type", "application/json")
 
-	// Use the default HTTP transport.
-	// Timeouts and advanced transport settings are intentionally
-	// left to the caller or future configuration.
+	// Use the default HTTP client and transport.
+	// No timeout is set intentionally: interceptor endpoints may note
+	// synchronously process requests, stream results, or apply their
+	// own timeout semantics.
 	client := &http.Client{
 		Transport: http.DefaultTransport,
 	}
