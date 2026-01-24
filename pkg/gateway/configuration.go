@@ -585,9 +585,7 @@ func (c *FileBasedConfiguration) readCatalog(ctx context.Context) (catalog.Catal
 				log.Log(fmt.Sprintf("Warning: overlapping key '%s' found in catalog '%s', overwriting previous value", key, catalogPath))
 			}
 			mergedServers[key] = server
-			if _, exists := serverCatalogs[key]; !exists {
-				serverCatalogs[key] = catalogID
-			}
+			serverCatalogs[key] = catalogID
 		}
 	}
 
