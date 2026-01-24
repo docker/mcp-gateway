@@ -90,7 +90,9 @@ func buildTarget(serverName, tool string) *policy.Target {
 // InferServerSourceType determines the policy server source type.
 func InferServerSourceType(server catalog.Server) string {
 	if server.Type != "" {
-		return server.Type
+		if normalized := normalizeServerType(server.Type); normalized != "" {
+			return normalized
+		}
 	}
 	if server.Remote.URL != "" || server.SSEEndpoint != "" {
 		return "remote"
@@ -99,6 +101,19 @@ func InferServerSourceType(server catalog.Server) string {
 		return "image"
 	}
 	return ""
+}
+
+// normalizeServerType maps legacy catalog types to policy server types.
+// Returns empty string when the type is unknown.
+func normalizeServerType(serverType string) string {
+	switch serverType {
+	case "registry", "image", "remote":
+		return serverType
+	case "server", "poci":
+		return "registry"
+	default:
+		return ""
+	}
 }
 
 // InferServerSource determines the policy server source identifier.
