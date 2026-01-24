@@ -85,10 +85,9 @@ func TestListHumanReadable(t *testing.T) {
 	})
 
 	// Verify table format
-	assert.Contains(t, output, "Reference | Digest | Title | Policy")
+	assert.Contains(t, output, "Reference | Digest | Title")
 	assert.Contains(t, output, "catalog-one")
 	assert.Contains(t, output, "catalog-two")
-	assert.Contains(t, output, "Allowed")
 }
 
 func TestListJSON(t *testing.T) {

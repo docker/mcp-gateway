@@ -25,6 +25,7 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 
 	workingSets := make([]WorkingSet, len(dbSets))
 	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
 	for i, dbWorkingSet := range dbSets {
 		workingSets[i] = NewFromDb(&dbWorkingSet)
 		attachWorkingSetPolicy(ctx, policyClient, &workingSets[i], true)
@@ -33,7 +34,7 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 	var data []byte
 	switch format {
 	case OutputFormatHumanReadable:
-		data = []byte(printListHumanReadable(workingSets))
+		data = []byte(printListHumanReadable(workingSets, showPolicy))
 	case OutputFormatJSON:
 		data, err = json.MarshalIndent(workingSets, "", "  ")
 	case OutputFormatYAML:
@@ -50,16 +51,27 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 	return nil
 }
 
-func printListHumanReadable(workingSets []WorkingSet) string {
+func printListHumanReadable(workingSets []WorkingSet, showPolicy bool) string {
 	lines := ""
 	for _, workingSet := range workingSets {
-		lines += fmt.Sprintf(
-			"%s\t%s\t%s\n",
-			workingSet.ID,
-			workingSet.Name,
-			policycli.StatusLabel(workingSet.Policy),
-		)
+		if showPolicy {
+			lines += fmt.Sprintf(
+				"%s\t%s\t%s\n",
+				workingSet.ID,
+				workingSet.Name,
+				policycli.StatusLabel(workingSet.Policy),
+			)
+		} else {
+			lines += fmt.Sprintf(
+				"%s\t%s\n",
+				workingSet.ID,
+				workingSet.Name,
+			)
+		}
 	}
 	lines = strings.TrimSuffix(lines, "\n")
-	return fmt.Sprintf("ID\tName\tPolicy\n----\t----\t------\n%s", lines)
+	if showPolicy {
+		return fmt.Sprintf("ID\tName\tPolicy\n----\t----\t------\n%s", lines)
+	}
+	return fmt.Sprintf("ID\tName\n----\t----\n%s", lines)
 }

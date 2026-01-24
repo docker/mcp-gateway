@@ -70,12 +70,12 @@ func TestListHumanReadable(t *testing.T) {
 	})
 
 	// Verify header
-	assert.Contains(t, output, "ID\tName\tPolicy")
-	assert.Contains(t, output, "----\t----\t------")
+	assert.Contains(t, output, "ID\tName")
+	assert.Contains(t, output, "----\t----")
 
 	// Verify data
-	assert.Contains(t, output, "set-1\tFirst Set\tAllowed")
-	assert.Contains(t, output, "set-2\tSecond Set\tAllowed")
+	assert.Contains(t, output, "set-1\tFirst Set")
+	assert.Contains(t, output, "set-2\tSecond Set")
 }
 
 func TestListJSON(t *testing.T) {

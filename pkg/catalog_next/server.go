@@ -110,6 +110,7 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 	catalog := NewFromDb(dbCatalog)
 
 	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
 	attachCatalogPolicy(ctx, policyClient, catalog.Ref, &catalog, true)
 
 	// Apply name filter
@@ -127,7 +128,7 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 	servers := filterServers(catalog.Servers, nameFilter)
 
 	// Output results
-	return outputServers(catalog.Ref, catalog.Title, catalog.Policy, servers, format)
+	return outputServers(catalog.Ref, catalog.Title, catalog.Policy, servers, format, showPolicy)
 }
 
 func parseFilters(filters []string) ([]serverFilter, error) {
@@ -170,7 +171,7 @@ func matchesNameFilter(server Server, nameLower string) bool {
 	return strings.Contains(serverName, nameLower)
 }
 
-func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server, format workingset.OutputFormat) error {
+func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server, format workingset.OutputFormat, showPolicy bool) error {
 	// Sort servers by name
 	sort.Slice(servers, func(i, j int) bool {
 		if servers[i].Snapshot == nil || servers[j].Snapshot == nil {
@@ -184,7 +185,7 @@ func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decisi
 
 	switch format {
 	case workingset.OutputFormatHumanReadable:
-		printServersHuman(catalogRef, catalogTitle, catalogPolicy, servers)
+		printServersHuman(catalogRef, catalogTitle, catalogPolicy, servers, showPolicy)
 		return nil
 	case workingset.OutputFormatJSON:
 		output := map[string]any{
@@ -192,7 +193,7 @@ func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decisi
 			"title":   catalogTitle,
 			"servers": servers,
 		}
-		if catalogPolicy != nil {
+		if showPolicy && catalogPolicy != nil {
 			output["policy"] = catalogPolicy
 		}
 		data, err = json.MarshalIndent(output, "", "  ")
@@ -202,7 +203,7 @@ func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decisi
 			"title":   catalogTitle,
 			"servers": servers,
 		}
-		if catalogPolicy != nil {
+		if showPolicy && catalogPolicy != nil {
 			output["policy"] = catalogPolicy
 		}
 		data, err = yaml.Marshal(output)
@@ -218,7 +219,7 @@ func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decisi
 	return nil
 }
 
-func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server) {
+func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server, showPolicy bool) {
 	if len(servers) == 0 {
 		fmt.Println("No servers found")
 		return
@@ -226,7 +227,9 @@ func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.De
 
 	fmt.Printf("Catalog: %s\n", catalogRef)
 	fmt.Printf("Title: %s\n", catalogTitle)
-	fmt.Printf("Policy: %s\n", policycli.StatusMessage(catalogPolicy))
+	if showPolicy {
+		fmt.Printf("Policy: %s\n", policycli.StatusMessage(catalogPolicy))
+	}
 	fmt.Printf("Servers (%d):\n\n", len(servers))
 
 	for _, server := range servers {
@@ -250,7 +253,9 @@ func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.De
 		case workingset.ServerTypeRemote:
 			fmt.Printf("    Endpoint: %s\n", server.Endpoint)
 		}
-		fmt.Printf("    Policy: %s\n", policycli.StatusMessage(server.Policy))
+		if showPolicy {
+			fmt.Printf("    Policy: %s\n", policycli.StatusMessage(server.Policy))
+		}
 		if len(srv.Tools) > 0 {
 			fmt.Printf("    Tools: %d\n", allowedToolCount(srv.Tools))
 		}

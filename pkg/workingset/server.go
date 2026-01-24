@@ -158,8 +158,9 @@ func ListServers(ctx context.Context, dao db.DAO, filters []string, format Outpu
 		return fmt.Errorf("failed to search profiles: %w", err)
 	}
 	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
 	results := buildSearchResults(ctx, policyClient, dbSets, nameFilter)
-	return outputSearchResults(results, format)
+	return outputSearchResults(results, format, showPolicy)
 }
 
 func parseFilters(filters []string) ([]serverFilter, error) {
@@ -224,13 +225,13 @@ func matchesNameFilter(server Server, nameLower string) bool {
 	return strings.Contains(serverName, nameLower)
 }
 
-func outputSearchResults(results []SearchResult, format OutputFormat) error {
+func outputSearchResults(results []SearchResult, format OutputFormat, showPolicy bool) error {
 	var data []byte
 	var err error
 
 	switch format {
 	case OutputFormatHumanReadable:
-		printSearchResultsHuman(results)
+		printSearchResultsHuman(results, showPolicy)
 		return nil
 	case OutputFormatJSON:
 		data, err = json.MarshalIndent(results, "", "  ")
@@ -248,7 +249,7 @@ func outputSearchResults(results []SearchResult, format OutputFormat) error {
 	return nil
 }
 
-func printSearchResultsHuman(results []SearchResult) {
+func printSearchResultsHuman(results []SearchResult, showPolicy bool) {
 	if len(results) == 0 {
 		fmt.Println("No profiles found")
 		return
@@ -258,15 +259,28 @@ func printSearchResultsHuman(results []SearchResult) {
 
 	for _, result := range results {
 		for _, server := range result.Servers {
-			rows = append(rows, []string{
-				result.ID,
-				string(server.Type),
-				server.Snapshot.Server.Name,
-				policycli.StatusLabel(server.Policy),
-			})
+			if showPolicy {
+				rows = append(rows, []string{
+					result.ID,
+					string(server.Type),
+					server.Snapshot.Server.Name,
+					policycli.StatusLabel(server.Policy),
+				})
+			} else {
+				rows = append(rows, []string{
+					result.ID,
+					string(server.Type),
+					server.Snapshot.Server.Name,
+				})
+			}
 		}
 	}
 
-	header := []string{"PROFILE", "TYPE", "IDENTIFIER", "POLICY"}
-	formatting.PrettyPrintTable(rows, []int{40, 10, 120, 10}, header)
+	if showPolicy {
+		header := []string{"PROFILE", "TYPE", "IDENTIFIER", "POLICY"}
+		formatting.PrettyPrintTable(rows, []int{40, 10, 120, 10}, header)
+	} else {
+		header := []string{"PROFILE", "TYPE", "IDENTIFIER"}
+		formatting.PrettyPrintTable(rows, []int{40, 10, 120}, header)
+	}
 }

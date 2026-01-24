@@ -28,6 +28,7 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 
 	summaries := make([]CatalogSummary, len(dbCatalogs))
 	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
 
 	// Build batch request for all catalog policy evaluations.
 	var requests []policy.Request
@@ -61,7 +62,7 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	var data []byte
 	switch format {
 	case workingset.OutputFormatHumanReadable:
-		data = []byte(printListHumanReadable(summaries))
+		data = []byte(printListHumanReadable(summaries, showPolicy))
 	case workingset.OutputFormatJSON:
 		data, err = json.MarshalIndent(summaries, "", "  ")
 	case workingset.OutputFormatYAML:
@@ -76,17 +77,29 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	return nil
 }
 
-func printListHumanReadable(catalogs []CatalogSummary) string {
+func printListHumanReadable(catalogs []CatalogSummary, showPolicy bool) string {
 	lines := ""
 	for _, catalog := range catalogs {
-		lines += fmt.Sprintf(
-			"%s\t| %s\t| %s\t| %s\n",
-			catalog.Ref,
-			catalog.Digest,
-			catalog.Title,
-			policycli.StatusLabel(catalog.Policy),
-		)
+		if showPolicy {
+			lines += fmt.Sprintf(
+				"%s\t| %s\t| %s\t| %s\n",
+				catalog.Ref,
+				catalog.Digest,
+				catalog.Title,
+				policycli.StatusLabel(catalog.Policy),
+			)
+		} else {
+			lines += fmt.Sprintf(
+				"%s\t| %s\t| %s\n",
+				catalog.Ref,
+				catalog.Digest,
+				catalog.Title,
+			)
+		}
 	}
 	lines = strings.TrimSuffix(lines, "\n")
-	return fmt.Sprintf("Reference | Digest | Title | Policy\n%s", lines)
+	if showPolicy {
+		return fmt.Sprintf("Reference | Digest | Title | Policy\n%s", lines)
+	}
+	return fmt.Sprintf("Reference | Digest | Title\n%s", lines)
 }

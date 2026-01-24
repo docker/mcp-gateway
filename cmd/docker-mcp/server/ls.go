@@ -33,7 +33,7 @@ type ListEntry struct {
 	Policy *policy.Decision `json:"policy,omitempty"`
 }
 
-func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, error) {
+func List(ctx context.Context, docker docker.Client, policyClient policy.Client, quiet bool) ([]ListEntry, error) {
 	registry, _, err := loadRegistryWithConfig(ctx, docker)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,6 @@ func List(ctx context.Context, docker docker.Client, quiet bool) ([]ListEntry, e
 	if _, name, _, err := catalog.ReadOne(ctx, catalog.DockerCatalogFilename); err == nil && name != "" {
 		catalogID = name
 	}
-	policyClient := policycli.ClientForCLI(ctx)
 	policyCtx := policycontext.Context{
 		Catalog:                  catalogID,
 		WorkingSet:               "",

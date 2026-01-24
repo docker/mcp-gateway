@@ -123,6 +123,7 @@ func Show(ctx context.Context, dockerCli command.Cli, name string, format Format
 		ServerSourceTypeOverride: "registry",
 	}
 	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
 	document.Policy = policycli.DecisionForRequest(
 		ctx,
 		policyClient,
@@ -151,7 +152,9 @@ func Show(ctx context.Context, dockerCli command.Cli, name string, format Format
 	fmt.Println()
 	fmt.Printf("  \033[1mMCP Server Directory\033[0m\n")
 	fmt.Printf("  %d servers available\n", serverCount)
-	fmt.Printf("  Policy: %s\n", policycli.StatusMessage(document.Policy))
+	if showPolicy {
+		fmt.Printf("  Policy: %s\n", policycli.StatusMessage(document.Policy))
+	}
 	fmt.Printf("  %s\n", strings.Repeat("─", headerLineWidth))
 	fmt.Println()
 
@@ -163,7 +166,9 @@ func Show(ctx context.Context, dockerCli command.Cli, name string, format Format
 		fmt.Printf("  \033[1m%s\033[0m\n", k)
 		wrappedDesc := wrapText(strings.TrimSpace(val.Description), wrapWidth, "    ")
 		fmt.Println(wrappedDesc)
-		fmt.Printf("    Policy: %s\n", policycli.StatusMessage(val.Policy))
+		if showPolicy {
+			fmt.Printf("    Policy: %s\n", policycli.StatusMessage(val.Policy))
+		}
 
 		if i < len(keys)-1 {
 			fmt.Println()
