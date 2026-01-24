@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/prompts"
 	// "github.com/docker/mcp-gateway/pkg/prompts"
 )
@@ -167,7 +168,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 			)
 		}
 		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
-		decisions, err = normalizePolicyDecisions(requests, decisions, err)
+		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
 		for i, req := range requests {
 			event := buildAuditEvent(req, decisions[i], nil, nil)
 			submitAuditEvent(g.policyClient, event)
@@ -358,7 +359,7 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 			)
 		}
 		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
-		decisions, err = normalizePolicyDecisions(requests, decisions, err)
+		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
 		for i, req := range requests {
 			event := buildAuditEvent(req, decisions[i], nil, nil)
 			submitAuditEvent(g.policyClient, event)

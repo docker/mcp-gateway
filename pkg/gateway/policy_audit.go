@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -107,30 +106,4 @@ func submitAuditEvent(client policy.Client, event policy.AuditEvent) {
 		return
 	}
 	go client.SubmitAudit(context.Background(), event) //nolint:errcheck
-}
-
-// normalizePolicyDecisions ensures a decision for each request.
-func normalizePolicyDecisions(
-	reqs []policy.Request,
-	decisions []policy.Decision,
-	evalErr error,
-) ([]policy.Decision, error) {
-	if evalErr == nil && len(decisions) == len(reqs) {
-		return decisions, nil
-	}
-
-	if evalErr == nil {
-		evalErr = fmt.Errorf(
-			"batch policy check returned %d decisions for %d requests",
-			len(decisions),
-			len(reqs),
-		)
-	}
-
-	normalized := make([]policy.Decision, len(reqs))
-	errMsg := evalErr.Error()
-	for i := range normalized {
-		normalized[i] = policy.Decision{Allowed: false, Error: errMsg}
-	}
-	return normalized, evalErr
 }

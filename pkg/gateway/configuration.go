@@ -18,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 )
 
@@ -145,7 +146,7 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 
 	// Evaluate all requests in a single batch call.
 	decisions, err := pc.EvaluateBatch(ctx, requests)
-	decisions, err = normalizePolicyDecisions(requests, decisions, err)
+	decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
 	for i, req := range requests {
 		event := buildAuditEvent(req, decisions[i], nil, nil)
 		submitAuditEvent(pc, event)
