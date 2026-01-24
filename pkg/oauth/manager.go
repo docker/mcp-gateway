@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
@@ -23,13 +24,31 @@ type Manager struct {
 	redirectURI  string
 }
 
-// NewManager creates a new OAuth manager for CE mode
+// NewManager creates a new OAuth manager.
+// In CE mode, the redirect URI must point to the local gateway callback
+// instead of the SaaS endpoint (mcp.docker.com).
 func NewManager(credHelper credentials.Helper) *Manager {
+	redirectURI := DefaultRedirectURI
+
+	// CE mode requires a local redirect URI because the OAuth callback
+	// is handled by the local mcp-gateway process, not by Docker SaaS.
+	//
+	// Example:
+	//   http://localhost:5000/callback
+	if os.Getenv("DOCKER_MCP_USE_CE") == "true" {
+		if v := os.Getenv("DOCKER_MCP_OAUTH_REDIRECT_URI"); v != "" {
+			redirectURI = v
+		} else {
+			// Default CE callback used by the local OAuth proxy
+			redirectURI = "http://localhost:5000/callback"
+		}
+	}
+
 	return &Manager{
-		dcrManager:   dcr.NewManager(credHelper, DefaultRedirectURI),
+		dcrManager:   dcr.NewManager(credHelper, redirectURI),
 		tokenStore:   NewTokenStore(credHelper),
 		stateManager: NewStateManager(),
-		redirectURI:  DefaultRedirectURI,
+		redirectURI:  redirectURI,
 	}
 }
 

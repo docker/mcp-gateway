@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -221,9 +222,38 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		args = append(args, "--network", network)
 	}
 
-	// Convert params.Arguments to map[string]any
-	arguments, ok := params.Arguments.(map[string]any)
-	if !ok {
+	// Normalize tool arguments for evaluation.
+	// MCP CallTool arguments may arrive as raw JSON (json.RawMessage / []byte)
+	// or already-decoded map[string]any, depending on the caller.
+	// We must handle both safely to avoid silently dropping arguments.
+	var arguments map[string]any
+
+	switch v := params.Arguments.(type) {
+	case map[string]any:
+		// Already decoded – use directly
+		arguments = v
+
+	case []byte:
+		// Raw JSON payload – decode explicitly
+		if err := json.Unmarshal(v, &arguments); err != nil {
+			log.Logf("Warning: failed to decode tool arguments JSON: %v", err)
+			arguments = make(map[string]any)
+		}
+
+	case json.RawMessage:
+		// RawMessage is common in MCP transports
+		if err := json.Unmarshal(v, &arguments); err != nil {
+			log.Logf("Warning: failed to decode tool arguments RawMessage: %v", err)
+			arguments = make(map[string]any)
+		}
+
+	case nil:
+		// No arguments provided
+		arguments = make(map[string]any)
+
+	default:
+		// Unexpected type – fail safe but keep container running
+		log.Logf("Warning: unsupported tool arguments type: %T", params.Arguments)
 		arguments = make(map[string]any)
 	}
 
