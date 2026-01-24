@@ -7,11 +7,11 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
-// ServerSecretsInput represents info needed to build secrets URIs
-type ServerSecretsInput struct {
-	Secrets        []catalog.Secret // Secret definitions from server catalog
-	OAuth          *catalog.OAuth   // OAuth config for priority handling (OAuth token first, fall back to PAT)
-	ProviderPrefix string           // Optional prefix for map keys (WorkingSet namespacing)
+// ServerSecretConfig contains the secret definitions and OAuth config for a server.
+type ServerSecretConfig struct {
+	Secrets   []catalog.Secret // Secret definitions from server catalog
+	OAuth     *catalog.OAuth   // OAuth config (if present, OAuth takes priority over PAT)
+	Namespace string           // Prefix for map keys (used by WorkingSet for namespacing)
 }
 
 // BuildSecretsURIs generates se:// URIs for secrets with OAuth priority handling.
@@ -26,51 +26,54 @@ type ServerSecretsInput struct {
 //
 // Docker Desktop resolves se:// URIs at container runtime.
 // Remote servers fetch actual values via remote.go.
-func BuildSecretsURIs(ctx context.Context, inputs []ServerSecretsInput) map[string]string {
-	uris := make(map[string]string)
+func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[string]string {
+	// secretNameToURI maps secret names to their se:// URIs
+	// Key: secret name (e.g., "github.token" or "default_github.token" with namespace)
+	// Value: se:// URI (e.g., "se://docker/mcp/github.token")
+	secretNameToURI := make(map[string]string)
 
-	// Get all available secrets to check existence
+	// availableSecrets maps secret IDs to their values (used to check existence)
 	allSecrets, _ := secret.GetSecrets(ctx)
-	secretsMap := make(map[string]string)
-	for _, e := range allSecrets {
-		secretsMap[e.ID] = string(e.Value)
+	availableSecrets := make(map[string]string)
+	for _, envelope := range allSecrets {
+		availableSecrets[envelope.ID] = string(envelope.Value)
 	}
 
-	for _, input := range inputs {
+	for _, cfg := range configs {
 		// Server has no OAuth configured - use secret directly
-		if input.OAuth == nil {
-			for _, s := range input.Secrets {
-				key := secret.GetDefaultSecretKey(s.Name)
-				if secretsMap[key] != "" {
-					mapKey := input.ProviderPrefix + s.Name
-					uris[mapKey] = "se://" + key
+		if cfg.OAuth == nil {
+			for _, s := range cfg.Secrets {
+				secretID := secret.GetDefaultSecretKey(s.Name)
+				if availableSecrets[secretID] != "" {
+					secretName := cfg.Namespace + s.Name
+					secretNameToURI[secretName] = "se://" + secretID
 				}
 			}
 			continue
 		}
 
-		// Server has OAuth - check OAuth token first, fall back to PAT
-		secretToOAuthKey := make(map[string]string)
-		for _, p := range input.OAuth.Providers {
-			secretToOAuthKey[p.Secret] = secret.GetOAuthKey(p.Provider)
+		// Build mapping from secret name to OAuth storage key
+		secretToOAuthID := make(map[string]string)
+		for _, p := range cfg.OAuth.Providers {
+			secretToOAuthID[p.Secret] = secret.GetOAuthKey(p.Provider)
 		}
 
-		for _, s := range input.Secrets {
-			mapKey := input.ProviderPrefix + s.Name
+		for _, s := range cfg.Secrets {
+			secretName := cfg.Namespace + s.Name
 
 			// Try OAuth first
-			if oauthKey, ok := secretToOAuthKey[s.Name]; ok {
-				if secretsMap[oauthKey] != "" {
-					uris[mapKey] = "se://" + oauthKey
+			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
+				if availableSecrets[oauthSecretID] != "" {
+					secretNameToURI[secretName] = "se://" + oauthSecretID
 					continue
 				}
 			}
-			// Fallback to PAT (must exist)
-			patKey := secret.GetDefaultSecretKey(s.Name)
-			if secretsMap[patKey] != "" {
-				uris[mapKey] = "se://" + patKey
+			// Fall back to PAT if it exists
+			patSecretID := secret.GetDefaultSecretKey(s.Name)
+			if availableSecrets[patSecretID] != "" {
+				secretNameToURI[secretName] = "se://" + patSecretID
 			}
 		}
 	}
-	return uris
+	return secretNameToURI
 }

@@ -79,20 +79,20 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 
 	// Build se:// URIs for secrets using shared function
 	// Keys are prefixed with the secrets provider reference to namespace them
-	inputs := make([]ServerSecretsInput, 0, len(workingSet.Servers))
+	configs := make([]ServerSecretConfig, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
-		providerPrefix := ""
+		namespace := ""
 		// TODO: Namespace prefix disabled for testing - uncomment to restore
 		// if server.Secrets != "" {
-		// 	providerPrefix = server.Secrets + "_"
+		// 	namespace = server.Secrets + "_"
 		// }
-		inputs = append(inputs, ServerSecretsInput{
-			Secrets:        server.Snapshot.Server.Secrets,
-			OAuth:          server.Snapshot.Server.OAuth,
-			ProviderPrefix: providerPrefix,
+		configs = append(configs, ServerSecretConfig{
+			Secrets:   server.Snapshot.Server.Secrets,
+			OAuth:     server.Snapshot.Server.OAuth,
+			Namespace: namespace,
 		})
 	}
-	secrets := BuildSecretsURIs(ctx, inputs)
+	secrets := BuildSecretsURIs(ctx, configs)
 
 	toolsConfig := c.readTools(workingSet)
 

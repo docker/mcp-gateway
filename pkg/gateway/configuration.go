@@ -326,15 +326,15 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 
 	// Build se:// URIs for secrets using shared function
 	buildSecretsURIs := func() map[string]string {
-		inputs := make([]ServerSecretsInput, 0, len(serverNames))
+		configs := make([]ServerSecretConfig, 0, len(serverNames))
 		for _, serverName := range serverNames {
 			server := servers[serverName]
-			inputs = append(inputs, ServerSecretsInput{
+			configs = append(configs, ServerSecretConfig{
 				Secrets: server.Secrets,
 				OAuth:   server.OAuth,
 			})
 		}
-		return BuildSecretsURIs(ctx, inputs)
+		return BuildSecretsURIs(ctx, configs)
 	}
 
 	var secrets map[string]string
