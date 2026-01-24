@@ -92,7 +92,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 			ProviderPrefix: providerPrefix,
 		})
 	}
-	secrets := BuildSecretsURIs(inputs)
+	secrets := BuildSecretsURIs(ctx, inputs)
 
 	toolsConfig := c.readTools(workingSet)
 

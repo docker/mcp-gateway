@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -97,8 +98,9 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	var mcpTransport mcp.Transport
 	var err error
 
-	// Create HTTP client with custom headers
+	// Create HTTP client with custom headers and timeout
 	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
 		Transport: &headerRoundTripper{
 			base:    http.DefaultTransport,
 			headers: headers,
