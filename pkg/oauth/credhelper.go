@@ -43,65 +43,41 @@ type TokenStatus struct {
 
 // GetOAuthToken retrieves an OAuth token for the specified server
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
-	var tokenSecret string
-
 	if IsCEMode() {
-		// CE mode: Use credential helper directly
-		dcrMgr := dcr.NewManager(h.credentialHelper, "")
-		client, err := dcrMgr.GetDCRClient(serverName)
-		if err != nil {
-			return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
-		}
-		credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+		return h.getOAuthTokenCE(serverName)
+	}
+	return h.getOAuthTokenDesktop(ctx, serverName)
+}
 
-		_, tokenSecret, err = h.credentialHelper.Get(credentialKey)
-		if err != nil {
-			if credentials.IsErrCredentialsNotFound(err) {
-				return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
-			}
-			return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
-		}
-	} else {
-		// Desktop mode: Query Secrets Engine
-		envelopes, err := secret.GetSecrets(ctx)
-		if err != nil {
-			return "", fmt.Errorf("failed to query Secrets Engine: %w", err)
-		}
+// getOAuthTokenCE retrieves OAuth token in CE mode using credential helper.
+// The credential helper returns base64-encoded JSON containing the access token.
+func (h *CredentialHelper) getOAuthTokenCE(serverName string) (string, error) {
+	dcrMgr := dcr.NewManager(h.credentialHelper, "")
+	client, err := dcrMgr.GetDCRClient(serverName)
+	if err != nil {
+		return "", fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	}
+	credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
 
-		// Look for OAuth token using centralized namespace helper
-		oauthID := secret.GetOAuthKey(serverName)
-
-		found := false
-		for _, env := range envelopes {
-			if env.ID == oauthID {
-				tokenSecret = string(env.Value)
-				found = true
-				break
-			}
-		}
-
-		if !found {
+	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
+	if err != nil {
+		if credentials.IsErrCredentialsNotFound(err) {
 			return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
 		}
+		return "", fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
 	if tokenSecret == "" {
 		return "", fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	if !IsCEMode() {
-		// Desktop mode: Secrets Engine now returns raw access token directly
-		// No JSON parsing needed
-		return tokenSecret, nil
-	}
-
-	// CE mode: credential helper returns base64-encoded JSON
+	// Decode base64-encoded JSON
 	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode OAuth token for %s: %w", serverName, err)
 	}
 
-	// Parse the JSON to extract the actual access token
+	// Parse JSON to extract the access token
 	var tokenData struct {
 		AccessToken string `json:"access_token"`
 		TokenType   string `json:"token_type"`
@@ -117,55 +93,93 @@ func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string)
 	return tokenData.AccessToken, nil
 }
 
-// GetTokenStatus checks if an OAuth token is valid and whether it needs refresh
-func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
-	var tokenSecret string
+// getOAuthTokenDesktop retrieves OAuth token in Desktop mode using Secrets Engine.
+// The Secrets Engine returns the raw access token directly (Go auto-decodes base64 into []byte).
+func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName string) (string, error) {
+	envelopes, err := secret.GetSecrets(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to query Secrets Engine: %w", err)
+	}
 
+	oauthID := secret.GetOAuthKey(serverName)
+
+	for _, env := range envelopes {
+		if env.ID == oauthID {
+			tokenSecret := string(env.Value)
+			if tokenSecret == "" {
+				return "", fmt.Errorf("empty OAuth token found for %s", serverName)
+			}
+			return tokenSecret, nil
+		}
+	}
+
+	return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
+}
+
+// TokenExists checks if an OAuth token exists for the specified server.
+// This is the appropriate check for Desktop mode where Secrets Engine returns
+// raw tokens without validity or expiry metadata - we can only verify existence.
+// For CE mode, this also works but GetTokenStatus provides more detail.
+func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (bool, error) {
 	if IsCEMode() {
-		// CE mode: Use credential helper directly
+		// CE mode: check credential helper
 		dcrMgr := dcr.NewManager(h.credentialHelper, "")
 		client, err := dcrMgr.GetDCRClient(serverName)
 		if err != nil {
-			return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+			return false, nil // No DCR client = no token
 		}
 		credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
-
-		_, tokenSecret, err = h.credentialHelper.Get(credentialKey)
-		if err != nil {
-			if credentials.IsErrCredentialsNotFound(err) {
-				return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
-			}
-			return TokenStatus{Valid: false}, fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
+		_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
+		if err != nil || tokenSecret == "" {
+			return false, nil
 		}
-	} else {
-		// Desktop mode: Query Secrets Engine
-		envelopes, err := secret.GetSecrets(ctx)
-		if err != nil {
-			return TokenStatus{Valid: false}, fmt.Errorf("failed to query Secrets Engine: %w", err)
+		return true, nil
+	}
+
+	// Desktop mode: check Secrets Engine
+	envelopes, err := secret.GetSecrets(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to query Secrets Engine: %w", err)
+	}
+
+	oauthID := secret.GetOAuthKey(serverName)
+	for _, env := range envelopes {
+		if env.ID == oauthID && string(env.Value) != "" {
+			return true, nil
 		}
+	}
+	return false, nil
+}
 
-		// Look for OAuth token using centralized namespace helper
-		oauthID := secret.GetOAuthKey(serverName)
+// GetTokenStatus checks token validity and expiry for refresh scheduling.
+// CE mode only - requires JSON token format with expiry metadata.
+// In Desktop mode, use TokenExists() instead since Secrets Engine returns
+// raw tokens without expiry information.
+func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
+	if !IsCEMode() {
+		return TokenStatus{}, fmt.Errorf("GetTokenStatus is only available in CE mode; use TokenExists() for Desktop mode")
+	}
 
-		found := false
-		for _, env := range envelopes {
-			if env.ID == oauthID {
-				tokenSecret = string(env.Value)
-				found = true
-				break
-			}
-		}
+	// CE mode: Use credential helper directly
+	dcrMgr := dcr.NewManager(h.credentialHelper, "")
+	client, err := dcrMgr.GetDCRClient(serverName)
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("no DCR client found for %s: %w", serverName, err)
+	}
+	credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
 
-		if !found {
+	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
+	if err != nil {
+		if credentials.IsErrCredentialsNotFound(err) {
 			return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
 		}
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
 	if tokenSecret == "" {
 		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
 
-	// GetTokenStatus is only called from Provider.Run() which only runs in CE mode.
 	// CE mode: credential helper returns base64-encoded JSON with expiry
 	tokenJSON, err := base64.StdEncoding.DecodeString(tokenSecret)
 	if err != nil {

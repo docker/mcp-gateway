@@ -432,12 +432,11 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		return true, fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName)
 	}
 
-	// Check if user is already authorized by checking the credential helper (only if provider exists)
+	// Check if user is already authorized by checking if token exists (only if provider exists)
 	if providerExists {
-		// Create a credential helper to check token status
 		credHelper := oauth.NewOAuthCredentialHelper()
-		tokenStatus, err := credHelper.GetTokenStatus(ctx, serverName)
-		if err == nil && tokenStatus.Valid {
+		exists, err := credHelper.TokenExists(ctx, serverName)
+		if err == nil && exists {
 			// User is already authorized, skip the OAuth URL generation
 			if shouldSendTools {
 				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
