@@ -61,36 +61,33 @@ func (p *DCRProvider) GeneratePKCE() string {
 	return oauth2.GenerateVerifier()
 }
 
-// Provider manages OAuth token lifecycle for a single MCP server.
-// Used for background token refresh polling in CE mode only.
-// In Desktop mode, token refresh is handled by Docker Desktop's Secrets Engine,
-// and SSE events handle connection invalidation directly in routeEventToProvider.
+// Provider manages OAuth token lifecycle for a single MCP server (CE mode only).
+// Polls token expiry, triggers refresh when needed, and reloads the server connection.
+// In Desktop mode, Secrets Engine handles token refresh and SSE events trigger reloads.
 type Provider struct {
 	name              string
 	lastRefreshExpiry time.Time
 	refreshRetryCount int
 	stopOnce          sync.Once
 	stopChan          chan struct{}
-	eventChan         chan Event
 	credHelper        *CredentialHelper
 	reloadFn          func(ctx context.Context, serverName string) error
 }
 
 const maxRefreshRetries = 7 // Max attempts to refresh when expiry hasn't changed
 
-// NewProvider creates a new OAuth provider for token refresh
+// NewProvider creates a new OAuth provider for token refresh polling
 func NewProvider(name string, reloadFn func(context.Context, string) error) *Provider {
 	return &Provider{
 		name:       name,
 		stopChan:   make(chan struct{}),
-		eventChan:  make(chan Event),
 		credHelper: NewOAuthCredentialHelper(),
 		reloadFn:   reloadFn,
 	}
 }
 
-// Run starts the provider's background loop
-// Loop dynamically adjusts timing based on token expiry
+// Run starts the provider's background polling loop.
+// Checks token expiry, triggers refresh when needed, and reloads server connections.
 func (p *Provider) Run(ctx context.Context) {
 	log.Logf("- Started OAuth provider loop for %s", p.name)
 	defer log.Logf("- Stopped OAuth provider loop for %s", p.name)
@@ -132,10 +129,15 @@ func (p *Provider) Run(ctx context.Context) {
 
 			p.lastRefreshExpiry = status.ExpiresAt
 
-			// Refresh token directly
+			// Refresh token and reload server connection
 			go func() {
 				if err := p.refreshTokenCE(); err != nil {
 					log.Logf("! Token refresh failed for %s: %v", p.name, err)
+					return
+				}
+				// Reload server to pick up the new token
+				if err := p.reloadFn(ctx, p.name); err != nil {
+					log.Logf("! Failed to reload %s after token refresh: %v", p.name, err)
 				}
 			}()
 
@@ -146,22 +148,12 @@ func (p *Provider) Run(ctx context.Context) {
 			log.Logf("- Token valid for %s, next check in %v", p.name, waitDuration.Round(time.Second))
 		}
 
-		// Wait pattern - interruptible by SSE events
+		// Wait until next check, interruptible by stop signal
 		if waitDuration > 0 {
 			timer := time.NewTimer(waitDuration)
 			select {
 			case <-timer.C:
-				// Wait complete
-			case event := <-p.eventChan:
-				timer.Stop()
-				log.Logf("- Provider %s received event: %s", p.name, event.Type)
-				if err := p.reloadFn(ctx, p.name); err != nil {
-					log.Logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
-				}
-				if event.Type == EventLoginSuccess || event.Type == EventTokenRefresh {
-					p.refreshRetryCount = 0
-					p.lastRefreshExpiry = time.Time{}
-				}
+				// Wait complete, continue to next iteration
 			case <-p.stopChan:
 				timer.Stop()
 				return
@@ -178,11 +170,6 @@ func (p *Provider) Stop() {
 	p.stopOnce.Do(func() {
 		close(p.stopChan)
 	})
-}
-
-// SendEvent sends an SSE event to this provider's event channel
-func (p *Provider) SendEvent(event Event) {
-	p.eventChan <- event
 }
 
 // refreshTokenCE refreshes an OAuth token in CE mode
