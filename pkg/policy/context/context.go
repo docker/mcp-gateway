@@ -23,10 +23,7 @@ func BuildRequest(
 	tool string,
 	action policy.Action,
 ) policy.Request {
-	serverSourceType := ctx.ServerSourceTypeOverride
-	if serverSourceType == "" {
-		serverSourceType = InferServerSourceType(server)
-	}
+	serverSourceType := resolveServerSourceType(ctx, server)
 	target := buildTarget(serverName, tool)
 
 	return policy.Request{
@@ -40,6 +37,23 @@ func BuildRequest(
 		Action:       action,
 		Target:       target,
 	}
+}
+
+// resolveServerSourceType determines the policy server source type using the
+// request context and server spec.
+func resolveServerSourceType(ctx Context, server catalog.Server) string {
+	derived := InferServerSourceType(server)
+	override := normalizeServerType(ctx.ServerSourceTypeOverride)
+	if override == "" {
+		return derived
+	}
+	if derived == "" {
+		return override
+	}
+	if derived == "registry" && override != "registry" {
+		return override
+	}
+	return derived
 }
 
 // BuildCatalogRequest creates a policy request for a catalog target.

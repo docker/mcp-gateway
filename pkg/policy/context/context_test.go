@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 // TestInferServerSourceType verifies policy source type inference behavior.
@@ -178,6 +179,51 @@ func TestInferServerEndpoint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := InferServerEndpoint(tc.server)
 			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// TestBuildRequestServerTypeOverride verifies server type override behavior.
+func TestBuildRequestServerTypeOverride(t *testing.T) {
+	tests := []struct {
+		name     string
+		ctx      Context
+		server   catalog.Server
+		expected string
+	}{
+		{
+			name: "override_registry_does_not_hide_remote",
+			ctx: Context{
+				ServerSourceTypeOverride: "registry",
+			},
+			server:   catalog.Server{Remote: catalog.Remote{URL: "https://example.com"}},
+			expected: "remote",
+		},
+		{
+			name: "override_image_replaces_legacy_registry",
+			ctx: Context{
+				ServerSourceTypeOverride: "image",
+			},
+			server: catalog.Server{
+				Type:  "server",
+				Image: "mcp/example",
+			},
+			expected: "image",
+		},
+		{
+			name: "override_registry_applies_when_derived_empty",
+			ctx: Context{
+				ServerSourceTypeOverride: "registry",
+			},
+			server:   catalog.Server{},
+			expected: "registry",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := BuildRequest(tc.ctx, "srv", tc.server, "", policy.ActionLoad)
+			require.Equal(t, tc.expected, req.ServerType)
 		})
 	}
 }
