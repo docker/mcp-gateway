@@ -137,18 +137,18 @@ func setSecretCommand() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var s secret.Secret
-			if isNotImplicitReadFromStdinSyntax(args, *opts) {
-				va, err := secret.ParseArg(args[0], *opts)
-				if err != nil {
-					return err
-				}
-				s = *va
-			} else {
+			if shouldReadValueFromStdin(args) {
 				val, err := secret.MappingFromSTDIN(cmd.Context(), args[0])
 				if err != nil {
 					return err
 				}
 				s = *val
+			} else {
+				va, err := secret.ParseArg(args[0], *opts)
+				if err != nil {
+					return err
+				}
+				s = *va
 			}
 			return secret.Set(cmd.Context(), s, *opts)
 		},
@@ -159,6 +159,9 @@ func setSecretCommand() *cobra.Command {
 	return cmd
 }
 
-func isNotImplicitReadFromStdinSyntax(args []string, _ secret.SetOpts) bool {
-	return strings.Contains(args[0], "=") || len(args) > 1
+// shouldReadValueFromStdin returns true if the user provided only the key name,
+// meaning the value should be read from stdin (for piping or interactive input).
+// Returns false if the user used "key=value" syntax with the value inline.
+func shouldReadValueFromStdin(args []string) bool {
+	return !strings.Contains(args[0], "=")
 }

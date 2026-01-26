@@ -155,7 +155,7 @@ func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (
 // CE mode only - requires JSON token format with expiry metadata.
 // In Desktop mode, use TokenExists() instead since Secrets Engine returns
 // raw tokens without expiry information.
-func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
+func (h *CredentialHelper) GetTokenStatus(_ context.Context, serverName string) (TokenStatus, error) {
 	if !IsCEMode() {
 		return TokenStatus{}, fmt.Errorf("GetTokenStatus is only available in CE mode; use TokenExists() for Desktop mode")
 	}
