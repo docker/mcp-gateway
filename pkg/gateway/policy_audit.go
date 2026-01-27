@@ -6,8 +6,28 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/policy"
 )
+
+type pendingAudit struct {
+	client policy.Client
+	event  policy.AuditEvent
+}
+
+// auditEvents queues pending audits (buffer 100, drops when full).
+var auditEvents = make(chan pendingAudit, 100)
+
+func init() {
+	go auditWorker()
+}
+
+func auditWorker() {
+	for pending := range auditEvents {
+		// Note: Errors intentionally ignored
+		_ = pending.client.SubmitAudit(context.Background(), pending.event)
+	}
+}
 
 // auditClientInfo captures client identity details for audit events.
 type auditClientInfo struct {
@@ -99,11 +119,14 @@ func buildAuditEvent(
 	return event
 }
 
-// submitAuditEvent submits the audit event asynchronously.
-// audit failures are silent
+// submitAuditEvent queues an audit event, dropping if full.
 func submitAuditEvent(client policy.Client, event policy.AuditEvent) {
 	if client == nil {
 		return
 	}
-	go client.SubmitAudit(context.Background(), event) //nolint:errcheck
+	select {
+	case auditEvents <- pendingAudit{client: client, event: event}:
+	default:
+		log.Log("audit event dropped due to backpressure")
+	}
 }
