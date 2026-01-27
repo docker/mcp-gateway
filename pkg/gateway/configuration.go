@@ -35,6 +35,17 @@ func (c *Configuration) ServerNames() []string {
 	return c.serverNames
 }
 
+// AddSecrets merges new secret URIs into the configuration.
+// This is used when dynamically adding servers via mcp-add
+func (c *Configuration) AddSecrets(secrets map[string]string) {
+	if c.secrets == nil {
+		c.secrets = make(map[string]string)
+	}
+	for name, uri := range secrets {
+		c.secrets[name] = uri
+	}
+}
+
 func (c *Configuration) DockerImages() []string {
 	uniqueDockerImages := map[string]bool{}
 

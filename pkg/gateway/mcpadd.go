@@ -70,9 +70,24 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
-		// Secrets validation removed - se:// URIs are resolved at runtime by Docker Desktop
-		// Containers will fail to start if secrets are missing in the secrets engine
+		// Check if all required secrets are set
 		var missingSecrets []string
+		var availableSecrets map[string]string
+		if serverConfig != nil && len(serverConfig.Spec.Secrets) > 0 {
+			// BuildSecretsURIs only includes secrets that exist in Secrets Engine
+			configs := []ServerSecretConfig{{
+				Secrets: serverConfig.Spec.Secrets,
+				OAuth:   serverConfig.Spec.OAuth,
+			}}
+			availableSecrets = BuildSecretsURIs(ctx, configs)
+
+			// Check which secrets are missing
+			for _, secret := range serverConfig.Spec.Secrets {
+				if _, exists := availableSecrets[secret.Name]; !exists {
+					missingSecrets = append(missingSecrets, secret.Name)
+				}
+			}
+		}
 
 		// Check if all required config values are set and validate against schema
 		var missingConfig []string
@@ -170,6 +185,13 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 						serverName, strings.Join(missingItems, " and "), strings.Join(instructions, "\n")),
 				}},
 			}, nil
+		}
+
+		// Merge available secrets into configuration so container creation can find them.
+		// This is needed because g.configuration.secrets is built at startup and doesn't
+		// include secrets for dynamically added servers.
+		if len(availableSecrets) > 0 {
+			g.configuration.AddSecrets(availableSecrets)
 		}
 
 		// Pull the Docker image before trying to use the server
