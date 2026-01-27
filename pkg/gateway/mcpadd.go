@@ -227,8 +227,15 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		}
 		g.capabilitiesMu.RUnlock()
 
-		// Build the response text
-		responseText := fmt.Sprintf("Successfully added %d tools in server '%s'. Assume that it is fully configured and ready to use.", len(addedTools), serverName)
+		// Build the response text, avoiding assumptions about client-side refresh behavior.
+		responseText := fmt.Sprintf(
+			"Successfully added %d tools in server '%s'\n\n"+
+				"Tool availability depends on client refresh behavior\n"+
+				"The server and its tools are available via mcp-exec in this session\n"+
+				"Restart the MCP_DOCKER connection to load the updated tool list",
+			len(addedTools),
+			serverName,
+		)
 
 		// Include the JSON representation of the newly added tools
 		shouldSendTools := len(addedTools) > 0
