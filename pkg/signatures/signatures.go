@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/version"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 // https://raw.githubusercontent.com/docker/keyring/refs/heads/main/public/mcp/latest.pub
@@ -62,6 +63,7 @@ func Verify(ctx context.Context, images []string) error {
 					ociremote.WithRemoteOptions(
 						remote.WithContext(ctxVerify),
 						remote.WithUserAgent(version.UserAgent()),
+						remote.WithTransport(desktop.ProxyTransport()),
 						// remote.WithAuthFromKeychain(authn.DefaultKeychain),
 					),
 				},

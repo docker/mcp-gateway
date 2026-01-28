@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 // Fetches a URL and returns the body as a byte slice.
@@ -19,7 +21,7 @@ func Untrusted(ctx context.Context, url string) ([]byte, error) {
 
 	client := &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: http.DefaultTransport,
+		Transport: desktop.ProxyTransport(),
 	}
 
 	resp, err := client.Do(req)

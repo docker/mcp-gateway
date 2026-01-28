@@ -16,6 +16,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
+
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 const MCPServerArtifactType = "application/vnd.docker.mcp.server"
@@ -152,12 +154,12 @@ func uploadBlob(ctx context.Context, ref name.Reference, data []byte, _ digest.D
 	layer := static.NewLayer(data, types.MediaType("application/octet-stream"))
 
 	// Write the layer (blob) to the repository with authentication
-	return remote.WriteLayer(repo, layer, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	return remote.WriteLayer(repo, layer, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport()))
 }
 
 func uploadManifest(ctx context.Context, ref name.Reference, manifestBytes []byte) error {
 	// Create a custom image with the manifest
-	return remote.Put(ref, &customManifest{data: manifestBytes}, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	return remote.Put(ref, &customManifest{data: manifestBytes}, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport()))
 }
 
 // customManifest implements v1.Image interface for custom manifest
@@ -249,7 +251,7 @@ func ReadArtifact[T any](ociRef string, expectedArtifactType string) (T, error) 
 	}
 
 	// Get the image/artifact from the registry
-	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithTransport(desktop.ProxyTransport()))
 	if err != nil {
 		return *new(T), fmt.Errorf("failed to fetch image/artifact %s: %w", ociRef, err)
 	}
