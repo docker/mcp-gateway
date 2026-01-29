@@ -197,11 +197,11 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 
 		// Apply tool decisions. Use load result if blocked, otherwise invoke.
 		for _, tm := range toolMetas {
-			loadDecision := decisionToPtr(decisions[tm.loadIndex])
+			loadDecision := policy.DecisionForOutput(decisions[tm.loadIndex])
 			if loadDecision != nil {
 				tools[tm.toolIndex].Policy = loadDecision
 			} else {
-				tools[tm.toolIndex].Policy = decisionToPtr(decisions[tm.invokeIndex])
+				tools[tm.toolIndex].Policy = policy.DecisionForOutput(decisions[tm.invokeIndex])
 			}
 		}
 	}
@@ -240,13 +240,4 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	}
 
 	return buf, nil
-}
-
-// decisionToPtr converts a policy decision to a pointer. Returns nil for
-// allowed decisions (matching DecisionForRequest behavior).
-func decisionToPtr(dec policy.Decision) *policy.Decision {
-	if dec.Allowed {
-		return nil
-	}
-	return &dec
 }

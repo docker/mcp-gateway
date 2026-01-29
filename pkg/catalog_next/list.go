@@ -55,7 +55,7 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 			Title:  dbCatalog.Title,
 		}
 		if i < len(decisions) {
-			summaries[i].Policy = decisionToPtr(decisions[i])
+			summaries[i].Policy = policy.DecisionForOutput(decisions[i])
 		}
 	}
 

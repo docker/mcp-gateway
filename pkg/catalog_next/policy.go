@@ -106,36 +106,27 @@ func attachCatalogPolicy(
 	decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 
 	// Apply catalog decision.
-	cat.Policy = decisionToPtr(decisions[catalogIndex])
+	cat.Policy = policy.DecisionForOutput(decisions[catalogIndex])
 
 	// Apply server decisions.
 	for i, sm := range serverMetas {
 		if sm.index < 0 {
 			continue
 		}
-		cat.Servers[i].Policy = decisionToPtr(decisions[sm.index])
+		cat.Servers[i].Policy = policy.DecisionForOutput(decisions[sm.index])
 	}
 
 	// Apply tool decisions. Use load result if blocked, otherwise invoke.
 	for _, tm := range toolMetas {
 		server := &cat.Servers[tm.serverIndex]
 		tool := &server.Snapshot.Server.Tools[tm.toolIndex]
-		loadDecision := decisionToPtr(decisions[tm.loadIndex])
+		loadDecision := policy.DecisionForOutput(decisions[tm.loadIndex])
 		if loadDecision != nil {
 			tool.Policy = loadDecision
 		} else {
-			tool.Policy = decisionToPtr(decisions[tm.invokeIndex])
+			tool.Policy = policy.DecisionForOutput(decisions[tm.invokeIndex])
 		}
 	}
-}
-
-// decisionToPtr converts a policy decision to a pointer. Returns nil for
-// allowed decisions (matching DecisionForRequest behavior).
-func decisionToPtr(dec policy.Decision) *policy.Decision {
-	if dec.Allowed {
-		return nil
-	}
-	return &dec
 }
 
 // policyServerSpec returns a catalog server spec and name for policy evaluation.

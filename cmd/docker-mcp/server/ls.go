@@ -117,7 +117,7 @@ func List(ctx context.Context, docker docker.Client, policyClient policy.Client,
 		if server, found := catalogData.Servers[serverName]; found {
 			entry.Description = server.Description
 			if idx, ok := serverIndices[serverName]; ok && idx < len(decisions) {
-				entry.Policy = decisionToPtr(decisions[idx])
+				entry.Policy = policy.DecisionForOutput(decisions[idx])
 			}
 
 			// Check secrets configuration

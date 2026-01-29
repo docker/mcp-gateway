@@ -274,30 +274,21 @@ func applyCatalogPolicy(
 	// Apply server decisions.
 	for _, sm := range serverMetas {
 		server := servers[sm.name]
-		server.Policy = decisionToPtr(decisions[sm.index])
+		server.Policy = policy.DecisionForOutput(decisions[sm.index])
 		servers[sm.name] = server
 	}
 
 	// Apply tool decisions. Use load result if blocked, otherwise invoke.
 	for _, tm := range toolMetas {
 		server := servers[tm.serverName]
-		loadDecision := decisionToPtr(decisions[tm.loadIndex])
+		loadDecision := policy.DecisionForOutput(decisions[tm.loadIndex])
 		if loadDecision != nil {
 			server.Tools[tm.toolIndex].Policy = loadDecision
 		} else {
-			server.Tools[tm.toolIndex].Policy = decisionToPtr(decisions[tm.invokeIndex])
+			server.Tools[tm.toolIndex].Policy = policy.DecisionForOutput(decisions[tm.invokeIndex])
 		}
 		servers[tm.serverName] = server
 	}
-}
-
-// decisionToPtr converts a policy decision to a pointer. Returns nil for
-// allowed decisions (matching DecisionForRequest behavior).
-func decisionToPtr(dec policy.Decision) *policy.Decision {
-	if dec.Allowed {
-		return nil
-	}
-	return &dec
 }
 
 // writeCatalogOutput prints catalog output for the selected format.

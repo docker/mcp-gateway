@@ -105,36 +105,27 @@ func attachWorkingSetPolicy(
 	decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
 
 	// Apply working set decision.
-	ws.Policy = decisionToPtr(decisions[wsIndex])
+	ws.Policy = policy.DecisionForOutput(decisions[wsIndex])
 
 	// Apply server decisions.
 	for i, sm := range serverMetas {
 		if sm.index < 0 {
 			continue
 		}
-		ws.Servers[i].Policy = decisionToPtr(decisions[sm.index])
+		ws.Servers[i].Policy = policy.DecisionForOutput(decisions[sm.index])
 	}
 
 	// Apply tool decisions. Use load result if blocked, otherwise invoke.
 	for _, tm := range toolMetas {
 		server := &ws.Servers[tm.serverIndex]
 		tool := &server.Snapshot.Server.Tools[tm.toolIndex]
-		loadDecision := decisionToPtr(decisions[tm.loadIndex])
+		loadDecision := policy.DecisionForOutput(decisions[tm.loadIndex])
 		if loadDecision != nil {
 			tool.Policy = loadDecision
 		} else {
-			tool.Policy = decisionToPtr(decisions[tm.invokeIndex])
+			tool.Policy = policy.DecisionForOutput(decisions[tm.invokeIndex])
 		}
 	}
-}
-
-// decisionToPtr converts a policy decision to a pointer. Returns nil for
-// allowed decisions (matching DecisionForRequest behavior).
-func decisionToPtr(dec policy.Decision) *policy.Decision {
-	if dec.Allowed {
-		return nil
-	}
-	return &dec
 }
 
 // policyWorkingSetServerSpec returns a catalog server spec and name for policy evaluation.
