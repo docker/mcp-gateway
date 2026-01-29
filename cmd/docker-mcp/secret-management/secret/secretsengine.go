@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
@@ -29,9 +28,6 @@ func socketPath() string {
 	return filepath.Join(os.TempDir(), "docker-secrets-engine", "engine.sock")
 }
 
-// Mutex to serialize GetSecrets calls - concurrent Unix socket requests can hang
-var getSecretsMu sync.Mutex
-
 // newHTTPClient creates a fresh HTTP client for each request.
 // This avoids connection state issues with Unix sockets that can cause hangs.
 func newHTTPClient() *http.Client {
@@ -47,9 +43,6 @@ func newHTTPClient() *http.Client {
 }
 
 func GetSecrets(ctx context.Context) ([]Envelope, error) {
-	getSecretsMu.Lock()
-	defer getSecretsMu.Unlock()
-
 	pattern := `{"pattern": "docker/mcp/**"}`
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/resolver.v1.ResolverService/GetSecrets", bytes.NewReader([]byte(pattern)))
@@ -82,9 +75,6 @@ func GetSecrets(ctx context.Context) ([]Envelope, error) {
 // GetSecret retrieves a single secret by its full key (e.g., "docker/mcp/oauth/github").
 // Returns ErrSecretNotFound if the secret does not exist.
 func GetSecret(ctx context.Context, key string) (*Envelope, error) {
-	getSecretsMu.Lock()
-	defer getSecretsMu.Unlock()
-
 	pattern := fmt.Sprintf(`{"pattern": "%s"}`, key)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
