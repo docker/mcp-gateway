@@ -14,6 +14,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/logs"
 )
 
@@ -187,7 +188,7 @@ func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, erro
 	}
 
 	client := &http.Client{
-		Transport: http.DefaultTransport,
+		Transport: desktop.ProxyTransport(),
 	}
 
 	response, err := client.Do(request)

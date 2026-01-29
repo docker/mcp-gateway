@@ -27,6 +27,7 @@ func getDockerDesktopPaths() (DockerDesktopPaths, error) {
 			BackendSocket:        filepath.Join(home, ".docker/desktop/backend.sock"),
 			RawDockerSocket:      filepath.Join(home, ".docker/desktop/docker.raw.sock"),
 			ToolsSocket:          filepath.Join(home, ".docker/desktop/tools.sock"),
+			HTTPProxySocket:      filepath.Join(home, ".docker/desktop/httpproxy.sock"),
 			CredentialHelperPath: getCredentialHelperPath,
 		}, nil
 	}

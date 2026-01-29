@@ -15,6 +15,10 @@ func dialAuth(ctx context.Context) (net.Conn, error) {
 	return dial(ctx, Paths().ToolsSocket)
 }
 
+func dialHTTPProxy(ctx context.Context) (net.Conn, error) {
+	return dial(ctx, Paths().HTTPProxySocket)
+}
+
 func dial(ctx context.Context, path string) (net.Conn, error) {
 	return winio.DialPipeContext(ctx, path)
 }

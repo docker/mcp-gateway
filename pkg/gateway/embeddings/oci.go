@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
@@ -56,7 +57,7 @@ func Pull(ctx context.Context) error {
 	}
 
 	// Pull the image
-	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport()))
 	if err != nil {
 		return fmt.Errorf("failed to pull image: %w", err)
 	}
@@ -310,7 +311,7 @@ func Push(ctx context.Context, vectorDBPath string, ociRef string) error {
 
 	// Push the image to the registry
 	log.Logf("Pushing image to %s", ociRef)
-	if err := remote.Write(ref, img, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx)); err != nil {
+	if err := remote.Write(ref, img, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx), remote.WithTransport(desktop.ProxyTransport())); err != nil {
 		return fmt.Errorf("failed to push image: %w", err)
 	}
 

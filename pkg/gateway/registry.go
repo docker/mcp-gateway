@@ -11,6 +11,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
@@ -33,7 +34,9 @@ func (g *Gateway) readServersFromURL(ctx context.Context, url string) (map[strin
 	req.Header.Set("User-Agent", "docker-mcp-gateway/1.0.0")
 
 	// Make the HTTP request
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: desktop.ProxyTransport(),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch URL: %w", err)
