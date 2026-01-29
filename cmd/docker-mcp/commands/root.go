@@ -139,9 +139,10 @@ func isSubcommandOf(cmd *cobra.Command, names []string) bool {
 
 func obsoleteCommand(name string, message string) *cobra.Command {
 	return &cobra.Command{
-		Use:    name,
-		Short:  "Obsolete",
-		Hidden: true,
+		Use:                name,
+		Short:              "Obsolete",
+		Hidden:             true,
+		DisableFlagParsing: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("This command is obsolete. %s", message) //nolint:staticcheck
 		},
