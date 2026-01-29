@@ -15,10 +15,6 @@ func dialAuth(ctx context.Context) (net.Conn, error) {
 	return dial(ctx, Paths().ToolsSocket)
 }
 
-func dialSecrets(ctx context.Context) (net.Conn, error) {
-	return dial(ctx, Paths().JFSSocket)
-}
-
 func dialHTTPProxy(ctx context.Context) (net.Conn, error) {
 	return dial(ctx, Paths().HTTPProxySocket)
 }

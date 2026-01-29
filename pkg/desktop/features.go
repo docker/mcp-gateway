@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"runtime"
 	"time"
 
@@ -75,6 +76,20 @@ func CheckDesktopIsRunning(ctx context.Context) error {
 		return errors.New("Docker Desktop is not running")
 	}
 
+	return nil
+}
+
+var ErrDockerPassUnsupported = errors.New("docker pass has not been installed")
+
+func CheckHasDockerPass(ctx context.Context) error {
+	err := exec.CommandContext(ctx, "docker", "pass").Run()
+	execStatus, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	if execStatus.ExitCode() > 0 {
+		return ErrDockerPassUnsupported
+	}
 	return nil
 }
 

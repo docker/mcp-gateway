@@ -6,7 +6,6 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
 
@@ -45,43 +44,12 @@ func Dump(ctx context.Context, docker docker.Client) ([]byte, error) {
 		catalogFiles[name] = string(catalogFileContent)
 	}
 
-	secretsClient := desktop.NewSecretsClient()
-	storedSecrets, err := secretsClient.ListJfsSecrets(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var secretNames []string
-	for _, secret := range storedSecrets {
-		secretNames = append(secretNames, secret.Name)
-	}
-	secretValues, err := docker.ReadSecrets(ctx, secretNames, false)
-	if err != nil {
-		return nil, err
-	}
-
-	var secrets []desktop.Secret
-	for _, secret := range storedSecrets {
-		secrets = append(secrets, desktop.Secret{
-			Name:     secret.Name,
-			Provider: secret.Provider,
-			Value:    secretValues[secret.Name],
-		})
-	}
-
-	policy, err := secretsClient.GetJfsPolicy(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	backup := Backup{
 		Config:       string(configContent),
 		Registry:     string(registryContent),
 		Catalog:      string(catalogContent),
 		CatalogFiles: catalogFiles,
 		Tools:        string(toolsConfig),
-		Secrets:      secrets,
-		Policy:       policy,
 	}
 
 	return json.Marshal(backup)
