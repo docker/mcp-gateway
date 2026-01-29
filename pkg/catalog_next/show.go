@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -85,7 +86,8 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	}
 
 	catalog := NewFromDb(dbCatalog)
-
+	policyClient := policycli.ClientForCLI(ctx)
+	attachCatalogPolicy(ctx, policyClient, catalog.Ref, &catalog, true)
 	var data []byte
 	switch format {
 	case workingset.OutputFormatJSON:

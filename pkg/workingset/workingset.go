@@ -21,6 +21,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/validate"
@@ -35,6 +36,8 @@ type WorkingSet struct {
 	Name    string            `yaml:"name" json:"name" validate:"required,min=1"`
 	Servers []Server          `yaml:"servers" json:"servers" validate:"dive"`
 	Secrets map[string]Secret `yaml:"secrets,omitempty" json:"secrets,omitempty" validate:"dive"`
+	// Policy describes the policy decision for this working set.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 }
 
 type ServerType string
@@ -51,6 +54,8 @@ type Server struct {
 	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Tools   ToolList       `yaml:"tools,omitempty" json:"tools"` // See IsZero() below
+	// Policy describes the policy decision for this server.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 
 	// ServerTypeRegistry only
 	Source string `yaml:"source,omitempty" json:"source,omitempty" validate:"required_if=Type registry"`

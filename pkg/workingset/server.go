@@ -14,6 +14,8 @@ import (
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 )
 
@@ -124,6 +126,8 @@ type SearchResult struct {
 	ID      string   `json:"id" yaml:"id"`
 	Name    string   `json:"name" yaml:"name"`
 	Servers []Server `json:"servers" yaml:"servers"`
+	// Policy describes the policy decision for this working set.
+	Policy *policy.Decision `json:"policy,omitempty" yaml:"policy,omitempty"`
 }
 
 type serverFilter struct {
@@ -153,8 +157,10 @@ func ListServers(ctx context.Context, dao db.DAO, filters []string, format Outpu
 	if err != nil {
 		return fmt.Errorf("failed to search profiles: %w", err)
 	}
-	results := buildSearchResults(dbSets, nameFilter)
-	return outputSearchResults(results, format)
+	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
+	results := buildSearchResults(ctx, policyClient, dbSets, nameFilter)
+	return outputSearchResults(results, format, showPolicy)
 }
 
 func parseFilters(filters []string) ([]serverFilter, error) {
@@ -172,12 +178,18 @@ func parseFilters(filters []string) ([]serverFilter, error) {
 	return parsed, nil
 }
 
-func buildSearchResults(dbSets []db.WorkingSet, nameFilter string) []SearchResult {
+func buildSearchResults(
+	ctx context.Context,
+	policyClient policy.Client,
+	dbSets []db.WorkingSet,
+	nameFilter string,
+) []SearchResult {
 	nameLower := strings.ToLower(nameFilter)
 	results := make([]SearchResult, 0, len(dbSets))
 
 	for _, dbSet := range dbSets {
 		workingSet := NewFromDb(&dbSet)
+		attachWorkingSetPolicy(ctx, policyClient, &workingSet, true)
 		matchedServers := make([]Server, 0)
 
 		for _, server := range workingSet.Servers {
@@ -195,6 +207,7 @@ func buildSearchResults(dbSets []db.WorkingSet, nameFilter string) []SearchResul
 			ID:      workingSet.ID,
 			Name:    workingSet.Name,
 			Servers: matchedServers,
+			Policy:  workingSet.Policy,
 		})
 	}
 	return results
@@ -212,13 +225,13 @@ func matchesNameFilter(server Server, nameLower string) bool {
 	return strings.Contains(serverName, nameLower)
 }
 
-func outputSearchResults(results []SearchResult, format OutputFormat) error {
+func outputSearchResults(results []SearchResult, format OutputFormat, showPolicy bool) error {
 	var data []byte
 	var err error
 
 	switch format {
 	case OutputFormatHumanReadable:
-		printSearchResultsHuman(results)
+		printSearchResultsHuman(results, showPolicy)
 		return nil
 	case OutputFormatJSON:
 		data, err = json.MarshalIndent(results, "", "  ")
@@ -236,7 +249,7 @@ func outputSearchResults(results []SearchResult, format OutputFormat) error {
 	return nil
 }
 
-func printSearchResultsHuman(results []SearchResult) {
+func printSearchResultsHuman(results []SearchResult, showPolicy bool) {
 	if len(results) == 0 {
 		fmt.Println("No profiles found")
 		return
@@ -246,14 +259,28 @@ func printSearchResultsHuman(results []SearchResult) {
 
 	for _, result := range results {
 		for _, server := range result.Servers {
-			rows = append(rows, []string{
-				result.ID,
-				string(server.Type),
-				server.Snapshot.Server.Name,
-			})
+			if showPolicy {
+				rows = append(rows, []string{
+					result.ID,
+					string(server.Type),
+					server.Snapshot.Server.Name,
+					policycli.StatusLabel(server.Policy),
+				})
+			} else {
+				rows = append(rows, []string{
+					result.ID,
+					string(server.Type),
+					server.Snapshot.Server.Name,
+				})
+			}
 		}
 	}
 
-	header := []string{"PROFILE", "TYPE", "IDENTIFIER"}
-	formatting.PrettyPrintTable(rows, []int{40, 10, 120}, header)
+	if showPolicy {
+		header := []string{"PROFILE", "TYPE", "IDENTIFIER", "POLICY"}
+		formatting.PrettyPrintTable(rows, []int{40, 10, 120, 10}, header)
+	} else {
+		header := []string{"PROFILE", "TYPE", "IDENTIFIER"}
+		formatting.PrettyPrintTable(rows, []int{40, 10, 120}, header)
+	}
 }

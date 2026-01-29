@@ -24,6 +24,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
@@ -60,6 +61,7 @@ type Gateway struct {
 	configuration  Configuration
 	clientPool     *clientPool
 	mcpServer      *mcp.Server
+	policyClient   policy.Client
 	health         health.State
 	oauthProviders map[string]*oauth.Provider
 	providersMu    sync.RWMutex
@@ -125,9 +127,19 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	return g
 }
 
+func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
+	if err := cfg.FilterByPolicy(ctx, g.policyClient); err != nil {
+		log.Log("policy filtering failed:", err)
+	}
+}
+
 func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
+
+	if g.policyClient == nil {
+		g.policyClient = newPolicyClient(ctx)
+	}
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
@@ -219,10 +231,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Read the configuration.
 	configuration, configurationUpdates, stopConfigWatcher, err := g.configurator.Read(ctx)
-	g.configuration = configuration
 	if err != nil {
 		return err
 	}
+	g.filterByPolicy(ctx, &configuration)
+	g.configuration = configuration
 	defer func() { _ = stopConfigWatcher() }()
 
 	// Parse interceptors
@@ -360,6 +373,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 					return
 				case configuration := <-configurationUpdates:
 					log.Log("> Configuration updated, reloading...")
+
+					g.filterByPolicy(ctx, &configuration)
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						log.Logf("> Unable to pull and verify images: %s", err)

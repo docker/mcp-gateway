@@ -96,11 +96,18 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	servers := make(map[string]catalog.Server)
 
 	// Load all catalogs to populate servers for dynamic tools
-	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
+	allCatalogServers, catalogRefs, err := c.readAllCatalogServers(ctx, dao)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
 	}
 	maps.Copy(servers, allCatalogServers)
+	serverCatalogs := make(map[string]string)
+	serverSourceTypeOverrides := make(map[string]string)
+	maps.Copy(serverCatalogs, catalogRefs)
+	for name := range serverCatalogs {
+		// Registry indicates the server definition came from a catalog source.
+		serverSourceTypeOverrides[name] = "registry"
+	}
 
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
@@ -112,6 +119,8 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 
 		servers[serverName] = server.Snapshot.Server
 		serverNames = append(serverNames, serverName)
+		// Working set types map directly to policy source types.
+		serverSourceTypeOverrides[serverName] = string(server.Type)
 
 		cfg[serverName] = server.Config
 
@@ -126,19 +135,27 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	log.Log("- Configuration read in", time.Since(start))
 
 	return Configuration{
-		serverNames: serverNames,
-		servers:     servers,
-		config:      cfg,
-		tools:       toolsConfig,
-		secrets:     flattenedSecrets,
+		serverNames:               serverNames,
+		servers:                   servers,
+		config:                    cfg,
+		tools:                     toolsConfig,
+		secrets:                   flattenedSecrets,
+		serverCatalogs:            serverCatalogs,
+		serverSourceTypeOverrides: serverSourceTypeOverrides,
+		workingSet:                c.config.WorkingSet,
 	}, nil
 }
 
 func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db.DAO) (Configuration, error) {
 	// Load all catalogs to populate servers for dynamic tools
-	allCatalogServers, err := c.readAllCatalogServers(ctx, dao)
+	allCatalogServers, catalogRefs, err := c.readAllCatalogServers(ctx, dao)
 	if err != nil {
 		return Configuration{}, fmt.Errorf("failed to read all catalog servers: %w", err)
+	}
+	serverSourceTypeOverrides := make(map[string]string)
+	for name := range catalogRefs {
+		// Registry indicates the server definition came from a catalog source.
+		serverSourceTypeOverrides[name] = "registry"
 	}
 
 	return Configuration{
@@ -148,16 +165,20 @@ func (c *WorkingSetConfiguration) emptyConfiguration(ctx context.Context, dao db
 		tools: config.ToolsConfig{
 			ServerTools: make(map[string][]string),
 		},
-		secrets: make(map[string]string),
+		secrets:                   make(map[string]string),
+		serverCatalogs:            catalogRefs,
+		serverSourceTypeOverrides: serverSourceTypeOverrides,
+		workingSet:                c.config.WorkingSet,
 	}, nil
 }
 
-func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, error) {
+func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao db.DAO) (map[string]catalog.Server, map[string]string, error) {
 	servers := make(map[string]catalog.Server)
+	serverCatalogs := make(map[string]string)
 	if c.config.DynamicTools {
 		allCatalogs, err := dao.ListCatalogs(ctx)
 		if err != nil {
-			return servers, fmt.Errorf("failed to list catalogs: %w", err)
+			return servers, nil, fmt.Errorf("failed to list catalogs: %w", err)
 		}
 
 		if len(allCatalogs) == 0 {
@@ -168,14 +189,16 @@ func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao
 				log.Log(fmt.Sprintf("    - Processing catalog '%s' with %d servers", cat.Ref, len(cat.Servers)))
 				for _, server := range cat.Servers {
 					if server.Snapshot != nil { // should always be true
-						servers[server.Snapshot.Server.Name] = server.Snapshot.Server
+						name := server.Snapshot.Server.Name
+						servers[name] = server.Snapshot.Server
+						serverCatalogs[name] = cat.Ref
 					}
 				}
 			}
 			log.Log(fmt.Sprintf("  - Total servers loaded from all catalogs: %d", len(servers)))
 		}
 	}
-	return servers, nil
+	return servers, serverCatalogs, nil
 }
 
 func (c *WorkingSetConfiguration) readTools(workingSet workingset.WorkingSet) config.ToolsConfig {

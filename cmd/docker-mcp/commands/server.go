@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/terminal"
 )
 
@@ -38,7 +39,8 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 			Short:   "List enabled servers",
 			Args:    cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				list, err := server.List(cmd.Context(), docker, outputJSON)
+				policyClient := policycli.ClientForCLI(cmd.Context())
+				list, err := server.List(cmd.Context(), docker, policyClient, outputJSON)
 				if err != nil {
 					return err
 				}
@@ -55,7 +57,7 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 					// Format: $ docker mcp server ls
 					// MCP Servers (7 enabled)
 					//
-					// NAME SECRETS CONFIG DESCRIPTION
+					// NAME OAUTH SECRETS CONFIG POLICY DESCRIPTION
 					// atlassian ✓ done ✓ done Confluence and Jira tools
 
 					enabledCount := len(list)
@@ -63,18 +65,32 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 
 					// Calculate column widths based on terminal size
 					termWidth := terminal.GetWidthFrom(cmd.OutOrStdout())
-					colWidths := calculateColumnWidths(termWidth)
+					showPolicy := policyClient != nil
+					colWidths := calculateColumnWidths(termWidth, showPolicy)
 
 					// Calculate total table width (sum of columns + spaces between columns)
-					totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4 // 4 spaces between columns
+					totalWidth := colWidths.name + colWidths.oauth + colWidths.secrets + colWidths.config + colWidths.description + 4
+					if showPolicy {
+						totalWidth += colWidths.policy + 1
+					}
 
 					// Print table headers
-					fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
-						colWidths.name, "NAME",
-						colWidths.oauth, "OAUTH",
-						colWidths.secrets, "SECRETS",
-						colWidths.config, "CONFIG",
-						colWidths.description, "DESCRIPTION")
+					if showPolicy {
+						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s %-*s\n",
+							colWidths.name, "NAME",
+							colWidths.oauth, "OAUTH",
+							colWidths.secrets, "SECRETS",
+							colWidths.config, "CONFIG",
+							colWidths.policy, "POLICY",
+							colWidths.description, "DESCRIPTION")
+					} else {
+						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+							colWidths.name, "NAME",
+							colWidths.oauth, "OAUTH",
+							colWidths.secrets, "SECRETS",
+							colWidths.config, "CONFIG",
+							colWidths.description, "DESCRIPTION")
+					}
 					fmt.Fprintln(cmd.OutOrStdout(), strings.Repeat("-", totalWidth))
 
 					// Print entries
@@ -87,12 +103,23 @@ func serverCommand(docker docker.Client, dockerCli command.Cli, features feature
 						// Truncate description to fit within the available column width
 						description := truncateString(entry.Description, colWidths.description)
 
-						fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
-							colWidths.name, truncateString(entry.Name, colWidths.name),
-							colWidths.oauth, oauthText,
-							colWidths.secrets, secretsText,
-							colWidths.config, configText,
-							colWidths.description, description)
+						if showPolicy {
+							policyText := policycli.StatusLabel(entry.Policy)
+							fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s %-*s\n",
+								colWidths.name, truncateString(entry.Name, colWidths.name),
+								colWidths.oauth, oauthText,
+								colWidths.secrets, secretsText,
+								colWidths.config, configText,
+								colWidths.policy, policyText,
+								colWidths.description, description)
+						} else {
+							fmt.Fprintf(cmd.OutOrStdout(), "%-*s %-*s %-*s %-*s %-*s\n",
+								colWidths.name, truncateString(entry.Name, colWidths.name),
+								colWidths.oauth, oauthText,
+								colWidths.secrets, secretsText,
+								colWidths.config, configText,
+								colWidths.description, description)
+						}
 					}
 
 					if hints.Enabled(dockerCli) {
@@ -205,21 +232,28 @@ type columnWidths struct {
 	oauth       int
 	secrets     int
 	config      int
+	policy      int
 	description int
 }
 
-func calculateColumnWidths(termWidth int) columnWidths {
+func calculateColumnWidths(termWidth int, includePolicy bool) columnWidths {
 	// Minimum widths for each column
 	minWidths := columnWidths{
 		name:        15,
 		oauth:       10,
 		secrets:     10,
 		config:      10,
+		policy:      8,
 		description: 20,
+	}
+	spaceCount := 5
+	if !includePolicy {
+		minWidths.policy = 0
+		spaceCount = 4
 	}
 
 	// Calculate minimum total width needed
-	minTotal := minWidths.name + minWidths.oauth + minWidths.secrets + minWidths.config + minWidths.description + 4 // 4 spaces
+	minTotal := minWidths.name + minWidths.oauth + minWidths.secrets + minWidths.config + minWidths.policy + minWidths.description + spaceCount
 
 	// If terminal is too narrow, use minimum widths
 	if termWidth < minTotal+20 {
@@ -229,13 +263,20 @@ func calculateColumnWidths(termWidth int) columnWidths {
 	// Available space after minimums and spacing
 	available := termWidth - minTotal
 
-	// Allocate extra space: 50% to description, 25% to name, 25% split between oauth/secrets/config
+	// Allocate extra space: 50% to description, 25% to name, 25% split between oauth/secrets/config/policy.
+	descriptionExtra := available / 2
+	policyExtra := available / 16
+	if !includePolicy {
+		descriptionExtra += policyExtra
+		policyExtra = 0
+	}
 	result := columnWidths{
 		name:        minWidths.name + available/4,
-		oauth:       minWidths.oauth + available/12,
-		secrets:     minWidths.secrets + available/12,
-		config:      minWidths.config + available/12,
-		description: minWidths.description + available/2,
+		oauth:       minWidths.oauth + available/16,
+		secrets:     minWidths.secrets + available/16,
+		config:      minWidths.config + available/16,
+		policy:      minWidths.policy + policyExtra,
+		description: minWidths.description + descriptionExtra,
 	}
 
 	return result

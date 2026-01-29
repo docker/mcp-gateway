@@ -9,6 +9,9 @@ import (
 	"github.com/goccy/go-yaml"
 
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
+	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -24,18 +27,42 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	}
 
 	summaries := make([]CatalogSummary, len(dbCatalogs))
+	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
+
+	// Build batch request for all catalog policy evaluations.
+	var requests []policy.Request
+	for _, dbCatalog := range dbCatalogs {
+		requests = append(requests, policycontext.BuildCatalogRequest(
+			policyContextForCatalog(dbCatalog.Ref),
+			dbCatalog.Ref,
+			policy.ActionLoad,
+		))
+	}
+
+	// Evaluate all requests in a single batch call.
+	var decisions []policy.Decision
+	if policyClient != nil && len(requests) > 0 {
+		decisions, err = policyClient.EvaluateBatch(ctx, requests)
+		decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
+	}
+
+	// Build summaries with policy decisions.
 	for i, dbCatalog := range dbCatalogs {
 		summaries[i] = CatalogSummary{
 			Ref:    dbCatalog.Ref,
 			Digest: dbCatalog.Digest,
 			Title:  dbCatalog.Title,
 		}
+		if i < len(decisions) {
+			summaries[i].Policy = policy.DecisionForOutput(decisions[i])
+		}
 	}
 
 	var data []byte
 	switch format {
 	case workingset.OutputFormatHumanReadable:
-		data = []byte(printListHumanReadable(summaries))
+		data = []byte(printListHumanReadable(summaries, showPolicy))
 	case workingset.OutputFormatJSON:
 		data, err = json.MarshalIndent(summaries, "", "  ")
 	case workingset.OutputFormatYAML:
@@ -50,11 +77,29 @@ func List(ctx context.Context, dao db.DAO, format workingset.OutputFormat) error
 	return nil
 }
 
-func printListHumanReadable(catalogs []CatalogSummary) string {
+func printListHumanReadable(catalogs []CatalogSummary, showPolicy bool) string {
 	lines := ""
 	for _, catalog := range catalogs {
-		lines += fmt.Sprintf("%s\t| %s\t| %s\n", catalog.Ref, catalog.Digest, catalog.Title)
+		if showPolicy {
+			lines += fmt.Sprintf(
+				"%s\t| %s\t| %s\t| %s\n",
+				catalog.Ref,
+				catalog.Digest,
+				catalog.Title,
+				policycli.StatusLabel(catalog.Policy),
+			)
+		} else {
+			lines += fmt.Sprintf(
+				"%s\t| %s\t| %s\n",
+				catalog.Ref,
+				catalog.Digest,
+				catalog.Title,
+			)
+		}
 	}
 	lines = strings.TrimSuffix(lines, "\n")
+	if showPolicy {
+		return fmt.Sprintf("Reference | Digest | Title | Policy\n%s", lines)
+	}
 	return fmt.Sprintf("Reference | Digest | Title\n%s", lines)
 }
