@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -41,18 +40,22 @@ func inferServerType(serverConfig *catalog.ServerConfig) string {
 
 func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Convert CallToolParamsRaw to CallToolParams
-		var args any
-		if len(req.Params.Arguments) > 0 {
-			if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal arguments: %w", err)
-			}
-		}
+		// Convert CallToolParamsRaw to CallToolParams.
+		//
+		// Arguments are forwarded as raw JSON (json.RawMessage) and intentionally
+		// not unmarshaled here. The gateway must remain schema-agnostic and avoid
+		// coercing tool inputs, preserving full argument fidelity for tools that
+		// rely on structured or typed inputs.
 		params := &mcp.CallToolParams{
-			Meta:      req.Params.Meta,
-			Name:      req.Params.Name,
-			Arguments: args,
+			Meta: req.Params.Meta,
+			Name: req.Params.Name,
 		}
+
+		// Forward raw arguments unchanged, if present.
+		if len(req.Params.Arguments) > 0 {
+			params.Arguments = req.Params.Arguments
+		}
+
 		return g.clientPool.runToolContainer(ctx, tool, params)
 	}
 }
@@ -117,19 +120,21 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 		}
 		defer g.clientPool.ReleaseClient(client)
 
-		// Convert CallToolParamsRaw to CallToolParams
-		var args any
-		if len(req.Params.Arguments) > 0 {
-			if jsonErr := json.Unmarshal(req.Params.Arguments, &args); jsonErr != nil {
-				telemetry.RecordToolError(ctx, span, serverConfig.Name, serverType, req.Params.Name)
-				span.SetStatus(codes.Error, "Failed to unmarshal arguments")
-				return nil, fmt.Errorf("failed to unmarshal arguments: %w", jsonErr)
-			}
-		}
+		// Convert CallToolParamsRaw to CallToolParams.
+		//
+		// NOTE: Arguments are forwarded as raw JSON (json.RawMessage) instead of being
+		// unmarshaled here. The gateway must not interpret or coerce tool arguments,
+		// as it does not own the tool schema. Preserving the raw payload ensures full
+		// fidelity for schema-based and typed tools and matches the MCP Go SDK
+		// expectations.
 		params := &mcp.CallToolParams{
-			Meta:      req.Params.Meta,
-			Name:      originalToolName,
-			Arguments: args,
+			Meta: req.Params.Meta,
+			Name: originalToolName,
+		}
+
+		// Forward raw arguments unchanged, if present.
+		if len(req.Params.Arguments) > 0 {
+			params.Arguments = req.Params.Arguments
 		}
 
 		// Execute the tool call
