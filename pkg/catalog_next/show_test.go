@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/features"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func TestShowNotFound(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	err := Show(ctx, dao, getMockOciService(), "test/nonexistent:latest", workingset.OutputFormatJSON, PullOptionNever, "")
 	require.Error(t, err)
@@ -24,7 +24,7 @@ func TestShowNotFound(t *testing.T) {
 
 func TestShowHumanReadable(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalog := Catalog{
 		Ref:    "test/yaml-test:latest",
@@ -70,7 +70,7 @@ func TestShowHumanReadable(t *testing.T) {
 
 func TestShowJSON(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalog := Catalog{
 		Ref:    "test/json-test:latest",
@@ -115,7 +115,7 @@ func TestShowJSON(t *testing.T) {
 
 func TestShowYAML(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalog := Catalog{
 		Ref:    "test/yaml-test:latest",
@@ -160,7 +160,7 @@ func TestShowYAML(t *testing.T) {
 
 func TestShowWithSnapshot(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	snapshot := &workingset.ServerSnapshot{
 		Server: catalog.Server{
@@ -204,7 +204,7 @@ func TestShowWithSnapshot(t *testing.T) {
 
 func TestShowInvalidReferenceWithDigest(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	err := Show(ctx, dao, getMockOciService(), "test/invalid-reference@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1", workingset.OutputFormatJSON, PullOptionNever, "")
 	require.Error(t, err)
@@ -213,7 +213,7 @@ func TestShowInvalidReferenceWithDigest(t *testing.T) {
 
 func TestShowWithYQExpressionNoTools(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	snapshot := &workingset.ServerSnapshot{
 		Server: catalog.Server{
@@ -339,7 +339,7 @@ func TestShowWithInvalidYQExpression(t *testing.T) {
 // TODO(cody): Add tests for pull once we have proper mocks in place
 func TestInvalidPullOption(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	err := Show(ctx, dao, getMockOciService(), "test/catalog:latest", workingset.OutputFormatJSON, "invalid", "")
 	require.Error(t, err)

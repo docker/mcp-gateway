@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/features"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -34,7 +34,7 @@ func captureStdout(t *testing.T, fn func()) string {
 
 func TestListEmpty(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	output := captureStdout(t, func() {
 		err := List(ctx, dao, workingset.OutputFormatHumanReadable)
@@ -47,7 +47,7 @@ func TestListEmpty(t *testing.T) {
 
 func TestListHumanReadable(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create test catalogs
 	catalog1 := Catalog{
@@ -92,7 +92,7 @@ func TestListHumanReadable(t *testing.T) {
 
 func TestListJSON(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalog1 := Catalog{
 		Ref:    "test/catalog4:latest",
@@ -157,7 +157,7 @@ func TestListJSON(t *testing.T) {
 
 func TestListJSONEmpty(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	output := captureStdout(t, func() {
 		err := List(ctx, dao, workingset.OutputFormatJSON)

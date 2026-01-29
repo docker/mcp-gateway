@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/db"
-	"github.com/docker/mcp-gateway/pkg/features"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 // captureStdout captures stdout during function execution
@@ -33,7 +33,7 @@ func captureStdout(f func()) string {
 
 func TestListEmpty(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	output := captureStdout(func() {
 		err := List(ctx, dao, OutputFormatHumanReadable)
@@ -45,7 +45,7 @@ func TestListEmpty(t *testing.T) {
 
 func TestListHumanReadable(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -80,7 +80,7 @@ func TestListHumanReadable(t *testing.T) {
 
 func TestListJSON(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -114,7 +114,7 @@ func TestListJSON(t *testing.T) {
 
 func TestListYAML(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create some working sets
 	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
@@ -148,7 +148,7 @@ func TestListYAML(t *testing.T) {
 
 func TestListMultipleWorkingSets(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := features.WithNoDockerDesktop(t.Context())
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create multiple working sets
 	for i := 1; i <= 5; i++ {
