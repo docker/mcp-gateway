@@ -16,8 +16,9 @@ import (
 
 func catalogNextCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "catalog-next",
-		Short: "Manage catalogs (next generation)",
+		Use:     "catalog",
+		Aliases: []string{"catalogs", "catalog-next"},
+		Short:   "Manage MCP server OCI catalogs",
 	}
 
 	cmd.AddCommand(createCatalogNextCommand())
@@ -252,16 +253,16 @@ func listCatalogNextServersCommand() *cobra.Command {
 Use --filter to search for servers matching a query (case-insensitive substring matching on server names).
 Filters use key=value format (e.g., name=github).`,
 		Example: `  # List all servers in a catalog
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest
 
   # Filter servers by name
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest --filter name=github
 
   # Combine multiple filters (using short flag)
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest -f name=slack -f name=github
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest -f name=slack -f name=github
 
   # Output in JSON format
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --format json`,
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest --format json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)

@@ -161,7 +161,7 @@ func (c *WorkingSetConfiguration) readAllCatalogServers(ctx context.Context, dao
 		}
 
 		if len(allCatalogs) == 0 {
-			log.Log("  - No catalogs found, dynamic tools will be limited to profile servers. Run `docker mcp catalog-next pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
+			log.Log("  - No catalogs found, dynamic tools will be limited to profile servers. Run `docker mcp catalog pull mcp/docker-mcp-catalog:latest` and restart the gateway to add Docker MCP catalog servers to dynamic tools.")
 		} else {
 			log.Log(fmt.Sprintf("  - Loading %d catalog(s) for dynamic tools", len(allCatalogs)))
 			for _, cat := range allCatalogs {

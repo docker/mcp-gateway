@@ -640,11 +640,11 @@ docker mcp profile pull docker.io/myorg/my-tools:1.1
 
 ```bash
 # 1. Import Docker's official catalog (or pull from OCI registry)
-docker mcp catalog-next create docker-mcp-catalog \
+docker mcp catalog create docker-mcp-catalog \
   --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 
 # Or pull a team catalog from OCI registry
-docker mcp catalog-next pull myorg/team-catalog:latest
+docker mcp catalog pull myorg/team-catalog:latest
 
 # 2. Create an initial profile
 docker mcp profile create --name my-workflow
@@ -826,7 +826,7 @@ Error: server 'nonexistent' not found in catalog
 ```
 
 **Solution**: 
-- Use `docker mcp catalog-next show <catalog-name>` to see available servers in the catalog
+- Use `docker mcp catalog show <catalog-name>` to see available servers in the catalog
 - Check that the server name is spelled correctly (names are case-sensitive)
 
 ### Cannot Remove Server
@@ -893,54 +893,54 @@ Error: tool 'invalid_tool' not found in server 'github'
 
 ## Creating Catalogs
 
-The `catalog-next` command allows you to create and share catalogs:
+The `catalog` command allows you to create and share catalogs:
 
 ```bash
 # Create a catalog from a working set
-docker mcp catalog-next create my-catalog --from-profile my-profile
+docker mcp catalog create my-catalog --from-profile my-profile
 
 # Create with a custom name
-docker mcp catalog-next create my-catalog --from-profile my-profile --name "My Catalog"
+docker mcp catalog create my-catalog --from-profile my-profile --name "My Catalog"
 
 # Create a catalog from a legacy catalog
-docker mcp catalog-next create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+docker mcp catalog create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 
 # Create a catalog with servers from other catalogs
-docker mcp catalog-next create dev-catalog --title dev-tools --server catalog://mcp/docker-mcp-catalog/github+notion+obsidian
+docker mcp catalog create dev-catalog --title dev-tools --server catalog://mcp/docker-mcp-catalog/github+notion+obsidian
 
 # Create a catalog with your own MCP server
-docker mcp catalog-next create my-catalog --title my-catalog --server docker://my-server:latest
+docker mcp catalog create my-catalog --title my-catalog --server docker://my-server:latest
 
 # List all catalogs
-docker mcp catalog-next list
+docker mcp catalog list
 
 # Show catalog details
-docker mcp catalog-next show my-catalog
+docker mcp catalog show my-catalog
 
 # Show a catalog, pulling it if missing (other options include 'never' and 'always')
-docker mcp catalog-next show mcp/docker-mcp-catalog --pull missing
+docker mcp catalog show mcp/docker-mcp-catalog --pull missing
 
 # Remove a catalog
-docker mcp catalog-next remove my-catalog
+docker mcp catalog remove my-catalog
 
 # Push catalog to OCI registry
-docker mcp catalog-next tag my-catalog my-org/my-catalog:latest
-docker mcp catalog-next push myorg/my-catalog:latest
+docker mcp catalog tag my-catalog my-org/my-catalog:latest
+docker mcp catalog push myorg/my-catalog:latest
 
 # Pull catalog from OCI registry
-docker mcp catalog-next pull myorg/my-catalog:latest
+docker mcp catalog pull myorg/my-catalog:latest
 
 # List servers in a catalog
-docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+docker mcp catalog server ls mcp/docker-mcp-catalog:latest
 
 # Filter servers by name
-docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+docker mcp catalog server ls mcp/docker-mcp-catalog:latest --filter name=github
 
 # Inspect a specific server in a catalog
-docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github
+docker mcp catalog server inspect mcp/docker-mcp-catalog:latest github
 
 # Inspect in JSON format
-docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --format json
+docker mcp catalog server inspect mcp/docker-mcp-catalog:latest github --format json
 ```
 
 **Key points:**
@@ -952,7 +952,7 @@ docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --fo
 
 **💡 Tip:** You can import Docker's official MCP catalog as a starting point:
 ```bash
-docker mcp catalog-next create docker-mcp-catalog \
+docker mcp catalog create docker-mcp-catalog \
   --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 ```
 This gives you access to Docker's curated collection of MCP servers, which you can then use to build your profiles with the `--server catalog://docker-mcp-catalog/<server>` flag
