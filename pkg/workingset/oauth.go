@@ -29,8 +29,9 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 		}
 
 		serverName := server.Snapshot.Server.Name
-		if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-			// Log warning but don't fail - user can authorize later via CLI
+		providerName := server.Snapshot.Server.OAuth.Providers[0].Provider
+
+		if err := oauth.RegisterProviderWithSnapshot(ctx, serverName, providerName); err != nil {
 			log.Log(fmt.Sprintf("Warning: Failed to register OAuth provider for %s: %v", serverName, err))
 		}
 	}

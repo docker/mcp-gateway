@@ -45,3 +45,23 @@ func RegisterProviderForLazySetup(ctx context.Context, serverName string) error 
 
 	return client.RegisterDCRClientPending(ctx, serverName, dcrRequest)
 }
+
+// RegisterProviderWithSnapshot registers a DCR provider using OAuth metadata from the server snapshot
+// This avoids querying the catalog since the snapshot already contains all necessary OAuth information
+// Idempotent - safe to call multiple times for the same server
+func RegisterProviderWithSnapshot(ctx context.Context, serverName, providerName string) error {
+	client := desktop.NewAuthClient()
+
+	// Idempotent check - already registered?
+	_, err := client.GetDCRClient(ctx, serverName)
+	if err == nil {
+		return nil // Already registered
+	}
+
+	// Register with Docker Desktop (pending DCR state)
+	dcrRequest := desktop.RegisterDCRRequest{
+		ProviderName: providerName,
+	}
+
+	return client.RegisterDCRClientPending(ctx, serverName, dcrRequest)
+}
