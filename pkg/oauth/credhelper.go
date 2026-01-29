@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -96,24 +97,20 @@ func (h *CredentialHelper) getOAuthTokenCE(serverName string) (string, error) {
 // getOAuthTokenDesktop retrieves OAuth token in Desktop mode using Secrets Engine.
 // The Secrets Engine returns the raw access token directly (Go auto-decodes base64 into []byte).
 func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName string) (string, error) {
-	envelopes, err := secret.GetSecrets(ctx)
+	oauthID := secret.GetOAuthKey(serverName)
+	env, err := secret.GetSecret(ctx, oauthID)
+	if errors.Is(err, secret.ErrSecretNotFound) {
+		return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
+	}
 	if err != nil {
 		return "", fmt.Errorf("failed to query Secrets Engine: %w", err)
 	}
 
-	oauthID := secret.GetOAuthKey(serverName)
-
-	for _, env := range envelopes {
-		if env.ID == oauthID {
-			tokenSecret := string(env.Value)
-			if tokenSecret == "" {
-				return "", fmt.Errorf("empty OAuth token found for %s", serverName)
-			}
-			return tokenSecret, nil
-		}
+	tokenSecret := string(env.Value)
+	if tokenSecret == "" {
+		return "", fmt.Errorf("empty OAuth token found for %s", serverName)
 	}
-
-	return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
+	return tokenSecret, nil
 }
 
 // TokenExists checks if an OAuth token exists for the specified server.
@@ -137,18 +134,15 @@ func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (
 	}
 
 	// Desktop mode: check Secrets Engine
-	envelopes, err := secret.GetSecrets(ctx)
+	oauthID := secret.GetOAuthKey(serverName)
+	env, err := secret.GetSecret(ctx, oauthID)
+	if errors.Is(err, secret.ErrSecretNotFound) {
+		return false, nil
+	}
 	if err != nil {
 		return false, fmt.Errorf("failed to query Secrets Engine: %w", err)
 	}
-
-	oauthID := secret.GetOAuthKey(serverName)
-	for _, env := range envelopes {
-		if env.ID == oauthID && string(env.Value) != "" {
-			return true, nil
-		}
-	}
-	return false, nil
+	return string(env.Value) != "", nil
 }
 
 // GetTokenStatus checks token validity and expiry for refresh scheduling.

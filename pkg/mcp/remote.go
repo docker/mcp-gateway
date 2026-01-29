@@ -157,18 +157,12 @@ func (c *remoteMCPClient) AddRoots(roots []*mcp.Root) {
 }
 
 func getSecretValue(ctx context.Context, secretName string) string {
-	envelopes, err := secret.GetSecrets(ctx)
+	fullID := secret.GetDefaultSecretKey(secretName)
+	env, err := secret.GetSecret(ctx, fullID)
 	if err != nil {
 		return ""
 	}
-
-	fullID := secret.GetDefaultSecretKey(secretName)
-	for _, env := range envelopes {
-		if env.ID == fullID {
-			return string(env.Value)
-		}
-	}
-	return ""
+	return string(env.Value)
 }
 
 func expandEnv(value string, secrets map[string]string) string {
