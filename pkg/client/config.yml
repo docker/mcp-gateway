@@ -136,6 +136,33 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  amazon-q:
+    displayName: Amazon Q Developer
+    source: https://aws.amazon.com/q/developer/
+    icon: https://raw.githubusercontent.com/docker/mcp-gateway/main/img/client/amazon-q.svg
+
+    # IMPORTANT:
+    # Amazon Q does not expose an MCP stdio server.
+    # It consumes MCP tools but cannot be initialized via tools ls.
+    stdio: false
+
+    installCheckPaths:
+      - $HOME/.aws/amazonq
+      - $USERPROFILE\.aws\amazonq
+
+    paths:
+      linux:
+        - $HOME/.aws/amazonq/mcp.json
+      darwin:
+        - $HOME/.aws/amazonq/mcp.json
+      windows:
+        - $USERPROFILE\.aws\amazonq\mcp.json
+
+    yq:
+      list: '.mcpServers | to_entries | map(.value + {"name": .key})'
+      set: .mcpServers[$NAME] = $JSON
+      del: del(.mcpServers[$NAME])
+
   goose:
     displayName: Goose
     source: https://github.com/block/goose
