@@ -56,7 +56,7 @@ type Interceptor struct {
 
 // --interceptor=before:exec:/bin/path
 // --interceptor=after:docker:image
-// --interceptor=around:http:localhost:8080/url
+// --interceptor=before:http:localhost:8080/url
 func Parse(specs []string) ([]Interceptor, error) {
 	var interceptors []Interceptor
 
@@ -68,7 +68,7 @@ func Parse(specs []string) ([]Interceptor, error) {
 
 		w := strings.ToLower(parts[0])
 		if w != "before" && w != "after" {
-			return nil, fmt.Errorf("invalid interceptor when: '%s', expected 'before' or 'after''", w)
+			return nil, fmt.Errorf("invalid interceptor when: %q, expected 'before' or 'after'", w)
 		}
 
 		t := strings.ToLower(parts[1])
@@ -95,7 +95,21 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware {
 			}
 
 			if i.When == "before" {
-				message, err := json.Marshal(req)
+				var payload any
+
+				if callReq, ok := req.(*mcp.CallToolRequest); ok && callReq.Params != nil {
+					payload = map[string]any{
+						"method": "tools/call",
+						"params": callReq.Params,
+					}
+				} else {
+					payload = map[string]any{
+						"method": "tools/call",
+						"params": map[string]any{},
+					}
+				}
+
+				message, err := json.Marshal(payload)
 				if err != nil {
 					return nil, fmt.Errorf("marshalling request: %w", err)
 				}
@@ -106,7 +120,7 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware {
 				}
 
 				// If the interceptor returns a response, we use it instead of calling the next handler.
-				if len(out) > 0 {
+				if len(bytes.TrimSpace(out)) > 0 {
 					var result mcp.CallToolResult
 					if err := json.Unmarshal(out, &result); err != nil {
 						return nil, fmt.Errorf("unmarshalling interceptor response: %w", err)
@@ -144,29 +158,61 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware {
 }
 
 func (i *Interceptor) run(ctx context.Context, message []byte) ([]byte, error) {
+	// Dispatch the interceptor execution based on its configured type.
+	// This function acts as a thin router and does not modify the payload.
+	//
+	// Supported interceptor types:
+	//   - exec   : executes a local shell command
+	//   - docker : runs a Docker container
+	//   - http   : sends an HTTP POST request
 	switch i.Type {
 	case "exec":
 		return i.runExec(ctx, message)
+
 	case "docker":
 		return i.runDocker(ctx, message)
+
 	case "http":
 		return i.runHTTP(ctx, message)
 	}
 
-	return nil, fmt.Errorf("unknown interceptor type '%s'", i.Type)
+	// This should never happen if interceptor specs are validated correctly,
+	// but we fail fast here to avoid silently ignoring misconfigurations.
+	return nil, fmt.Errorf(
+		"unknown interceptor type %q (expected one of: exec, docker, http)",
+		i.Type,
+	)
 }
 
 func (i *Interceptor) runExec(ctx context.Context, message []byte) ([]byte, error) {
+	// Execute a local shell command using /bin/sh.
+	// The interceptor payload is passed via STDIN as JSON.
+	//
+	// NOTE: This intentionally uses a shell to allow complex commands,
+	// pipes, and redirections as provided by the user.
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", i.Argument)
+
+	// Pass the serialized request/response to the interceptor via STDIN.
 	cmd.Stdin = bytes.NewBuffer(message)
+
+	// Prefix stderr output to make interceptor logs easier to identify.
 	cmd.Stderr = logs.NewPrefixer(os.Stderr, "  - ")
+
 	return cmd.Output()
 }
 
 func (i *Interceptor) runDocker(ctx context.Context, message []byte) ([]byte, error) {
+	// Split the argument into image name and optional extra arguments.
+	// Example:
+	//   "alpine jq -r .params.arguments"
 	image, rest, _ := strings.Cut(i.Argument, " ")
 
+	// Base docker run arguments:
+	//   --rm   : remove container after execution
+	//   --init : handle signal forwarding and zombie reaping
 	args := []string{"run", "--rm", "--init", image}
+
+	// Parse additional docker arguments, if any.
 	if len(rest) > 0 {
 		moreArgs, err := shlex.Split(rest)
 		if err != nil {
@@ -175,18 +221,36 @@ func (i *Interceptor) runDocker(ctx context.Context, message []byte) ([]byte, er
 		args = append(args, moreArgs...)
 	}
 
+	// Execute the docker command and pass the payload via STDIN.
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Stdin = bytes.NewBuffer(message)
+
+	// Prefix stderr output to keep interceptor logs readable.
 	cmd.Stderr = logs.NewPrefixer(os.Stderr, "  - ")
+
 	return cmd.Output()
 }
 
 func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, i.Argument, bytes.NewBuffer(message))
+	// Prepare an HTTP POST request to the interceptor endpoint.
+	// The interceptor payload is sent as JSON in the request body.
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		i.Argument,
+		bytes.NewBuffer(message),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("preparing HTTP request: %w", err)
 	}
 
+	// Explicitly declare JSON payload for clarity and interoperability.
+	request.Header.Set("Content-Type", "application/json")
+
+	// Use the default HTTP client and transport.
+	// No timeout is set intentionally: interceptor endpoints may note
+	// synchronously process requests, stream results, or apply their
+	// own timeout semantics.
 	client := &http.Client{
 		Transport: desktop.ProxyTransport(),
 	}
@@ -197,6 +261,8 @@ func (i *Interceptor) runHTTP(ctx context.Context, message []byte) ([]byte, erro
 	}
 	defer response.Body.Close()
 
+	// Read the full response body.
+	// A non-empty body is interpreted as a replacement tool result.
 	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading HTTP response: %w", err)
