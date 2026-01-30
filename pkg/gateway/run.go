@@ -409,11 +409,15 @@ func (g *Gateway) Run(ctx context.Context) error {
 		g.authTokenWasGenerated = wasGenerated
 	}
 
-	// Start the server
+	// Start the server.
+	//
+	// NOTE: Some transports (e.g. stdio) run asynchronously and return immediately,
+	// while others (HTTP/SSE) block until the server shuts down.
 	switch transport {
 	case "stdio":
 		log.Log("> Start stdio server")
-		return g.startStdioServer(ctx, os.Stdin, os.Stdout)
+		g.startStdioServer(ctx, os.Stdin, os.Stdout)
+		return nil
 
 	case "sse":
 		log.Log("> Start sse server on port", g.Port)
