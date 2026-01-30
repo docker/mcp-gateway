@@ -1068,6 +1068,237 @@ func TestAddServers(t *testing.T) {
 	})
 }
 
+func TestAddServersSuccess(t *testing.T) {
+	t.Run("add docker image server", func(t *testing.T) {
+		dao := setupTestDB(t)
+		ctx := t.Context()
+
+		// Create an initial catalog with one existing server
+		catalogObj := Catalog{
+			Ref: "test/catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/existing-server:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name:        "existing-server",
+								Description: "Existing server",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		ociService := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "myimage:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: My Image\ntype: server",
+				},
+				DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			},
+		}))
+
+		output := captureStdout(t, func() {
+			err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), ociService, catalogObj.Ref, []string{
+				"docker://myimage:latest",
+			})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "Added 1 server(s)")
+
+		// Verify server was added to the catalog
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 2)
+		assert.NotNil(t, cat.FindServer("existing-server"))
+		assert.NotNil(t, cat.FindServer("My Image"))
+
+		addedServer := cat.FindServer("My Image")
+		assert.Equal(t, workingset.ServerTypeImage, addedServer.Type)
+		assert.Equal(t, "myimage:latest", addedServer.Image)
+	})
+
+	t.Run("add multiple docker image servers", func(t *testing.T) {
+		dao := setupTestDB(t)
+		ctx := t.Context()
+
+		catalogObj := Catalog{
+			Ref: "test/catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title:   "Test Catalog",
+				Servers: []Server{},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		ociService := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "server-a:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: Server A\ntype: server",
+				},
+				DigestString: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+			{
+				Ref: "server-b:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: Server B\ntype: server",
+				},
+				DigestString: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			},
+		}))
+
+		output := captureStdout(t, func() {
+			err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), ociService, catalogObj.Ref, []string{
+				"docker://server-a:latest",
+				"docker://server-b:latest",
+			})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "Added 2 server(s)")
+
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 2)
+		assert.NotNil(t, cat.FindServer("Server A"))
+		assert.NotNil(t, cat.FindServer("Server B"))
+	})
+
+	t.Run("skip duplicate server", func(t *testing.T) {
+		dao := setupTestDB(t)
+		ctx := t.Context()
+
+		catalogObj := Catalog{
+			Ref: "test/catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/existing:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "My Image",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		ociService := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "myimage:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: My Image\ntype: server",
+				},
+				DigestString: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			},
+		}))
+
+		output := captureStdout(t, func() {
+			err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), ociService, catalogObj.Ref, []string{
+				"docker://myimage:latest",
+			})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "No new servers added (all already exist)")
+
+		// Verify catalog still has only one server
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 1)
+	})
+
+	t.Run("add one new and skip one duplicate", func(t *testing.T) {
+		dao := setupTestDB(t)
+		ctx := t.Context()
+
+		catalogObj := Catalog{
+			Ref: "test/catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/existing:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "Existing Server",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		ociService := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+			{
+				Ref: "existing:v1",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: Existing Server\ntype: server",
+				},
+				DigestString: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+			{
+				Ref: "new-server:latest",
+				Labels: map[string]string{
+					"io.docker.server.metadata": "name: New Server\ntype: server",
+				},
+				DigestString: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			},
+		}))
+
+		output := captureStdout(t, func() {
+			err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), ociService, catalogObj.Ref, []string{
+				"docker://existing:v1",
+				"docker://new-server:latest",
+			})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "already exists in catalog (skipping)")
+		assert.Contains(t, output, "Added 1 server(s)")
+
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 2)
+		assert.NotNil(t, cat.FindServer("Existing Server"))
+		assert.NotNil(t, cat.FindServer("New Server"))
+	})
+}
+
 func TestRemoveServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

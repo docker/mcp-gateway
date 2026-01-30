@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	registryapi "github.com/modelcontextprotocol/registry/pkg/api/v0"
@@ -26,10 +27,13 @@ func BuildServerURL(serverName, version string) string {
 type Client interface {
 	GetServer(ctx context.Context, url *ServerURL) (registryapi.ServerResponse, error)
 	GetServerVersions(ctx context.Context, url *ServerURL) (registryapi.ServerListResponse, error)
+	// ListServers lists all servers from the community registry with optional search query
+	ListServers(ctx context.Context, query string) ([]registryapi.ServerResponse, error)
 }
 
 type client struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 func NewClient() Client {
@@ -38,6 +42,7 @@ func NewClient() Client {
 			Transport: desktop.ProxyTransport(),
 			Timeout:   20 * time.Second,
 		},
+		baseURL: CommunityRegistryBaseURL,
 	}
 }
 
@@ -87,4 +92,84 @@ func (c *client) GetServerVersions(ctx context.Context, url *ServerURL) (registr
 	}
 
 	return serverListResp, nil
+}
+
+// ListServers lists servers from the community registry with optional search query
+// The registry API supports query parameters for filtering
+// This function automatically handles pagination to return all results
+// When query is empty, results are cached locally for faster subsequent requests
+func (c *client) ListServers(ctx context.Context, query string) ([]registryapi.ServerResponse, error) {
+	// Only use cache for full listing (no query filter)
+	// Searching with a query should always fetch fresh results
+	if query == "" {
+		if cached, err := GetCachedServers(); err == nil && cached != nil {
+			return cached, nil
+		}
+	}
+
+	servers, err := c.fetchAllServers(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache results for full listing
+	if query == "" {
+		// Best effort caching - don't fail if cache write fails
+		_ = CacheServers(servers)
+	}
+
+	return servers, nil
+}
+
+// fetchAllServers fetches all servers from the registry with pagination
+func (c *client) fetchAllServers(ctx context.Context, query string) ([]registryapi.ServerResponse, error) {
+	var allServers []registryapi.ServerResponse
+	cursor := ""
+
+	for {
+		url := fmt.Sprintf("%s/v0/servers", c.baseURL)
+
+		// Build query parameters
+		// Always use version=latest to only get latest versions (~500 vs ~4000 results)
+		params := []string{"version=latest"}
+		if query != "" {
+			params = append(params, fmt.Sprintf("q=%s", query))
+		}
+		if cursor != "" {
+			params = append(params, fmt.Sprintf("cursor=%s", cursor))
+		}
+		url = fmt.Sprintf("%s?%s", url, strings.Join(params, "&"))
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		var serverListResp registryapi.ServerListResponse
+		if err := json.NewDecoder(resp.Body).Decode(&serverListResp); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		resp.Body.Close()
+
+		allServers = append(allServers, serverListResp.Servers...)
+
+		// Check if there are more pages
+		if serverListResp.Metadata.NextCursor == "" {
+			break
+		}
+		cursor = serverListResp.Metadata.NextCursor
+	}
+
+	return allServers, nil
 }

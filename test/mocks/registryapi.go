@@ -51,3 +51,12 @@ func (c *mockRegistryAPIClient) GetServer(_ context.Context, url *registryapi.Se
 func (c *mockRegistryAPIClient) GetServerVersions(_ context.Context, url *registryapi.ServerURL) (v0.ServerListResponse, error) {
 	return c.options.serverListResponses[url.VersionsListURL()], nil
 }
+
+func (c *mockRegistryAPIClient) ListServers(_ context.Context, _ string) ([]v0.ServerResponse, error) {
+	// Return all servers from the serverListResponses
+	var servers []v0.ServerResponse
+	for _, list := range c.options.serverListResponses {
+		servers = append(servers, list.Servers...)
+	}
+	return servers, nil
+}

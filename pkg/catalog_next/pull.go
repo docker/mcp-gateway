@@ -3,6 +3,8 @@ package catalognext
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -13,6 +15,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
+// Pull pulls a catalog from its source (OCI registry or community API)
+// It auto-detects well-known community registries like "registry.modelcontextprotocol.io"
 func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {
 	telemetry.Init()
 	start := time.Now()
@@ -21,7 +25,33 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		duration := time.Since(start)
 		telemetry.RecordCatalogOperation(ctx, "pull", refStr, float64(duration.Milliseconds()), success)
 	}()
-	catalog, err := pullCatalog(ctx, dao, ociService, refStr)
+
+	// Check if this is a well-known community registry
+	if IsAPIRegistry(refStr) {
+		result, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
+		if err != nil {
+			return err
+		}
+		printRegistryPullResult(refStr, result)
+		success = true
+		return nil
+	}
+
+	// Check if catalog exists in DB and has a community registry source
+	dbCatalog, err := dao.GetCatalog(ctx, refStr)
+	if err == nil && strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry) {
+		// Refresh from community registry
+		result, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
+		if err != nil {
+			return err
+		}
+		printRegistryPullResult(refStr, result)
+		success = true
+		return nil
+	}
+
+	// Default to OCI pull
+	catalog, err := pullOCI(ctx, dao, ociService, refStr)
 	if err != nil {
 		return err
 	}
@@ -32,7 +62,36 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	return nil
 }
 
-func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) (*db.Catalog, error) {
+// PullAll pulls/refreshes all catalogs in the database
+func PullAll(ctx context.Context, dao db.DAO, ociService oci.Service) error {
+	catalogs, err := dao.ListCatalogs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list catalogs: %w", err)
+	}
+
+	if len(catalogs) == 0 {
+		fmt.Println("No catalogs found. Use 'docker mcp catalog-next pull <ref>' to add a catalog.")
+		return nil
+	}
+
+	var pullErrors []string
+	for _, cat := range catalogs {
+		fmt.Printf("Pulling %s...\n", cat.Ref)
+		if err := Pull(ctx, dao, ociService, cat.Ref); err != nil {
+			pullErrors = append(pullErrors, fmt.Sprintf("%s: %v", cat.Ref, err))
+			continue
+		}
+	}
+
+	if len(pullErrors) > 0 {
+		return fmt.Errorf("failed to pull some catalogs:\n  %s", strings.Join(pullErrors, "\n  "))
+	}
+
+	return nil
+}
+
+// pullOCI pulls a catalog from an OCI registry
+func pullOCI(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) (*db.Catalog, error) {
 	ref, err := name.ParseReference(refStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse OCI reference %s: %w", refStr, err)
@@ -87,4 +146,54 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 	}
 
 	return &dbCatalog, nil
+}
+
+// pullCatalog is kept for compatibility with show.go
+func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) error {
+	// Check if this is a well-known community registry
+	if IsAPIRegistry(refStr) {
+		_, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
+		return err
+	}
+
+	// Check if catalog exists in DB and has a community registry source
+	dbCatalog, err := dao.GetCatalog(ctx, refStr)
+	if err == nil && strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry) {
+		_, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
+		return err
+	}
+
+	_, err = pullOCI(ctx, dao, ociService, refStr)
+	return err
+}
+
+func printRegistryPullResult(refStr string, result *PullCommunityResult) {
+	fmt.Printf("Pulled %d servers from %s\n", result.ServersAdded, refStr)
+	fmt.Printf("  Total in registry: %d\n", result.TotalServers)
+	fmt.Printf("  Imported:          %d\n", result.ServersAdded)
+	fmt.Printf("    OCI (stdio):     %d\n", result.ServersOCI)
+	fmt.Printf("    Remote:          %d\n", result.ServersRemote)
+	fmt.Printf("  Skipped:           %d\n", result.ServersSkipped)
+
+	// Print skipped breakdown sorted by count (descending)
+	if len(result.SkippedByType) > 0 {
+		type typeCount struct {
+			name  string
+			count int
+		}
+		var sorted []typeCount
+		for t, c := range result.SkippedByType {
+			sorted = append(sorted, typeCount{t, c})
+		}
+		sort.Slice(sorted, func(i, j int) bool {
+			return sorted[i].count > sorted[j].count
+		})
+		for _, tc := range sorted {
+			label := tc.name
+			if label == "none" {
+				label = "no packages"
+			}
+			fmt.Printf("    %-17s%d\n", label+":", tc.count)
+		}
+	}
 }

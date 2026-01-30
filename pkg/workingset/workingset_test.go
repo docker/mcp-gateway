@@ -1581,6 +1581,105 @@ metadata:
 	}
 }
 
+func TestResolveFileV0ServerJSON(t *testing.T) {
+	tests := []struct {
+		name        string
+		json        string
+		expected    []Server
+		expectedErr string
+	}{
+		{
+			name: "v0.ServerJSON with schema and packages",
+			json: `{
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+				"name": "io.example/v0-test-server",
+				"version": "1.0.0",
+				"description": "A v0 format test server",
+				"packages": [
+					{
+						"registryType": "oci",
+						"identifier": "ghcr.io/example/v0-test-server:1.0.0",
+						"transport": {
+							"type": "stdio"
+						}
+					}
+				]
+			}`,
+			expected: []Server{
+				{
+					Type:    ServerTypeImage,
+					Image:   "ghcr.io/example/v0-test-server:1.0.0",
+					Secrets: "default",
+					Snapshot: &ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "io-example-v0-test-server",
+							Type:        "server",
+							Image:       "ghcr.io/example/v0-test-server:1.0.0",
+							Description: "A v0 format test server",
+							Metadata: &catalog.Metadata{
+								RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fv0-test-server/versions/1.0.0",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "v0.ServerJSON with packages only no schema",
+			json: `{
+				"name": "io.example/packages-only",
+				"version": "2.0.0",
+				"description": "Server identified by packages field",
+				"packages": [
+					{
+						"registryType": "oci",
+						"identifier": "ghcr.io/example/packages-only:2.0.0",
+						"transport": {
+							"type": "stdio"
+						}
+					}
+				]
+			}`,
+			expected: []Server{
+				{
+					Type:    ServerTypeImage,
+					Image:   "ghcr.io/example/packages-only:2.0.0",
+					Secrets: "default",
+					Snapshot: &ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "io-example-packages-only",
+							Type:        "server",
+							Image:       "ghcr.io/example/packages-only:2.0.0",
+							Description: "Server identified by packages field",
+							Metadata: &catalog.Metadata{
+								RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fpackages-only/versions/2.0.0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			tempFile := filepath.Join(tempDir, "v0-server.json")
+			err := os.WriteFile(tempFile, []byte(tt.json), 0o644)
+			require.NoError(t, err)
+
+			servers, err := ResolveFile(tempFile)
+			if tt.expectedErr != "" {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expected, servers)
+			}
+		})
+	}
+}
+
 func TestIsV0ServerJSON(t *testing.T) {
 	tests := []struct {
 		name     string

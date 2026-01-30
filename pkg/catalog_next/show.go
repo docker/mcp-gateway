@@ -42,8 +42,7 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 
 	if pullOptionEvaluator.IsAlways() {
 		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
-		_, err := pullCatalog(ctx, dao, ociService, refStr)
-		if err != nil {
+		if err := pullCatalog(ctx, dao, ociService, refStr); err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
 		pulled = true
@@ -52,8 +51,7 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	dbCatalog, err := dao.GetCatalog(ctx, refStr)
 	if err != nil && errors.Is(err, sql.ErrNoRows) && !pulled && pullOptionEvaluator.Evaluate(nil) {
 		fmt.Fprintf(os.Stderr, "Pulling catalog %s...\n", refStr)
-		_, err = pullCatalog(ctx, dao, ociService, refStr)
-		if err != nil {
+		if err = pullCatalog(ctx, dao, ociService, refStr); err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
 		pulled = true
@@ -70,8 +68,7 @@ func Show(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		} else {
 			fmt.Fprintf(os.Stderr, "Pulling catalog %s... (last update was %s ago)\n", refStr, time.Since(*dbCatalog.LastUpdated).Round(time.Second))
 		}
-		_, err := pullCatalog(ctx, dao, ociService, refStr)
-		if err != nil {
+		if err := pullCatalog(ctx, dao, ociService, refStr); err != nil {
 			return fmt.Errorf("failed to pull catalog %s: %w", refStr, err)
 		}
 		pulled = true
