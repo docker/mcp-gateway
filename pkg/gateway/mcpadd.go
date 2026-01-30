@@ -175,10 +175,10 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// If secrets or config are missing, handle based on client type
 		if len(missingSecrets) > 0 || len(missingConfig) > 0 {
-			// Check if the client is nanobot
+			// Safely determine client name (InitializeParams may be nil for some transports)
 			clientName := ""
-			if req.Session.InitializeParams().ClientInfo != nil {
-				clientName = req.Session.InitializeParams().ClientInfo.Name
+			if init := req.Session.InitializeParams(); init != nil && init.ClientInfo != nil {
+				clientName = init.ClientInfo.Name
 			}
 
 			if clientName == "nanobot" && len(missingSecrets) > 0 {
@@ -280,17 +280,31 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}
 		}
 
-		// Register DCR client and make sure OAuth provider is started if this is a remote OAuth server
-		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
-			authorized, oauthText := g.getRemoteOAuthServerStatus(ctx, serverName, req, shouldSendTools)
-			if !authorized {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{&mcp.TextContent{
-						Text: oauthText,
-					}},
-				}, nil
+		// Handle OAuth DCR only when the client supports elicitation (e.g. not stdio-based clients)
+		if g.McpOAuthDcrEnabled &&
+			serverConfig != nil &&
+			serverConfig.Spec.IsRemoteOAuthServer() {
+
+			init := req.Session.InitializeParams()
+			if init != nil &&
+				init.Capabilities != nil &&
+				init.Capabilities.Elicitation != nil {
+
+				authorized, oauthText := g.getRemoteOAuthServerStatus(
+					ctx,
+					serverName,
+					req,
+					shouldSendTools,
+				)
+				if !authorized {
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{&mcp.TextContent{
+							Text: oauthText,
+						}},
+					}, nil
+				}
+				responseText = oauthText
 			}
-			responseText = oauthText
 		}
 
 		return &mcp.CallToolResult{
@@ -431,8 +445,11 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		g.startProvider(ctx, serverName)
 	}
 
-	// Check if current serverSession supports elicitations
-	if req.Session.InitializeParams().Capabilities != nil && req.Session.InitializeParams().Capabilities.Elicitation != nil {
+	// Proceed with elicitation only if the client supports it
+	init := req.Session.InitializeParams()
+	if init != nil &&
+		init.Capabilities != nil &&
+		init.Capabilities.Elicitation != nil {
 		// Elicit a response from the client asking whether to open a browser for authorization
 		elicitResult, err := req.Session.Elicit(ctx, &mcp.ElicitParams{
 			Message: fmt.Sprintf("Would you like to open a browser to authorize the '%s' server?", serverName),
