@@ -32,12 +32,32 @@ func setupTestDB(t *testing.T) db.DAO {
 }
 
 func getMockRegistryClient() registryapi.Client {
-	server := v0.ServerResponse{
+	server1 := v0.ServerResponse{
 		Server: v0.ServerJSON{
+			Name:    "io.example/server1",
 			Version: "0.1.0",
 			Packages: []model.Package{
 				{
 					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/server1:0.1.0",
+				},
+			},
+		},
+		Meta: v0.ResponseMeta{
+			Official: &v0.RegistryExtensions{
+				IsLatest: true,
+			},
+		},
+	}
+
+	server2 := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Name:    "io.example/server2",
+			Version: "0.1.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/server2:0.1.0",
 				},
 			},
 		},
@@ -50,14 +70,14 @@ func getMockRegistryClient() registryapi.Client {
 
 	return mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
 		"https://example.com/v0/servers/server1/versions": {
-			Servers: []v0.ServerResponse{server},
+			Servers: []v0.ServerResponse{server1},
 		},
 		"https://example.com/v0/servers/server2/versions": {
-			Servers: []v0.ServerResponse{server},
+			Servers: []v0.ServerResponse{server2},
 		},
 	}), mocks.WithServerResponses(map[string]v0.ServerResponse{
-		"https://example.com/v0/servers/server1/versions/0.1.0": server,
-		"https://example.com/v0/servers/server2/versions/0.1.0": server,
+		"https://example.com/v0/servers/server1/versions/0.1.0": server1,
+		"https://example.com/v0/servers/server2/versions/0.1.0": server2,
 	}))
 }
 

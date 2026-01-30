@@ -5,12 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	registryapi "github.com/modelcontextprotocol/registry/pkg/api/v0"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
 )
+
+// CommunityRegistryBaseURL is the base URL for the community MCP registry
+const CommunityRegistryBaseURL = "https://registry.modelcontextprotocol.io"
+
+// BuildServerURL constructs the full registry URL for a server
+// Format: https://registry.modelcontextprotocol.io/v0/servers/{encoded_name}/versions/{version}
+func BuildServerURL(serverName, version string) string {
+	encodedName := url.PathEscape(serverName)
+	return fmt.Sprintf("%s/v0/servers/%s/versions/%s", CommunityRegistryBaseURL, encodedName, version)
+}
 
 type Client interface {
 	GetServer(ctx context.Context, url *ServerURL) (registryapi.ServerResponse, error)
