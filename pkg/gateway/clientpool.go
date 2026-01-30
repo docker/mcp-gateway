@@ -329,13 +329,16 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 	}
 
 	// Secrets
+	// Fix: When using Docker over a socket, -e VARNAME looks up the variable
+	// in the Docker daemon's environment, not the caller's. We must pass the
+	// value directly as -e VARNAME=value for standalone deployments.
 	for _, s := range serverConfig.Spec.Secrets {
-		args = append(args, "-e", s.Env)
-
 		secretValue, ok := serverConfig.Secrets[s.Name]
 		if ok {
+			args = append(args, "-e", fmt.Sprintf("%s=%s", s.Env, secretValue))
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
 		} else {
+			args = append(args, "-e", s.Env)
 			log.Logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, "<UNKNOWN>"))
 		}
