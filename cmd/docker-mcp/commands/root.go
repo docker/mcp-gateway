@@ -92,7 +92,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 	})
 
 	if features.IsProfilesFeatureEnabled() {
-		cmd.AddCommand(workingSetCommand())
+		cmd.AddCommand(workingSetCommand(cwd))
 		cmd.AddCommand(catalogNextCommand())
 		cmd.AddCommand(obsoleteCommand("config", "See `docker mcp profile config --help` instead."))
 	} else {
