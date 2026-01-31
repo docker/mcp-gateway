@@ -1011,6 +1011,9 @@ func TestResolveServerFromString(t *testing.T) {
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:latest",
 						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/latest",
+						},
 					},
 				},
 			}},
@@ -1029,6 +1032,9 @@ func TestResolveServerFromString(t *testing.T) {
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:latest",
 						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/latest",
+						},
 					},
 				},
 			}},
@@ -1047,6 +1053,9 @@ func TestResolveServerFromString(t *testing.T) {
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:0.1.0",
 						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/0.1.0",
+						},
 					},
 				},
 			}},
