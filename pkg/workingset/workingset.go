@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"github.com/modelcontextprotocol/registry/pkg/model"
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -399,16 +400,11 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 	} else if v, ok := strings.CutPrefix(value, "catalog://"); ok {
 		return ResolveCatalogServers(ctx, dao, v)
 	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
-		url, err := ResolveRegistry(ctx, registryClient, value)
+		server, err := ResolveRegistry(ctx, registryClient, value)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve registry: %w", err)
 		}
-		return []Server{{
-			Type:    ServerTypeRegistry,
-			Source:  url,
-			Secrets: "default",
-			// TODO(cody): add snapshot
-		}}, nil
+		return []Server{server}, nil
 	} else if v, ok := strings.CutPrefix(value, "file://"); ok {
 		return ResolveFile(v)
 	}
@@ -584,53 +580,318 @@ func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) 
 	return fullRef, nil
 }
 
-func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (string, error) {
+// ConvertRegistryServerToCatalog converts a community MCP registry server to Docker catalog format
+// Only processes OCI packages (non-OCI packages are ignored)
+// ConvertRegistryServerToCatalog converts a registry API server response to a catalog server.
+// It extracts the first OCI package and converts runtime arguments, environment variables,
+// secrets, and configuration items to the catalog format.
+func ConvertRegistryServerToCatalog(serverResp *v0.ServerResponse) (catalog.Server, error) {
+	server := serverResp.Server
+
+	// Find first OCI package
+	var ociPkg *model.Package
+	for i := range server.Packages {
+		if server.Packages[i].RegistryType == "oci" {
+			ociPkg = &server.Packages[i]
+			break
+		}
+	}
+
+	if ociPkg == nil {
+		return catalog.Server{}, fmt.Errorf("no OCI packages found for server")
+	}
+
+	catalogSrv := catalog.Server{
+		Name:        NormalizeServerName(server.Name),
+		Type:        "server",
+		Image:       ociPkg.Identifier,
+		Description: server.Description,
+		Title:       server.Title,
+	}
+
+	// Extract icon (use first icon if available)
+	if len(server.Icons) > 0 {
+		catalogSrv.Icon = server.Icons[0].Src
+	}
+
+	// Build registry URL for server identity
+	// Format: https://registry.modelcontextprotocol.io/v0/servers/{encoded_name}/versions/{version}
+	if server.Name != "" && server.Version != "" {
+		catalogSrv.Metadata = &catalog.Metadata{
+			RegistryURL: registryapi.BuildServerURL(server.Name, server.Version),
+		}
+	}
+
+	// Parse runtime arguments (volumes, user, and config for variables like workspace_path)
+	var runtimeConfig []any
+	catalogSrv.Volumes, catalogSrv.User, runtimeConfig = parseRuntimeArguments(catalogSrv.Name, ociPkg.RuntimeArguments)
+
+	// Parse package arguments (command)
+	catalogSrv.Command = parsePackageArguments(ociPkg.PackageArguments)
+
+	// Process environment variables (secrets, env vars, config)
+	catalogSrv.Secrets, catalogSrv.Env, catalogSrv.Config = processEnvironmentVariables(catalogSrv.Name, ociPkg.EnvironmentVariables)
+
+	// Merge runtime argument config items (prepend so they appear first)
+	if len(runtimeConfig) > 0 {
+		catalogSrv.Config = append(runtimeConfig, catalogSrv.Config...)
+	}
+
+	return catalogSrv, nil
+}
+
+// parseRuntimeArguments extracts volumes, user settings, and config items from runtime arguments.
+func parseRuntimeArguments(serverName string, args []model.Argument) (volumes []string, user string, config []any) {
+	for _, arg := range args {
+		if arg.Type != model.ArgumentTypeNamed || arg.Value == "" {
+			continue
+		}
+		switch arg.Name {
+		case "-v", "--volume":
+			// Convert {var} placeholders to {{serverName.var}} format for eval.EvaluateList
+			volumeValue := convertPlaceholders(serverName, arg.Value)
+			volumes = append(volumes, volumeValue)
+			// Extract variables as config items (e.g., workspace_path for volume mounts)
+			if len(arg.Variables) > 0 {
+				config = append(config, buildRuntimeArgConfigItem(serverName, arg))
+			}
+		case "-u", "--user":
+			user = arg.Value
+		}
+	}
+	return volumes, user, config
+}
+
+// convertPlaceholders converts registry-style {var} placeholders to catalog-style {{serverName.var}} format.
+// Example: "{workspace_path}:/workspace" -> "{{arm-mcp.workspace_path}}:/workspace"
+func convertPlaceholders(serverName, value string) string {
+	// Match {var_name} but not {{var_name}} (already converted)
+	re := regexp.MustCompile(`\{([^{}]+)\}`)
+	return re.ReplaceAllString(value, "{{"+serverName+".$1}}")
+}
+
+// buildRuntimeArgConfigItem creates a config item from runtime argument variables.
+// Uses the server name as the config name (e.g., "arm-mcp" instead of "-v").
+func buildRuntimeArgConfigItem(serverName string, arg model.Argument) map[string]any {
+	properties := make(map[string]any)
+	var required []string
+
+	for varName, varInput := range arg.Variables {
+		prop := map[string]any{
+			"type":        inferJSONType(string(varInput.Format)),
+			"description": varInput.Description,
+		}
+		if varInput.Default != "" {
+			prop["default"] = varInput.Default
+		}
+		if varInput.Placeholder != "" {
+			prop["placeholder"] = varInput.Placeholder
+		}
+		if len(varInput.Choices) > 0 {
+			prop["enum"] = varInput.Choices
+		}
+		properties[varName] = prop
+
+		if varInput.IsRequired {
+			required = append(required, varName)
+		}
+	}
+
+	// Use just the server name part (after /) for config name
+	// e.g., "arm/arm-mcp" -> "arm-mcp" to match Docker catalog format
+	configName := serverName
+	if idx := strings.LastIndex(serverName, "/"); idx != -1 {
+		configName = serverName[idx+1:]
+	}
+
+	configItem := map[string]any{
+		"name":        configName,
+		"description": arg.Description,
+		"type":        "object",
+		"properties":  properties,
+	}
+	if len(required) > 0 {
+		configItem["required"] = required
+	}
+	return configItem
+}
+
+// parsePackageArguments converts package arguments to a command array.
+func parsePackageArguments(args []model.Argument) []string {
+	var command []string
+	for _, arg := range args {
+		if arg.Value != "" {
+			command = append(command, arg.Value)
+		}
+	}
+	return command
+}
+
+// processEnvironmentVariables separates environment variables into secrets, env vars, and config items.
+// All config properties are merged into a single config item named after the server (servername.field format).
+func processEnvironmentVariables(serverName string, envVars []model.KeyValueInput) ([]catalog.Secret, []catalog.Env, []any) {
+	var secrets []catalog.Secret
+	var env []catalog.Env
+	configProperties := make(map[string]any)
+	var configRequired []string
+
+	for _, envVar := range envVars {
+		if envVar.IsSecret {
+			secrets = append(secrets, catalog.Secret{
+				Name: strings.ToLower(envVar.Name),
+				Env:  envVar.Name,
+			})
+			continue
+		}
+
+		if !envVar.IsRequired && envVar.Default == "" && envVar.Value == "" {
+			continue
+		}
+
+		// Complex config with nested variables - merge all variables into properties
+		// AND create an Env entry with converted placeholders
+		if len(envVar.Variables) > 0 {
+			for varName, varInput := range envVar.Variables {
+				prop := map[string]any{
+					"type":        inferJSONType(string(varInput.Format)),
+					"description": varInput.Description,
+				}
+				if varInput.Default != "" {
+					prop["default"] = varInput.Default
+				}
+				if varInput.Placeholder != "" {
+					prop["placeholder"] = varInput.Placeholder
+				}
+				if len(varInput.Choices) > 0 {
+					prop["enum"] = varInput.Choices
+				}
+				configProperties[varName] = prop
+				if varInput.IsRequired {
+					configRequired = append(configRequired, varName)
+				}
+			}
+			// Also create Env entry with converted placeholders so gateway exports it
+			// Convert {var} to {{serverName.var}} format for eval.Evaluate
+			env = append(env, catalog.Env{
+				Name:  envVar.Name,
+				Value: convertPlaceholders(serverName, envVar.Value),
+			})
+			continue
+		}
+
+		// Simple environment variable
+		env = append(env, catalog.Env{
+			Name:  envVar.Name,
+			Value: envVar.Value,
+		})
+
+		// Add to config if it needs user input
+		if envVar.Value == "" || strings.Contains(envVar.Value, "{") {
+			lowerName := strings.ToLower(envVar.Name)
+			prop := map[string]any{
+				"type":        inferJSONType(string(envVar.Format)),
+				"description": envVar.Description,
+			}
+			if envVar.Default != "" {
+				prop["default"] = envVar.Default
+			}
+			configProperties[lowerName] = prop
+			if envVar.IsRequired {
+				configRequired = append(configRequired, lowerName)
+			}
+		}
+	}
+
+	// Build single config item with server name if we have any properties
+	var config []any
+	if len(configProperties) > 0 {
+		configItem := map[string]any{
+			"name":        serverName,
+			"description": "Configuration for " + serverName,
+			"type":        "object",
+			"properties":  configProperties,
+		}
+		if len(configRequired) > 0 {
+			configItem["required"] = configRequired
+		}
+		config = append(config, configItem)
+	}
+
+	return secrets, env, config
+}
+
+// NormalizeServerName converts a registry server name to namespace/server format
+// Example: io.github.kubeshop/testkube-mcp -> kubeshop/testkube-mcp
+func NormalizeServerName(name string) string {
+	// Extract just the server name (after the last "/")
+	// io.github.arm/arm-mcp -> arm-mcp
+	// com.example.acme/my-server -> my-server
+	if idx := strings.LastIndex(name, "/"); idx != -1 {
+		return name[idx+1:]
+	}
+	return name
+}
+
+// inferJSONType converts registry format to JSON schema type
+func inferJSONType(format string) string {
+	switch format {
+	case "number":
+		return "number"
+	case "boolean":
+		return "boolean"
+	case "filepath":
+		return "string"
+	default:
+		return "string"
+	}
+}
+
+func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (Server, error) {
 	url, err := registryapi.ParseServerURL(value)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse server URL %s: %w", value, err)
+		return Server{}, fmt.Errorf("failed to parse server URL %s: %w", value, err)
 	}
 
 	versions, err := registryClient.GetServerVersions(ctx, url)
 	if err != nil {
-		return "", fmt.Errorf("failed to get server versions from URL %s: %w", url.VersionsListURL(), err)
+		return Server{}, fmt.Errorf("failed to get server versions from URL %s: %w", url.VersionsListURL(), err)
 	}
 
 	if len(versions.Servers) == 0 {
-		return "", fmt.Errorf("no server versions found for URL %s", url.VersionsListURL())
+		return Server{}, fmt.Errorf("no server versions found for URL %s", url.VersionsListURL())
 	}
 
 	if url.IsLatestVersion() {
 		latestVersion, err := resolveLatestVersion(versions)
 		if err != nil {
-			return "", fmt.Errorf("failed to resolve latest version for server %s: %w", url.VersionsListURL(), err)
+			return Server{}, fmt.Errorf("failed to resolve latest version for server %s: %w", url.VersionsListURL(), err)
 		}
 		url = url.WithVersion(latestVersion)
 	}
 
-	var server *v0.ServerResponse
+	var serverResp *v0.ServerResponse
 	for _, version := range versions.Servers {
 		if version.Server.Version == url.Version {
-			server = &version
+			serverResp = &version
 			break
 		}
 	}
-	if server == nil {
-		return "", fmt.Errorf("server version not found")
+	if serverResp == nil {
+		return Server{}, fmt.Errorf("server version not found")
 	}
 
-	// check oci package exists
-	foundOCIPackage := false
-	for _, pkg := range server.Server.Packages {
-		if pkg.RegistryType == "oci" {
-			foundOCIPackage = true
-			break
-		}
-	}
-	if !foundOCIPackage {
-		return "", fmt.Errorf("oci package not found for server %s", url.String())
+	// Check for OCI packages and convert to catalog format
+	catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+	if err != nil {
+		return Server{}, fmt.Errorf("failed to convert registry server: %w", err)
 	}
 
-	return url.String(), nil
+	return Server{
+		Type:     ServerTypeRegistry,
+		Source:   url.String(),
+		Secrets:  "default",
+		Snapshot: &ServerSnapshot{Server: catalogServer},
+	}, nil
 }
 
 func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server) (*ServerSnapshot, error) {
@@ -638,7 +899,7 @@ func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server)
 	case ServerTypeImage:
 		return ResolveImageSnapshot(ctx, ociService, server.Image)
 	case ServerTypeRegistry:
-		// TODO(cody): add snapshot
+		// Snapshots for registry servers are resolved during ResolveRegistry
 		return nil, nil //nolint:nilnil
 	case ServerTypeRemote:
 		// TODO(bobby): add snapshot when you can add remotes directly from URL
