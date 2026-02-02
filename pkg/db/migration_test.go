@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -162,11 +163,9 @@ func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
 	)
 	require.Error(t, err, "should error when database is ahead of migration files")
 
-	// Verify error message is descriptive
-	assert.Contains(t, err.Error(), "database version 3", "should mention current database version")
-	assert.Contains(t, err.Error(), "ahead of the current application version", "should clearly state the problem")
-	assert.Contains(t, err.Error(), dbFile, "should include database file path")
-	assert.Contains(t, err.Error(), "upgrade to the latest version", "should suggest upgrade")
+	// Verify error message is correct
+	expectedErr := fmt.Sprintf("database version 3 (%s) is ahead of the current application version. Please upgrade to the latest version", dbFile)
+	assert.EqualError(t, err, expectedErr)
 
 	// Verify database version stayed at 3 (no changes were made)
 	versionAfter := getDatabaseVersion(t, dbFile)
