@@ -61,7 +61,7 @@ func createCatalogNextCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: docker:// (Docker Image reference), catalog:// (Catalog reference), or file:// (Local file path). Can be specified multiple times.")
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
