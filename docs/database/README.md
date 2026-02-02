@@ -45,7 +45,7 @@ pkg/db/New() called
 Check current database version
     ↓
 Database version > available migrations?
-    ├─ Yes → Log warning, continue (database from newer version)
+    ├─ Yes → Return error (database from newer version)
     └─ No  → Run pending migrations sequentially
     ↓
 [Release File Lock]
@@ -87,9 +87,9 @@ for a race condition if two process concurrently attempt to run the migrations.
 If you run an older version of the tool after having used a newer version, the database may be at a higher schema version than the older tool expects. In this case:
 
 - The tool detects the database is ahead of available migrations
-- A warning is logged once per process:
+- An error is returned to prevent potential data corruption:
   ```
-  Warning database version 8 (~/.docker/mcp/mcp-toolkit.db) is newer than expected. Upgrade to the newest version to prevent issues.
+  database version 8 (~/.docker/mcp/mcp-toolkit.db) is ahead of the current application version. Please upgrade to the latest version
   ```
 
 ## Testing
