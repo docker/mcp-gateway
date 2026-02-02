@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/gofrs/flock"
@@ -41,8 +40,6 @@ type dao struct {
 
 //go:embed migrations/*.sql
 var migrations embed.FS
-
-var databaseAheadWarningOnce sync.Once
 
 type options struct {
 	dbFile         string
@@ -205,19 +202,14 @@ func runMigrations(dbFile string, db *sql.DB, migrationsFS fs.FS, migrationsPath
 
 	// For fresh databases, always run migrations
 	if !isFreshDatabase {
-		// Check to see if the database is ahead of the migrations
+		// Check if database version is ahead of available migrations
+		// This happens when running older code against a database that was upgraded by newer code
 		_, _, err = migDriver.ReadUp(version)
 		if errors.Is(err, os.ErrNotExist) {
-			// The database is ahead of the migrations - no migration file exists for current version
-			// Log warning but don't fail - database is in a valid state, just newer than this code version
-			// Use sync.Once to avoid duplicate warnings when db.New() is called multiple times in one process
-			databaseAheadWarningOnce.Do(func() {
-				log.Logf("Warning database version %d (%s) is newer than expected. Upgrade to the newest version to prevent issues.", version, dbFile)
-			})
-			return nil
-		} else if err != nil {
-			// Some other error occurred while reading migrations
-			return fmt.Errorf("failed to read migration file: %w", err)
+			return fmt.Errorf("database version %d (%s) is ahead of the current application version. Please upgrade to the latest version", version, dbFile)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read migration file for version %d: %w", version, err)
 		}
 	}
 

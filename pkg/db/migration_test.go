@@ -1,7 +1,6 @@
 package db
 
 import (
-	"bytes"
 	"database/sql"
 	"io/fs"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // Helper to get test migrations filesystem
@@ -145,7 +142,7 @@ func TestConcurrentMigration(t *testing.T) {
 func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
 	// Test scenario: Database is at version 3, but migration files only go up to version 2
 	// This simulates running an older version of the code against a newer database
-	// Expected: No migrations run, no error, database stays at version 3
+	// Expected: Error indicating the code version is too old for the database
 
 	tempDir := t.TempDir()
 	dbFile := filepath.Join(tempDir, "test.db")
@@ -157,42 +154,27 @@ func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
 	versionBefore := getDatabaseVersion(t, dbFile)
 	assert.Equal(t, uint(3), versionBefore, "database should start at version 3")
 
-	// Capture log output
-	var logBuf bytes.Buffer
-	log.SetLogWriter(&logBuf)
-	defer log.SetLogWriter(os.Stderr)
-
 	// Try to initialize with migrations that only go up to version 2
-	// This should recognize database is ahead and not run any migrations
-	dao, err := New(
+	// This should fail with a descriptive error
+	_, err := New(
 		WithDatabaseFile(dbFile),
 		WithMigrations(createLimitedMigrationsFS(t), "."),
 	)
-	require.NoError(t, err, "should not error when database is ahead of migration files")
-	require.NotNil(t, dao)
-	defer dao.Close()
+	require.Error(t, err, "should error when database is ahead of migration files")
 
-	// Verify warning was logged
-	logOutput := logBuf.String()
-	assert.Contains(t, logOutput, "Warning database version 3", "should log warning with version")
-	assert.Contains(t, logOutput, "is newer than expected", "should mention newer than expected")
-	assert.Contains(t, logOutput, "Upgrade to the newest version to prevent issues.", "should suggest upgrade")
-	assert.Contains(t, logOutput, dbFile, "should include database file path")
+	// Verify error message is descriptive
+	assert.Contains(t, err.Error(), "database version 3", "should mention current database version")
+	assert.Contains(t, err.Error(), "ahead of the current application version", "should clearly state the problem")
+	assert.Contains(t, err.Error(), dbFile, "should include database file path")
+	assert.Contains(t, err.Error(), "upgrade to the latest version", "should suggest upgrade")
 
-	// Verify database version stayed at 3
+	// Verify database version stayed at 3 (no changes were made)
 	versionAfter := getDatabaseVersion(t, dbFile)
 	assert.Equal(t, uint(3), versionAfter, "database should remain at version 3")
 
-	// Verify database is not dirty
+	// Verify database is not dirty (error occurred before any migration attempts)
 	dirty := getDatabaseDirtyState(t, dbFile)
 	assert.False(t, dirty, "database should not be dirty")
-
-	// Verify all 3 tables still exist (they were created during setup)
-	tables := []string{"users", "posts"}
-	for _, table := range tables {
-		exists := checkTableExists(t, dbFile, table)
-		assert.True(t, exists, "table %s should still exist", table)
-	}
 }
 
 // Helper functions
