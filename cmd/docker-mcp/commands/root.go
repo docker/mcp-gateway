@@ -57,6 +57,13 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 				return features.InitError()
 			}
 
+			// Note: Using PersistentPreRunE in secretCommand would override this parent hook
+			if isSubcommandOf(cmd, []string{"secret"}) {
+				if err := desktop.CheckHasDockerPass(cmd.Context()); err != nil {
+					return err
+				}
+			}
+
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
 				if features.IsProfilesFeatureEnabled() {
 					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "catalogs", "profile"}) {
@@ -103,9 +110,8 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 	cmd.AddCommand(featureCommand(dockerCli, features))
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(oauthCommand())
-	cmd.AddCommand(policyCommand())
 	cmd.AddCommand(registryCommand())
-	cmd.AddCommand(secretCommand(dockerClient))
+	cmd.AddCommand(secretCommand())
 	cmd.AddCommand(serverCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(toolsCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(versionCommand())

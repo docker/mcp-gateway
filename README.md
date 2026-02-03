@@ -37,7 +37,7 @@ Developers face criticial barriers when integrating Model Context Protocol (MCP)
 
 ### Prerequisites
 
-- Docker Desktop (with MCP Toolkit feature enabled)
+- Docker Desktop `4.59+` (with MCP Toolkit feature enabled)
 
 <div align="left">
   <img src="./img/enable_toolkit.png" width="400"/>

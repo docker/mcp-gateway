@@ -94,21 +94,20 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
-		// Fetch updated secrets for the new server list
-		if g.configurator != nil {
-			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-			if err == nil {
-				g.configuration.secrets = updatedSecrets
-			} else {
-				log.Log("Warning: Failed to update secrets:", err)
-			}
-		}
-
 		// Check if all required secrets are set
 		var missingSecrets []string
-		if serverConfig != nil {
+		var availableSecrets map[string]string
+		if serverConfig != nil && len(serverConfig.Spec.Secrets) > 0 {
+			// BuildSecretsURIs only includes secrets that exist in Secrets Engine
+			configs := []ServerSecretConfig{{
+				Secrets: serverConfig.Spec.Secrets,
+				OAuth:   serverConfig.Spec.OAuth,
+			}}
+			availableSecrets = BuildSecretsURIs(ctx, configs)
+
+			// Check which secrets are missing
 			for _, secret := range serverConfig.Spec.Secrets {
-				if value, exists := g.configuration.secrets[secret.Name]; !exists || value == "" {
+				if _, exists := availableSecrets[secret.Name]; !exists {
 					missingSecrets = append(missingSecrets, secret.Name)
 				}
 			}
@@ -210,6 +209,13 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 						serverName, strings.Join(missingItems, " and "), strings.Join(instructions, "\n")),
 				}},
 			}, nil
+		}
+
+		// Merge available secrets into configuration so container creation can find them.
+		// This is needed because g.configuration.secrets is built at startup and doesn't
+		// include secrets for dynamically added servers.
+		if len(availableSecrets) > 0 {
+			g.configuration.AddSecrets(availableSecrets)
 		}
 
 		// Pull the Docker image before trying to use the server
@@ -441,8 +447,10 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
 		}
 
-		// Start provider
-		g.startProvider(ctx, serverName)
+		// Start provider (CE mode only - Desktop mode doesn't need polling)
+		if oauth.IsCEMode() {
+			g.startProvider(ctx, serverName)
+		}
 	}
 
 	// Proceed with elicitation only if the client supports it
@@ -488,12 +496,11 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		return true, fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName)
 	}
 
-	// Check if user is already authorized by checking the credential helper (only if provider exists)
+	// Check if user is already authorized by checking if token exists (only if provider exists)
 	if providerExists {
-		// Create a credential helper to check token status
 		credHelper := oauth.NewOAuthCredentialHelper()
-		tokenStatus, err := credHelper.GetTokenStatus(ctx, serverName)
-		if err == nil && tokenStatus.Valid {
+		exists, err := credHelper.TokenExists(ctx, serverName)
+		if err == nil && exists {
 			// User is already authorized, skip the OAuth URL generation
 			if shouldSendTools {
 				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
