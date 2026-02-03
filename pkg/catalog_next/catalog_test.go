@@ -40,6 +40,9 @@ func getMockRegistryClient() registryapi.Client {
 				{
 					RegistryType: "oci",
 					Identifier:   "ghcr.io/example/server1:0.1.0",
+					Transport: model.Transport{
+						Type: "stdio",
+					},
 				},
 			},
 		},
@@ -58,6 +61,9 @@ func getMockRegistryClient() registryapi.Client {
 				{
 					RegistryType: "oci",
 					Identifier:   "ghcr.io/example/server2:0.1.0",
+					Transport: model.Transport{
+						Type: "stdio",
+					},
 				},
 			},
 		},

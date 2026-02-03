@@ -1007,7 +1007,7 @@ func TestResolveServerFromString(t *testing.T) {
 				Secrets: "default",
 				Snapshot: &ServerSnapshot{
 					Server: catalog.Server{
-						Name:        "my-server",
+						Name:        "io-example-my-server",
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:latest",
 						Description: "Test MCP server",
@@ -1028,7 +1028,7 @@ func TestResolveServerFromString(t *testing.T) {
 				Secrets: "default",
 				Snapshot: &ServerSnapshot{
 					Server: catalog.Server{
-						Name:        "my-server",
+						Name:        "io-example-my-server",
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:latest",
 						Description: "Test MCP server",
@@ -1049,7 +1049,7 @@ func TestResolveServerFromString(t *testing.T) {
 				Secrets: "default",
 				Snapshot: &ServerSnapshot{
 					Server: catalog.Server{
-						Name:        "my-server",
+						Name:        "io-example-my-server",
 						Type:        "server",
 						Image:       "ghcr.io/example/my-server:0.1.0",
 						Description: "Test MCP server",

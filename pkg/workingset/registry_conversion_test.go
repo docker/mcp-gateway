@@ -31,7 +31,7 @@ func TestConvertRegistryServerToCatalog_BasicOCI(t *testing.T) {
 	catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
 	require.NoError(t, err)
 
-	assert.Equal(t, "test-server", catalogServer.Name)
+	assert.Equal(t, "io-github-user-test-server", catalogServer.Name)
 	assert.Equal(t, "server", catalogServer.Type)
 	assert.Equal(t, "ghcr.io/user/test-server:1.0.0", catalogServer.Image)
 	assert.Equal(t, "A test MCP server", catalogServer.Description)
@@ -158,13 +158,13 @@ func TestConvertRegistryServerToCatalog_WithVolumeVariables(t *testing.T) {
 
 	// Volume should be extracted with placeholder converted to {{serverName.var}} format
 	assert.Len(t, catalogServer.Volumes, 1)
-	assert.Equal(t, "{{arm-mcp.workspace_path}}:/workspace", catalogServer.Volumes[0])
+	assert.Equal(t, "{{io-github-arm-arm-mcp.workspace_path}}:/workspace", catalogServer.Volumes[0])
 
 	// Config should contain workspace_path variable with server name as config name
 	assert.Len(t, catalogServer.Config, 1)
 	configItem := catalogServer.Config[0].(map[string]any)
-	assert.Equal(t, "arm-mcp", configItem["name"]) // Uses server name without namespace, matching Docker catalog format
-	assert.Equal(t, "Mount a local directory into the container", configItem["description"])
+	assert.Equal(t, "io-github-arm-arm-mcp", configItem["name"]) // Uses full normalized server name
+	assert.Equal(t, "Configuration for io-github-arm-arm-mcp", configItem["description"])
 
 	properties := configItem["properties"].(map[string]any)
 	workspaceProp := properties["workspace_path"].(map[string]any)
@@ -262,10 +262,19 @@ func TestConvertRegistryServerToCatalog_WithSecrets(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, catalogServer.Secrets, 2)
-	assert.Equal(t, "api_key", catalogServer.Secrets[0].Name)
-	assert.Equal(t, "API_KEY", catalogServer.Secrets[0].Env)
-	assert.Equal(t, "database_password", catalogServer.Secrets[1].Name)
-	assert.Equal(t, "DATABASE_PASSWORD", catalogServer.Secrets[1].Env)
+	// Secrets are in map iteration order, so we need to check both possibilities
+	secretNames := []string{catalogServer.Secrets[0].Name, catalogServer.Secrets[1].Name}
+	assert.Contains(t, secretNames, "io-github-user-test.API_KEY")
+	assert.Contains(t, secretNames, "io-github-user-test.DATABASE_PASSWORD")
+	// Check env vars match
+	for _, secret := range catalogServer.Secrets {
+		switch secret.Name {
+		case "io-github-user-test.API_KEY":
+			assert.Equal(t, "API_KEY", secret.Env)
+		case "io-github-user-test.DATABASE_PASSWORD":
+			assert.Equal(t, "DATABASE_PASSWORD", secret.Env)
+		}
+	}
 }
 
 func TestConvertRegistryServerToCatalog_WithEnvironmentVariables(t *testing.T) {
@@ -359,14 +368,14 @@ func TestConvertRegistryServerToCatalog_WithConfigVariables(t *testing.T) {
 	// This is critical - gateway exports env vars from Spec.Env
 	assert.Len(t, catalogServer.Env, 1)
 	assert.Equal(t, "DATABASE_URL", catalogServer.Env[0].Name)
-	assert.Equal(t, "{{test.host}}:{{test.port}}/{{test.db}}", catalogServer.Env[0].Value)
+	assert.Equal(t, "{{io-github-user-test.host}}:{{io-github-user-test.port}}/{{io-github-user-test.db}}", catalogServer.Env[0].Value)
 
 	assert.Len(t, catalogServer.Config, 1)
 	configItem := catalogServer.Config[0].(map[string]any)
 
-	// Config name should be server name (servername.field format)
-	assert.Equal(t, "test", configItem["name"])
-	assert.Equal(t, "Configuration for test", configItem["description"])
+	// Config name should be full normalized server name
+	assert.Equal(t, "io-github-user-test", configItem["name"])
+	assert.Equal(t, "Configuration for io-github-user-test", configItem["description"])
 	assert.Equal(t, "object", configItem["type"])
 
 	properties := configItem["properties"].(map[string]any)
@@ -446,33 +455,33 @@ func TestConvertRegistryServerToCatalog_MultipleSimpleEnvVars(t *testing.T) {
 	assert.Len(t, catalogServer.Config, 1)
 	configItem := catalogServer.Config[0].(map[string]any)
 
-	// Config name is server name
-	assert.Equal(t, "obsidian", configItem["name"])
-	assert.Equal(t, "Configuration for obsidian", configItem["description"])
+	// Config name is full normalized server name
+	assert.Equal(t, "io-github-user-obsidian", configItem["name"])
+	assert.Equal(t, "Configuration for io-github-user-obsidian", configItem["description"])
 	assert.Equal(t, "object", configItem["type"])
 
-	// Properties contain all 3 env vars (lowercase)
+	// Properties contain all 3 env vars (using original case)
 	properties := configItem["properties"].(map[string]any)
 	assert.Len(t, properties, 3)
 
-	// Check api_urls property
-	apiUrlsProp := properties["api_urls"].(map[string]any)
+	// Check API_URLS property
+	apiUrlsProp := properties["API_URLS"].(map[string]any)
 	assert.Equal(t, "string", apiUrlsProp["type"])
 	assert.Equal(t, "API URLs", apiUrlsProp["description"])
 
-	// Check mcp_transports property
-	transportsProp := properties["mcp_transports"].(map[string]any)
+	// Check MCP_TRANSPORTS property
+	transportsProp := properties["MCP_TRANSPORTS"].(map[string]any)
 	assert.Equal(t, "string", transportsProp["type"])
 	assert.Equal(t, "stdio,http", transportsProp["default"])
 
-	// Check mcp_http_port property
-	portProp := properties["mcp_http_port"].(map[string]any)
+	// Check MCP_HTTP_PORT property
+	portProp := properties["MCP_HTTP_PORT"].(map[string]any)
 	assert.Equal(t, "number", portProp["type"])
 	assert.Equal(t, "3000", portProp["default"])
 
-	// api_urls is required
+	// API_URLS is required
 	required := configItem["required"].([]string)
-	assert.Contains(t, required, "api_urls")
+	assert.Contains(t, required, "API_URLS")
 }
 
 func TestConvertRegistryServerToCatalog_NoOCIPackages(t *testing.T) {
@@ -555,58 +564,5 @@ func TestConvertRegistryServerToCatalog_MixedPackageTypes(t *testing.T) {
 	assert.Equal(t, "ghcr.io/user/test:1.0.0", catalogServer.Image)
 }
 
-func TestNormalizeServerName(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{
-			input:    "io.github.user/server",
-			expected: "server",
-		},
-		{
-			input:    "com.example.test/my-server",
-			expected: "my-server",
-		},
-		{
-			input:    "simple",
-			expected: "simple",
-		},
-		{
-			input:    "io.github.kubeshop/testkube-mcp",
-			expected: "testkube-mcp",
-		},
-		{
-			input:    "io.github.arm/arm-mcp",
-			expected: "arm-mcp",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := NormalizeServerName(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestInferJSONType(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{input: "string", expected: "string"},
-		{input: "number", expected: "number"},
-		{input: "boolean", expected: "boolean"},
-		{input: "filepath", expected: "string"},
-		{input: "unknown", expected: "string"},
-		{input: "", expected: "string"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := inferJSONType(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
+// TestNormalizeServerName and TestInferJSONType removed
+// These tested internal helper functions that are now in pkg/catalog
