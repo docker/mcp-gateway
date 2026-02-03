@@ -15,6 +15,8 @@ Profiles are decoupled from catalogs, meaning the servers in a profile can come 
 - **Catalog references**: Servers from existing catalogs with the `catalog://` prefix
 - **Local file references**: Server definitions from local YAML or JSON files with the `file://` prefix (see [Server Entry Specification](./server-entry-spec.md) for file format details)
 
+⚠️ **Important Caveat:** MCP Registry references are not fully implemented and are not expected to work yet.
+
 ## Enabling Profiles
 
 Profiles are a feature that must be enabled first.
