@@ -87,6 +87,8 @@ type Gateway struct {
 	authToken string
 	// authTokenWasGenerated indicates whether the token was auto-generated or from environment
 	authTokenWasGenerated bool
+
+	authTokens TokenStore
 }
 
 func NewGateway(config Config, docker docker.Client) *Gateway {
@@ -260,9 +262,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 			_, _ = req.Session.ListRoots(ctx, &mcp.ListRootsParams{})
 		},
 		CompletionHandler: nil,
-		InitializedHandler: func(_ context.Context, req *mcp.InitializedRequest) {
-			clientInfo := req.Session.InitializeParams().ClientInfo
-			log.Log(fmt.Sprintf("- Client initialized %s@%s %s", clientInfo.Name, clientInfo.Version, clientInfo.Title))
+		InitializedHandler: func(ctx context.Context, req *mcp.InitializedRequest) {
+			initParams := req.Session.InitializeParams()
+			clientInfo := initParams.ClientInfo
+
+			identity := "unknown"
+			if id, ok := IdentityFromContext(ctx); ok {
+				identity = id
+			}
+
+			log.Log(fmt.Sprintf(
+				"- Client initialized [%s] %s@%s %s",
+				identity,
+				clientInfo.Name,
+				clientInfo.Version,
+				clientInfo.Title,
+			))
 
 			// Log current working directory
 			if pwd, err := os.Getwd(); err == nil {
@@ -270,13 +285,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 
 			// Log entire initialize request
-			initParams := req.Session.InitializeParams()
-			if initParams != nil {
-				if initJSON, err := json.MarshalIndent(initParams, "  ", "  "); err == nil {
-					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
-				}
-			}
+			logInitializeParams(initParams)
 		},
+
 		HasPrompts:   true,
 		HasResources: true,
 		HasTools:     true,
@@ -382,16 +393,46 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return nil
 	}
 
+	// Load multi-user authentication tokens
+	tokens, err := loadAuthTokens()
+	if err != nil {
+		return fmt.Errorf("failed to load auth tokens: %w", err)
+	}
+	if tokens == nil {
+		tokens = make(TokenStore)
+	}
+	g.authTokens = tokens
+
 	// Initialize authentication token for SSE and streaming modes
 	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
 	transport := strings.ToLower(g.Transport)
-	if (transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http") && !inContainer {
+
+	// Initialize single-user auth token
+	if (transport == "sse" ||
+		transport == "http" ||
+		transport == "streamable" ||
+		transport == "streaming" ||
+		transport == "streamable-http") &&
+		!inContainer {
+
 		token, wasGenerated, err := getOrGenerateAuthToken()
 		if err != nil {
 			return fmt.Errorf("failed to initialize auth token: %w", err)
 		}
+
 		g.authToken = token
 		g.authTokenWasGenerated = wasGenerated
+
+		// Ensure single-user token is accepted by auth middleware
+		if g.authTokens == nil {
+			g.authTokens = make(TokenStore)
+		}
+
+		if _, exists := g.authTokens[token]; !exists {
+			g.authTokens[token] = TokenInfo{
+				Identity: "default",
+			}
+		}
 	}
 
 	// Start the server
@@ -434,6 +475,20 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
+	}
+}
+
+// logInitializeParams logs the initialization parameters in a formatted JSON way.
+// It does nothing if params is nil or marshaling fails.
+func logInitializeParams(params interface{}) {
+	if params == nil {
+		return
+	}
+
+	if initJSON, err := json.MarshalIndent(params, "  ", "  "); err == nil {
+		log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
+	} else {
+		log.Logf("Warning: failed to marshal initialize params: %v", err)
 	}
 }
 
