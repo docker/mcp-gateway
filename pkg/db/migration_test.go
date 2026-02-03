@@ -12,7 +12,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	msqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,13 +60,13 @@ func TestFreshDatabase(t *testing.T) {
 
 	// Verify at latest version
 	version := getDatabaseVersion(t, dbFile)
-	assert.Equal(t, uint(3), version)
+	require.Equal(t, uint(3), version)
 
 	// Verify migrations ran - tables should exist
 	expectedTables := []string{"users", "posts"}
 	for _, table := range expectedTables {
 		exists := checkTableExists(t, dbFile, table)
-		assert.True(t, exists, "table %s should exist", table)
+		require.True(t, exists, "table %s should exist", table)
 	}
 }
 
@@ -84,7 +83,7 @@ func TestDirtyDatabase(t *testing.T) {
 		WithMigrations(getTestMigrationsFS(), "."),
 	)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "dirty state")
+	require.Contains(t, err.Error(), "dirty state")
 }
 
 func TestConcurrentMigration(t *testing.T) {
@@ -126,7 +125,7 @@ func TestConcurrentMigration(t *testing.T) {
 	}
 
 	// All should succeed with file locking
-	assert.Empty(t, errList, "all concurrent initializations should succeed")
+	require.Empty(t, errList, "all concurrent initializations should succeed")
 
 	// Clean up
 	for _, dao := range daos {
@@ -137,7 +136,7 @@ func TestConcurrentMigration(t *testing.T) {
 
 	// Verify database is in good state
 	version := getDatabaseVersion(t, dbFile)
-	assert.Equal(t, uint(3), version)
+	require.Equal(t, uint(3), version)
 }
 
 func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
@@ -153,7 +152,7 @@ func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
 
 	// Verify initial state
 	versionBefore := getDatabaseVersion(t, dbFile)
-	assert.Equal(t, uint(3), versionBefore, "database should start at version 3")
+	require.Equal(t, uint(3), versionBefore, "database should start at version 3")
 
 	// Try to initialize with migrations that only go up to version 2
 	// This should fail with a descriptive error
@@ -165,15 +164,15 @@ func TestDatabaseAheadOfMigrationFiles(t *testing.T) {
 
 	// Verify error message is correct
 	expectedErr := fmt.Sprintf("database version 3 (%s) is ahead of the current application version. Please upgrade to the latest version", dbFile)
-	assert.EqualError(t, err, expectedErr)
+	require.EqualError(t, err, expectedErr)
 
 	// Verify database version stayed at 3 (no changes were made)
 	versionAfter := getDatabaseVersion(t, dbFile)
-	assert.Equal(t, uint(3), versionAfter, "database should remain at version 3")
+	require.Equal(t, uint(3), versionAfter, "database should remain at version 3")
 
 	// Verify database is not dirty (error occurred before any migration attempts)
 	dirty := getDatabaseDirtyState(t, dbFile)
-	assert.False(t, dirty, "database should not be dirty")
+	require.False(t, dirty, "database should not be dirty")
 }
 
 // Helper functions
