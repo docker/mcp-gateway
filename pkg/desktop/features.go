@@ -131,8 +131,24 @@ func isFeatureEnabled(featureName string, features map[string]Feature) bool {
 	return false
 }
 
+// noDockerDesktopContextKey is the context key for skipping Desktop detection.
+type noDockerDesktopContextKey struct{}
+
+// WithNoDockerDesktop marks the context so Desktop detection returns false.
+func WithNoDockerDesktop(ctx context.Context) context.Context {
+	return context.WithValue(ctx, noDockerDesktopContextKey{}, true)
+}
+
 // IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
 func IsRunningInDockerDesktop(ctx context.Context) bool {
+	// Allow callers to force CE mode by disabling Desktop detection via
+	// context. This is useful for tests or standalone gateway operation.
+	if ctx != nil {
+		if v, ok := ctx.Value(noDockerDesktopContextKey{}).(bool); ok && v {
+			return false
+		}
+	}
+
 	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
 	// must not touch the Docker API before the CLI is fully initialized. The
 	// plugin lifecycle initializes the Docker CLI later, so probing here would

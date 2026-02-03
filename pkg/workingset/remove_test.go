@@ -29,7 +29,7 @@ func TestRemoveExistingWorkingSet(t *testing.T) {
 	require.NotNil(t, dbSet)
 
 	// Remove it
-	err = Remove(ctx, dao, "test-set")
+	err = Remove(ctx, dao, t.TempDir(), "test-set")
 	require.NoError(t, err)
 
 	// Verify it's gone
@@ -42,7 +42,7 @@ func TestRemoveNonExistentWorkingSet(t *testing.T) {
 	ctx := t.Context()
 
 	// Try to remove a non-existent working set
-	err := Remove(ctx, dao, "non-existent")
+	err := Remove(ctx, dao, t.TempDir(), "non-existent")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -63,7 +63,7 @@ func TestRemoveOneOfMany(t *testing.T) {
 	}
 
 	// Remove the middle one
-	err := Remove(ctx, dao, "b-set")
+	err := Remove(ctx, dao, t.TempDir(), "b-set")
 	require.NoError(t, err)
 
 	// Verify only b-set is gone
@@ -98,11 +98,11 @@ func TestRemoveTwice(t *testing.T) {
 	require.NoError(t, err)
 
 	// Remove it
-	err = Remove(ctx, dao, "test-set")
+	err = Remove(ctx, dao, t.TempDir(), "test-set")
 	require.NoError(t, err)
 
 	// Try to remove it again
-	err = Remove(ctx, dao, "test-set")
+	err = Remove(ctx, dao, t.TempDir(), "test-set")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -121,7 +121,7 @@ func TestRemoveCaseSensitive(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to remove with wrong case
-	err = Remove(ctx, dao, "TEST-SET")
+	err = Remove(ctx, dao, t.TempDir(), "TEST-SET")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 
@@ -136,7 +136,7 @@ func TestRemoveWithEmptyId(t *testing.T) {
 	ctx := t.Context()
 
 	// Try to remove with empty ID
-	err := Remove(ctx, dao, "")
+	err := Remove(ctx, dao, t.TempDir(), "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }

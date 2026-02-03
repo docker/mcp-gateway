@@ -13,6 +13,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/fetch"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -107,6 +109,10 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 
 	catalog := NewFromDb(dbCatalog)
 
+	policyClient := policycli.ClientForCLI(ctx)
+	showPolicy := policyClient != nil
+	attachCatalogPolicy(ctx, policyClient, catalog.Ref, &catalog, true)
+
 	// Apply name filter
 	var nameFilter string
 	for _, filter := range parsedFilters {
@@ -122,7 +128,7 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 	servers := filterServers(catalog.Servers, nameFilter)
 
 	// Output results
-	return outputServers(catalog.Ref, catalog.Title, servers, format)
+	return outputServers(catalog.Ref, catalog.Title, catalog.Policy, servers, format, showPolicy)
 }
 
 func parseFilters(filters []string) ([]serverFilter, error) {
@@ -165,7 +171,7 @@ func matchesNameFilter(server Server, nameLower string) bool {
 	return strings.Contains(serverName, nameLower)
 }
 
-func outputServers(catalogRef, catalogTitle string, servers []Server, format workingset.OutputFormat) error {
+func outputServers(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server, format workingset.OutputFormat, showPolicy bool) error {
 	// Sort servers by name
 	sort.Slice(servers, func(i, j int) bool {
 		if servers[i].Snapshot == nil || servers[j].Snapshot == nil {
@@ -179,7 +185,7 @@ func outputServers(catalogRef, catalogTitle string, servers []Server, format wor
 
 	switch format {
 	case workingset.OutputFormatHumanReadable:
-		printServersHuman(catalogRef, catalogTitle, servers)
+		printServersHuman(catalogRef, catalogTitle, catalogPolicy, servers, showPolicy)
 		return nil
 	case workingset.OutputFormatJSON:
 		output := map[string]any{
@@ -187,12 +193,18 @@ func outputServers(catalogRef, catalogTitle string, servers []Server, format wor
 			"title":   catalogTitle,
 			"servers": servers,
 		}
+		if showPolicy && catalogPolicy != nil {
+			output["policy"] = catalogPolicy
+		}
 		data, err = json.MarshalIndent(output, "", "  ")
 	case workingset.OutputFormatYAML:
 		output := map[string]any{
 			"catalog": catalogRef,
 			"title":   catalogTitle,
 			"servers": servers,
+		}
+		if showPolicy && catalogPolicy != nil {
+			output["policy"] = catalogPolicy
 		}
 		data, err = yaml.Marshal(output)
 	default:
@@ -207,7 +219,7 @@ func outputServers(catalogRef, catalogTitle string, servers []Server, format wor
 	return nil
 }
 
-func printServersHuman(catalogRef, catalogTitle string, servers []Server) {
+func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.Decision, servers []Server, showPolicy bool) {
 	if len(servers) == 0 {
 		fmt.Println("No servers found")
 		return
@@ -215,6 +227,9 @@ func printServersHuman(catalogRef, catalogTitle string, servers []Server) {
 
 	fmt.Printf("Catalog: %s\n", catalogRef)
 	fmt.Printf("Title: %s\n", catalogTitle)
+	if showPolicy {
+		fmt.Printf("Policy: %s\n", policycli.StatusMessage(catalogPolicy))
+	}
 	fmt.Printf("Servers (%d):\n\n", len(servers))
 
 	for _, server := range servers {
@@ -238,8 +253,11 @@ func printServersHuman(catalogRef, catalogTitle string, servers []Server) {
 		case workingset.ServerTypeRemote:
 			fmt.Printf("    Endpoint: %s\n", server.Endpoint)
 		}
+		if showPolicy {
+			fmt.Printf("    Policy: %s\n", policycli.StatusMessage(server.Policy))
+		}
 		if len(srv.Tools) > 0 {
-			fmt.Printf("    Tools: %d\n", len(srv.Tools))
+			fmt.Printf("    Tools: %d\n", allowedToolCount(srv.Tools))
 		}
 		fmt.Println()
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func workingSetCommand() *cobra.Command {
+func workingSetCommand(cwd string) *cobra.Command {
 	cfg := client.ReadConfig()
 
 	cmd := &cobra.Command{
@@ -29,7 +29,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand(cfg))
-	cmd.AddCommand(removeWorkingSetCommand())
+	cmd.AddCommand(removeWorkingSetCommand(cwd))
 	cmd.AddCommand(workingsetServerCommand())
 	cmd.AddCommand(configWorkingSetCommand())
 	cmd.AddCommand(toolsWorkingSetCommand())
@@ -294,7 +294,7 @@ func importWorkingSetCommand() *cobra.Command {
 	}
 }
 
-func removeWorkingSetCommand() *cobra.Command {
+func removeWorkingSetCommand(cwd string) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove <profile-id>",
 		Aliases: []string{"rm"},
@@ -305,7 +305,11 @@ func removeWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Remove(cmd.Context(), dao, args[0])
+			if err = workingset.Remove(cmd.Context(), dao, cwd, args[0]); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 }

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"slices"
 
@@ -65,7 +66,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
 				if features.IsProfilesFeatureEnabled() {
-					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "profile"}) {
+					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "catalogs", "profile"}) {
 						dao, err := db.New()
 						if err != nil {
 							return err
@@ -98,19 +99,21 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 	})
 
 	if features.IsProfilesFeatureEnabled() {
-		cmd.AddCommand(workingSetCommand())
+		cmd.AddCommand(workingSetCommand(cwd))
 		cmd.AddCommand(catalogNextCommand())
+		cmd.AddCommand(obsoleteCommand("config", "See `docker mcp profile config --help` instead."))
+	} else {
+		cmd.AddCommand(catalogCommand(dockerCli))
+		cmd.AddCommand(configCommand(dockerClient))
 	}
-	cmd.AddCommand(catalogCommand(dockerCli))
 	cmd.AddCommand(clientCommand(dockerCli, cwd, features))
-	cmd.AddCommand(configCommand(dockerClient))
 	cmd.AddCommand(featureCommand(dockerCli, features))
 	cmd.AddCommand(gatewayCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(oauthCommand())
 	cmd.AddCommand(registryCommand())
 	cmd.AddCommand(secretCommand())
-	cmd.AddCommand(serverCommand(dockerClient, dockerCli))
-	cmd.AddCommand(toolsCommand(dockerClient, dockerCli))
+	cmd.AddCommand(serverCommand(dockerClient, dockerCli, features))
+	cmd.AddCommand(toolsCommand(dockerClient, dockerCli, features))
 	cmd.AddCommand(versionCommand())
 
 	if os.Getenv("DOCKER_MCP_SHOW_HIDDEN") == "1" {
@@ -138,4 +141,16 @@ func isSubcommandOf(cmd *cobra.Command, names []string) bool {
 	}
 
 	return isSubcommandOf(cmd.Parent(), names)
+}
+
+func obsoleteCommand(name string, message string) *cobra.Command {
+	return &cobra.Command{
+		Use:                name,
+		Short:              "Obsolete",
+		Hidden:             true,
+		DisableFlagParsing: true,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return fmt.Errorf("This command is obsolete. %s", message) //nolint:staticcheck
+		},
+	}
 }

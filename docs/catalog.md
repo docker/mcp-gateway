@@ -1,5 +1,7 @@
 # MCP Catalog Management
 
+*Important note: This method of catalog management is deprecated and only works if the profiles feature flag is off. Please see [Profiles](profiles.md) for more information on how to use catalogs.*
+
 Docker MCP Gateway provides comprehensive catalog management capabilities, allowing you to create, manage, and use custom MCP server catalogs alongside Docker's official catalog.
 
 ## Quick Start with Bootstrap

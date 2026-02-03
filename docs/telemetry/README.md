@@ -425,7 +425,7 @@ When adding telemetry to new operations:
    ```go
    attrs := []attribute.KeyValue{
        attribute.String("mcp.server.name", serverConfig.Name),
-       attribute.String("mcp.server.type", inferServerType(serverConfig)),
+       attribute.String("mcp.server.type", inferServerTransportType(serverConfig)),
        attribute.String("mcp.tool.name", toolName),
    }
    ```

@@ -230,7 +230,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 		// Start prompt span
 		ctx := context.Background()
 		promptName := "test-prompt-span"
-		serverType := inferServerType(serverConfig)
+		serverType := inferServerTransportType(serverConfig)
 
 		_, span := telemetry.StartPromptSpan(ctx, promptName,
 			attribute.String("mcp.server.origin", serverConfig.Name),
@@ -321,7 +321,7 @@ func TestPromptHandlerTelemetry(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				serverType := inferServerType(tc.config)
+				serverType := inferServerTransportType(tc.config)
 				assert.Equal(t, tc.expectedType, serverType)
 			})
 		}
