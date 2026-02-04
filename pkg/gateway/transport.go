@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -19,53 +20,73 @@ func (g *Gateway) startStdioServer(ctx context.Context, _ io.Reader, _ io.Writer
 }
 
 func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
+	// require at least one token in shared environments
+	if len(g.authTokens) == 0 && os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
+		return fmt.Errorf("SSE server requires at least one Bearer token in shared environment")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/health", healthHandler(&g.health))
 	mux.Handle("/", redirectHandler("/sse"))
-	sseHandler := mcp.NewSSEHandler(func(_ *http.Request) *mcp.Server {
-		return g.mcpServer
-	}, nil)
-	mux.Handle("/sse", originSecurityHandler(sseHandler))
 
-	// Wrap with authentication middleware
-	var handler http.Handler = mux
-	if g.authToken != "" {
-		handler = authenticationMiddleware(g.authToken, mux)
+	sseHandler := mcp.NewSSEHandler(
+		func(_ *http.Request) *mcp.Server { return g.mcpServer },
+		nil,
+	)
+
+	// IMPORTANT:
+	// Authentication MUST run before any MCP handshake or tool discovery.
+	var sse http.Handler = sseHandler
+
+	// validate origin to prevent DNS rebinding
+	sse = originSecurityHandler(sse)
+
+	// enforce Bearer token authentication
+	if len(g.authTokens) > 0 {
+		sse = authenticationMiddlewareMulti(g.authTokens, sse)
 	}
 
-	httpServer := &http.Server{
-		Handler: handler,
-	}
-	go func() {
-		<-ctx.Done()
-		ln.Close()
-	}()
+	mux.Handle("/sse", sse)
+
+	httpServer := &http.Server{Handler: mux}
+
+	go func() { <-ctx.Done(); ln.Close() }()
+
 	return httpServer.Serve(ln)
 }
 
 func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) error {
+	if len(g.authTokens) == 0 && os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
+		return fmt.Errorf("Streaming server requires at least one Bearer token in shared environment")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/health", healthHandler(&g.health))
 	mux.Handle("/", redirectHandler("/mcp"))
-	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
-		return g.mcpServer
-	}, nil)
-	mux.Handle("/mcp", originSecurityHandler(streamHandler))
 
-	// Wrap with authentication middleware
-	var handler http.Handler = mux
-	if g.authToken != "" {
-		handler = authenticationMiddleware(g.authToken, mux)
+	streamHandler := mcp.NewStreamableHTTPHandler(
+		func(_ *http.Request) *mcp.Server { return g.mcpServer },
+		nil,
+	)
+
+	// IMPORTANT:
+	// Authentication MUST run before any MCP request is handled.
+	var mcpHandler http.Handler = streamHandler
+
+	// validate origin to prevent DNS rebinding
+	mcpHandler = originSecurityHandler(mcpHandler)
+
+	// enforce Bearer token authentication
+	if len(g.authTokens) > 0 {
+		mcpHandler = authenticationMiddlewareMulti(g.authTokens, mcpHandler)
 	}
 
-	httpServer := &http.Server{
-		Handler: handler,
-	}
+	mux.Handle("/mcp", mcpHandler)
 
-	go func() {
-		<-ctx.Done()
-		ln.Close()
-	}()
+	httpServer := &http.Server{Handler: mux}
+
+	go func() { <-ctx.Done(); ln.Close() }()
+
 	return httpServer.Serve(ln)
 }
 
