@@ -40,11 +40,13 @@ Application Startup
     ↓
 pkg/db/New() called
     ↓
-Check for pending migrations
-    ↓
 [Acquire File Lock] ← Prevents concurrent migrations
     ↓
-Run migrations sequentially
+Check current database version
+    ↓
+Database version > available migrations?
+    ├─ Yes → Return error (database from newer version)
+    └─ No  → Run pending migrations sequentially
     ↓
 [Release File Lock]
     ↓
@@ -78,6 +80,17 @@ for a race condition if two process concurrently attempt to run the migrations.
 
 **The Solution**: OS-level file locking ensures only one process runs migrations at a time. Other processes wait, then see migrations already complete.
 
+### Database Version Compatibility
+
+#### Running Older Version After Newer Version
+
+If you run an older version of the tool after having used a newer version, the database may be at a higher schema version than the older tool expects. In this case:
+
+- The tool detects the database is ahead of available migrations
+- An error is returned to prevent potential data corruption:
+  ```
+  database version 8 (~/.docker/mcp/mcp-toolkit.db) is ahead of the current application version. Please upgrade to the latest version
+  ```
 
 ## Testing
 
