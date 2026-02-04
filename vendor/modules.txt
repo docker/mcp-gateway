@@ -28,6 +28,10 @@ github.com/alecthomas/participle/v2/lexer
 # github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
+# github.com/aws/aws-sdk-go-v2 v1.41.1
+## explicit; go 1.23
+# github.com/aws/aws-sdk-go-v2/config v1.32.7
+## explicit; go 1.23
 # github.com/aws/aws-sdk-go-v2/service/ecr v1.44.2
 ## explicit; go 1.22
 # github.com/blang/semver v3.5.1+incompatible
