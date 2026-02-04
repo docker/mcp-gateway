@@ -116,7 +116,7 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 
 	for _, server := range workingSet.Servers {
 		// Skip registry servers for now
-		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote {
+		if server.Type != workingset.ServerTypeImage && server.Type != workingset.ServerTypeRemote && server.Type != workingset.ServerTypeRegistry {
 			continue
 		}
 
