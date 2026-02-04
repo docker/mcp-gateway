@@ -54,6 +54,9 @@ type Metadata struct {
 	Tags        []string `yaml:"tags,omitempty" json:"tags,omitempty"`
 	License     string   `yaml:"license,omitempty" json:"license,omitempty"`
 	Owner       string   `yaml:"owner,omitempty" json:"owner,omitempty"`
+	// RegistryURL is the full URL to the server in the community MCP registry
+	// e.g., "https://registry.modelcontextprotocol.io/v0/servers/io.github.arm%2Farm-mcp/versions/1.0.2"
+	RegistryURL string `yaml:"registryUrl,omitempty" json:"registryUrl,omitempty"`
 }
 
 func (s *Server) IsOAuthServer() bool {
