@@ -20,7 +20,7 @@ func (c *dockerClient) ImageExists(ctx context.Context, name string) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	_, err = cli.ContainerInspect(ctx, name)
+	_, err = cli.ImageInspect(ctx, name)
 	if cerrdefs.IsNotFound(err) {
 		return false, nil
 	}
