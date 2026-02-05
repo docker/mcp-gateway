@@ -13,6 +13,11 @@ import (
 	// "github.com/docker/mcp-gateway/pkg/prompts"
 )
 
+// reloadConfiguration applies the given configuration by reloading
+// server capabilities, tools, prompts and resources.
+//
+// NOTE: g.configuration must be updated by the caller.
+// reloadConfiguration does not mutate gateway configuration state.
 func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configuration, serverNames []string, clientConfig *clientConfig) error {
 	// Which servers are enabled in the registry.yaml?
 	if len(serverNames) == 0 {
