@@ -9,6 +9,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 	"github.com/docker/mcp-gateway/pkg/prompts"
 	// "github.com/docker/mcp-gateway/pkg/prompts"
 )
@@ -161,7 +163,51 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("  > mcp-discover: prompt for learning about dynamic server management")
 	}
 
-	for _, prompt := range capabilities.Prompts {
+	// Evaluate prompt policies in batch if policy client is available.
+	promptAllowed := make([]bool, len(capabilities.Prompts))
+	if g.policyClient != nil && len(capabilities.Prompts) > 0 {
+		requests := make([]policy.Request, len(capabilities.Prompts))
+		for i, prompt := range capabilities.Prompts {
+			requests[i] = g.configuration.policyRequest(
+				prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt,
+			)
+		}
+		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
+		for i, req := range requests {
+			event := buildAuditEvent(req, decisions[i], nil, nil)
+			submitAuditEvent(g.policyClient, event)
+		}
+		if err != nil {
+			log.Logf("batch policy check failed for prompts: %v (denying all)", err)
+		} else {
+			for i, dec := range decisions {
+				if dec.Allowed && dec.Error == "" {
+					promptAllowed[i] = true
+					continue
+				}
+				prompt := capabilities.Prompts[i]
+				if dec.Error != "" {
+					log.Logf("policy check failed for prompt %s/%s: %s (denying)",
+						prompt.ServerName, prompt.Prompt.Name, dec.Error)
+					continue
+				}
+				log.Logf("policy denied prompt %s/%s: %s",
+					prompt.ServerName, prompt.Prompt.Name, dec.Reason)
+			}
+		}
+	} else {
+		// No policy client - allow all prompts.
+		for i := range promptAllowed {
+			promptAllowed[i] = true
+		}
+	}
+
+	for i, prompt := range capabilities.Prompts {
+		if !promptAllowed[i] {
+			continue
+		}
+
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
 
 		// Track by server
@@ -308,8 +354,52 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 			delete(g.toolRegistrations, toolName)
 		}
 	}
-	// Add new tool registrations from the server
-	for _, tool := range newServerCaps.Tools {
+	// Evaluate tool policies in batch if policy client is available.
+	toolAllowed := make([]bool, len(newServerCaps.Tools))
+	if g.policyClient != nil && len(newServerCaps.Tools) > 0 {
+		requests := make([]policy.Request, len(newServerCaps.Tools))
+		for i, tool := range newServerCaps.Tools {
+			requests[i] = g.configuration.policyRequest(
+				serverName, tool.Tool.Name, policy.ActionLoad,
+			)
+		}
+		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
+		for i, req := range requests {
+			event := buildAuditEvent(req, decisions[i], nil, nil)
+			submitAuditEvent(g.policyClient, event)
+		}
+		if err != nil {
+			// Fail-closed: deny all tools on batch error.
+			log.Logf("batch policy check failed for dynamic tools: %v (denying all)", err)
+		} else {
+			for i, dec := range decisions {
+				if dec.Allowed && dec.Error == "" {
+					toolAllowed[i] = true
+					continue
+				}
+				tool := newServerCaps.Tools[i]
+				if dec.Error != "" {
+					log.Logf("policy check failed for dynamic tool %s/%s: %s (denying)",
+						serverName, tool.Tool.Name, dec.Error)
+					continue
+				}
+				log.Logf("policy denied dynamic tool %s/%s: %s",
+					serverName, tool.Tool.Name, dec.Reason)
+			}
+		}
+	} else {
+		// No policy client - allow all tools.
+		for i := range toolAllowed {
+			toolAllowed[i] = true
+		}
+	}
+
+	// Add new tool registrations from the server (with policy filtering).
+	for i, tool := range newServerCaps.Tools {
+		if !toolAllowed[i] {
+			continue
+		}
 		g.toolRegistrations[tool.Tool.Name] = tool
 	}
 

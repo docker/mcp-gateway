@@ -14,7 +14,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func workingSetCommand() *cobra.Command {
+func workingSetCommand(cwd string) *cobra.Command {
 	cfg := client.ReadConfig()
 
 	cmd := &cobra.Command{
@@ -29,7 +29,7 @@ func workingSetCommand() *cobra.Command {
 	cmd.AddCommand(pushWorkingSetCommand())
 	cmd.AddCommand(pullWorkingSetCommand())
 	cmd.AddCommand(createWorkingSetCommand(cfg))
-	cmd.AddCommand(removeWorkingSetCommand())
+	cmd.AddCommand(removeWorkingSetCommand(cwd))
 	cmd.AddCommand(workingsetServerCommand())
 	cmd.AddCommand(configWorkingSetCommand())
 	cmd.AddCommand(toolsWorkingSetCommand())
@@ -142,7 +142,8 @@ A profile allows you to organize and manage related servers as a single unit.
 Profiles are decoupled from catalogs. Servers can be:
   - MCP Registry references (e.g. http://registry.modelcontextprotocol.io/v0/servers/312e45a4-2216-4b21-b9a8-0f1a51425073)
   - OCI image references with docker:// prefix (e.g., "docker://my-server:latest"). Images must be self-describing.
-	- Catalog references with catalog:// prefix (e.g., "catalog://mcp/docker-mcp-catalog/github+obsidian").`,
+  - Catalog references with catalog:// prefix (e.g., "catalog://mcp/docker-mcp-catalog/github+obsidian").
+  - Local file references with file:// prefix (e.g., "file://./server.yaml").`,
 		Example: `  # Create a profile with servers from a catalog
   docker mcp profile create --name dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
 
@@ -169,7 +170,7 @@ Profiles are decoupled from catalogs. Servers can be:
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
 	_ = cmd.MarkFlagRequired("name")
 
@@ -294,7 +295,7 @@ func importWorkingSetCommand() *cobra.Command {
 	}
 }
 
-func removeWorkingSetCommand() *cobra.Command {
+func removeWorkingSetCommand(cwd string) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove <profile-id>",
 		Aliases: []string{"rm"},
@@ -305,7 +306,11 @@ func removeWorkingSetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return workingset.Remove(cmd.Context(), dao, args[0])
+			if err = workingset.Remove(cmd.Context(), dao, cwd, args[0]); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 }
@@ -405,7 +410,7 @@ func addServerCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 
 	return cmd
 }

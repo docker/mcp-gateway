@@ -12,6 +12,8 @@ A profile is a named collection of MCP servers that can be:
 Profiles are decoupled from catalogs, meaning the servers in a profile can come from:
 - **MCP Registry references**: HTTP(S) URLs pointing to servers in the Model Context Protocol registry
 - **OCI image references**: Docker images with the `docker://` prefix
+- **Catalog references**: Servers from existing catalogs with the `catalog://` prefix
+- **Local file references**: Server definitions from local YAML or JSON files with the `file://` prefix (see [Server Entry Specification](./server-entry-spec.md) for file format details)
 
 ⚠️ **Important Caveat:** MCP Registry references are not fully implemented and are not expected to work yet.
 
@@ -48,14 +50,25 @@ docker mcp profile create --name dev-tools \
   --server docker://my-server:latest \
   --server docker://my-other-server:latest
 
+# Create with servers from a catalog
+docker mcp profile create --name catalog-servers \
+  --server catalog://mcp/docker-mcp-catalog/github+slack
+
 # Create with MCP Registry references
 docker mcp profile create --name registry-servers \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
-# Mix MCP Registry and OCI references
+# Mix different methods of specifying servers
 docker mcp profile create --name mixed \
+  --server catalog://mcp/docker-mcp-catalog/dockerhub \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 \
   --server docker://my-server:latest
+  --server file://./my-server.yaml
+
+# Create with servers from local files
+docker mcp profile create --name local-servers \
+  --server file://./my-server.yaml \
+  --server file://./another-server.json
 
 # Specify a custom ID (otherwise derived from name)
 docker mcp profile create --name "My Servers" --id my-servers \
@@ -69,6 +82,8 @@ docker mcp profile create --name "My Servers" --id my-servers \
 - Server references must be either:
   - `docker://` prefix for OCI images
   - `http://` or `https://` URLs for MCP Registry references
+  - `catalog://` prefix for catalog references
+  - `file://` prefix for local YAML or JSON server definition files
 
 ### Adding Servers to a Profile
 
@@ -80,6 +95,10 @@ docker mcp profile server add dev-tools \
   --server docker://my-server:latest \
   --server docker://my-other-server:latest
 
+# Add servers from a catalog
+docker mcp profile server add dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/github+slack
+
 # Add servers with MCP Registry references
 docker mcp profile server add dev-tools \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
@@ -89,22 +108,41 @@ docker mcp profile server add dev-tools \
   --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860 \
   --server docker://my-server:latest
 
-# Add servers from a catalog
+# Add servers from local files
 docker mcp profile server add dev-tools \
-  --server catalog://mcp/docker-mcp-catalog/github+slack
+  --server file://./my-server.yaml \
+  --server file://./another-server.json
 
 # Mix catalog servers with direct server references
 docker mcp profile server add dev-tools \
-  --server catalog://mcp/docker-mcp-catalog/github
+  --server catalog://mcp/docker-mcp-catalog/github \
   --server docker://my-server:latest
 ```
+
+**Local File Format:**
+
+When using `file://`, the file should contain a server definition in YAML or JSON format:
+
+```yaml
+# my-server.yaml
+name: my-custom-server
+title: My Custom Server
+type: server
+image: my-org/my-server:latest
+description: A custom MCP server
+allowHosts:
+  - api.example.com:443
+```
+
+See the [Server Entry Specification](./server-entry-spec.md) for complete file format documentation including configuration schemas, secrets, OAuth, and advanced options.
 
 **Server References:**
 - Use `--server` flag for all server references (can be specified multiple times)
 - Server references must start with:
-  - `catalog://` for catalog references. This takes the form of `catalog://<catalog-oci-refence>/<server-1>+<server-2>
+  - `catalog://` for catalog references. This takes the form of `catalog://<catalog-oci-refence>/<server-1>+<server-2>`
   - `docker://` for OCI images
   - `http://` or `https://` for MCP Registry URLs
+  - `file://` for local YAML or JSON server definition files (see [Server Entry Specification](./server-entry-spec.md))
 - Catalog servers are referenced by their name within the catalog
 
 **Notes:**
@@ -640,11 +678,11 @@ docker mcp profile pull docker.io/myorg/my-tools:1.1
 
 ```bash
 # 1. Import Docker's official catalog (or pull from OCI registry)
-docker mcp catalog-next create docker-mcp-catalog \
+docker mcp catalog create docker-mcp-catalog \
   --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 
 # Or pull a team catalog from OCI registry
-docker mcp catalog-next pull myorg/team-catalog:latest
+docker mcp catalog pull myorg/team-catalog:latest
 
 # 2. Create an initial profile
 docker mcp profile create --name my-workflow
@@ -755,6 +793,8 @@ Error: invalid server value: myserver
 **Solution**: Ensure server references use either:
 - `docker://` prefix for images
 - `http://` or `https://` for registry URLs
+- `catalog://` prefix for catalog references
+- `file://` prefix for local server definition files
 
 ### Conflicting Flags
 
@@ -826,7 +866,7 @@ Error: server 'nonexistent' not found in catalog
 ```
 
 **Solution**: 
-- Use `docker mcp catalog-next show <catalog-name>` to see available servers in the catalog
+- Use `docker mcp catalog show <catalog-name>` to see available servers in the catalog
 - Check that the server name is spelled correctly (names are case-sensitive)
 
 ### Cannot Remove Server
@@ -893,54 +933,57 @@ Error: tool 'invalid_tool' not found in server 'github'
 
 ## Creating Catalogs
 
-The `catalog-next` command allows you to create and share catalogs:
+The `catalog` command allows you to create and share catalogs:
 
 ```bash
 # Create a catalog from a working set
-docker mcp catalog-next create my-catalog --from-profile my-profile
+docker mcp catalog create my-catalog --from-profile my-profile
 
 # Create with a custom name
-docker mcp catalog-next create my-catalog --from-profile my-profile --name "My Catalog"
+docker mcp catalog create my-catalog --from-profile my-profile --name "My Catalog"
 
 # Create a catalog from a legacy catalog
-docker mcp catalog-next create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+docker mcp catalog create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 
 # Create a catalog with servers from other catalogs
-docker mcp catalog-next create dev-catalog --title dev-tools --server catalog://mcp/docker-mcp-catalog/github+notion+obsidian
+docker mcp catalog create dev-catalog --title dev-tools --server catalog://mcp/docker-mcp-catalog/github+notion+obsidian
 
 # Create a catalog with your own MCP server
-docker mcp catalog-next create my-catalog --title my-catalog --server docker://my-server:latest
+docker mcp catalog create my-catalog --title my-catalog --server docker://my-server:latest
+
+# Create a catalog from a local server definition file
+docker mcp catalog create my-catalog --title my-catalog --server file://./my-server.yaml
 
 # List all catalogs
-docker mcp catalog-next list
+docker mcp catalog list
 
 # Show catalog details
-docker mcp catalog-next show my-catalog
+docker mcp catalog show my-catalog
 
 # Show a catalog, pulling it if missing (other options include 'never' and 'always')
-docker mcp catalog-next show mcp/docker-mcp-catalog --pull missing
+docker mcp catalog show mcp/docker-mcp-catalog --pull missing
 
 # Remove a catalog
-docker mcp catalog-next remove my-catalog
+docker mcp catalog remove my-catalog
 
 # Push catalog to OCI registry
-docker mcp catalog-next tag my-catalog my-org/my-catalog:latest
-docker mcp catalog-next push myorg/my-catalog:latest
+docker mcp catalog tag my-catalog my-org/my-catalog:latest
+docker mcp catalog push myorg/my-catalog:latest
 
 # Pull catalog from OCI registry
-docker mcp catalog-next pull myorg/my-catalog:latest
+docker mcp catalog pull myorg/my-catalog:latest
 
 # List servers in a catalog
-docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+docker mcp catalog server ls mcp/docker-mcp-catalog:latest
 
 # Filter servers by name
-docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+docker mcp catalog server ls mcp/docker-mcp-catalog:latest --filter name=github
 
 # Inspect a specific server in a catalog
-docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github
+docker mcp catalog server inspect mcp/docker-mcp-catalog:latest github
 
 # Inspect in JSON format
-docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --format json
+docker mcp catalog server inspect mcp/docker-mcp-catalog:latest github --format json
 ```
 
 **Key points:**
@@ -952,7 +995,7 @@ docker mcp catalog-next server inspect mcp/docker-mcp-catalog:latest github --fo
 
 **💡 Tip:** You can import Docker's official MCP catalog as a starting point:
 ```bash
-docker mcp catalog-next create docker-mcp-catalog \
+docker mcp catalog create docker-mcp-catalog \
   --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
 ```
 This gives you access to Docker's curated collection of MCP servers, which you can then use to build your profiles with the `--server catalog://docker-mcp-catalog/<server>` flag

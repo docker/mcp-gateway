@@ -13,6 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
 
@@ -83,7 +84,7 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 		}
 
 		client := &http.Client{
-			Transport: http.DefaultTransport,
+			Transport: desktop.ProxyTransport(),
 		}
 
 		resp, err := client.Do(req)

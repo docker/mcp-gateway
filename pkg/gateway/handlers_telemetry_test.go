@@ -42,8 +42,8 @@ func setupTestTelemetry(_ *testing.T) (*tracetest.SpanRecorder, *sdkmetric.Manua
 	return spanRecorder, reader
 }
 
-// TestInferServerType tests the inferServerType helper function
-func TestInferServerType(t *testing.T) {
+// TestInferServerTransportType tests the inferServerTransportType helper function.
+func TestInferServerTransportType(t *testing.T) {
 	tests := []struct {
 		name         string
 		serverConfig *catalog.ServerConfig
@@ -114,7 +114,7 @@ func TestInferServerType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := inferServerType(tt.serverConfig)
+			result := inferServerTransportType(tt.serverConfig)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -136,7 +136,7 @@ func TestTelemetrySpanCreation(t *testing.T) {
 	// Create a span as the handler would
 	_, span := telemetry.StartToolCallSpan(ctx, "test-tool",
 		attribute.String("mcp.server.name", serverConfig.Name),
-		attribute.String("mcp.server.type", inferServerType(serverConfig)),
+		attribute.String("mcp.server.type", inferServerTransportType(serverConfig)),
 	)
 
 	// Add attributes as the handler would

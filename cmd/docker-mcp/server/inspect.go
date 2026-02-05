@@ -12,13 +12,20 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/catalog"
+	catalogpkg "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/docker"
+	"github.com/docker/mcp-gateway/pkg/policy"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
+	policycontext "github.com/docker/mcp-gateway/pkg/policy/context"
 )
 
 type Info struct {
 	Tools  []Tool `json:"tools"`
 	Readme string `json:"readme"`
+	// Policy describes the policy decision for this server.
+	Policy *policy.Decision `json:"policy,omitempty"`
 }
 
 func (s Info) ToJSON() ([]byte, error) {
@@ -37,6 +44,8 @@ type Tool struct {
 	Arguments   []ToolArgument             `json:"arguments,omitempty"`
 	Annotations map[string]json.RawMessage `json:"annotations,omitempty"`
 	Enabled     bool                       `json:"enabled"`
+	// Policy describes the policy decision for this tool.
+	Policy *policy.Decision `json:"policy,omitempty"`
 }
 
 func Inspect(ctx context.Context, dockerClient docker.Client, serverName string) (Info, error) {
@@ -53,6 +62,38 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 	server, found := registry.Registry[serverName]
 	if !found {
 		return Info{}, fmt.Errorf("server %q not found in catalog", serverName)
+	}
+
+	catalogID := catalogpkg.DockerCatalogFilename
+	if _, name, _, err := catalogpkg.ReadOne(ctx, catalogpkg.DockerCatalogFilename); err == nil && name != "" {
+		catalogID = name
+	}
+	policyClient := policycli.ClientForCLI(ctx)
+	policyCtx := policycontext.Context{
+		Catalog:                  catalogID,
+		WorkingSet:               "",
+		ServerSourceTypeOverride: "registry",
+	}
+	var serverSpec catalogpkg.Server
+	catalogData, err := catalogpkg.Get(ctx)
+	if err == nil {
+		if catalogServer, ok := catalogData.Servers[serverName]; ok {
+			serverSpec = catalogServer
+		}
+	}
+	var serverPolicy *policy.Decision
+	if serverSpec.Name != "" || serverSpec.Image != "" || serverSpec.Type != "" {
+		serverPolicy = policycli.DecisionForRequest(
+			ctx,
+			policyClient,
+			policycontext.BuildRequest(
+				policyCtx,
+				serverName,
+				serverSpec,
+				"",
+				policy.ActionLoad,
+			),
+		)
 	}
 
 	var (
@@ -112,9 +153,63 @@ func Inspect(ctx context.Context, dockerClient docker.Client, serverName string)
 		return Info{}, err
 	}
 
+	// Attach policy decisions for tools using batch evaluation.
+	if len(tools) > 0 && policyClient != nil &&
+		(serverSpec.Name != "" || serverSpec.Image != "" || serverSpec.Type != "") {
+		// Metadata for mapping batch results back to tools.
+		type toolMeta struct {
+			toolIndex   int // Index into tools slice.
+			loadIndex   int // Index in batch request for load action.
+			invokeIndex int // Index in batch request for invoke action.
+		}
+
+		var requests []policy.Request
+		var toolMetas []toolMeta
+
+		// Build batch request with all tool policy evaluations.
+		for i, tool := range tools {
+			loadIndex := len(requests)
+			requests = append(requests, policycontext.BuildRequest(
+				policyCtx,
+				serverName,
+				serverSpec,
+				tool.Name,
+				policy.ActionLoad,
+			))
+			invokeIndex := len(requests)
+			requests = append(requests, policycontext.BuildRequest(
+				policyCtx,
+				serverName,
+				serverSpec,
+				tool.Name,
+				policy.ActionInvoke,
+			))
+			toolMetas = append(toolMetas, toolMeta{
+				toolIndex:   i,
+				loadIndex:   loadIndex,
+				invokeIndex: invokeIndex,
+			})
+		}
+
+		// Evaluate all requests in a single batch call.
+		decisions, err := policyClient.EvaluateBatch(ctx, requests)
+		decisions, _ = policycli.NormalizeBatchDecisions(requests, decisions, err)
+
+		// Apply tool decisions. Use load result if blocked, otherwise invoke.
+		for _, tm := range toolMetas {
+			loadDecision := policy.DecisionForOutput(decisions[tm.loadIndex])
+			if loadDecision != nil {
+				tools[tm.toolIndex].Policy = loadDecision
+			} else {
+				tools[tm.toolIndex].Policy = policy.DecisionForOutput(decisions[tm.invokeIndex])
+			}
+		}
+	}
+
 	return Info{
 		Tools:  tools,
 		Readme: string(readmeRaw),
+		Policy: serverPolicy,
 	}, nil
 }
 
@@ -126,7 +221,7 @@ func fetch(ctx context.Context, url string) ([]byte, error) {
 	}
 
 	client := &http.Client{
-		Transport: http.DefaultTransport,
+		Transport: desktop.ProxyTransport(),
 	}
 
 	resp, err := client.Do(req)

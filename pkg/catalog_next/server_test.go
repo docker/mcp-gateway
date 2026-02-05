@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -335,7 +336,7 @@ func TestInspectServerDifferentServerTypes(t *testing.T) {
 
 func TestListServersNoFilters(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	// Create a catalog with multiple servers
 	catalogObj := Catalog{
@@ -389,7 +390,7 @@ func TestListServersNoFilters(t *testing.T) {
 
 func TestListServersFilterByName(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -440,7 +441,7 @@ func TestListServersFilterByName(t *testing.T) {
 
 func TestListServersFilterByNameCaseInsensitive(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -481,7 +482,7 @@ func TestListServersFilterByNameCaseInsensitive(t *testing.T) {
 
 func TestListServersFilterByNamePartialMatch(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -522,7 +523,7 @@ func TestListServersFilterByNamePartialMatch(t *testing.T) {
 
 func TestListServersFilterNoMatches(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -563,7 +564,7 @@ func TestListServersFilterNoMatches(t *testing.T) {
 
 func TestListServersWithoutSnapshot(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -600,7 +601,7 @@ func TestListServersWithoutSnapshot(t *testing.T) {
 
 func TestListServersInvalidFilter(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -627,7 +628,7 @@ func TestListServersInvalidFilter(t *testing.T) {
 
 func TestListServersUnsupportedFilterKey(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -654,7 +655,7 @@ func TestListServersUnsupportedFilterKey(t *testing.T) {
 
 func TestListServersCatalogNotFound(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	err := ListServers(ctx, dao, "test/nonexistent:latest", []string{}, workingset.OutputFormatJSON)
 	require.Error(t, err)
@@ -706,7 +707,7 @@ func TestListServersNormalizesCatalogRef(t *testing.T) {
 
 func TestListServersYAMLFormat(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -746,7 +747,7 @@ func TestListServersYAMLFormat(t *testing.T) {
 
 func TestListServersHumanReadableFormat(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -820,7 +821,7 @@ func TestListServersHumanReadableFormat(t *testing.T) {
 
 func TestListServersHumanReadableNoServers(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -851,7 +852,7 @@ func TestListServersHumanReadableNoServers(t *testing.T) {
 
 func TestListServersUnsupportedFormat(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
@@ -878,7 +879,7 @@ func TestListServersUnsupportedFormat(t *testing.T) {
 
 func TestListServersServersSortedByName(t *testing.T) {
 	dao := setupTestDB(t)
-	ctx := t.Context()
+	ctx := desktop.WithNoDockerDesktop(t.Context())
 
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",

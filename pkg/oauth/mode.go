@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/docker/mcp-gateway/pkg/features"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 // IsCEMode returns true if running in Docker CE mode (standalone OAuth flows).
@@ -24,5 +24,5 @@ func IsCEMode() bool {
 
 	// Use the same logic as feature flags
 	// IsCEMode is the inverse of IsRunningInDockerDesktop
-	return !features.IsRunningInDockerDesktop(context.Background())
+	return !desktop.IsRunningInDockerDesktop(context.Background())
 }

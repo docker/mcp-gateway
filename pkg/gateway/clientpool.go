@@ -334,6 +334,9 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 
 		secretValue, ok := serverConfig.Secrets[s.Name]
 		if ok {
+			if cp.Verbose {
+				log.Logf("    - %s: %s", s.Env, maskSecret(secretValue))
+			}
 			env = append(env, fmt.Sprintf("%s=%s", s.Env, secretValue))
 		} else {
 			log.Logf("Warning: Secret '%s' not found for server '%s', setting %s=<UNKNOWN>", s.Name, serverConfig.Name, s.Env)
@@ -410,6 +413,18 @@ func expandEnvList(values []string, env []string) []string {
 		expanded = append(expanded, expandEnv(value, env))
 	}
 	return expanded
+}
+
+// maskSecret shows the first few characters of a secret followed by asterisks.
+// se:// URIs are shown in full since they're just references, not actual secrets.
+func maskSecret(value string) string {
+	if strings.HasPrefix(value, "se://") {
+		return value
+	}
+	if len(value) <= 4 {
+		return "****"
+	}
+	return value[:4] + "****"
 }
 
 type clientGetter struct {

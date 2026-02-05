@@ -24,7 +24,7 @@ import (
 func TestListVolumeNotFound(t *testing.T) {
 	ctx, home, docker := setupForList(t, withoutPromptsVolume(), withEmptyConfig())
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	assert.Empty(t, entries)
 
@@ -34,7 +34,7 @@ func TestListVolumeNotFound(t *testing.T) {
 func TestListEmptyVolume(t *testing.T) {
 	ctx, home, docker := setupForList(t, withEmptyPromptsVolume(), withEmptyConfig())
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	assert.Empty(t, entries)
 
@@ -44,7 +44,7 @@ func TestListEmptyVolume(t *testing.T) {
 func TestListImportVolume(t *testing.T) {
 	ctx, home, docker := setupForList(t, withRegistryYamlInPromptsVolume("registry:\n  github-official:\n    ref: \"\""), withEmptyConfig(), withCatalog("registry:\n  github-official:\n    description: \"GitHub server\""))
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "github-official", entries[0].Name)
@@ -55,7 +55,7 @@ func TestListImportVolume(t *testing.T) {
 func TestListEmpty(t *testing.T) {
 	ctx, _, docker := setupForList(t, withEmptyRegistryYaml(), withEmptyConfig())
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	assert.Empty(t, entries)
 }
@@ -63,7 +63,7 @@ func TestListEmpty(t *testing.T) {
 func TestList(t *testing.T) {
 	ctx, _, docker := setupForList(t, withRegistryYaml("registry:\n  git:\n    ref: \"\""), withEmptyConfig(), withCatalog("registry:\n  git:\n    description: \"Git server\""))
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "git", entries[0].Name)
@@ -82,7 +82,7 @@ func TestEnable(t *testing.T) {
 	err := Enable(ctx, docker, dockerCli, []string{"duckduckgo"}, false)
 	require.NoError(t, err)
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "duckduckgo", entries[0].Name)
@@ -94,7 +94,7 @@ func TestDisable(t *testing.T) {
 	err := Disable(ctx, docker, dockerCli, []string{"duckduckgo"}, false)
 	require.NoError(t, err)
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "git", entries[0].Name)
@@ -106,7 +106,7 @@ func TestDisableUnknown(t *testing.T) {
 	err := Disable(ctx, docker, dockerCli, []string{"unknown"}, false)
 	require.NoError(t, err)
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "duckduckgo", entries[0].Name)
@@ -118,7 +118,7 @@ func TestRemoveOutdatedServerOnEnable(t *testing.T) {
 	err := Enable(ctx, docker, dockerCli, []string{"git"}, false)
 	require.NoError(t, err)
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "git", entries[0].Name)
@@ -130,7 +130,7 @@ func TestRemoveOutdatedServerOnDisable(t *testing.T) {
 	err := Disable(ctx, docker, dockerCli, []string{"git"}, false)
 	require.NoError(t, err)
 
-	entries, err := List(ctx, docker, false)
+	entries, err := List(ctx, docker, nil, false)
 	require.NoError(t, err)
 	assert.Empty(t, entries)
 }

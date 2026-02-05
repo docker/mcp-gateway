@@ -19,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
@@ -64,27 +65,49 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}, nil
 		}
 
+		// Check if server is allowed by policy before adding
+		if g.policyClient != nil {
+			policyReq := g.configuration.policyRequest(serverName, "", policy.ActionLoad)
+			decision, err := g.policyClient.Evaluate(ctx, policyReq)
+			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
+			submitAuditEvent(g.policyClient, event)
+			if err != nil {
+				log.Logf("policy check failed for server %s: %v (denying)", serverName, err)
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Server '%s' blocked by policy check error: %v", serverName, err),
+					}},
+				}, nil
+			}
+			if !decision.Allowed {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Server '%s' is blocked by policy: %s", serverName, decision.Reason),
+					}},
+				}, nil
+			}
+		}
+
 		// Append the new server to the current serverNames if not already present
 		found = slices.Contains(g.configuration.serverNames, serverName)
 		if !found {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
-		// Fetch updated secrets for the new server list
-		if g.configurator != nil {
-			updatedSecrets, err := g.configurator.readDockerDesktopSecrets(ctx, g.configuration.servers, g.configuration.serverNames)
-			if err == nil {
-				g.configuration.secrets = updatedSecrets
-			} else {
-				log.Log("Warning: Failed to update secrets:", err)
-			}
-		}
-
 		// Check if all required secrets are set
 		var missingSecrets []string
-		if serverConfig != nil {
+		var availableSecrets map[string]string
+		if serverConfig != nil && len(serverConfig.Spec.Secrets) > 0 {
+			// BuildSecretsURIs only includes secrets that exist in Secrets Engine
+			configs := []ServerSecretConfig{{
+				Secrets: serverConfig.Spec.Secrets,
+				OAuth:   serverConfig.Spec.OAuth,
+			}}
+			availableSecrets = BuildSecretsURIs(ctx, configs)
+
+			// Check which secrets are missing
 			for _, secret := range serverConfig.Spec.Secrets {
-				if value, exists := g.configuration.secrets[secret.Name]; !exists || value == "" {
+				if _, exists := availableSecrets[secret.Name]; !exists {
 					missingSecrets = append(missingSecrets, secret.Name)
 				}
 			}
@@ -151,10 +174,10 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// If secrets or config are missing, handle based on client type
 		if len(missingSecrets) > 0 || len(missingConfig) > 0 {
-			// Check if the client is nanobot
+			// Safely determine client name (InitializeParams may be nil for some transports)
 			clientName := ""
-			if req.Session.InitializeParams().ClientInfo != nil {
-				clientName = req.Session.InitializeParams().ClientInfo.Name
+			if init := req.Session.InitializeParams(); init != nil && init.ClientInfo != nil {
+				clientName = init.ClientInfo.Name
 			}
 
 			if clientName == "nanobot" && len(missingSecrets) > 0 {
@@ -186,6 +209,13 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 						serverName, strings.Join(missingItems, " and "), strings.Join(instructions, "\n")),
 				}},
 			}, nil
+		}
+
+		// Merge available secrets into configuration so container creation can find them.
+		// This is needed because g.configuration.secrets is built at startup and doesn't
+		// include secrets for dynamically added servers.
+		if len(availableSecrets) > 0 {
+			g.configuration.AddSecrets(availableSecrets)
 		}
 
 		// Pull the Docker image before trying to use the server
@@ -256,17 +286,31 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}
 		}
 
-		// Register DCR client and make sure OAuth provider is started if this is a remote OAuth server
-		if g.McpOAuthDcrEnabled && serverConfig != nil && serverConfig.Spec.IsRemoteOAuthServer() {
-			authorized, oauthText := g.getRemoteOAuthServerStatus(ctx, serverName, req, shouldSendTools)
-			if !authorized {
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{&mcp.TextContent{
-						Text: oauthText,
-					}},
-				}, nil
+		// Handle OAuth DCR only when the client supports elicitation (e.g. not stdio-based clients)
+		if g.McpOAuthDcrEnabled &&
+			serverConfig != nil &&
+			serverConfig.Spec.IsRemoteOAuthServer() {
+
+			init := req.Session.InitializeParams()
+			if init != nil &&
+				init.Capabilities != nil &&
+				init.Capabilities.Elicitation != nil {
+
+				authorized, oauthText := g.getRemoteOAuthServerStatus(
+					ctx,
+					serverName,
+					req,
+					shouldSendTools,
+				)
+				if !authorized {
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{&mcp.TextContent{
+							Text: oauthText,
+						}},
+					}, nil
+				}
+				responseText = oauthText
 			}
-			responseText = oauthText
 		}
 
 		return &mcp.CallToolResult{
@@ -358,7 +402,8 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 
 	// Make the request
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Transport: desktop.ProxyTransport(),
+		Timeout:   10 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -402,12 +447,17 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
 		}
 
-		// Start provider
-		g.startProvider(ctx, serverName)
+		// Start provider (CE mode only - Desktop mode doesn't need polling)
+		if oauth.IsCEMode() {
+			g.startProvider(ctx, serverName)
+		}
 	}
 
-	// Check if current serverSession supports elicitations
-	if req.Session.InitializeParams().Capabilities != nil && req.Session.InitializeParams().Capabilities.Elicitation != nil {
+	// Proceed with elicitation only if the client supports it
+	init := req.Session.InitializeParams()
+	if init != nil &&
+		init.Capabilities != nil &&
+		init.Capabilities.Elicitation != nil {
 		// Elicit a response from the client asking whether to open a browser for authorization
 		elicitResult, err := req.Session.Elicit(ctx, &mcp.ElicitParams{
 			Message: fmt.Sprintf("Would you like to open a browser to authorize the '%s' server?", serverName),
@@ -446,12 +496,11 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		return true, fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName)
 	}
 
-	// Check if user is already authorized by checking the credential helper (only if provider exists)
+	// Check if user is already authorized by checking if token exists (only if provider exists)
 	if providerExists {
-		// Create a credential helper to check token status
 		credHelper := oauth.NewOAuthCredentialHelper()
-		tokenStatus, err := credHelper.GetTokenStatus(ctx, serverName)
-		if err == nil && tokenStatus.Valid {
+		exists, err := credHelper.TokenExists(ctx, serverName)
+		if err == nil && exists {
 			// User is already authorized, skip the OAuth URL generation
 			if shouldSendTools {
 				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
