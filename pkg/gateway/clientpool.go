@@ -3,12 +3,10 @@ package gateway
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -456,90 +454,8 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 					"STDIO",
 					fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name),
 				)
-			} else if cg.serverConfig.Spec.Transport == "sse" || cg.serverConfig.Spec.Transport == "streaming" {
-				// Support for SSE/streaming on local image: run detached container, publish port, use remote client
-
-				if cg.serverConfig.Spec.Port == 0 {
-					return nil, fmt.Errorf("transport 'sse' or 'streaming' requires 'port' in server spec")
-				}
-
-				// Random high host port to avoid conflicts
-				rand.Seed(time.Now().UnixNano())
-				hostPort := 49152 + rand.Intn(10000)
-
-				var targetConfig proxies.TargetConfig
-				// Override cleanup if proxies are created
-				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
-					var err error
-					targetConfig, cleanup, err = cg.cp.runProxies(
-						ctx,
-						cg.serverConfig.Spec.AllowHosts,
-						cg.serverConfig.Spec.LongLived,
-					)
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, cg.clientConfig.readOnly, targetConfig)
-
-				// Remove --rm if present to keep container alive (optional; comment out if you want auto-remove on stop)
-				// args = slices.DeleteFunc(args, func(s string) bool { return s == "--rm" }) // requires import "golang.org/x/exp/slices"
-
-				args = append(args,
-					"--detach",
-					"-p", fmt.Sprintf("%d:%d", hostPort, cg.serverConfig.Spec.Port),
-					"--name", fmt.Sprintf("mcp-%s-%d", cg.serverConfig.Name, hostPort),
-				)
-
-				command := expandEnvList(
-					eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config),
-					env,
-				)
-
-				runArgs := append(append(args, cg.serverConfig.Spec.Image), command...)
-
-				log.Log(" - Starting detached container for SSE/streaming on host port", hostPort)
-
-				cmd := exec.Command("docker", runArgs...)
-				if err := cmd.Run(); err != nil {
-					return nil, fmt.Errorf("failed to start detached container: %w", err)
-				}
-
-				// Basic wait for container to be ready (improve later with real polling, e.g., tcp connect or http health check)
-				time.Sleep(5 * time.Second)
-
-				// Configure as remote
-				// Configure as remote: create a modified copy of Spec and wrap in new ServerConfig
-				remoteSpec := cg.serverConfig.Spec // copy the inner Server struct
-
-				baseURL := fmt.Sprintf("http://localhost:%d", hostPort)
-				remoteSpec.Remote = catalog.Remote{
-					URL: baseURL,
-				}
-				if cg.serverConfig.Spec.Endpoint != "" {
-					remoteSpec.SSEEndpoint = baseURL + cg.serverConfig.Spec.Endpoint
-				}
-
-				// Create a temporary ServerConfig with the modified Spec
-				remoteCfg := &catalog.ServerConfig{
-					Name:    cg.serverConfig.Name,
-					Spec:    remoteSpec,
-					Config:  cg.serverConfig.Config,  // copy if needed
-					Secrets: cg.serverConfig.Secrets, // copy if needed
-				}
-
-				client = mcpclient.NewRemoteMCPClient(remoteCfg)
-
-				// Override cleanup to stop and remove the container
-				cleanup = func(ctx context.Context) error {
-					name := fmt.Sprintf("mcp-%s-%d", cg.serverConfig.Name, hostPort)
-					exec.CommandContext(ctx, "docker", "stop", name).Run()
-					exec.CommandContext(ctx, "docker", "rm", name).Run()
-					return nil
-				}
 			} else {
-				// Original Docker stdio path
+				// Original Docker stdio path (local container)
 				var targetConfig proxies.TargetConfig
 				// Configure proxies if needed
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
