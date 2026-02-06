@@ -911,24 +911,24 @@ func TestCreateWorkingSetID(t *testing.T) {
 		{
 			name:       "name with spaces",
 			inputName:  "My Working Set",
-			expectedID: "my-working-set",
+			expectedID: "my_working_set",
 		},
 		{
 			name:       "name with special characters",
 			inputName:  "My@Working#Set!",
-			expectedID: "my-working-set-",
+			expectedID: "my_working_set_",
 		},
 		{
 			name:        "name with collision",
 			inputName:   "test",
 			existingIDs: []string{"test"},
-			expectedID:  "test-2",
+			expectedID:  "test_2",
 		},
 		{
 			name:        "name with multiple collisions",
 			inputName:   "test",
-			existingIDs: []string{"test", "test-2", "test-3"},
-			expectedID:  "test-4",
+			existingIDs: []string{"test", "test_2", "test_3"},
+			expectedID:  "test_4",
 		},
 	}
 

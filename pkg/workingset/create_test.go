@@ -101,11 +101,11 @@ func TestCreateWithDockerImages(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the working set was created
-	dbSet, err := dao.GetWorkingSet(ctx, "my-test-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "my_test_set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
-	assert.Equal(t, "my-test-set", dbSet.ID)
+	assert.Equal(t, "my_test_set", dbSet.ID)
 	assert.Equal(t, "My Test Set", dbSet.Name)
 	assert.Len(t, dbSet.Servers, 2)
 
@@ -127,7 +127,7 @@ func TestCreateWithRegistryServers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the working set was created
-	dbSet, err := dao.GetWorkingSet(ctx, "registry-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "registry_set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
@@ -151,7 +151,7 @@ func TestCreateWithMixedServers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the working set was created
-	dbSet, err := dao.GetWorkingSet(ctx, "mixed-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "mixed_set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
@@ -231,9 +231,9 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 	}
 
 	// Verify ID pattern
-	assert.Contains(t, ids, "test-set")
-	assert.Contains(t, ids, "test-set-2")
-	assert.Contains(t, ids, "test-set-3")
+	assert.Contains(t, ids, "test_set")
+	assert.Contains(t, ids, "test_set_2")
+	assert.Contains(t, ids, "test_set_3")
 }
 
 func TestCreateWithInvalidServerFormat(t *testing.T) {
@@ -266,7 +266,7 @@ func TestCreateWithEmptyServers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the working set was created with no servers
-	dbSet, err := dao.GetWorkingSet(ctx, "empty-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "empty_set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
@@ -283,7 +283,7 @@ func TestCreateAddsDefaultSecrets(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify default secrets were added
-	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
 	require.NoError(t, err)
 	require.NotNil(t, dbSet)
 
@@ -301,22 +301,22 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 		{
 			name:       "name with spaces",
 			inputName:  "My Test Set",
-			expectedID: "my-test-set",
+			expectedID: "my_test_set",
 		},
 		{
 			name:       "name with special chars",
 			inputName:  "Test@Set#123!",
-			expectedID: "test-set-123-",
+			expectedID: "test_set_123_",
 		},
 		{
 			name:       "name with multiple spaces",
 			inputName:  "Test   Set",
-			expectedID: "test-set",
+			expectedID: "test_set",
 		},
 		{
 			name:       "name with underscores",
 			inputName:  "Test_Set_Name",
-			expectedID: "test-set-name",
+			expectedID: "test_set_name",
 		},
 	}
 

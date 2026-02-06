@@ -77,7 +77,7 @@ docker mcp profile create --name "My Servers" --id my-servers \
 
 **Notes:**
 - `--name` is required and serves as the human-readable name
-- `--id` is optional; if not provided, it's generated from the name (lowercase, alphanumeric with hyphens)
+- `--id` is optional; if not provided, it's generated from the name (lowercase, alphanumeric with underscores)
 - `--server` can be specified multiple times to add multiple servers
 - Server references must be either:
   - `docker://` prefix for OCI images
