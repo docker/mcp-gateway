@@ -38,9 +38,15 @@ type Server struct {
 	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
 	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 	Metadata       *Metadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Policy         *Policy   `yaml:"policy,omitempty" json:"policy,omitempty"`
 	Transport      string    `yaml:"transport,omitempty" json:"transport,omitempty"`
 	Port           int       `yaml:"port,omitempty" json:"port,omitempty"`
 	Endpoint       string    `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
+}
+
+type Policy struct {
+	Allow []string `yaml:"allow,omitempty" json:"allow,omitempty"`
+	Deny  []string `yaml:"deny,omitempty" json:"deny,omitempty"`
 }
 
 type Metadata struct {
