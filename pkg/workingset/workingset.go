@@ -349,9 +349,9 @@ func (s *Server) BasicName() string {
 }
 
 func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, error) {
-	// Replace all non-alphanumeric characters with a hyphen and make all uppercase lowercase
+	// Replace all non-alphanumeric characters with an underscore and make all uppercase lowercase
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")
-	cleaned := re.ReplaceAllString(name, "-")
+	cleaned := re.ReplaceAllString(name, "_")
 	baseName := strings.ToLower(cleaned)
 
 	existingSets, err := dao.FindWorkingSetsByIDPrefix(ctx, baseName)
@@ -371,7 +371,7 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	// TODO(cody): there are better ways to do this, but this is a simple brute force for now
 	// Append a number to the base name
 	for i := 2; i <= 100; i++ {
-		newName := fmt.Sprintf("%s-%d", baseName, i)
+		newName := fmt.Sprintf("%s_%d", baseName, i)
 		if !takenIDs[newName] {
 			return newName, nil
 		}
