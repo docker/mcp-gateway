@@ -38,6 +38,9 @@ type Server struct {
 	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
 	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 	Metadata       *Metadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Transport      string    `yaml:"transport,omitempty" json:"transport,omitempty"`
+	Port           int       `yaml:"port,omitempty" json:"port,omitempty"`
+	Endpoint       string    `yaml:"endpoint,omitempty" json:"endpoint,omitempty"`
 }
 
 type Metadata struct {

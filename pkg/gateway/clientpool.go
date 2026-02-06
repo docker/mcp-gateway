@@ -3,10 +3,12 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -291,12 +293,11 @@ func (cp *clientPool) baseArgs(name string) []string {
 		args = append(args, "--privileged")
 	}
 
-	// Add a few labels to the container for identification
+	// Add labels using -l for identification (matches previous style)
 	args = append(args,
 		"-l", "docker-mcp=true",
 		"-l", "docker-mcp-tool-type=mcp",
 		"-l", "docker-mcp-name="+name,
-		"-l", "docker-mcp-transport=stdio",
 	)
 
 	return args
@@ -438,22 +439,116 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
+			// Default cleanup function (overridden if proxies are used)
 			cleanup := func(context.Context) error { return nil }
 
 			var client mcpclient.Client
 
-			// Deprecated: Use Remote instead
-			if cg.serverConfig.Spec.SSEEndpoint != "" {
-				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
-			} else if cg.serverConfig.Spec.Remote.URL != "" {
+			// SSE or remote servers should never use stdio
+			if cg.serverConfig.Spec.SSEEndpoint != "" || cg.serverConfig.Spec.Remote.URL != "" {
 				client = mcpclient.NewRemoteMCPClient(cg.serverConfig)
 			} else if cg.cp.Static {
-				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "socat", nil, "STDIO", fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name))
-			} else {
+				// Static client using socat
+				client = mcpclient.NewStdioCmdClient(
+					cg.serverConfig.Name,
+					"socat",
+					nil,
+					"STDIO",
+					fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name),
+				)
+			} else if cg.serverConfig.Spec.Transport == "sse" || cg.serverConfig.Spec.Transport == "streaming" {
+				// Support for SSE/streaming on local image: run detached container, publish port, use remote client
+
+				if cg.serverConfig.Spec.Port == 0 {
+					return nil, fmt.Errorf("transport 'sse' or 'streaming' requires 'port' in server spec")
+				}
+
+				// Random high host port to avoid conflicts
+				rand.Seed(time.Now().UnixNano())
+				hostPort := 49152 + rand.Intn(10000)
+
 				var targetConfig proxies.TargetConfig
+				// Override cleanup if proxies are created
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongLived); err != nil {
+					targetConfig, cleanup, err = cg.cp.runProxies(
+						ctx,
+						cg.serverConfig.Spec.AllowHosts,
+						cg.serverConfig.Spec.LongLived,
+					)
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				args, env := cg.cp.argsAndEnv(cg.serverConfig, cg.clientConfig.readOnly, targetConfig)
+
+				// Remove --rm if present to keep container alive (optional; comment out if you want auto-remove on stop)
+				// args = slices.DeleteFunc(args, func(s string) bool { return s == "--rm" }) // requires import "golang.org/x/exp/slices"
+
+				args = append(args,
+					"--detach",
+					"-p", fmt.Sprintf("%d:%d", hostPort, cg.serverConfig.Spec.Port),
+					"--name", fmt.Sprintf("mcp-%s-%d", cg.serverConfig.Name, hostPort),
+				)
+
+				command := expandEnvList(
+					eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config),
+					env,
+				)
+
+				runArgs := append(append(args, cg.serverConfig.Spec.Image), command...)
+
+				log.Log(" - Starting detached container for SSE/streaming on host port", hostPort)
+
+				cmd := exec.Command("docker", runArgs...)
+				if err := cmd.Run(); err != nil {
+					return nil, fmt.Errorf("failed to start detached container: %w", err)
+				}
+
+				// Basic wait for container to be ready (improve later with real polling, e.g., tcp connect or http health check)
+				time.Sleep(5 * time.Second)
+
+				// Configure as remote
+				// Configure as remote: create a modified copy of Spec and wrap in new ServerConfig
+				remoteSpec := cg.serverConfig.Spec // copy the inner Server struct
+
+				baseURL := fmt.Sprintf("http://localhost:%d", hostPort)
+				remoteSpec.Remote = catalog.Remote{
+					URL: baseURL,
+				}
+				if cg.serverConfig.Spec.Endpoint != "" {
+					remoteSpec.SSEEndpoint = baseURL + cg.serverConfig.Spec.Endpoint
+				}
+
+				// Create a temporary ServerConfig with the modified Spec
+				remoteCfg := &catalog.ServerConfig{
+					Name:    cg.serverConfig.Name,
+					Spec:    remoteSpec,
+					Config:  cg.serverConfig.Config,  // copy if needed
+					Secrets: cg.serverConfig.Secrets, // copy if needed
+				}
+
+				client = mcpclient.NewRemoteMCPClient(remoteCfg)
+
+				// Override cleanup to stop and remove the container
+				cleanup = func(ctx context.Context) error {
+					name := fmt.Sprintf("mcp-%s-%d", cg.serverConfig.Name, hostPort)
+					exec.CommandContext(ctx, "docker", "stop", name).Run()
+					exec.CommandContext(ctx, "docker", "rm", name).Run()
+					return nil
+				}
+			} else {
+				// Original Docker stdio path
+				var targetConfig proxies.TargetConfig
+				// Configure proxies if needed
+				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
+					var err error
+					if targetConfig, cleanup, err = cg.cp.runProxies(
+						ctx,
+						cg.serverConfig.Spec.AllowHosts,
+						cg.serverConfig.Spec.LongLived,
+					); err != nil {
 						return nil, err
 					}
 				}
@@ -463,23 +558,29 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				if cg.clientConfig != nil {
 					readOnly = cg.clientConfig.readOnly
 				}
+				// Arguments and environment variables for the container
 				args, env := cg.cp.argsAndEnv(cg.serverConfig, readOnly, targetConfig)
-
-				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
+				// Container command
+				command := expandEnvList(
+					eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config),
+					env,
+				)
 				if len(command) == 0 {
-					log.Log("  - Running", imageBaseName(image), "with", args)
+					log.Log(" - Running", imageBaseName(image), "with", args)
 				} else {
-					log.Log("  - Running", imageBaseName(image), "with", args, "and command", command)
+					log.Log(" - Running", imageBaseName(image), "with", args, "and command", command)
 				}
-
-				var runArgs []string
-				runArgs = append(runArgs, args...)
-				runArgs = append(runArgs, image)
-				runArgs = append(runArgs, command...)
-
-				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "docker", env, runArgs...)
+				// Build runArgs in a concise way
+				runArgs := append(append(args, image), command...)
+				client = mcpclient.NewStdioCmdClient(
+					cg.serverConfig.Name,
+					"docker",
+					env,
+					runArgs...,
+				)
 			}
 
+			// Initialize the MCP client
 			initParams := &mcp.InitializeParams{
 				ProtocolVersion: "2024-11-05",
 				ClientInfo: &mcp.Implementation{
@@ -494,17 +595,16 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				ss = cg.clientConfig.serverSession
 				server = cg.clientConfig.server
 			}
-			// ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-			// defer cancel()
-
-			// TODO add initial roots
+			// Initialize the session
 			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
 				return nil, err
 			}
 
+			// Return client with cleanup function
 			return newClientWithCleanup(client, cleanup), nil
 		}
 
+		// Create and store the client in the struct
 		client, err := createClient()
 		cg.client = client
 		cg.err = err
