@@ -78,3 +78,6 @@ push-dns-forwarder-image:
 	docker buildx bake dns-forwarder --push
 
 .PHONY: format lint clean docker-mcp-cross push-module-image mcp-package test docker-mcp push-mcp-gateway push-l4proxy-image push-l7proxy-image push-dns-forwarder-image docs
+
+validate-docs:
+	docker buildx bake validate-docs
