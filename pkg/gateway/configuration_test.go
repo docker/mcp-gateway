@@ -63,7 +63,7 @@ func TestReadServersFromOci(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			servers, err := config.readServersFromOci(ctx)
+			servers, _, err := config.readServersFromOci(ctx)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -114,7 +114,7 @@ func TestReadServersFromOciMultipleRefs(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	servers, err := config.readServersFromOci(ctx)
+	servers, _, err := config.readServersFromOci(ctx)
 
 	require.NoError(t, err)
 	assert.Len(t, servers, 1, "Should have exactly one server from the valid OCI reference")
@@ -128,7 +128,7 @@ func TestReadServersFromOciNoRefs(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	servers, err := config.readServersFromOci(ctx)
+	servers, _, err := config.readServersFromOci(ctx)
 
 	require.NoError(t, err)
 	assert.Empty(t, servers, "Should return empty map when no OCI references provided")

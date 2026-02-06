@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
+	"runtime"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -77,6 +79,20 @@ func CheckDesktopIsRunning(ctx context.Context) error {
 	return nil
 }
 
+var ErrDockerPassUnsupported = errors.New("docker pass has not been installed")
+
+func CheckHasDockerPass(ctx context.Context) error {
+	err := exec.CommandContext(ctx, "docker", "pass").Run()
+	execStatus, ok := err.(*exec.ExitError)
+	if !ok {
+		return err
+	}
+	if execStatus.ExitCode() > 0 {
+		return ErrDockerPassUnsupported
+	}
+	return nil
+}
+
 func getAdminSettings() (map[string]any, error) {
 	buf, err := os.ReadFile(Paths().AdminSettingPath)
 	if err != nil {
@@ -113,4 +129,44 @@ func isFeatureEnabled(featureName string, features map[string]Feature) bool {
 		}
 	}
 	return false
+}
+
+// noDockerDesktopContextKey is the context key for skipping Desktop detection.
+type noDockerDesktopContextKey struct{}
+
+// WithNoDockerDesktop marks the context so Desktop detection returns false.
+func WithNoDockerDesktop(ctx context.Context) context.Context {
+	return context.WithValue(ctx, noDockerDesktopContextKey{}, true)
+}
+
+// IsRunningInDockerDesktop checks if the CLI is running with Docker Desktop.
+func IsRunningInDockerDesktop(ctx context.Context) bool {
+	// Allow callers to force CE mode by disabling Desktop detection via
+	// context. This is useful for tests or standalone gateway operation.
+	if ctx != nil {
+		if v, ok := ctx.Value(noDockerDesktopContextKey{}).(bool); ok && v {
+			return false
+		}
+	}
+
+	// When running inside the gateway container (DOCKER_MCP_IN_CONTAINER=1), we
+	// must not touch the Docker API before the CLI is fully initialized. The
+	// plugin lifecycle initializes the Docker CLI later, so probing here would
+	// fail with "no context store initialized". In this mode we skip probing.
+	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" {
+		return false
+	}
+
+	// Always running in Docker Desktop on Windows and macOS
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return true
+	}
+
+	// Otherwise, on Linux check if Docker Desktop is running
+	// Hacky, but it's the only way to check before PersistentPreRunE is called with the plugin
+	if err := CheckDesktopIsRunning(ctx); err != nil {
+		// If we can't check, assume we're not running in Docker Desktop
+		return false
+	}
+	return true
 }

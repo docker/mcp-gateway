@@ -17,8 +17,8 @@ func getDockerDesktopPaths() (DockerDesktopPaths, error) {
 		AdminSettingPath:     filepath.Join(appData, `DockerDesktop\admin-settings.json`),
 		BackendSocket:        `\\.\pipe\dockerBackendApiServer`,
 		RawDockerSocket:      `\\.\pipe\docker_engine_linux`,
-		JFSSocket:            `\\.\pipe\dockerJfs`,
 		ToolsSocket:          `\\.\pipe\dockerTools`,
+		HTTPProxySocket:      `\\.\pipe\dockerHttpProxy`,
 		CredentialHelperPath: getCredentialHelperPath,
 	}, nil
 }

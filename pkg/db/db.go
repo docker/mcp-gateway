@@ -6,6 +6,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -41,7 +42,9 @@ type dao struct {
 var migrations embed.FS
 
 type options struct {
-	dbFile string
+	dbFile         string
+	migrationsFS   fs.FS
+	migrationsPath string
 }
 
 type Option func(o *options) error
@@ -49,6 +52,14 @@ type Option func(o *options) error
 func WithDatabaseFile(dbFile string) Option {
 	return func(o *options) error {
 		o.dbFile = dbFile
+		return nil
+	}
+}
+
+func WithMigrations(filesystem fs.FS, path string) Option {
+	return func(o *options) error {
+		o.migrationsFS = filesystem
+		o.migrationsPath = path
 		return nil
 	}
 }
@@ -80,52 +91,19 @@ func New(opts ...Option) (DAO, error) {
 	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(0)
 
-	migDriver, err := iofs.New(migrations, "migrations")
+	migrationsFS := o.migrationsFS
+	if migrationsFS == nil {
+		migrationsFS = &migrations
+	}
+
+	migrationsPath := o.migrationsPath
+	if migrationsPath == "" {
+		migrationsPath = "migrations"
+	}
+
+	err = runMigrations(o.dbFile, db, migrationsFS, migrationsPath)
 	if err != nil {
 		return nil, err
-	}
-
-	driver, err := msqlite.WithInstance(db, &msqlite.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	mig, err := migrate.NewWithInstance("iofs", migDriver, "sqlite", driver)
-	if err != nil {
-		return nil, err
-	}
-
-	// Use file locking to prevent concurrent migrations across processes
-	// This ensures only one process can run migrations at a time, preventing
-	// "Dirty database version" errors when multiple processes start simultaneously.
-	// See docs/database/README.md
-	//
-	// Note: The lock file persists on disk after Unlock() - this is intentional.
-	// flock.Unlock() only releases the lock and closes the file descriptor
-	lockFile := filepath.Join(filepath.Dir(o.dbFile), ".mcp-toolkit-migration.lock")
-	fileLock := flock.New(lockFile)
-
-	// Try to acquire the lock with a 5 second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond)
-	if err != nil {
-		return nil, fmt.Errorf("failed to acquire migration lock: %w", err)
-	}
-	if !locked {
-		return nil, fmt.Errorf("timeout waiting for migration lock")
-	}
-	defer func() {
-		if err := fileLock.Unlock(); err != nil {
-			log.Logf("failed to unlock migration lock: %v", err)
-		}
-	}()
-
-	// Now safely run migrations with the lock held
-	err = mig.Up()
-	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	sqlxDb := sqlx.NewDb(db, "sqlite")
@@ -160,4 +138,86 @@ func txClose(tx *sqlx.Tx, err *error) {
 	if txerr := tx.Rollback(); txerr != nil {
 		log.Logf("failed to rollback transaction: %v", txerr)
 	}
+}
+
+func runMigrations(dbFile string, db *sql.DB, migrationsFS fs.FS, migrationsPath string) error {
+	migDriver, err := iofs.New(migrationsFS, migrationsPath)
+	if err != nil {
+		return err
+	}
+	defer migDriver.Close()
+
+	driver, err := msqlite.WithInstance(db, &msqlite.Config{})
+	if err != nil {
+		return err
+	}
+
+	mig, err := migrate.NewWithInstance("iofs", migDriver, "sqlite", driver)
+	if err != nil {
+		return err
+	}
+
+	// Use file locking to prevent concurrent migrations across processes
+	// This ensures only one process can run migrations at a time, preventing
+	// "Dirty database version" errors when multiple processes start simultaneously.
+	// See docs/database/README.md
+	//
+	// Note: The lock file persists on disk after Unlock() - this is intentional.
+	// flock.Unlock() only releases the lock and closes the file descriptor
+	lockFile := filepath.Join(filepath.Dir(dbFile), ".mcp-toolkit-migration.lock")
+	fileLock := flock.New(lockFile)
+
+	// Try to acquire the lock with a 5 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	locked, err := fileLock.TryLockContext(ctx, 100*time.Millisecond)
+	if err != nil {
+		return fmt.Errorf("failed to acquire migration lock: %w", err)
+	}
+	if !locked {
+		return fmt.Errorf("timeout waiting for migration lock")
+	}
+	defer func() {
+		if err := fileLock.Unlock(); err != nil {
+			log.Logf("failed to unlock migration lock: %v", err)
+		}
+	}()
+
+	// Now that we have the lock, check the current migration state
+	version, dirty, err := mig.Version()
+
+	// If ErrNilVersion, the database is fresh (no migrations run yet)
+	// In this case, proceed with running migrations
+	isFreshDatabase := errors.Is(err, migrate.ErrNilVersion)
+
+	if err != nil && !isFreshDatabase {
+		return fmt.Errorf("failed to get migration version: %w", err)
+	}
+
+	// Check if database is in dirty state (migration was interrupted)
+	if dirty {
+		return fmt.Errorf("database is in dirty state at version %d, manual intervention required", version)
+	}
+
+	// For fresh databases, always run migrations
+	if !isFreshDatabase {
+		// Check if database version is ahead of available migrations
+		// This happens when running older code against a database that was upgraded by newer code
+		_, _, err = migDriver.ReadUp(version)
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("database version %d (%s) is ahead of the current application version. Please upgrade to the latest version", version, dbFile)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to read migration file for version %d: %w", version, err)
+		}
+	}
+
+	// Now safely run migrations with the lock held
+	err = mig.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
 }

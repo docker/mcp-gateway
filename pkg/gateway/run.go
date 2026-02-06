@@ -24,6 +24,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
@@ -60,6 +61,7 @@ type Gateway struct {
 	configuration  Configuration
 	clientPool     *clientPool
 	mcpServer      *mcp.Server
+	policyClient   policy.Client
 	health         health.State
 	oauthProviders map[string]*oauth.Provider
 	providersMu    sync.RWMutex
@@ -125,9 +127,19 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 	return g
 }
 
+func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
+	if err := cfg.FilterByPolicy(ctx, g.policyClient); err != nil {
+		log.Log("policy filtering failed:", err)
+	}
+}
+
 func (g *Gateway) Run(ctx context.Context) error {
 	// Initialize telemetry
 	telemetry.Init()
+
+	if g.policyClient == nil {
+		g.policyClient = newPolicyClient(ctx)
+	}
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
@@ -219,10 +231,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	// Read the configuration.
 	configuration, configurationUpdates, stopConfigWatcher, err := g.configurator.Read(ctx)
-	g.configuration = configuration
 	if err != nil {
 		return err
 	}
+	g.filterByPolicy(ctx, &configuration)
+	g.configuration = configuration
 	defer func() { _ = stopConfigWatcher() }()
 
 	// Parse interceptors
@@ -330,22 +343,23 @@ func (g *Gateway) Run(ctx context.Context) error {
 			log.Log("- Starting OAuth notification monitor")
 			monitor := oauth.NewNotificationMonitor()
 			monitor.OnOAuthEvent = func(event oauth.Event) {
-				// Route event to specific provider
-				g.routeEventToProvider(event)
+				g.handleOAuthEvent(event)
 			}
 			monitor.Start(ctx)
 		}
 
-		// Start OAuth provider for each OAuth server
-		// Each provider runs in its own goroutine with dynamic timing based on token expiry
-		log.Log("- Starting OAuth provider loops...")
-		for _, serverName := range configuration.ServerNames() {
-			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
-				continue
-			}
+		// Start OAuth provider for each OAuth server (CE mode only)
+		// In Desktop mode, tokens are auto-refreshed by Secrets Engine - no polling needed
+		if oauth.IsCEMode() {
+			log.Log("- Starting OAuth provider loops (CE mode)...")
+			for _, serverName := range configuration.ServerNames() {
+				serverConfig, _, found := configuration.Find(serverName)
+				if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
+					continue
+				}
 
-			g.startProvider(ctx, serverName)
+				g.startProvider(ctx, serverName)
+			}
 		}
 	}
 
@@ -360,6 +374,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 					return
 				case configuration := <-configurationUpdates:
 					log.Log("> Configuration updated, reloading...")
+
+					g.filterByPolicy(ctx, &configuration)
 
 					if err := g.pullAndVerify(ctx, configuration); err != nil {
 						log.Logf("> Unable to pull and verify images: %s", err)
@@ -646,51 +662,47 @@ func (g *Gateway) stopProvider(serverName string) {
 	}
 }
 
-// routeEventToProvider routes SSE events to the appropriate provider
-func (g *Gateway) routeEventToProvider(event oauth.Event) {
-	g.providersMu.RLock()
-	provider, exists := g.oauthProviders[event.Provider]
-	g.providersMu.RUnlock()
-
+// handleOAuthEvent handles SSE events from Docker Desktop's notification monitor.
+// Only called in Desktop mode (the notification monitor doesn't start in CE mode).
+// In CE mode, providers handle token refresh via polling - no events needed.
+func (g *Gateway) handleOAuthEvent(event oauth.Event) {
 	switch event.Type {
 	case oauth.EventLoginSuccess:
-		// User just authorized - ensure provider exists
-		if !exists {
-			log.Logf("- Creating provider for %s after login", event.Provider)
-			g.startProvider(context.Background(), event.Provider)
-		}
-
-		// Always send event to trigger reload (connects server and lists tools)
-		// Wait briefly if we just created the provider
-		if !exists {
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		g.providersMu.RLock()
-		provider, exists = g.oauthProviders[event.Provider]
-		g.providersMu.RUnlock()
-
-		if exists {
-			provider.SendEvent(event)
-		}
+		log.Logf("- OAuth login success for %s", event.Provider)
+		g.reloadOAuthServer(event.Provider)
 
 	case oauth.EventTokenRefresh:
-		// Token refreshed - route to provider if exists
-		if exists {
-			provider.SendEvent(event)
-		}
-		// If doesn't exist, drop (another gateway or disabled server)
+		// Secrets Engine refreshed the token - invalidate cached connections
+		// Next request will create new connection with fresh token
+		log.Logf("- OAuth token refreshed for %s", event.Provider)
+		g.clientPool.InvalidateOAuthClients(event.Provider)
 
 	case oauth.EventLogoutSuccess:
-		// User logged out - stop provider if exists
-		if exists {
-			log.Logf("- Stopping provider for %s after logout", event.Provider)
-			g.stopProvider(event.Provider)
-		}
+		log.Logf("- OAuth logout for %s", event.Provider)
+		g.clientPool.InvalidateOAuthClients(event.Provider)
 
 	default:
-		// Other events (login-start, code-received, error) - ignore
+		// Other events (login-start, code-received, error) - no action needed
 	}
+}
+
+// reloadOAuthServer invalidates cached clients and reloads server capabilities.
+// Used by Desktop mode after login success.
+func (g *Gateway) reloadOAuthServer(serverName string) {
+	g.clientPool.InvalidateOAuthClients(serverName)
+
+	oldCaps, err := g.reloadServerCapabilities(context.Background(), serverName, nil)
+	if err != nil {
+		log.Logf("! Failed to reload OAuth server %s: %v", serverName, err)
+		return
+	}
+
+	g.capabilitiesMu.Lock()
+	newCaps := g.allCapabilities(serverName)
+	_ = g.updateServerCapabilities(serverName, oldCaps, newCaps, nil)
+	g.capabilitiesMu.Unlock()
+
+	log.Logf("> OAuth server %s reloaded", serverName)
 }
 
 // GetToolRegistrations returns a copy of all registered tools

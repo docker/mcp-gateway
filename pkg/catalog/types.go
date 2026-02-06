@@ -1,5 +1,7 @@
 package catalog
 
+import "github.com/docker/mcp-gateway/pkg/policy"
+
 type Catalog struct {
 	Servers map[string]Server
 }
@@ -10,6 +12,8 @@ type topLevel struct {
 	Name        string            `yaml:"name,omitempty" json:"name,omitempty"`
 	DisplayName string            `yaml:"displayName,omitempty" json:"displayName,omitempty"`
 	Registry    map[string]Server `json:"registry"`
+	// Policy describes the catalog policy decision for this catalog.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 }
 
 // MCP Servers
@@ -57,6 +61,9 @@ type Metadata struct {
 	Tags        []string `yaml:"tags,omitempty" json:"tags,omitempty"`
 	License     string   `yaml:"license,omitempty" json:"license,omitempty"`
 	Owner       string   `yaml:"owner,omitempty" json:"owner,omitempty"`
+	// RegistryURL is the full URL to the server in the community MCP registry
+	// e.g., "https://registry.modelcontextprotocol.io/v0/servers/io.github.arm%2Farm-mcp/versions/1.0.2"
+	RegistryURL string `yaml:"registryUrl,omitempty" json:"registryUrl,omitempty"`
 }
 
 func (s *Server) IsOAuthServer() bool {
@@ -120,13 +127,15 @@ type Tool struct {
 	Name        string `yaml:"name" json:"name" validate:"required,min=1"`
 	Description string `yaml:"description" json:"description"`
 
-	// These will only be set for oci catalogs (not legacy catalogs)
+	// These will only be set for oci catalogs (not legacy catalogs).
 	Arguments   *[]ToolArgument  `yaml:"arguments,omitempty" json:"arguments,omitempty"`
 	Annotations *ToolAnnotations `yaml:"annotations,omitempty" json:"annotations,omitempty"`
 
-	// This is only used for POCIs
+	// This is only used for POCIs.
 	Container  Container  `yaml:"container,omitempty" json:"container,omitempty"`
 	Parameters Parameters `yaml:"parameters,omitempty" json:"parameters,omitempty"`
+	// Policy describes the policy decision for this tool.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 }
 
 type Parameters struct {

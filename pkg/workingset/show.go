@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/client"
 	"github.com/docker/mcp-gateway/pkg/db"
+	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
 )
 
 type WithOptions struct {
@@ -28,6 +29,8 @@ func Show(ctx context.Context, dao db.DAO, id string, format OutputFormat, showC
 	}
 
 	workingSet := NewFromDb(dbSet)
+	policyClient := policycli.ClientForCLI(ctx)
+	attachWorkingSetPolicy(ctx, policyClient, &workingSet, true)
 
 	var data []byte
 	switch format {

@@ -16,8 +16,9 @@ import (
 
 func catalogNextCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "catalog-next",
-		Short: "Manage catalogs (next generation)",
+		Use:     "catalog",
+		Aliases: []string{"catalogs", "catalog-next"},
+		Short:   "Manage MCP server OCI catalogs",
 	}
 
 	cmd.AddCommand(createCatalogNextCommand())
@@ -60,7 +61,7 @@ func createCatalogNextCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference). Can be specified multiple times.")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
@@ -252,16 +253,16 @@ func listCatalogNextServersCommand() *cobra.Command {
 Use --filter to search for servers matching a query (case-insensitive substring matching on server names).
 Filters use key=value format (e.g., name=github).`,
 		Example: `  # List all servers in a catalog
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest
 
   # Filter servers by name
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --filter name=github
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest --filter name=github
 
   # Combine multiple filters (using short flag)
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest -f name=slack -f name=github
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest -f name=slack -f name=github
 
   # Output in JSON format
-  docker mcp catalog-next server ls mcp/docker-mcp-catalog:latest --format json`,
+  docker mcp catalog server ls mcp/docker-mcp-catalog:latest --format json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)

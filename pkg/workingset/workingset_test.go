@@ -1005,6 +1005,17 @@ func TestResolveServerFromString(t *testing.T) {
 				Type:    ServerTypeRegistry,
 				Source:  "http://example.com/v0/servers/my-server/versions/latest",
 				Secrets: "default",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:        "io-example-my-server",
+						Type:        "server",
+						Image:       "ghcr.io/example/my-server:latest",
+						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/latest",
+						},
+					},
+				},
 			}},
 			expectedVersion: "latest",
 		},
@@ -1015,6 +1026,17 @@ func TestResolveServerFromString(t *testing.T) {
 				Type:    ServerTypeRegistry,
 				Source:  "https://example.com/v0/servers/my-server/versions/latest",
 				Secrets: "default",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:        "io-example-my-server",
+						Type:        "server",
+						Image:       "ghcr.io/example/my-server:latest",
+						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/latest",
+						},
+					},
+				},
 			}},
 			expectedVersion: "latest",
 		},
@@ -1025,6 +1047,17 @@ func TestResolveServerFromString(t *testing.T) {
 				Type:    ServerTypeRegistry,
 				Source:  "https://example.com/v0/servers/my-server/versions/0.1.0",
 				Secrets: "default",
+				Snapshot: &ServerSnapshot{
+					Server: catalog.Server{
+						Name:        "io-example-my-server",
+						Type:        "server",
+						Image:       "ghcr.io/example/my-server:0.1.0",
+						Description: "Test MCP server",
+						Metadata: &catalog.Metadata{
+							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/0.1.0",
+						},
+					},
+				},
 			}},
 			expectedVersion: "0.1.0",
 		},
@@ -1041,10 +1074,16 @@ func TestResolveServerFromString(t *testing.T) {
 
 			serverResponse := v0.ServerResponse{
 				Server: v0.ServerJSON{
-					Version: tt.expectedVersion,
+					Name:        "io.example/my-server",
+					Description: "Test MCP server",
+					Version:     tt.expectedVersion,
 					Packages: []model.Package{
 						{
 							RegistryType: "oci",
+							Identifier:   "ghcr.io/example/my-server:" + tt.expectedVersion,
+							Transport: model.Transport{
+								Type: "stdio",
+							},
 						},
 					},
 				},
@@ -1294,10 +1333,16 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 
 	serverResponse := v0.ServerResponse{
 		Server: v0.ServerJSON{
-			Version: "0.2.0",
+			Name:        "io.example/my-server",
+			Description: "Test MCP server",
+			Version:     "0.2.0",
 			Packages: []model.Package{
 				{
 					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/my-server:0.2.0",
+					Transport: model.Transport{
+						Type: "stdio",
+					},
 				},
 			},
 		},
@@ -1309,10 +1354,16 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 	}
 	oldServerResponse := v0.ServerResponse{
 		Server: v0.ServerJSON{
-			Version: "0.1.0",
+			Name:        "io.example/my-server",
+			Description: "Test MCP server",
+			Version:     "0.1.0",
 			Packages: []model.Package{
 				{
 					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/my-server:0.1.0",
+					Transport: model.Transport{
+						Type: "stdio",
+					},
 				},
 			},
 		},

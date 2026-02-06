@@ -21,6 +21,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/sliceutil"
 	"github.com/docker/mcp-gateway/pkg/validate"
@@ -35,6 +36,8 @@ type WorkingSet struct {
 	Name    string            `yaml:"name" json:"name" validate:"required,min=1"`
 	Servers []Server          `yaml:"servers" json:"servers" validate:"dive"`
 	Secrets map[string]Secret `yaml:"secrets,omitempty" json:"secrets,omitempty" validate:"dive"`
+	// Policy describes the policy decision for this working set.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 }
 
 type ServerType string
@@ -51,6 +54,8 @@ type Server struct {
 	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Tools   ToolList       `yaml:"tools,omitempty" json:"tools"` // See IsZero() below
+	// Policy describes the policy decision for this server.
+	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 
 	// ServerTypeRegistry only
 	Source string `yaml:"source,omitempty" json:"source,omitempty" validate:"required_if=Type registry"`
@@ -394,16 +399,11 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 	} else if v, ok := strings.CutPrefix(value, "catalog://"); ok {
 		return ResolveCatalogServers(ctx, dao, v)
 	} else if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") { // Assume registry entry if it's a URL
-		url, err := ResolveRegistry(ctx, registryClient, value)
+		server, err := ResolveRegistry(ctx, registryClient, value)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve registry: %w", err)
 		}
-		return []Server{{
-			Type:    ServerTypeRegistry,
-			Source:  url,
-			Secrets: "default",
-			// TODO(cody): add snapshot
-		}}, nil
+		return []Server{server}, nil
 	} else if v, ok := strings.CutPrefix(value, "file://"); ok {
 		return ResolveFile(v)
 	}
@@ -579,53 +579,60 @@ func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) 
 	return fullRef, nil
 }
 
-func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (string, error) {
+func ConvertRegistryServerToCatalog(serverResp *v0.ServerResponse) (catalog.Server, error) {
+	result, err := catalog.TransformToDocker(serverResp.Server)
+	if err != nil {
+		return catalog.Server{}, err
+	}
+	return *result, nil
+}
+
+func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (Server, error) {
 	url, err := registryapi.ParseServerURL(value)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse server URL %s: %w", value, err)
+		return Server{}, fmt.Errorf("failed to parse server URL %s: %w", value, err)
 	}
 
 	versions, err := registryClient.GetServerVersions(ctx, url)
 	if err != nil {
-		return "", fmt.Errorf("failed to get server versions from URL %s: %w", url.VersionsListURL(), err)
+		return Server{}, fmt.Errorf("failed to get server versions from URL %s: %w", url.VersionsListURL(), err)
 	}
 
 	if len(versions.Servers) == 0 {
-		return "", fmt.Errorf("no server versions found for URL %s", url.VersionsListURL())
+		return Server{}, fmt.Errorf("no server versions found for URL %s", url.VersionsListURL())
 	}
 
 	if url.IsLatestVersion() {
 		latestVersion, err := resolveLatestVersion(versions)
 		if err != nil {
-			return "", fmt.Errorf("failed to resolve latest version for server %s: %w", url.VersionsListURL(), err)
+			return Server{}, fmt.Errorf("failed to resolve latest version for server %s: %w", url.VersionsListURL(), err)
 		}
 		url = url.WithVersion(latestVersion)
 	}
 
-	var server *v0.ServerResponse
+	var serverResp *v0.ServerResponse
 	for _, version := range versions.Servers {
 		if version.Server.Version == url.Version {
-			server = &version
+			serverResp = &version
 			break
 		}
 	}
-	if server == nil {
-		return "", fmt.Errorf("server version not found")
+	if serverResp == nil {
+		return Server{}, fmt.Errorf("server version not found")
 	}
 
-	// check oci package exists
-	foundOCIPackage := false
-	for _, pkg := range server.Server.Packages {
-		if pkg.RegistryType == "oci" {
-			foundOCIPackage = true
-			break
-		}
-	}
-	if !foundOCIPackage {
-		return "", fmt.Errorf("oci package not found for server %s", url.String())
+	// Check for OCI packages and convert to catalog format
+	catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+	if err != nil {
+		return Server{}, fmt.Errorf("failed to convert registry server: %w", err)
 	}
 
-	return url.String(), nil
+	return Server{
+		Type:     ServerTypeRegistry,
+		Source:   url.String(),
+		Secrets:  "default",
+		Snapshot: &ServerSnapshot{Server: catalogServer},
+	}, nil
 }
 
 func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server) (*ServerSnapshot, error) {
@@ -633,7 +640,7 @@ func ResolveSnapshot(ctx context.Context, ociService oci.Service, server Server)
 	case ServerTypeImage:
 		return ResolveImageSnapshot(ctx, ociService, server.Image)
 	case ServerTypeRegistry:
-		// TODO(cody): add snapshot
+		// Snapshots for registry servers are resolved during ResolveRegistry
 		return nil, nil //nolint:nilnil
 	case ServerTypeRemote:
 		// TODO(bobby): add snapshot when you can add remotes directly from URL

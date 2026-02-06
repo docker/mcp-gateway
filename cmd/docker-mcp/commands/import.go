@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oci"
 )
 
@@ -30,7 +31,9 @@ func runMcpregistryImport(ctx context.Context, serverURL string, servers *[]cata
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: desktop.ProxyTransport(),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to fetch server definition: %w", err)

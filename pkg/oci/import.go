@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
 func ImportToServer(registryURL string) (catalog.Server, error) {
@@ -22,7 +23,8 @@ func ImportToServer(registryURL string) (catalog.Server, error) {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: desktop.ProxyTransport(),
+		Timeout:   30 * time.Second,
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
@@ -64,7 +66,8 @@ func Import(registryURL string, ociRepository string, push bool) error {
 
 	// Fetch JSON document from registryUrl
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: desktop.ProxyTransport(),
+		Timeout:   30 * time.Second,
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, registryURL, nil)
@@ -163,7 +166,7 @@ func Import(registryURL string, ociRepository string, push bool) error {
 	firstRef := ociReferences[0]
 
 	// Verify the reference can be resolved
-	subjectDescriptor, err := remote.Get(firstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	subjectDescriptor, err := remote.Get(firstRef, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithTransport(desktop.ProxyTransport()))
 	if err != nil {
 		return fmt.Errorf("failed to resolve reference %s: %w", firstRef.Name(), err)
 	}
