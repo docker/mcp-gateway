@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
 	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -261,4 +262,155 @@ func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.De
 		}
 		fmt.Println()
 	}
+}
+
+// AddServers adds servers to a catalog using various URI schemes
+func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, catalogRef string, serverRefs []string) error {
+	if len(serverRefs) == 0 {
+		return fmt.Errorf("at least one server must be specified")
+	}
+
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+	}
+
+	catalogRef = oci.FullNameWithoutDigest(ref)
+
+	// Get the catalog
+	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog %s: %w", catalogRef, err)
+	}
+
+	catalog := NewFromDb(dbCatalog)
+
+	// Resolve all server references
+	allServers := make([]workingset.Server, 0)
+	for _, serverRef := range serverRefs {
+		servers, err := workingset.ResolveServersFromString(ctx, registryClient, ociService, dao, serverRef)
+		if err != nil {
+			return fmt.Errorf("failed to resolve server reference %q: %w", serverRef, err)
+		}
+		allServers = append(allServers, servers...)
+	}
+
+	if len(allServers) == 0 {
+		return fmt.Errorf("no servers found in provided references")
+	}
+
+	// Convert workingset.Server to catalog Server and add to catalog
+	addedCount := 0
+	for _, wsServer := range allServers {
+		if wsServer.Snapshot == nil {
+			continue
+		}
+
+		serverName := wsServer.Snapshot.Server.Name
+
+		// Check if server already exists
+		if catalog.FindServer(serverName) != nil {
+			fmt.Printf("Server '%s' already exists in catalog (skipping)\n", serverName)
+			continue
+		}
+
+		// Convert to catalog server
+		catalogServer := Server{
+			Type:     wsServer.Type,
+			Snapshot: wsServer.Snapshot,
+		}
+
+		switch wsServer.Type {
+		case workingset.ServerTypeRegistry:
+			catalogServer.Source = wsServer.Source
+		case workingset.ServerTypeImage:
+			catalogServer.Image = wsServer.Image
+		case workingset.ServerTypeRemote:
+			catalogServer.Endpoint = wsServer.Endpoint
+		}
+
+		catalog.Servers = append(catalog.Servers, catalogServer)
+		addedCount++
+	}
+
+	if addedCount == 0 {
+		fmt.Println("No new servers added (all already exist)")
+		return nil
+	}
+
+	// Save the updated catalog
+	dbCatalogUpdated, err := catalog.ToDb()
+	if err != nil {
+		return fmt.Errorf("failed to convert catalog to database format: %w", err)
+	}
+
+	if err := dao.UpsertCatalog(ctx, dbCatalogUpdated); err != nil {
+		return fmt.Errorf("failed to update catalog: %w", err)
+	}
+
+	fmt.Printf("Added %d server(s) to catalog '%s'\n", addedCount, catalogRef)
+	return nil
+}
+
+// RemoveServers removes servers from a catalog by name
+func RemoveServers(ctx context.Context, dao db.DAO, catalogRef string, serverNames []string) error {
+	if len(serverNames) == 0 {
+		return fmt.Errorf("at least one server name must be specified")
+	}
+
+	ref, err := name.ParseReference(catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+	}
+	if !oci.IsValidInputReference(ref) {
+		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+	}
+
+	catalogRef = oci.FullNameWithoutDigest(ref)
+
+	// Get the catalog
+	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
+	if err != nil {
+		return fmt.Errorf("failed to get catalog %s: %w", catalogRef, err)
+	}
+
+	catalog := NewFromDb(dbCatalog)
+
+	// Create a set of names to remove
+	namesToRemove := make(map[string]bool)
+	for _, name := range serverNames {
+		namesToRemove[name] = true
+	}
+
+	// Filter out servers to remove
+	originalCount := len(catalog.Servers)
+	filtered := make([]Server, 0, len(catalog.Servers))
+	for _, server := range catalog.Servers {
+		if server.Snapshot == nil || !namesToRemove[server.Snapshot.Server.Name] {
+			filtered = append(filtered, server)
+		}
+	}
+
+	removedCount := originalCount - len(filtered)
+	if removedCount == 0 {
+		return fmt.Errorf("no matching servers found to remove")
+	}
+
+	catalog.Servers = filtered
+
+	// Save the updated catalog
+	dbCatalogUpdated, err := catalog.ToDb()
+	if err != nil {
+		return fmt.Errorf("failed to convert catalog to database format: %w", err)
+	}
+
+	if err := dao.UpsertCatalog(ctx, dbCatalogUpdated); err != nil {
+		return fmt.Errorf("failed to update catalog: %w", err)
+	}
+
+	fmt.Printf("Removed %d server(s) from catalog '%s'\n", removedCount, catalogRef)
+	return nil
 }
