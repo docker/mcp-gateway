@@ -71,9 +71,19 @@ func createCatalogNextCommand() *cobra.Command {
 
 func tagCatalogNextCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tag <oci-reference> <tag>",
-		Short: "Tag a catalog",
-		Args:  cobra.ExactArgs(2),
+		Use:   "tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]",
+		Short: "Create a tagged copy of a catalog",
+		Long: `Create a new catalog by tagging an existing catalog with a new name or version.
+This creates a copy of the source catalog with a new reference, similar to Docker image tagging.`,
+		Args: cobra.ExactArgs(2),
+		Example: `  # Tag a catalog with a new version
+  docker mcp catalog tag mcp/my-catalog:v1 mcp/my-catalog:v2
+
+  # Create a tagged copy with a different name
+  docker mcp catalog tag mcp/team-catalog:latest mcp/prod-catalog:v1.0
+
+  # Tag without explicit version (uses latest)
+  docker mcp catalog tag mcp/my-catalog mcp/my-catalog:backup`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
