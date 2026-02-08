@@ -441,12 +441,37 @@ func ResolveFile(value string) ([]Server, error) {
 			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
 		}
 		if probe.Registry == nil {
-			// Fallback to parsing single server
-			var server catalog.Server
-			if err := json.Unmarshal(buf, &server); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+			// Try to parse as v0.ServerResponse first
+			var serverResp v0.ServerResponse
+			if err := json.Unmarshal(buf, &serverResp); err == nil && serverResp.Server.Name != "" {
+				// Successfully parsed as v0.ServerResponse
+				catalogServer, err := ConvertRegistryServerToCatalog(&serverResp)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert v0.ServerResponse to catalog.Server: %w", err)
+				}
+				servers = []catalog.Server{catalogServer}
+			} else {
+				// Try to parse as v0.ServerJSON and wrap it
+				var serverJSON v0.ServerJSON
+				if err := json.Unmarshal(buf, &serverJSON); err == nil && serverJSON.Name != "" {
+					// Successfully parsed as v0.ServerJSON, wrap it in ServerResponse
+					serverResp := &v0.ServerResponse{
+						Server: serverJSON,
+					}
+					catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+					if err != nil {
+						return nil, fmt.Errorf("failed to convert v0.ServerJSON to catalog.Server: %w", err)
+					}
+					servers = []catalog.Server{catalogServer}
+				} else {
+					// Fallback to parsing as catalog.Server directly
+					var server catalog.Server
+					if err := json.Unmarshal(buf, &server); err != nil {
+						return nil, fmt.Errorf("failed to unmarshal server as catalog.Server, v0.ServerResponse, or v0.ServerJSON: %w", err)
+					}
+					servers = []catalog.Server{server}
+				}
 			}
-			servers = []catalog.Server{server}
 		}
 	default:
 		return nil, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", value)
