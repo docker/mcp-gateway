@@ -579,8 +579,8 @@ func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) 
 	return fullRef, nil
 }
 
-func ConvertRegistryServerToCatalog(serverResp *v0.ServerResponse) (catalog.Server, error) {
-	result, err := catalog.TransformToDocker(serverResp.Server)
+func ConvertRegistryServerToCatalog(ctx context.Context, serverResp *v0.ServerResponse, pypiResolver catalog.PyPIVersionResolver) (catalog.Server, error) {
+	result, err := catalog.TransformToDocker(ctx, serverResp.Server, pypiResolver)
 	if err != nil {
 		return catalog.Server{}, err
 	}
@@ -622,7 +622,7 @@ func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, val
 	}
 
 	// Check for OCI packages and convert to catalog format
-	catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+	catalogServer, err := ConvertRegistryServerToCatalog(ctx, serverResp, catalog.DefaultPyPIVersionResolver())
 	if err != nil {
 		return Server{}, fmt.Errorf("failed to convert registry server: %w", err)
 	}

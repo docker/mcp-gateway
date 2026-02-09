@@ -1,9 +1,31 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
+
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 )
+
+// transformTestJSON is a test helper that unmarshals registry JSON, calls TransformToDocker,
+// and returns both the Server and a pretty-printed JSON string of the result.
+func transformTestJSON(t *testing.T, registryJSON string, resolver PyPIVersionResolver) (Server, string) {
+	t.Helper()
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+	result, err := TransformToDocker(t.Context(), serverResponse.Server, resolver)
+	if err != nil {
+		t.Fatalf("TransformToDocker failed: %v", err)
+	}
+	catalogJSON, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		t.Fatalf("Failed to marshal catalog JSON: %v", err)
+	}
+	return *result, string(catalogJSON)
+}
 
 func TestTransformOCIPackage(t *testing.T) {
 	// Example with OCI package (filesystem server)
@@ -88,15 +110,7 @@ func TestTransformOCIPackage(t *testing.T) {
 		}
 	}`
 
-	catalogJSON, err := TransformJSON(registryJSON)
-	if err != nil {
-		t.Fatalf("TransformJSON failed: %v", err)
-	}
-
-	var result Server
-	if err := json.Unmarshal([]byte(catalogJSON), &result); err != nil {
-		t.Fatalf("Failed to unmarshal result: %v", err)
-	}
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
 
 	// Verify basic fields
 	if result.Name != "io-github-modelcontextprotocol-filesystem" {
@@ -260,15 +274,7 @@ func TestTransformRemote(t *testing.T) {
 	}
 		}`
 
-	catalogJSON, err := TransformJSON(registryJSON)
-	if err != nil {
-		t.Fatalf("TransformJSON failed: %v", err)
-	}
-
-	var result Server
-	if err := json.Unmarshal([]byte(catalogJSON), &result); err != nil {
-		t.Fatalf("Failed to unmarshal result: %v", err)
-	}
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
 
 	// Verify basic fields
 	if result.Name != "com-google-maps-grounding-lite" {
@@ -428,15 +434,7 @@ func TestTransformRemoteWithOAuth(t *testing.T) {
 	}
 		}`
 
-	catalogJSON, err := TransformJSON(registryJSON)
-	if err != nil {
-		t.Fatalf("TransformJSON failed: %v", err)
-	}
-
-	var result Server
-	if err := json.Unmarshal([]byte(catalogJSON), &result); err != nil {
-		t.Fatalf("Failed to unmarshal result: %v", err)
-	}
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
 
 	// Verify OAuth is present
 	if result.OAuth == nil {
@@ -470,15 +468,7 @@ func TestTransformSimpleRemote(t *testing.T) {
 	}
 		}`
 
-	catalogJSON, err := TransformJSON(registryJSON)
-	if err != nil {
-		t.Fatalf("TransformJSON failed: %v", err)
-	}
-
-	var result Server
-	if err := json.Unmarshal([]byte(catalogJSON), &result); err != nil {
-		t.Fatalf("Failed to unmarshal result: %v", err)
-	}
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
 
 	// Verify basic fields
 	if result.Name != "com-docker-grafana-internal" {
@@ -556,15 +546,7 @@ func TestTransformOCIWithDirectSecrets(t *testing.T) {
 	}
 		}`
 
-	catalogJSON, err := TransformJSON(registryJSON)
-	if err != nil {
-		t.Fatalf("TransformJSON failed: %v", err)
-	}
-
-	var result Server
-	if err := json.Unmarshal([]byte(catalogJSON), &result); err != nil {
-		t.Fatalf("Failed to unmarshal result: %v", err)
-	}
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
 
 	// Verify basic fields
 	if result.Name != "io-github-slimslenderslacks-garmin_mcp" {
@@ -623,6 +605,335 @@ func TestTransformOCIWithDirectSecrets(t *testing.T) {
 	// No config should be present since all variables are secrets
 	if len(result.Config) > 0 {
 		t.Error("Expected no config for server with only secrets")
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPI(t *testing.T) {
+	// Example with basic PyPI package
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.github.stevenvo/slack-mcp-server",
+			"title": "Slack MCP Server",
+			"description": "MCP server for Slack integration",
+			"version": "0.1.0",
+			"packages": [{
+				"registryType": "pypi",
+				"registryBaseUrl": "https://pypi.org",
+				"identifier": "slack-mcp-server-v2",
+				"version": "0.1.0",
+				"transport": {"type": "stdio"},
+				"environmentVariables": [
+					{
+						"name": "SLACK_USER_TOKEN",
+						"description": "Slack user token for authentication",
+						"isSecret": true,
+						"isRequired": true
+					}
+				]
+			}]
+		}
+	}`
+
+	// Mock resolver that returns Python 3.12 (simulates ==3.12 or ~=3.12)
+	mockResolver := func(_ context.Context, _, _, _ string) string {
+		return "3.12"
+	}
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, mockResolver)
+
+	// Verify basic fields
+	if result.Name != "io-github-stevenvo-slack-mcp-server" {
+		t.Errorf("Expected name 'io-github-stevenvo-slack-mcp-server', got '%s'", result.Name)
+	}
+
+	if result.Title != "Slack MCP Server" {
+		t.Errorf("Expected title 'Slack MCP Server', got '%s'", result.Title)
+	}
+
+	// Verify type is "server" (PyPI packages are treated as regular servers)
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify image is the uv Docker image
+	expectedImage := "ghcr.io/astral-sh/uv:python3.12-bookworm-slim"
+	if result.Image != expectedImage {
+		t.Errorf("Expected image '%s', got '%s'", expectedImage, result.Image)
+	}
+
+	// Verify command
+	expectedCommand := []string{"uvx", "--from", "slack-mcp-server-v2==0.1.0", "slack-mcp-server-v2"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	// Verify cache volume
+	if len(result.Volumes) == 0 {
+		t.Error("Expected volumes to be present")
+	} else {
+		expectedVolume := "docker-mcp-uv-cache:/root/.cache/uv"
+		if result.Volumes[0] != expectedVolume {
+			t.Errorf("Expected volume '%s', got '%s'", expectedVolume, result.Volumes[0])
+		}
+	}
+
+	// Verify secrets
+	if len(result.Secrets) == 0 {
+		t.Error("Expected secrets to be present")
+	} else {
+		found := false
+		for _, secret := range result.Secrets {
+			if secret.Name == "io-github-stevenvo-slack-mcp-server.SLACK_USER_TOKEN" {
+				if secret.Env != "SLACK_USER_TOKEN" {
+					t.Errorf("Expected secret env 'SLACK_USER_TOKEN', got '%s'", secret.Env)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected SLACK_USER_TOKEN secret")
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPIWithCustomRegistry(t *testing.T) {
+	// Example with custom PyPI registry
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "com.example/custom-pypi-server",
+			"title": "Custom PyPI Server",
+			"description": "MCP server from custom PyPI registry",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"registryBaseUrl": "https://custom.pypi.org",
+				"identifier": "my-custom-package",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
+
+	// Verify type is "server" (PyPI packages are treated as regular servers)
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify command includes --index-url
+	expectedCommand := []string{"uvx", "--index-url", "https://custom.pypi.org", "--from", "my-custom-package==1.0.0", "my-custom-package"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPIWithPackageArgs(t *testing.T) {
+	// Example with PyPI package and package arguments
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.example/pypi-with-args",
+			"title": "PyPI Server with Arguments",
+			"description": "MCP server with command-line arguments",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"identifier": "my-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"},
+				"packageArguments": [
+					{
+						"type": "positional",
+						"value": "--verbose"
+					},
+					{
+						"type": "positional",
+						"value": "/data"
+					}
+				]
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
+
+	// Verify type is "server" (PyPI packages are treated as regular servers)
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify command includes package arguments appended
+	expectedCommand := []string{"uvx", "--from", "my-server==1.0.0", "my-server", "--verbose", "/data"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPIWithoutVersion(t *testing.T) {
+	// Example with PyPI package without version (should run latest)
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.example/pypi-no-version",
+			"title": "PyPI Server No Version",
+			"description": "MCP server without version specified",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"identifier": "my-latest-server",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
+
+	// Verify type is "server" (PyPI packages are treated as regular servers)
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify command does NOT include --from (will run latest version)
+	expectedCommand := []string{"uvx", "my-latest-server"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPIWithEnvVariables(t *testing.T) {
+	// Example with PyPI package with both secrets and config env vars
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.example/pypi-with-env",
+			"title": "PyPI Server with Environment Variables",
+			"description": "MCP server with environment variables",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"identifier": "my-env-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"},
+				"environmentVariables": [
+					{
+						"name": "API_KEY",
+						"description": "API key for authentication",
+						"isSecret": true,
+						"isRequired": true
+					},
+					{
+						"name": "LOG_LEVEL",
+						"value": "{log_level}",
+						"variables": {
+							"log_level": {
+								"description": "Logging level",
+								"default": "info"
+							}
+						}
+					}
+				]
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
+
+	// Verify type is "server" (PyPI packages are treated as regular servers)
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify secrets
+	if len(result.Secrets) == 0 {
+		t.Error("Expected secrets to be present")
+	} else {
+		found := false
+		for _, secret := range result.Secrets {
+			if secret.Name == "io-example-pypi-with-env.API_KEY" {
+				if secret.Env != "API_KEY" {
+					t.Errorf("Expected secret env 'API_KEY', got '%s'", secret.Env)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected API_KEY secret")
+		}
+	}
+
+	// Verify environment variables
+	if len(result.Env) == 0 {
+		t.Error("Expected environment variables to be present")
+	} else {
+		found := false
+		for _, env := range result.Env {
+			if env.Name == "LOG_LEVEL" {
+				if env.Value != "{{io-example-pypi-with-env.log_level}}" {
+					t.Errorf("Expected LOG_LEVEL value '{{io-example-pypi-with-env.log_level}}', got '%s'", env.Value)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected LOG_LEVEL environment variable")
+		}
+	}
+
+	// Verify config
+	if len(result.Config) == 0 {
+		t.Error("Expected config to be present")
+	} else {
+		configMap, ok := result.Config[0].(map[string]any)
+		if !ok {
+			t.Fatal("Expected config to be a map[string]any")
+		}
+		properties, ok := configMap["properties"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected properties in config")
+		}
+		if _, ok := properties["log_level"]; !ok {
+			t.Error("Expected log_level in config properties")
+		}
 	}
 
 	t.Logf("Catalog JSON:\n%s", catalogJSON)
