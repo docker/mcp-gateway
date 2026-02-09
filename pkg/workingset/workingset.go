@@ -443,8 +443,8 @@ func ResolveFile(value string) ([]Server, error) {
 		if probe.Registry == nil {
 			// Try to parse as v0.ServerResponse first
 			var serverResp v0.ServerResponse
-			if err := json.Unmarshal(buf, &serverResp); err == nil && serverResp.Server.Name != "" {
-				// Successfully parsed as v0.ServerResponse
+			if err := json.Unmarshal(buf, &serverResp); err == nil && serverResp.Server.Name != "" && (len(serverResp.Server.Packages) > 0 || len(serverResp.Server.Remotes) > 0) {
+				// Successfully parsed as v0.ServerResponse with packages or remotes
 				catalogServer, err := ConvertRegistryServerToCatalog(&serverResp)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert v0.ServerResponse to catalog.Server: %w", err)
@@ -453,8 +453,8 @@ func ResolveFile(value string) ([]Server, error) {
 			} else {
 				// Try to parse as v0.ServerJSON and wrap it
 				var serverJSON v0.ServerJSON
-				if err := json.Unmarshal(buf, &serverJSON); err == nil && serverJSON.Name != "" {
-					// Successfully parsed as v0.ServerJSON, wrap it in ServerResponse
+				if err := json.Unmarshal(buf, &serverJSON); err == nil && serverJSON.Name != "" && (len(serverJSON.Packages) > 0 || len(serverJSON.Remotes) > 0) {
+					// Successfully parsed as v0.ServerJSON with packages or remotes, wrap it in ServerResponse
 					serverResp := &v0.ServerResponse{
 						Server: serverJSON,
 					}
