@@ -179,6 +179,22 @@ func (c *RawClient) Delete(ctx context.Context, endpoint string) error {
 	}
 	defer response.Body.Close()
 
-	_, err = io.Copy(io.Discard, response.Body)
-	return err
+	buf, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	// Check HTTP status code - return error for non-2xx responses
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		// Try to parse error message from response
+		var errorMsg struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(buf, &errorMsg) == nil && errorMsg.Message != "" {
+			return fmt.Errorf("HTTP %d: %s", response.StatusCode, errorMsg.Message)
+		}
+		return fmt.Errorf("HTTP %d: %s", response.StatusCode, string(buf))
+	}
+
+	return nil
 }
