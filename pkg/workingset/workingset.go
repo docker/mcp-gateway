@@ -410,6 +410,32 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 	return nil, fmt.Errorf("invalid server value: %s", value)
 }
 
+// isV0ServerJSON checks if the JSON data represents a v0.ServerJSON/v0.ServerResponse
+// rather than a catalog.Server by looking for discriminating fields.
+func isV0ServerJSON(buf []byte) bool {
+	var discriminator struct {
+		Schema   string `json:"$schema"`  // Present in v0.ServerJSON
+		Type     string `json:"type"`     // Present in catalog.Server (required)
+		Packages []any  `json:"packages"` // Present in v0.ServerJSON
+		Remotes  []any  `json:"remotes"`  // Present in v0.ServerJSON
+	}
+	if err := json.Unmarshal(buf, &discriminator); err != nil {
+		return false
+	}
+
+	// If it has the catalog.Server-specific "type" field, it's NOT a v0.ServerJSON
+	if discriminator.Type != "" {
+		return false
+	}
+
+	// If it has v0.ServerJSON-specific fields, it IS a v0.ServerJSON
+	if discriminator.Schema != "" || len(discriminator.Packages) > 0 || len(discriminator.Remotes) > 0 {
+		return true
+	}
+
+	return false
+}
+
 func ResolveFile(value string) ([]Server, error) {
 	buf, err := os.ReadFile(value)
 	if err != nil {
@@ -441,12 +467,42 @@ func ResolveFile(value string) ([]Server, error) {
 			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
 		}
 		if probe.Registry == nil {
-			// Fallback to parsing single server
-			var server catalog.Server
-			if err := json.Unmarshal(buf, &server); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+			// Use discriminating fields to determine type
+			if isV0ServerJSON(buf) {
+				// Try to parse as v0.ServerResponse first
+				var serverResp v0.ServerResponse
+				if err := json.Unmarshal(buf, &serverResp); err == nil && serverResp.Server.Name != "" {
+					// Successfully parsed as v0.ServerResponse
+					catalogServer, err := ConvertRegistryServerToCatalog(&serverResp)
+					if err != nil {
+						return nil, fmt.Errorf("failed to convert v0.ServerResponse to catalog.Server: %w", err)
+					}
+					servers = []catalog.Server{catalogServer}
+				} else {
+					// Try to parse as v0.ServerJSON and wrap it
+					var serverJSON v0.ServerJSON
+					if err := json.Unmarshal(buf, &serverJSON); err == nil && serverJSON.Name != "" {
+						// Successfully parsed as v0.ServerJSON, wrap it in ServerResponse
+						serverResp := &v0.ServerResponse{
+							Server: serverJSON,
+						}
+						catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+						if err != nil {
+							return nil, fmt.Errorf("failed to convert v0.ServerJSON to catalog.Server: %w", err)
+						}
+						servers = []catalog.Server{catalogServer}
+					} else {
+						return nil, fmt.Errorf("failed to parse as v0.ServerJSON despite discriminating fields indicating v0 format")
+					}
+				}
+			} else {
+				// Parse as catalog.Server directly
+				var server catalog.Server
+				if err := json.Unmarshal(buf, &server); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal server as catalog.Server: %w", err)
+				}
+				servers = []catalog.Server{server}
 			}
-			servers = []catalog.Server{server}
 		}
 	default:
 		return nil, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", value)

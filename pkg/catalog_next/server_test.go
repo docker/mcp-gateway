@@ -13,6 +13,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/workingset"
+	"github.com/docker/mcp-gateway/test/mocks"
 )
 
 func TestInspectServer(t *testing.T) {
@@ -1005,4 +1006,298 @@ func TestParseFilters(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAddServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create an initial catalog
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/existing-server:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "existing-server",
+							Description: "Existing server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	t.Run("no servers provided", func(t *testing.T) {
+		err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), catalogObj.Ref, []string{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one server must be specified")
+	})
+
+	t.Run("invalid catalog reference", func(t *testing.T) {
+		err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), ":::invalid", []string{
+			"docker/test:latest",
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse oci-reference")
+	})
+
+	t.Run("catalog not found", func(t *testing.T) {
+		err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), "test/nonexistent:latest", []string{
+			"docker/test:latest",
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get catalog")
+	})
+
+	t.Run("invalid server reference", func(t *testing.T) {
+		err := AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), catalogObj.Ref, []string{
+			"invalid://reference",
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to resolve server reference")
+	})
+}
+
+func TestRemoveServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	t.Run("remove single server", func(t *testing.T) {
+		// Create a catalog with multiple servers
+		catalogObj := Catalog{
+			Ref: "test/catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server1:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-one",
+							},
+						},
+					},
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server2:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-two",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		output := captureStdout(t, func() {
+			err := RemoveServers(ctx, dao, catalogObj.Ref, []string{"server-one"})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "Removed 1 server(s)")
+
+		// Verify server was removed
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 1)
+		assert.Nil(t, cat.FindServer("server-one"))
+		assert.NotNil(t, cat.FindServer("server-two"))
+	})
+
+	t.Run("remove multiple servers", func(t *testing.T) {
+		// Create a catalog with multiple servers
+		catalogObj := Catalog{
+			Ref: "test/catalog2:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server1:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-one",
+							},
+						},
+					},
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server2:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-two",
+							},
+						},
+					},
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server3:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-three",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		output := captureStdout(t, func() {
+			err := RemoveServers(ctx, dao, catalogObj.Ref, []string{"server-one", "server-three"})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "Removed 2 server(s)")
+
+		// Verify servers were removed
+		dbCat3, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat3)
+		assert.Len(t, cat.Servers, 1)
+		assert.Nil(t, cat.FindServer("server-one"))
+		assert.NotNil(t, cat.FindServer("server-two"))
+		assert.Nil(t, cat.FindServer("server-three"))
+	})
+
+	t.Run("remove nonexistent server", func(t *testing.T) {
+		// Create a catalog with servers
+		catalogObj := Catalog{
+			Ref: "test/catalog3:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server1:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "server-one",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		err = RemoveServers(ctx, dao, catalogObj.Ref, []string{"nonexistent-server"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no matching servers found to remove")
+	})
+
+	t.Run("remove server without snapshot", func(t *testing.T) {
+		// Create a catalog with server without snapshot
+		catalogObj := Catalog{
+			Ref: "test/catalog4:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:     workingset.ServerTypeImage,
+						Image:    "docker/server1:v1",
+						Snapshot: nil,
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		err = RemoveServers(ctx, dao, catalogObj.Ref, []string{"some-name"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no matching servers found to remove")
+
+		// Verify server without snapshot is still there
+		dbCat4, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat4)
+		assert.Len(t, cat.Servers, 1)
+	})
+
+	t.Run("no server names provided", func(t *testing.T) {
+		err := RemoveServers(ctx, dao, "test/catalog:latest", []string{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one server name must be specified")
+	})
+
+	t.Run("invalid catalog reference", func(t *testing.T) {
+		err := RemoveServers(ctx, dao, ":::invalid", []string{"server-one"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse oci-reference")
+	})
+
+	t.Run("catalog not found", func(t *testing.T) {
+		err := RemoveServers(ctx, dao, "test/nonexistent:latest", []string{"server-one"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get catalog")
+	})
+
+	t.Run("remove all servers from catalog", func(t *testing.T) {
+		// Create a catalog with one server
+		catalogObj := Catalog{
+			Ref: "test/catalog5:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Test Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "docker/server1:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name: "only-server",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		output := captureStdout(t, func() {
+			err := RemoveServers(ctx, dao, catalogObj.Ref, []string{"only-server"})
+			require.NoError(t, err)
+		})
+
+		assert.Contains(t, output, "Removed 1 server(s)")
+
+		// Verify catalog is now empty
+		dbCat5, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat5)
+		assert.Empty(t, cat.Servers)
+	})
 }

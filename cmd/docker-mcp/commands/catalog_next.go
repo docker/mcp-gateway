@@ -71,9 +71,19 @@ func createCatalogNextCommand() *cobra.Command {
 
 func tagCatalogNextCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tag <oci-reference> <tag>",
-		Short: "Tag a catalog",
-		Args:  cobra.ExactArgs(2),
+		Use:   "tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]",
+		Short: "Create a tagged copy of a catalog",
+		Long: `Create a new catalog by tagging an existing catalog with a new name or version.
+This creates a copy of the source catalog with a new reference, similar to Docker image tagging.`,
+		Args: cobra.ExactArgs(2),
+		Example: `  # Tag a catalog with a new version
+  docker mcp catalog tag mcp/my-catalog:v1 mcp/my-catalog:v2
+
+  # Create a tagged copy with a different name
+  docker mcp catalog tag mcp/team-catalog:latest mcp/prod-catalog:v1.0
+
+  # Tag without explicit version (uses latest)
+  docker mcp catalog tag mcp/my-catalog mcp/my-catalog:backup`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
@@ -206,6 +216,8 @@ func catalogNextServerCommand() *cobra.Command {
 
 	cmd.AddCommand(listCatalogNextServersCommand())
 	cmd.AddCommand(inspectServerCatalogNextCommand())
+	cmd.AddCommand(addCatalogNextServersCommand())
+	cmd.AddCommand(removeCatalogNextServersCommand())
 
 	return cmd
 }
@@ -282,6 +294,71 @@ Filters use key=value format (e.g., name=github).`,
 	flags := cmd.Flags()
 	flags.StringArrayVarP(&opts.Filters, "filter", "f", []string{}, "Filter output (e.g., name=github)")
 	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
+
+	return cmd
+}
+
+func addCatalogNextServersCommand() *cobra.Command {
+	var servers []string
+
+	cmd := &cobra.Command{
+		Use:   "add <oci-reference> [--server <ref1> --server <ref2> ...]",
+		Short: "Add MCP servers to a catalog",
+		Long:  "Add MCP servers to a catalog using various URI schemes.",
+		Example: `  # Add servers from another catalog
+  docker mcp catalog server add mcp/my-catalog:latest --server catalog://mcp/docker-mcp-catalog:latest/github
+
+  # Add servers with OCI references
+  docker mcp catalog server add mcp/my-catalog:latest --server docker://my-server:latest
+
+  # Add servers with MCP Registry references
+  docker mcp catalog server add mcp/my-catalog:latest --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+
+  # Mix server references
+  docker mcp catalog server add mcp/my-catalog:latest --server catalog://mcp/docker-mcp-catalog:latest/github --server docker://my-server:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			registryClient := registryapi.NewClient()
+			ociService := oci.NewService()
+			return catalognext.AddServers(cmd.Context(), dao, registryClient, ociService, args[0], servers)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
+
+	return cmd
+}
+
+func removeCatalogNextServersCommand() *cobra.Command {
+	var names []string
+
+	cmd := &cobra.Command{
+		Use:     "remove <oci-reference> --name <name1> --name <name2> ...",
+		Aliases: []string{"rm"},
+		Short:   "Remove MCP servers from a catalog",
+		Long:    "Remove MCP servers from a catalog by server name.",
+		Example: `  # Remove servers by name
+  docker mcp catalog server remove mcp/my-catalog:latest --name github --name slack
+
+  # Remove a single server
+  docker mcp catalog server remove mcp/my-catalog:latest --name github`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dao, err := db.New()
+			if err != nil {
+				return err
+			}
+			return catalognext.RemoveServers(cmd.Context(), dao, args[0], names)
+		},
+	}
+
+	flags := cmd.Flags()
+	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
 
 	return cmd
 }
