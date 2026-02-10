@@ -134,11 +134,6 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 	}
 	defer response.Body.Close()
 
-	if result == nil {
-		_, err := io.Copy(io.Discard, response.Body)
-		return err
-	}
-
 	buf, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
@@ -154,6 +149,10 @@ func (c *RawClient) Post(ctx context.Context, endpoint string, v any, result any
 			return fmt.Errorf("HTTP %d: %s", response.StatusCode, errorMsg.Message)
 		}
 		return fmt.Errorf("HTTP %d: %s", response.StatusCode, string(buf))
+	}
+
+	if result == nil {
+		return nil
 	}
 
 	if err := json.Unmarshal(buf, &result); err != nil {
