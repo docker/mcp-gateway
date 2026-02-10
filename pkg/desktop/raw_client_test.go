@@ -10,7 +10,7 @@ import (
 )
 
 // newTestClient creates a RawClient that connects to an httptest.Server
-func newTestClient(t *testing.T, handler http.Handler) (*RawClient, *httptest.Server) {
+func newTestClient(t *testing.T, handler http.Handler) *RawClient {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
@@ -19,15 +19,23 @@ func newTestClient(t *testing.T, handler http.Handler) (*RawClient, *httptest.Se
 		client: func() *http.Client {
 			return &http.Client{
 				Transport: &http.Transport{
-					DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-						return net.Dial("tcp", server.Listener.Addr().String())
+					DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+						var d net.Dialer
+						return d.DialContext(context.Background(), "tcp", server.Listener.Addr().String())
 					},
 				},
 			}
 		},
 		timeout: 10 * 1e9, // 10s
 	}
-	return client, server
+	return client
+}
+
+func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
+	t.Helper()
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		t.Fatalf("failed to encode JSON response: %v", err)
+	}
 }
 
 func TestGet_Success(t *testing.T) {
@@ -36,10 +44,10 @@ func TestGet_Success(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"key": "value"})
+		writeJSON(t, w, map[string]string{"key": "value"})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	var result map[string]string
 	err := client.Get(context.Background(), "/test", &result)
@@ -52,12 +60,12 @@ func TestGet_Success(t *testing.T) {
 }
 
 func TestGet_ErrorStatus(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"message": "something broke"})
+		writeJSON(t, w, map[string]string{"message": "something broke"})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	var result map[string]string
 	err := client.Get(context.Background(), "/test", &result)
@@ -71,12 +79,14 @@ func TestGet_ErrorStatus(t *testing.T) {
 }
 
 func TestGet_ErrorStatusPlainBody(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 Not Found"))
+		if _, err := w.Write([]byte("404 Not Found")); err != nil {
+			t.Fatalf("failed to write response: %v", err)
+		}
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	var result map[string]string
 	err := client.Get(context.Background(), "/test", &result)
@@ -95,10 +105,10 @@ func TestPost_Success(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		writeJSON(t, w, map[string]string{"status": "ok"})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	var result map[string]string
 	err := client.Post(context.Background(), "/test", map[string]string{"input": "data"}, &result)
@@ -111,12 +121,12 @@ func TestPost_Success(t *testing.T) {
 }
 
 func TestPost_ErrorStatus(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"message": "bad input"})
+		writeJSON(t, w, map[string]string{"message": "bad input"})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	var result map[string]string
 	err := client.Post(context.Background(), "/test", map[string]string{"input": "data"}, &result)
@@ -130,11 +140,11 @@ func TestPost_ErrorStatus(t *testing.T) {
 }
 
 func TestPost_NilResult_Success(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Post(context.Background(), "/test", nil, nil)
 	if err != nil {
@@ -143,12 +153,12 @@ func TestPost_NilResult_Success(t *testing.T) {
 }
 
 func TestPost_NilResult_ErrorStatus(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"message": "server error"})
+		writeJSON(t, w, map[string]string{"message": "server error"})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Post(context.Background(), "/test", nil, nil)
 	if err == nil {
@@ -171,7 +181,7 @@ func TestDelete_Success(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Delete(context.Background(), "/apps/test-app")
 	if err != nil {
@@ -180,11 +190,11 @@ func TestDelete_Success(t *testing.T) {
 }
 
 func TestDelete_204NoContent(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Delete(context.Background(), "/apps/test-app")
 	if err != nil {
@@ -193,14 +203,14 @@ func TestDelete_204NoContent(t *testing.T) {
 }
 
 func TestDelete_ErrorStatusJSON(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
+		writeJSON(t, w, map[string]string{
 			"message": "provider `cloudflare-autorag`: could not revoke token",
 		})
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Delete(context.Background(), "/apps/cloudflare-autorag")
 	if err == nil {
@@ -213,12 +223,14 @@ func TestDelete_ErrorStatusJSON(t *testing.T) {
 }
 
 func TestDelete_ErrorStatusPlainBody(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 Not Found"))
+		if _, err := w.Write([]byte("404 Not Found")); err != nil {
+			t.Fatalf("failed to write response: %v", err)
+		}
 	})
 
-	client, _ := newTestClient(t, handler)
+	client := newTestClient(t, handler)
 
 	err := client.Delete(context.Background(), "/apps/nonexistent")
 	if err == nil {
