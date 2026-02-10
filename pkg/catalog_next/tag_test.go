@@ -24,7 +24,7 @@ func TestTag(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("tag catalog with new version", func(t *testing.T) {
-		err := Tag(ctx, dao, "mcp/test-catalog:v1", "mcp/test-catalog:v2")
+		err := Tag(t.Context(), dao, "mcp/test-catalog:v1", "mcp/test-catalog:v2")
 		require.NoError(t, err)
 
 		// Verify the new catalog was created
