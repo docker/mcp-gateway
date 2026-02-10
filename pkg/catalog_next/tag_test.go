@@ -11,7 +11,7 @@ import (
 )
 
 func TestTag(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	dao := setupTestDB(t)
 
 	// First, create a catalog to tag
