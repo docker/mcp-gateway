@@ -360,13 +360,13 @@ func TestCreateOutputFormatJSON(t *testing.T) {
 	require.NoError(t, err, "Output should be valid JSON")
 
 	// Verify the ID field exists and has the expected value
-	assert.Equal(t, "test-set", result["id"])
+	assert.Equal(t, "test_set", result["id"])
 	assert.Len(t, result, 1, "JSON output should only contain the id field")
 
 	// Verify the profile was created in the database
-	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
 	require.NoError(t, err)
-	assert.Equal(t, "test-set", dbSet.ID)
+	assert.Equal(t, "test_set", dbSet.ID)
 }
 
 // TestCreateOutputFormatHuman tests that human-readable format outputs the expected message
@@ -384,12 +384,12 @@ func TestCreateOutputFormatHuman(t *testing.T) {
 	})
 
 	// Verify human-readable output
-	assert.Contains(t, output, "Created profile test-set with 2 servers")
+	assert.Contains(t, output, "Created profile test_set with 2 servers")
 
 	// Verify the profile was created in the database
-	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
 	require.NoError(t, err)
-	assert.Equal(t, "test-set", dbSet.ID)
+	assert.Equal(t, "test_set", dbSet.ID)
 	assert.Len(t, dbSet.Servers, 2)
 }
 
@@ -422,7 +422,7 @@ func TestCreateJSONWithDuplicateIDPrevention(t *testing.T) {
 	var result2 map[string]string
 	err = json.Unmarshal([]byte(output2), &result2)
 	require.NoError(t, err)
-	assert.Equal(t, "test-2", result2["id"], "Second profile should have -2 suffix")
+	assert.Equal(t, "test_2", result2["id"], "Second profile should have _2 suffix")
 
 	// Create third profile with the same name
 	output3 := captureStdout(func() {
@@ -435,7 +435,7 @@ func TestCreateJSONWithDuplicateIDPrevention(t *testing.T) {
 	var result3 map[string]string
 	err = json.Unmarshal([]byte(output3), &result3)
 	require.NoError(t, err)
-	assert.Equal(t, "test-3", result3["id"], "Third profile should have -3 suffix")
+	assert.Equal(t, "test_3", result3["id"], "Third profile should have _3 suffix")
 }
 
 // TestCreateDefaultOutputFormat tests that the default format is human-readable
@@ -471,12 +471,12 @@ func TestCreateJSONWithNoServers(t *testing.T) {
 	var result map[string]string
 	err := json.Unmarshal([]byte(output), &result)
 	require.NoError(t, err)
-	assert.Equal(t, "empty-set", result["id"])
+	assert.Equal(t, "empty_set", result["id"])
 
 	// Verify the profile was created in the database with no servers
-	dbSet, err := dao.GetWorkingSet(ctx, "empty-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "empty_set")
 	require.NoError(t, err)
-	assert.Equal(t, "empty-set", dbSet.ID)
+	assert.Equal(t, "empty_set", dbSet.ID)
 	assert.Empty(t, dbSet.Servers)
 }
 
@@ -494,12 +494,12 @@ func TestCreateOutputFormatYAML(t *testing.T) {
 	})
 
 	// Verify YAML format
-	assert.Equal(t, "id: test-set\n", output)
+	assert.Equal(t, "id: test_set\n", output)
 
 	// Verify the profile was created in the database
-	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
 	require.NoError(t, err)
-	assert.Equal(t, "test-set", dbSet.ID)
+	assert.Equal(t, "test_set", dbSet.ID)
 }
 
 // TestCreateUnsupportedFormat tests that unsupported formats are rejected
