@@ -509,5 +509,3 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, pypiResol
 
 	return server, nil
 }
-
-
