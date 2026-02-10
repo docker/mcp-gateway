@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
@@ -75,21 +76,44 @@ func DefaultPyPIVersionResolver() PyPIVersionResolver {
 }
 
 // parsePythonVersion extracts a pinned major.minor Python version from a PEP 440 specifier.
-// Only ~= and == pin to a specific version. >= means "this or newer", so we use the latest.
-// Examples: "~=3.10" -> "3.10", "==3.12" -> "3.12", ">=3.10" -> "" (use latest)
+// Pinning operators (~=, ==, <=, <) resolve to a specific version.
+// >= and > mean "this or newer", so we use the latest.
+// Examples: "~=3.10" -> "3.10", "==3.12" -> "3.12", ">=3.10" -> "" (use latest),
+// "<=3.10" -> "3.10", "<3.10" -> "3.9"
 func parsePythonVersion(requiresPython string) string {
 	if requiresPython == "" {
 		return ""
 	}
 
-	// Only match pinning specifiers: ~= and ==
-	re := regexp.MustCompile(`(?:~=|==)\s*(\d+)\.(\d+)`)
-	matches := re.FindStringSubmatch(requiresPython)
-	if len(matches) < 3 {
-		return ""
+	// Match all operator-version pairs in the specifier
+	re := regexp.MustCompile(`(~=|==|!=|<=|>=|<|>)\s*(\d+)(?:\.(\d+))?`)
+	allMatches := re.FindAllStringSubmatch(requiresPython, -1)
+
+	// If any >= or > constraint exists, the package supports newer versions — use latest
+	for _, m := range allMatches {
+		if m[1] == ">=" || m[1] == ">" {
+			return ""
+		}
 	}
 
-	return fmt.Sprintf("%s.%s", matches[1], matches[2])
+	// Look for pinning constraints
+	for _, m := range allMatches {
+		if m[3] == "" {
+			continue // no minor version component, skip
+		}
+		switch m[1] {
+		case "~=", "==", "<=":
+			return fmt.Sprintf("%s.%s", m[2], m[3])
+		case "<":
+			minor, err := strconv.Atoi(m[3])
+			if err != nil || minor <= 0 {
+				continue
+			}
+			return fmt.Sprintf("%s.%d", m[2], minor-1)
+		}
+	}
+
+	return ""
 }
 
 // pythonVersionToImageTag maps a Python version to the appropriate uv Docker image tag.
