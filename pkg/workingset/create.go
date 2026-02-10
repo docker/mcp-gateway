@@ -15,7 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
-func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, name string, servers []string, connectClients []string) error {
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, id string, name string, servers []string, connectClients []string, format OutputFormat) error {
 	telemetry.Init()
 	start := time.Now()
 	var success bool
@@ -88,9 +88,21 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		}
 	}
 
-	fmt.Printf("Created profile %s with %d servers\n", id, len(workingSet.Servers))
-	if len(connectClients) > 0 {
-		fmt.Printf("Connected to clients: %s\n", strings.Join(connectClients, ", "))
+	switch format {
+	case OutputFormatJSON:
+		// Output JSON with just the profile ID
+		fmt.Printf("{\"id\":\"%s\"}\n", id)
+	case OutputFormatYAML:
+		// Output YAML with just the profile ID
+		fmt.Printf("id: %s\n", id)
+	case OutputFormatHumanReadable:
+		// Output human-readable format (default)
+		fmt.Printf("Created profile %s with %d servers\n", id, len(workingSet.Servers))
+		if len(connectClients) > 0 {
+			fmt.Printf("Connected to clients: %s\n", strings.Join(connectClients, ", "))
+		}
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
 	}
 
 	success = true
