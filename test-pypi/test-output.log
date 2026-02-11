@@ -1,0 +1,650 @@
+
+Loaded 311 servers from pypi-servers.txt
+
+================================================================================
+[1/311] Testing: io.github.neo4j-contrib/mcp-neo4j-memory@1.0.0... [2/311] Testing: io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.1... [3/311] Testing: io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[4/311] Testing: io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0... [5/311] Testing: io.github.neo4j-contrib/mcp-neo4j-aura-manager@0.4.6... [6/311] Testing: io.github.neo4j-contrib/mcp-neo4j-cypher@0.5.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[7/311] Testing: io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.7.0... [8/311] Testing: io.github.neo4j-contrib/mcp-neo4j-memory@0.4.3... [9/311] Testing: io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[10/311] Testing: io.github.neo4j-contrib/mcp-neo4j-memory@0.4.4... [11/311] Testing: io.github.crypto-ninja/github-mcp-server@2.5.7... [12/311] Testing: io.github.jztan/redmine-mcp-server@0.4.5... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[13/311] Testing: io.github.jztan/pdf-mcp@1.1.1... [14/311] Testing: io.github.jztan/redmine-mcp-server@0.6.0... [15/311] Testing: io.github.Inflectra/mcp-server-spira@1.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[16/311] Testing: io.github.NitishGourishetty/contextual-mcp-server@0.1.0... [17/311] Testing: io.github.sidart10/runway-mcp-server@0.1.0... [18/311] Testing: io.github.nirholas/transaction-mcp-server@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[19/311] Testing: io.github.nirholas/keystore-mcp-server@1.0.0... [20/311] Testing: io.github.nirholas/signing-mcp-server@1.0.0... [21/311] Testing: io.github.nirholas/validation-mcp-server@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[22/311] Testing: io.github.nirholas/abi-to-mcp@0.1.0-1... [23/311] Testing: io.github.nirholas/ethereum-wallet-mcp@1.0.0... [24/311] Testing: io.github.nirholas/abi-to-mcp@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[25/311] Testing: io.github.vladkarpman/screen-buffer-mcp@2.1.0... [26/311] Testing: io.github.vladkarpman/device-manager-mcp@1.0.7... [27/311] Testing: io.github.vladkarpman/screen-buffer-mcp@2.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[28/311] Testing: io.github.major/porkbun@0.1.2... [29/311] Testing: io.github.major/pcp@1.2.0... [30/311] Testing: io.github.major/porkbun@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[31/311] Testing: io.github.major/pcp@1.3.1... [32/311] Testing: io.github.major/porkbun@1.1.0... [33/311] Testing: io.github.ai-mcpower/mcpower-proxy@0.0.87... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[34/311] Testing: io.github.cornelcroi/bookmark-lens@0.0.7... [35/311] Testing: io.github.cornelcroi/context-lens@0.1.5... [36/311] Testing: io.github.abhishekbhakat/airflow-mcp-server@0.9.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[37/311] Testing: io.github.gjeltep/app-store-connect-mcp@0.3.0... [38/311] Testing: ai.mcpcap/mcpcap@0.6.0... [39/311] Testing: io.github.fkom13/gencodedoc@2.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[40/311] Testing: io.github.trickyfalcon/mcp-msdefenderkql@1.0.0... [41/311] Testing: io.github.trickyfalcon/mcp-defender@0.1.0... [42/311] Testing: io.github.wtfregia/mtg-mcp@0.1.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[43/311] Testing: io.github.nowledge-co/server.json@1.0.0... [44/311] Testing: io.github.IvanRublev/keyphrases-mcp@0.0.4... [45/311] Testing: io.github.esrisaudiarabia/arcgis-mcp-server@1.1.4... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[46/311] Testing: io.github.JonasRackl/labmate-mcp@7.3.1... [47/311] Testing: io.github.khglynn/spotify-bulk-actions-mcp@0.1.1... [48/311] Testing: io.github.geored/lumino@0.9.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[49/311] Testing: io.github.ankitpal181/toon-parse-mcp@1.0.1-beta... [50/311] Testing: io.github.ZohaibCodez/discrete-structures@0.1.4... [51/311] Testing: io.github.nk3750/jitapi@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[52/311] Testing: io.github.agent-polis/impact-preview@0.2.1... [53/311] Testing: io.github.ReGenNow/regennexus-mcp@0.1.1... [54/311] Testing: io.github.Skills03/scrimba-teaching@1.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[55/311] Testing: io.github.king-of-the-grackles/reddit-research-mcp@1.0.1... [56/311] Testing: io.github.iworkist/btcmcp@0.1.2... [57/311] Testing: io.github.signnow/sn-mcp-server@0.3.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[58/311] Testing: io.github.signnow/sn-api-helper-mcp@0.1.1... [59/311] Testing: com.kekwanu/syncline-mcp-server-python@1.0.35... [60/311] Testing: com.kekwanu/syncline-mcp-server-python@1.0.33... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[61/311] Testing: com.kekwanu/syncline-mcp-server-python@1.0.21... [62/311] Testing: com.kekwanu/syncline-mcp-server-python@1.0.20... [63/311] Testing: io.github.akougkas/zulipchat@0.4.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[64/311] Testing: io.github.manoharanRajesh/python-version@1.0.0... [65/311] Testing: io.github.vemonet/openroute-mcp@0.0.4... [66/311] Testing: io.github.luongnv89/mitre-mcp@0.3.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[67/311] Testing: io.github.yarnabrina/mcp-learning@0.2.0... [68/311] Testing: io.github.byteplant-dev/byteplant-mcp@1.0.0.post2... [69/311] Testing: io.github.cyntrisec/cyntrisec@0.1.10... PROFILE_FAILED - failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[70/311] Testing: io.github.CursorTouch/Windows-MCP@1.0.0... [71/311] Testing: io.github.abhichandra21/promptheus@0.3.1... [72/311] Testing: io.github.henilcalagiya/google-sheets-mcp@0.1.6... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[73/311] Testing: io.github.henilcalagiya/mcp-apple-notes@0.1.2... [74/311] Testing: io.github.PyJudge/pdf4vllm@1.0.2... [75/311] Testing: io.github.cr7258/elasticsearch-mcp-server@2.0.14... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[76/311] Testing: io.github.sellisd/mcp-units@0.3.3... [77/311] Testing: io.github.svnscha/mcp-windbg@0.2.3... [78/311] Testing: io.github.simplemindedbot/mnemex@0.5.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[79/311] Testing: io.github.winedarksea/AutoTS@1.0.1... [80/311] Testing: io.github.4R9UN/mcp-kql-server@2.0.8... [81/311] Testing: io.slingdata/sling-cli@1.4.23... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[82/311] Testing: io.github.aws/mcp-proxy-for-aws@1.0.0-preview.0... [83/311] Testing: io.github.MR901/plots-mcp@0.0.1... [84/311] Testing: io.github.MR901/mcp-plots@0.0.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[85/311] Testing: io.github.easytocloud/mac-letterhead@0.13.9... [86/311] Testing: com.files/python-mcp@1.0.0... [87/311] Testing: io.github.lxchst/weather-server-python@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[88/311] Testing: io.github.ryanmat/logicmonitor@1.1.0... [89/311] Testing: io.github.bunnyf/kicad-mcp-server@3.5.0... [90/311] Testing: io.github.redis/mcp-redis@0.4.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[91/311] Testing: io.github.stefanoamorelli/sec-edgar-mcp@1.0.5... [92/311] Testing: io.github.YimingYAN/fivetran-mcp@0.3.1... [93/311] Testing: com.allstacks/allstacks-mcp@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[94/311] Testing: io.github.MauroDruwel/smartschool-mcp@0.1.4... [95/311] Testing: io.github.joshmsimpson/exiftool@0.1.6... [96/311] Testing: io.github.alondmnt/joplin-mcp@0.5.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[97/311] Testing: io.github.matbanik/pomera@1.3.7... [98/311] Testing: io.github.ramalamadingdong/first-agentic-csa@0.3.8... [99/311] Testing: io.github.johnzfitch/pyghidra-lite@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[100/311] Testing: io.github.barangaroo/crosstabs-mcp@1.0.0... [101/311] Testing: io.github.barangaroo/crosstabs@1.0.1... [102/311] Testing: io.github.bethmaloney/rdl-mcp@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[103/311] Testing: io.github.MCPower-Security/mcpower-proxy@0.0.90... [104/311] Testing: io.github.elpadev/sample-mcp-server-python-package@0.0.1... [105/311] Testing: io.github.cafferychen777/chatspatial@1.0.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[106/311] Testing: io.github.matjmat/eulerian-marketing-platform-mcp@1.0.0... [107/311] Testing: io.github.colabfit/colabfit-mcp@1.0.0... [108/311] Testing: io.github.bpamiri/u2-mcp@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[109/311] Testing: io.github.mhcoen/mcp-relay@1.2.4... [110/311] Testing: io.github.surendranb/google-analytics-mcp@1.0.0... [111/311] Testing: io.github.jonnybottles/azure-updates@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[112/311] Testing: io.github.jonnybottles/m365-roadmap@0.2.1... [113/311] Testing: io.github.augee99/mcp-weather@1.0.0... [114/311] Testing: io.github.galaxyproject/galaxy-mcp@1.3.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[115/311] Testing: io.github.YinTokey/mcp_hackernews@0.1.1... [116/311] Testing: io.github.stepbot/stockfish-mcp@v1.0.2... [117/311] Testing: io.github.NeerajG03/vector-memory@0.2.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[118/311] Testing: io.github.KittyCAD/zoo-mcp@0.9.1... [119/311] Testing: io.github.TranThienTrong/asset-auto-picker@1.2.0... [120/311] Testing: io.github.guanqun-yang/mcp-server-r-counter@0.0.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[121/311] Testing: io.github.marlenezw/publish-mcp-server@0.1.3... [122/311] Testing: io.github.atarkowska/fastmcp-pdftools@0.1.2... [123/311] Testing: io.github.atarkowska/fastmcp-sqltools@0.3.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[124/311] Testing: io.github.atarkowska/fastmcp-pdftools@0.1.1... [125/311] Testing: io.github.andylbrummer/neural-mcp@0.1.4... [126/311] Testing: io.github.andylbrummer/math-mcp@0.1.6... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[127/311] Testing: io.github.andylbrummer/molecular-mcp@0.1.4... [128/311] Testing: io.github.andylbrummer/quantum-mcp@0.1.5... [129/311] Testing: io.github.andylbrummer/molecular-mcp@0.1.5... NO_TOOLS - connected but 0 server tools
+                                        NO_TOOLS - connected but 0 server tools
+[130/311] Testing: io.github.andylbrummer/quantum-mcp@0.1.6... [131/311] Testing: io.github.andylbrummer/molecular-mcp@0.1.6... [132/311] Testing: io.github.andylbrummer/math-mcp@0.1.5... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[133/311] Testing: io.github.andylbrummer/neural-mcp@0.1.6... [134/311] Testing: io.github.qwe4559999/scopus-mcp@0.1.3... [135/311] Testing: io.github.totonga/odsbox-jaquel-mcp@0.3.5... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[136/311] Testing: io.github.james116blue/journald-mcp-server@0.1.0... [137/311] Testing: io.github.basicmachines-co/basic-memory@0.17.7... [138/311] Testing: io.github.wedsamuel1230/electronic-mcp-server@1.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[139/311] Testing: io.github.josefdc/uniprot-mcp@0.1.0... [140/311] Testing: io.github.Snowflake-Labs/mcp@1.3.3... [141/311] Testing: io.github.taylorleese/mcp-toolz@0.3.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[142/311] Testing: io.github.yugui923/db-connect-mcp@0.3.1... [143/311] Testing: io.github.AdonaiVera/fiftyone-mcp-server@0.1.2... [144/311] Testing: io.github.4rgon4ut/sutra@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[145/311] Testing: io.github.Anarkitty1/semantic-frame@0.2.1... [146/311] Testing: io.github.roddutra/agent-mcp-gateway@0.2.5... [147/311] Testing: io.github.ai-debugger-inc/aidb@0.1.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[148/311] Testing: io.github.vulnersCom/vulners-mcp@1.0.3... [149/311] Testing: io.github.rhel-lightspeed/linux-mcp-server@1.2.1... [150/311] Testing: io.github.zzstoatzz/tangled-mcp@0.0.10... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[151/311] Testing: io.github.SamMorrowDrums/remarkable@0.6.0... [152/311] Testing: io.github.scrape-badger/scrapebadger@0.1.1... [153/311] Testing: io.github.KuudoAI/amazon_ads_mcp@0.2.6... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[154/311] Testing: io.github.PagerDuty/pagerduty-mcp@0.2.1... [155/311] Testing: io.github.tspicer/amazon_ads_mcp@0.2.4... [156/311] Testing: io.github.Memphora/memphora@0.1.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[157/311] Testing: io.github.dragonejt/iceberg-mcp-server@0.1.21... [158/311] Testing: io.github.standardbeagle/mcp-debug@1.1.6... [159/311] Testing: io.github.standardbeagle/devtool-mcp@0.3.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[160/311] Testing: io.github.standardbeagle/mcp-debug@1.1.5... [161/311] Testing: io.github.Murugarajr/ohm-mcp@1.0.1... [162/311] Testing: io.github.OtherVibes/mcp-as-a-judge@0.3.20... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[163/311] Testing: io.github.context-foundry/context-foundry@2.2.1... [164/311] Testing: io.github.motherduckdb/mcp-server-motherduck@0.7.1... [165/311] Testing: io.github.clarenceh/expenselm-mcp-server@0.2.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[166/311] Testing: io.github.SnowLeopard-AI/bigquery-mcp@0.1.0... [167/311] Testing: io.github.eghuzefa/engineer-your-data@0.1.0... [168/311] Testing: io.github.robotmcp/ros-mcp-server@2.2.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[169/311] Testing: io.github.palewire/datawrapper-mcp@0.0.19... [170/311] Testing: io.github.beycom/onetool-mcp@1.0.0rc2... [171/311] Testing: io.github.appwrite/mcp-for-api@0.2.8... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[172/311] Testing: io.github.Epochal-dev/open-notebook@0.3.0... [173/311] Testing: io.github.futuresearch/everyrow-mcp@0.1.9... [174/311] Testing: io.github.xcollantes/jira-mcp@0.2.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[175/311] Testing: io.github.nonatofabio/local-faiss-mcp@0.2.0-rc.2... [176/311] Testing: io.github.srikrishna235/scrimba-teaching-mcp@3.0.2... [177/311] Testing: io.github.aikts/yandex-tracker-mcp@0.5.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[178/311] Testing: io.github.xt765/mcp_documents_reader@1.0.3... [179/311] Testing: io.github.xt765/mcp-document-converter@0.1.2... [180/311] Testing: io.github.xt765/mcp_documents_reader@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[181/311] Testing: io.github.vandewilly/dice-roller@0.1.0... [182/311] Testing: io.github.214140846/skillhub-mcp@1.0.5... [183/311] Testing: io.github.asklokesh/powerbi-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[184/311] Testing: io.github.asklokesh/servicenow-mcp-server@0.1.1... [185/311] Testing: io.github.asklokesh/chanty-mcp-server@0.1.0... [186/311] Testing: io.github.asklokesh/tableau-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[187/311] Testing: io.github.asklokesh/azure-mcp-server@0.1.0... [188/311] Testing: io.github.asklokesh/rundeck-mcp-server@0.1.0... [189/311] Testing: io.github.asklokesh/zoho-crm-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[190/311] Testing: io.github.asklokesh/xero-mcp-server@0.1.0... [191/311] Testing: io.github.asklokesh/hootsuite-mcp-server@0.1.0... [192/311] Testing: io.github.asklokesh/quickbooks-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[193/311] Testing: io.github.asklokesh/harness-mcp-server@0.1.0... [194/311] Testing: io.github.asklokesh/mailchimp-mcp-server@0.1.0... [195/311] Testing: io.github.asklokesh/argocd-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[196/311] Testing: io.github.asklokesh/freshbooks-mcp-server@0.1.0... [197/311] Testing: io.github.asklokesh/uipath-mcp-server@0.1.0... [198/311] Testing: io.github.asklokesh/rancher-mcp-server@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[199/311] Testing: io.github.lars20070/mathematica-mcp@0.1.6... [200/311] Testing: io.github.cyberpapiii/imessage-max@0.1.1... [201/311] Testing: io.github.jackfioru92/aruba-email@0.2.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[202/311] Testing: io.github.silversurfer562/memdocs@2.1.4... [203/311] Testing: io.github.zloeber/terraform-ingest@0.1.21... [204/311] Testing: io.github.pree-dew/mcp-bookmark@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[205/311] Testing: io.github.bharath-krishna/mcp-test@0.1.0... [206/311] Testing: io.github.Wolfe-Jam/gemini-faf-mcp@1.0.2... [207/311] Testing: io.github.aringad/fattureincloud-mcp@1.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[208/311] Testing: io.github.stevenvo/slack-mcp-server@0.1.0... [209/311] Testing: io.github.detailobsessed/unblu@0.4.1... [210/311] Testing: io.github.detailobsessed/unblu@0.4.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[211/311] Testing: io.github.ariroffe72/zmanim-mcp-server@0.2.0... [212/311] Testing: io.github.therealtimex/browser-use@0.7.10.dev5... [213/311] Testing: io.github.therealtimex/un-datacommons-mcp@1.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[214/311] Testing: io.github.therealtimex/browser-use@0.7.10... [215/311] Testing: io.github.therealtimex/browser-use@0.7.10.dev1... [216/311] Testing: io.github.blueskylineassets/far-mcp-server@1.0.5... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[217/311] Testing: io.github.blueskylineassets/far-mcp-server@1.0.1... [218/311] Testing: io.github.CodeLogicIncEngineering/codelogic-mcp-server@1.0.11... [219/311] Testing: io.github.KazKozDev/search@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[220/311] Testing: io.github.mickymultani/crypto-bytes@0.1.1... [221/311] Testing: io.github.oogunbiyi21/stats-compass@0.2.9... [222/311] Testing: io.oxylabs/oxylabs-mcp@0.7.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[223/311] Testing: io.github.drfccv/mcp-server-12306@0.2.6... [224/311] Testing: io.github.Dewars30/fulcrum@1.1.0... [225/311] Testing: aws.api.us-east-1.eks-mcp/server@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[226/311] Testing: io.github.gersonfreire/simpliq-server@0.1.1... [227/311] Testing: io.github.zhongweili/nanobanana-mcp-server@1.0.0... [228/311] Testing: io.github.isdaniel/pgtuner_mcp@0.5.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[229/311] Testing: io.github.isdaniel/mcp_weather_server@0.6.1... [230/311] Testing: io.github.raisiqueira/django-telescope@0.1.2... [231/311] Testing: io.github.ubaumann/mkdocs-mcp@0.1.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[232/311] Testing: io.github.huoshuiai42/huoshui-pdf-converter@1.0.0... [233/311] Testing: io.github.huoshuiai42/huoshui-file-converter@1.0.0... [234/311] Testing: io.github.huoshuiai42/huoshui-fetch@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[235/311] Testing: io.github.huoshuiai42/huoshui-file-search@1.0.0... [236/311] Testing: io.github.huoshuiai42/huoshui-pdf-translator@1.0.0... [237/311] Testing: io.github.marshally/mcp-refactoring@0.1.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[238/311] Testing: io.github.BarhamAgha1/bridge-mcp@1.1.3... [239/311] Testing: io.github.johnmci/ClaudeSmalltalk@1.2.1... [240/311] Testing: io.github.mgaruccio/openapi-navigator@0.5.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[241/311] Testing: io.github.drivenrajat/f1@0.1.0... [242/311] Testing: io.github.PrefectHQ/prefect-mcp-server@0.0.1-beta.9... [243/311] Testing: io.github.CogitatorTech/omni-nli@0.1.0... PROFILE_FAILED - failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[244/311] Testing: io.github.zcsabbagh/knowledge-graph-mcp@0.1.0... [245/311] Testing: io.github.agenthotspot/agenthotspot-mcp@1.0.2... [246/311] Testing: io.github.zwldarren/akshare-one-mcp@0.3.6... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[247/311] Testing: io.github.composable-delivery/snowfakery-mcp@0.0.4... [248/311] Testing: io.github.gradion-ai/ipybox@0.6.3... [249/311] Testing: io.github.PCfVW/mcp-arangodb-async@0.5.4... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[250/311] Testing: io.github.antnewman/pm-data@0.3.0... [251/311] Testing: io.github.antnewman/pm-analyse@0.3.0... [252/311] Testing: io.github.antnewman/pm-validate@0.3.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[253/311] Testing: io.github.burningion/video-editing-mcp@1.0.1... [254/311] Testing: io.github.verygoodplugins/streamdeck-mcp@0.1.2... [255/311] Testing: io.github.verygoodplugins/robinhood-mcp@0.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[256/311] Testing: io.github.tedfytw1209/mcp-server-EVEfleet@1.0.2... [257/311] Testing: io.github.PiotrAleksander/open-notebook@0.1.1... [258/311] Testing: io.github.manusa/podman-mcp-server@0.0.14... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[259/311] Testing: io.github.HzaCode/onecite@0.0.11... [260/311] Testing: io.github.mgwalkerjr95/texas-grocery@0.1.3... [261/311] Testing: io.github.DiaaAj/a-mem-mcp@0.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[262/311] Testing: io.github.wmarceau/hvac-quotes@1.0.0... [263/311] Testing: io.github.wmarceau/upwork@1.0.1... [264/311] Testing: io.github.wmarceau/fitness-influencer@1.2.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[265/311] Testing: io.github.wmarceau/apollo@1.1.0... [266/311] Testing: io.github.wmarceau/youtube-creator@1.0.0... [267/311] Testing: io.github.wmarceau/fitness-influencer@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[268/311] Testing: io.github.wmarceau/apollo@1.1.1... [269/311] Testing: io.github.wmarceau/rideshare-comparison@1.0.0... [270/311] Testing: io.github.wmarceau/md-to-pdf@1.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[271/311] Testing: io.github.wmarceau/fitness-influencer@1.3.0... [272/311] Testing: io.github.wmarceau/amazon-seller@1.0.0... [273/311] Testing: io.github.Fato07/log-analyzer-mcp@0.4.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[274/311] Testing: io.github.xorrkaz/cml-mcp@0.24.0... [275/311] Testing: com.opsmill/infrahub-mcp@0.1.2... [276/311] Testing: io.github.tmonk/mcp-stata@1.0.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[277/311] Testing: io.github.ArkTechNWA/zsh-tool@0.2.1... [278/311] Testing: io.github.alex-feel/mcp-context-server@0.2.0... [279/311] Testing: io.github.egoughnour/massive-context-mcp@3.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[280/311] Testing: io.github.egoughnour/code-firewall-mcp@0.7.0... [281/311] Testing: io.github.egoughnour/massive-context-mcp@2.0.6... [282/311] Testing: io.github.egoughnour/cowork-history@4.0.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[283/311] Testing: io.github.ChengJiale150/jupyter-mcp-server@1.1.0... [284/311] Testing: io.github.Defenter-AI/defenter-proxy@0.0.95... [285/311] Testing: io.github.gattjoe/ACMS@0.0.7... PROFILE_FAILED - failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[286/311] Testing: io.github.leshchenko1979/fast-mcp-telegram@0.4.5... [287/311] Testing: io.github.augmnt/augments-mcp-server@1.0.1... [288/311] Testing: io.github.ScrapeGraphAI/scrapegraph-mcp@1.0.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[289/311] Testing: io.github.universalamateur/reclaim-mcp-server@0.9.1... [290/311] Testing: io.github.MervinPraison/praisonai@2.3.42... [291/311] Testing: com.stackhawk/stackhawk@1.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[292/311] Testing: io.github.nickzren/opentargets@0.1.0... [293/311] Testing: io.github.Ansvar-Systems/security-controls@0.3.4... [294/311] Testing: io.github.KevinRabun/FedRAMP20xMCP@1.1.0... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[295/311] Testing: io.github.religa/multi-mcp@0.1.1... [296/311] Testing: io.github.nigue3025/tw-cwa-weather-mcp@1.0.0... [297/311] Testing: io.github.cdnsteve/sugar@3.4.2... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[298/311] Testing: io.github.tm42/mnemograph@0.4.0... [299/311] Testing: io.github.domdomegg/time-mcp-pypi@1.0.6... [300/311] Testing: io.github.domdomegg/time-mcp-pypi@1.1.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[301/311] Testing: io.github.saucelabs-sample-test-frameworks/sauce-api-mcp@1.0.0... [302/311] Testing: io.github.stefanstranger/avm-mcp-server@0.1.5... [303/311] Testing: io.github.sharebook-kr/pykrx-mcp@0.1.3... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[304/311] Testing: io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools@2.0.0... [305/311] Testing: io.github.gauravfs-14/lit-mcp@0.1.9... [306/311] Testing: io.github.michael-denyer/hot-memory-mcp@0.5.10... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[307/311] Testing: io.github.habedi/omni-lpr@0.3.2... [308/311] Testing: io.github.tdnupe3/coinrailz@1.0.1... [309/311] Testing: io.github.vishalsachdev/canvas-mcp@1.0.6... PROFILE_FAILED - failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+[310/311] Testing: io.github.ggozad/haiku-rag@0.16.0... [311/311] Testing: io.github.pedro-rivas/android-puppeteer-mcp@1.0.1... NO_TOOLS - connected but 0 server tools
+NO_TOOLS - connected but 0 server tools
+
+================================================================================
+REPORT
+================================================================================
+
+Total servers tested:     311
+Servers WITH tools:      0 (0.0%)
+Servers with NO tools:   307
+Servers FAILED:          0
+Profile creation FAILED: 4
+Time elapsed:            90.4s
+
+--- Servers with NO tools (307) ---
+  io.github.neo4j-contrib/mcp-neo4j-memory@1.0.0
+  io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.1
+  io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0
+  io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0
+  io.github.neo4j-contrib/mcp-neo4j-aura-manager@0.4.6
+  io.github.neo4j-contrib/mcp-neo4j-cypher@0.5.2
+  io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.7.0
+  io.github.neo4j-contrib/mcp-neo4j-memory@0.4.3
+  io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.2
+  io.github.neo4j-contrib/mcp-neo4j-memory@0.4.4
+  io.github.crypto-ninja/github-mcp-server@2.5.7
+  io.github.jztan/redmine-mcp-server@0.4.5
+  io.github.jztan/pdf-mcp@1.1.1
+  io.github.jztan/redmine-mcp-server@0.6.0
+  io.github.Inflectra/mcp-server-spira@1.1.1
+  io.github.NitishGourishetty/contextual-mcp-server@0.1.0
+  io.github.sidart10/runway-mcp-server@0.1.0
+  io.github.nirholas/transaction-mcp-server@1.0.0
+  io.github.nirholas/keystore-mcp-server@1.0.0
+  io.github.nirholas/signing-mcp-server@1.0.0
+  io.github.nirholas/validation-mcp-server@1.0.0
+  io.github.nirholas/abi-to-mcp@0.1.0-1
+  io.github.nirholas/ethereum-wallet-mcp@1.0.0
+  io.github.nirholas/abi-to-mcp@0.1.0
+  io.github.vladkarpman/screen-buffer-mcp@2.1.0
+  io.github.vladkarpman/device-manager-mcp@1.0.7
+  io.github.vladkarpman/screen-buffer-mcp@2.0.1
+  io.github.major/porkbun@0.1.2
+  io.github.major/pcp@1.2.0
+  io.github.major/porkbun@1.0.0
+  io.github.major/pcp@1.3.1
+  io.github.major/porkbun@1.1.0
+  io.github.ai-mcpower/mcpower-proxy@0.0.87
+  io.github.cornelcroi/bookmark-lens@0.0.7
+  io.github.cornelcroi/context-lens@0.1.5
+  io.github.abhishekbhakat/airflow-mcp-server@0.9.0
+  io.github.gjeltep/app-store-connect-mcp@0.3.0
+  ai.mcpcap/mcpcap@0.6.0
+  io.github.fkom13/gencodedoc@2.0.0
+  io.github.trickyfalcon/mcp-msdefenderkql@1.0.0
+  io.github.trickyfalcon/mcp-defender@0.1.0
+  io.github.wtfregia/mtg-mcp@0.1.3
+  io.github.nowledge-co/server.json@1.0.0
+  io.github.IvanRublev/keyphrases-mcp@0.0.4
+  io.github.esrisaudiarabia/arcgis-mcp-server@1.1.4
+  io.github.JonasRackl/labmate-mcp@7.3.1
+  io.github.khglynn/spotify-bulk-actions-mcp@0.1.1
+  io.github.geored/lumino@0.9.2
+  io.github.ankitpal181/toon-parse-mcp@1.0.1-beta
+  io.github.ZohaibCodez/discrete-structures@0.1.4
+  io.github.nk3750/jitapi@0.1.1
+  io.github.agent-polis/impact-preview@0.2.1
+  io.github.ReGenNow/regennexus-mcp@0.1.1
+  io.github.Skills03/scrimba-teaching@1.0.1
+  io.github.king-of-the-grackles/reddit-research-mcp@1.0.1
+  io.github.iworkist/btcmcp@0.1.2
+  io.github.signnow/sn-mcp-server@0.3.1
+  io.github.signnow/sn-api-helper-mcp@0.1.1
+  com.kekwanu/syncline-mcp-server-python@1.0.35
+  com.kekwanu/syncline-mcp-server-python@1.0.33
+  com.kekwanu/syncline-mcp-server-python@1.0.21
+  com.kekwanu/syncline-mcp-server-python@1.0.20
+  io.github.akougkas/zulipchat@0.4.2
+  io.github.manoharanRajesh/python-version@1.0.0
+  io.github.vemonet/openroute-mcp@0.0.4
+  io.github.luongnv89/mitre-mcp@0.3.1
+  io.github.byteplant-dev/byteplant-mcp@1.0.0.post2
+  io.github.cyntrisec/cyntrisec@0.1.10
+  io.github.CursorTouch/Windows-MCP@1.0.0
+  io.github.abhichandra21/promptheus@0.3.1
+  io.github.henilcalagiya/google-sheets-mcp@0.1.6
+  io.github.henilcalagiya/mcp-apple-notes@0.1.2
+  io.github.PyJudge/pdf4vllm@1.0.2
+  io.github.cr7258/elasticsearch-mcp-server@2.0.14
+  io.github.sellisd/mcp-units@0.3.3
+  io.github.svnscha/mcp-windbg@0.2.3
+  io.github.simplemindedbot/mnemex@0.5.2
+  io.github.winedarksea/AutoTS@1.0.1
+  io.github.4R9UN/mcp-kql-server@2.0.8
+  io.slingdata/sling-cli@1.4.23
+  io.github.aws/mcp-proxy-for-aws@1.0.0-preview.0
+  io.github.MR901/plots-mcp@0.0.1
+  io.github.MR901/mcp-plots@0.0.3
+  io.github.easytocloud/mac-letterhead@0.13.9
+  com.files/python-mcp@1.0.0
+  io.github.lxchst/weather-server-python@0.1.1
+  io.github.ryanmat/logicmonitor@1.1.0
+  io.github.bunnyf/kicad-mcp-server@3.5.0
+  io.github.redis/mcp-redis@0.4.0
+  io.github.stefanoamorelli/sec-edgar-mcp@1.0.5
+  io.github.YimingYAN/fivetran-mcp@0.3.1
+  com.allstacks/allstacks-mcp@0.1.0
+  io.github.MauroDruwel/smartschool-mcp@0.1.4
+  io.github.joshmsimpson/exiftool@0.1.6
+  io.github.alondmnt/joplin-mcp@0.5.0
+  io.github.matbanik/pomera@1.3.7
+  io.github.ramalamadingdong/first-agentic-csa@0.3.8
+  io.github.johnzfitch/pyghidra-lite@0.1.1
+  io.github.barangaroo/crosstabs-mcp@1.0.0
+  io.github.barangaroo/crosstabs@1.0.1
+  io.github.bethmaloney/rdl-mcp@0.1.0
+  io.github.MCPower-Security/mcpower-proxy@0.0.90
+  io.github.elpadev/sample-mcp-server-python-package@0.0.1
+  io.github.cafferychen777/chatspatial@1.0.3
+  io.github.matjmat/eulerian-marketing-platform-mcp@1.0.0
+  io.github.colabfit/colabfit-mcp@1.0.0
+  io.github.bpamiri/u2-mcp@0.1.1
+  io.github.mhcoen/mcp-relay@1.2.4
+  io.github.surendranb/google-analytics-mcp@1.0.0
+  io.github.jonnybottles/azure-updates@0.1.1
+  io.github.jonnybottles/m365-roadmap@0.2.1
+  io.github.augee99/mcp-weather@1.0.0
+  io.github.galaxyproject/galaxy-mcp@1.3.0
+  io.github.YinTokey/mcp_hackernews@0.1.1
+  io.github.stepbot/stockfish-mcp@v1.0.2
+  io.github.NeerajG03/vector-memory@0.2.0
+  io.github.KittyCAD/zoo-mcp@0.9.1
+  io.github.TranThienTrong/asset-auto-picker@1.2.0
+  io.github.guanqun-yang/mcp-server-r-counter@0.0.3
+  io.github.marlenezw/publish-mcp-server@0.1.3
+  io.github.atarkowska/fastmcp-pdftools@0.1.2
+  io.github.atarkowska/fastmcp-sqltools@0.3.0
+  io.github.atarkowska/fastmcp-pdftools@0.1.1
+  io.github.andylbrummer/neural-mcp@0.1.4
+  io.github.andylbrummer/math-mcp@0.1.6
+  io.github.andylbrummer/molecular-mcp@0.1.4
+  io.github.andylbrummer/quantum-mcp@0.1.5
+  io.github.andylbrummer/molecular-mcp@0.1.5
+  io.github.andylbrummer/quantum-mcp@0.1.6
+  io.github.andylbrummer/molecular-mcp@0.1.6
+  io.github.andylbrummer/math-mcp@0.1.5
+  io.github.andylbrummer/neural-mcp@0.1.6
+  io.github.qwe4559999/scopus-mcp@0.1.3
+  io.github.totonga/odsbox-jaquel-mcp@0.3.5
+  io.github.james116blue/journald-mcp-server@0.1.0
+  io.github.basicmachines-co/basic-memory@0.17.7
+  io.github.wedsamuel1230/electronic-mcp-server@1.0.1
+  io.github.josefdc/uniprot-mcp@0.1.0
+  io.github.Snowflake-Labs/mcp@1.3.3
+  io.github.taylorleese/mcp-toolz@0.3.2
+  io.github.yugui923/db-connect-mcp@0.3.1
+  io.github.AdonaiVera/fiftyone-mcp-server@0.1.2
+  io.github.4rgon4ut/sutra@0.1.1
+  io.github.Anarkitty1/semantic-frame@0.2.1
+  io.github.roddutra/agent-mcp-gateway@0.2.5
+  io.github.ai-debugger-inc/aidb@0.1.2
+  io.github.vulnersCom/vulners-mcp@1.0.3
+  io.github.rhel-lightspeed/linux-mcp-server@1.2.1
+  io.github.zzstoatzz/tangled-mcp@0.0.10
+  io.github.SamMorrowDrums/remarkable@0.6.0
+  io.github.scrape-badger/scrapebadger@0.1.1
+  io.github.KuudoAI/amazon_ads_mcp@0.2.6
+  io.github.PagerDuty/pagerduty-mcp@0.2.1
+  io.github.tspicer/amazon_ads_mcp@0.2.4
+  io.github.Memphora/memphora@0.1.2
+  io.github.dragonejt/iceberg-mcp-server@0.1.21
+  io.github.standardbeagle/mcp-debug@1.1.6
+  io.github.standardbeagle/devtool-mcp@0.3.1
+  io.github.standardbeagle/mcp-debug@1.1.5
+  io.github.Murugarajr/ohm-mcp@1.0.1
+  io.github.OtherVibes/mcp-as-a-judge@0.3.20
+  io.github.context-foundry/context-foundry@2.2.1
+  io.github.motherduckdb/mcp-server-motherduck@0.7.1
+  io.github.clarenceh/expenselm-mcp-server@0.2.3
+  io.github.SnowLeopard-AI/bigquery-mcp@0.1.0
+  io.github.eghuzefa/engineer-your-data@0.1.0
+  io.github.robotmcp/ros-mcp-server@2.2.1
+  io.github.palewire/datawrapper-mcp@0.0.19
+  io.github.beycom/onetool-mcp@1.0.0rc2
+  io.github.appwrite/mcp-for-api@0.2.8
+  io.github.Epochal-dev/open-notebook@0.3.0
+  io.github.futuresearch/everyrow-mcp@0.1.9
+  io.github.xcollantes/jira-mcp@0.2.2
+  io.github.nonatofabio/local-faiss-mcp@0.2.0-rc.2
+  io.github.srikrishna235/scrimba-teaching-mcp@3.0.2
+  io.github.aikts/yandex-tracker-mcp@0.5.0
+  io.github.xt765/mcp_documents_reader@1.0.3
+  io.github.xt765/mcp-document-converter@0.1.2
+  io.github.xt765/mcp_documents_reader@1.0.0
+  io.github.vandewilly/dice-roller@0.1.0
+  io.github.214140846/skillhub-mcp@1.0.5
+  io.github.asklokesh/powerbi-mcp-server@0.1.0
+  io.github.asklokesh/servicenow-mcp-server@0.1.1
+  io.github.asklokesh/chanty-mcp-server@0.1.0
+  io.github.asklokesh/tableau-mcp-server@0.1.0
+  io.github.asklokesh/azure-mcp-server@0.1.0
+  io.github.asklokesh/rundeck-mcp-server@0.1.0
+  io.github.asklokesh/zoho-crm-mcp-server@0.1.0
+  io.github.asklokesh/xero-mcp-server@0.1.0
+  io.github.asklokesh/hootsuite-mcp-server@0.1.0
+  io.github.asklokesh/quickbooks-mcp-server@0.1.0
+  io.github.asklokesh/harness-mcp-server@0.1.0
+  io.github.asklokesh/mailchimp-mcp-server@0.1.0
+  io.github.asklokesh/argocd-mcp-server@0.1.0
+  io.github.asklokesh/freshbooks-mcp-server@0.1.0
+  io.github.asklokesh/uipath-mcp-server@0.1.0
+  io.github.asklokesh/rancher-mcp-server@0.1.0
+  io.github.lars20070/mathematica-mcp@0.1.6
+  io.github.cyberpapiii/imessage-max@0.1.1
+  io.github.jackfioru92/aruba-email@0.2.1
+  io.github.silversurfer562/memdocs@2.1.4
+  io.github.zloeber/terraform-ingest@0.1.21
+  io.github.pree-dew/mcp-bookmark@0.1.1
+  io.github.bharath-krishna/mcp-test@0.1.0
+  io.github.Wolfe-Jam/gemini-faf-mcp@1.0.2
+  io.github.aringad/fattureincloud-mcp@1.1.0
+  io.github.stevenvo/slack-mcp-server@0.1.0
+  io.github.detailobsessed/unblu@0.4.1
+  io.github.detailobsessed/unblu@0.4.3
+  io.github.ariroffe72/zmanim-mcp-server@0.2.0
+  io.github.therealtimex/browser-use@0.7.10.dev5
+  io.github.therealtimex/un-datacommons-mcp@1.0.1
+  io.github.therealtimex/browser-use@0.7.10
+  io.github.therealtimex/browser-use@0.7.10.dev1
+  io.github.blueskylineassets/far-mcp-server@1.0.5
+  io.github.blueskylineassets/far-mcp-server@1.0.1
+  io.github.CodeLogicIncEngineering/codelogic-mcp-server@1.0.11
+  io.github.KazKozDev/search@0.1.1
+  io.github.mickymultani/crypto-bytes@0.1.1
+  io.github.oogunbiyi21/stats-compass@0.2.9
+  io.oxylabs/oxylabs-mcp@0.7.2
+  io.github.drfccv/mcp-server-12306@0.2.6
+  io.github.Dewars30/fulcrum@1.1.0
+  aws.api.us-east-1.eks-mcp/server@1.0.0
+  io.github.gersonfreire/simpliq-server@0.1.1
+  io.github.zhongweili/nanobanana-mcp-server@1.0.0
+  io.github.isdaniel/pgtuner_mcp@0.5.2
+  io.github.isdaniel/mcp_weather_server@0.6.1
+  io.github.raisiqueira/django-telescope@0.1.2
+  io.github.ubaumann/mkdocs-mcp@0.1.2
+  io.github.huoshuiai42/huoshui-pdf-converter@1.0.0
+  io.github.huoshuiai42/huoshui-file-converter@1.0.0
+  io.github.huoshuiai42/huoshui-fetch@1.0.0
+  io.github.huoshuiai42/huoshui-file-search@1.0.0
+  io.github.huoshuiai42/huoshui-pdf-translator@1.0.0
+  io.github.marshally/mcp-refactoring@0.1.2
+  io.github.BarhamAgha1/bridge-mcp@1.1.3
+  io.github.johnmci/ClaudeSmalltalk@1.2.1
+  io.github.mgaruccio/openapi-navigator@0.5.1
+  io.github.drivenrajat/f1@0.1.0
+  io.github.PrefectHQ/prefect-mcp-server@0.0.1-beta.9
+  io.github.zcsabbagh/knowledge-graph-mcp@0.1.0
+  io.github.agenthotspot/agenthotspot-mcp@1.0.2
+  io.github.zwldarren/akshare-one-mcp@0.3.6
+  io.github.composable-delivery/snowfakery-mcp@0.0.4
+  io.github.gradion-ai/ipybox@0.6.3
+  io.github.PCfVW/mcp-arangodb-async@0.5.4
+  io.github.antnewman/pm-data@0.3.0
+  io.github.antnewman/pm-analyse@0.3.0
+  io.github.antnewman/pm-validate@0.3.0
+  io.github.burningion/video-editing-mcp@1.0.1
+  io.github.verygoodplugins/streamdeck-mcp@0.1.2
+  io.github.verygoodplugins/robinhood-mcp@0.1.0
+  io.github.tedfytw1209/mcp-server-EVEfleet@1.0.2
+  io.github.PiotrAleksander/open-notebook@0.1.1
+  io.github.manusa/podman-mcp-server@0.0.14
+  io.github.HzaCode/onecite@0.0.11
+  io.github.mgwalkerjr95/texas-grocery@0.1.3
+  io.github.DiaaAj/a-mem-mcp@0.1.1
+  io.github.wmarceau/hvac-quotes@1.0.0
+  io.github.wmarceau/upwork@1.0.1
+  io.github.wmarceau/fitness-influencer@1.2.0
+  io.github.wmarceau/apollo@1.1.0
+  io.github.wmarceau/youtube-creator@1.0.0
+  io.github.wmarceau/fitness-influencer@1.0.0
+  io.github.wmarceau/apollo@1.1.1
+  io.github.wmarceau/rideshare-comparison@1.0.0
+  io.github.wmarceau/md-to-pdf@1.0.1
+  io.github.wmarceau/fitness-influencer@1.3.0
+  io.github.wmarceau/amazon-seller@1.0.0
+  io.github.Fato07/log-analyzer-mcp@0.4.2
+  io.github.xorrkaz/cml-mcp@0.24.0
+  com.opsmill/infrahub-mcp@0.1.2
+  io.github.tmonk/mcp-stata@1.0.3
+  io.github.ArkTechNWA/zsh-tool@0.2.1
+  io.github.alex-feel/mcp-context-server@0.2.0
+  io.github.egoughnour/massive-context-mcp@3.0.1
+  io.github.egoughnour/code-firewall-mcp@0.7.0
+  io.github.egoughnour/massive-context-mcp@2.0.6
+  io.github.egoughnour/cowork-history@4.0.3
+  io.github.ChengJiale150/jupyter-mcp-server@1.1.0
+  io.github.Defenter-AI/defenter-proxy@0.0.95
+  io.github.leshchenko1979/fast-mcp-telegram@0.4.5
+  io.github.augmnt/augments-mcp-server@1.0.1
+  io.github.ScrapeGraphAI/scrapegraph-mcp@1.0.0
+  io.github.universalamateur/reclaim-mcp-server@0.9.1
+  io.github.MervinPraison/praisonai@2.3.42
+  com.stackhawk/stackhawk@1.1.1
+  io.github.nickzren/opentargets@0.1.0
+  io.github.Ansvar-Systems/security-controls@0.3.4
+  io.github.KevinRabun/FedRAMP20xMCP@1.1.0
+  io.github.religa/multi-mcp@0.1.1
+  io.github.nigue3025/tw-cwa-weather-mcp@1.0.0
+  io.github.cdnsteve/sugar@3.4.2
+  io.github.tm42/mnemograph@0.4.0
+  io.github.domdomegg/time-mcp-pypi@1.0.6
+  io.github.domdomegg/time-mcp-pypi@1.1.1
+  io.github.saucelabs-sample-test-frameworks/sauce-api-mcp@1.0.0
+  io.github.stefanstranger/avm-mcp-server@0.1.5
+  io.github.sharebook-kr/pykrx-mcp@0.1.3
+  io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools@2.0.0
+  io.github.gauravfs-14/lit-mcp@0.1.9
+  io.github.michael-denyer/hot-memory-mcp@0.5.10
+  io.github.tdnupe3/coinrailz@1.0.1
+  io.github.vishalsachdev/canvas-mcp@1.0.6
+  io.github.ggozad/haiku-rag@0.16.0
+  io.github.pedro-rivas/android-puppeteer-mcp@1.0.1
+
+--- Profile creation FAILED (4) ---
+  io.github.yarnabrina/mcp-learning@0.2.0: failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+  io.github.CogitatorTech/omni-nli@0.1.0: failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+  io.github.gattjoe/ACMS@0.0.7: failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+  io.github.habedi/omni-lpr@0.3.2: failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found
+
+
+Detailed results written to: /Users/codyrigney/Development/mcp-gateway/test-pypi/results.json

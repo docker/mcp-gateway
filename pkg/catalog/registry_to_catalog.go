@@ -479,6 +479,8 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 				server.Type = "server"
 				server.LongLived = true
 				source = TransformSourcePyPI
+				server.AllowHosts = []string{"pypi.org:443", "pypi.python.org:443", "*.pypi.org:443", "*.python.org:443"}
+				// server.DisableNetwork = true
 			}
 		default:
 			return nil, "", fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)

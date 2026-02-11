@@ -1,0 +1,3833 @@
+[
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.1",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.1",
+    "status": "tools_found",
+    "toolCount": 16,
+    "tools": [
+      "export_to_arrows_json",
+      "export_to_neo4j_graphrag_pkg_schema",
+      "export_to_owl_turtle",
+      "export_to_pydantic_models",
+      "get_constraints_cypher_queries",
+      "get_example_data_model",
+      "get_mermaid_config_str",
+      "get_node_cypher_ingest_query",
+      "get_relationship_cypher_ingest_query",
+      "list_example_data_models",
+      "load_from_arrows_json",
+      "load_from_neo4j_graphrag_pkg_schema",
+      "load_from_owl_turtle",
+      "validate_data_model",
+      "validate_node",
+      "validate_relationship"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/0.4.6",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@0.4.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/0.5.2",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@0.5.2",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "get_neo4j_schema",
+      "read_neo4j_cypher",
+      "write_neo4j_cypher"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.7.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.7.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/0.4.3",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@0.4.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.2",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.2",
+    "status": "tools_found",
+    "toolCount": 16,
+    "tools": [
+      "export_to_arrows_json",
+      "export_to_neo4j_graphrag_pkg_schema",
+      "export_to_owl_turtle",
+      "export_to_pydantic_models",
+      "get_constraints_cypher_queries",
+      "get_example_data_model",
+      "get_mermaid_config_str",
+      "get_node_cypher_ingest_query",
+      "get_relationship_cypher_ingest_query",
+      "list_example_data_models",
+      "load_from_arrows_json",
+      "load_from_neo4j_graphrag_pkg_schema",
+      "load_from_owl_turtle",
+      "validate_data_model",
+      "validate_node",
+      "validate_relationship"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/0.4.4",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@0.4.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.crypto-ninja%2Fgithub-mcp-server/versions/2.5.7",
+    "name": "io.github.crypto-ninja/github-mcp-server@2.5.7",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.4.5",
+    "name": "io.github.jztan/redmine-mcp-server@0.4.5",
+    "status": "failed",
+    "error": "MCP error -32001: Request timed out",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fpdf-mcp/versions/1.1.1",
+    "name": "io.github.jztan/pdf-mcp@1.1.1",
+    "status": "tools_found",
+    "toolCount": 8,
+    "tools": [
+      "pdf_cache_clear",
+      "pdf_cache_stats",
+      "pdf_extract_images",
+      "pdf_get_toc",
+      "pdf_info",
+      "pdf_read_all",
+      "pdf_read_pages",
+      "pdf_search"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.6.0",
+    "name": "io.github.jztan/redmine-mcp-server@0.6.0",
+    "status": "failed",
+    "error": "MCP error -32001: Request timed out",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Inflectra%2Fmcp-server-spira/versions/1.1.1",
+    "name": "io.github.Inflectra/mcp-server-spira@1.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NitishGourishetty%2Fcontextual-mcp-server/versions/0.1.0",
+    "name": "io.github.NitishGourishetty/contextual-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sidart10%2Frunway-mcp-server/versions/0.1.0",
+    "name": "io.github.sidart10/runway-mcp-server@0.1.0",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "cancel_task",
+      "edit_video_with_aleph",
+      "extend_video",
+      "generate_image_gen4",
+      "generate_video_first_last_frame",
+      "generate_video_image_to_video",
+      "generate_video_text_to_video",
+      "get_api_info",
+      "get_task_status",
+      "list_available_models",
+      "restyle_video",
+      "upscale_video_4k"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Ftransaction-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/transaction-mcp-server@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fkeystore-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/keystore-mcp-server@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fsigning-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/signing-mcp-server@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fvalidation-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/validation-mcp-server@1.0.0",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "batch_validate_addresses",
+      "calculate_storage_slot",
+      "compare_addresses",
+      "decode_function_selector",
+      "derive_address_from_private_key",
+      "derive_address_from_public_key",
+      "encode_function_selector",
+      "generate_vanity_check",
+      "keccak256_hash",
+      "to_checksum_address",
+      "validate_address",
+      "validate_ens_name",
+      "validate_hex_data",
+      "validate_private_key",
+      "validate_signature"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0-1",
+    "name": "io.github.nirholas/abi-to-mcp@0.1.0-1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fethereum-wallet-mcp/versions/1.0.0",
+    "name": "io.github.nirholas/ethereum-wallet-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0",
+    "name": "io.github.nirholas/abi-to-mcp@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.1.0",
+    "name": "io.github.vladkarpman/screen-buffer-mcp@2.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fdevice-manager-mcp/versions/1.0.7",
+    "name": "io.github.vladkarpman/device-manager-mcp@1.0.7",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.0.1",
+    "name": "io.github.vladkarpman/screen-buffer-mcp@2.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/0.1.2",
+    "name": "io.github.major/porkbun@0.1.2",
+    "status": "tools_found",
+    "toolCount": 25,
+    "tools": [
+      "dns_create",
+      "dns_delete",
+      "dns_delete_by_name_type",
+      "dns_edit",
+      "dns_edit_by_name_type",
+      "dns_get",
+      "dns_get_by_name_type",
+      "dns_list",
+      "dnssec_create",
+      "dnssec_delete",
+      "dnssec_list",
+      "domains_add_url_forward",
+      "domains_check_availability",
+      "domains_create_glue_record",
+      "domains_delete_glue_record",
+      "domains_delete_url_forward",
+      "domains_get_glue_records",
+      "domains_get_nameservers",
+      "domains_get_url_forwards",
+      "domains_list",
+      "domains_update_glue_record",
+      "domains_update_nameservers",
+      "ping",
+      "pricing_get",
+      "ssl_retrieve"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.2.0",
+    "name": "io.github.major/pcp@1.2.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.0.0",
+    "name": "io.github.major/porkbun@1.0.0",
+    "status": "tools_found",
+    "toolCount": 25,
+    "tools": [
+      "dns_create",
+      "dns_delete",
+      "dns_delete_by_name_type",
+      "dns_edit",
+      "dns_edit_by_name_type",
+      "dns_get",
+      "dns_get_by_name_type",
+      "dns_list",
+      "dnssec_create",
+      "dnssec_delete",
+      "dnssec_list",
+      "domains_add_url_forward",
+      "domains_check_availability",
+      "domains_create_glue_record",
+      "domains_delete_glue_record",
+      "domains_delete_url_forward",
+      "domains_get_glue_records",
+      "domains_get_nameservers",
+      "domains_get_url_forwards",
+      "domains_list",
+      "domains_update_glue_record",
+      "domains_update_nameservers",
+      "ping",
+      "pricing_get",
+      "ssl_retrieve"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
+    "name": "io.github.major/pcp@1.3.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.1.0",
+    "name": "io.github.major/porkbun@1.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-mcpower%2Fmcpower-proxy/versions/0.0.87",
+    "name": "io.github.ai-mcpower/mcpower-proxy@0.0.87",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fbookmark-lens/versions/0.0.7",
+    "name": "io.github.cornelcroi/bookmark-lens@0.0.7",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fcontext-lens/versions/0.1.5",
+    "name": "io.github.cornelcroi/context-lens@0.1.5",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "add_document",
+      "clear_knowledge_base",
+      "get_document_info",
+      "list_documents",
+      "remove_document",
+      "search_documents"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhishekbhakat%2Fairflow-mcp-server/versions/0.9.0",
+    "name": "io.github.abhishekbhakat/airflow-mcp-server@0.9.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gjeltep%2Fapp-store-connect-mcp/versions/0.3.0",
+    "name": "io.github.gjeltep/app-store-connect-mcp@0.3.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/ai.mcpcap%2Fmcpcap/versions/0.6.0",
+    "name": "ai.mcpcap/mcpcap@0.6.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.fkom13%2Fgencodedoc/versions/2.0.0",
+    "name": "io.github.fkom13/gencodedoc@2.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-msdefenderkql/versions/1.0.0",
+    "name": "io.github.trickyfalcon/mcp-msdefenderkql@1.0.0",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "get_hunting_schema",
+      "run_hunting_query"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-defender/versions/0.1.0",
+    "name": "io.github.trickyfalcon/mcp-defender@0.1.0",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "get_hunting_schema",
+      "run_hunting_query"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wtfregia%2Fmtg-mcp/versions/0.1.3",
+    "name": "io.github.wtfregia/mtg-mcp@0.1.3",
+    "status": "tools_found",
+    "toolCount": 13,
+    "tools": [
+      "mtg-archidekt-fetch",
+      "mtg-cardtypes-get",
+      "mtg-combos-search",
+      "mtg-commander-brackets",
+      "mtg-commander-deck",
+      "mtg-commander-recommend",
+      "mtg-context-commander",
+      "mtg-context-get",
+      "mtg-export-format",
+      "mtg-moxfield-fetch",
+      "mtg-rules-get",
+      "mtg-rules-search",
+      "mtg-ruling-search"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nowledge-co%2Fserver.json/versions/1.0.0",
+    "name": "io.github.nowledge-co/server.json@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.IvanRublev%2Fkeyphrases-mcp/versions/0.0.4",
+    "name": "io.github.IvanRublev/keyphrases-mcp@0.0.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.esrisaudiarabia%2Farcgis-mcp-server/versions/1.1.4",
+    "name": "io.github.esrisaudiarabia/arcgis-mcp-server@1.1.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.JonasRackl%2Flabmate-mcp/versions/7.3.1",
+    "name": "io.github.JonasRackl/labmate-mcp@7.3.1",
+    "status": "tools_found",
+    "toolCount": 81,
+    "tools": [
+      "analyze_research_topic",
+      "assign_peptide_ms_peaks",
+      "build_bibliography",
+      "calculate_buffer_ph",
+      "calculate_concentration",
+      "calculate_dilution",
+      "calculate_isotope_pattern",
+      "calculate_molarity",
+      "calculate_peptide_extinction",
+      "calculate_peptide_pi",
+      "calculate_reaction_mass",
+      "calculate_yield",
+      "check_peptide_synthesis",
+      "classify_natural_product",
+      "compute_descriptors",
+      "convert_units",
+      "find_open_access_pdf",
+      "find_similar_papers",
+      "format_citation",
+      "format_molecular_formula",
+      "generate_bibtex",
+      "generate_peptide_library",
+      "generate_si_checklist",
+      "get_author_profile",
+      "get_chemrxiv_categories",
+      "get_compound_properties",
+      "get_journal_metrics",
+      "get_paper_citations",
+      "get_paper_details",
+      "get_paper_references",
+      "get_peptide_ion_series",
+      "get_protein_structure",
+      "get_safety_data",
+      "get_thesis_guide",
+      "lookup_abbreviation",
+      "lookup_amino_acid_properties",
+      "lookup_buffer_recipe",
+      "lookup_column_chromatography",
+      "lookup_cooling_bath",
+      "lookup_experimental_template",
+      "lookup_iupac_name",
+      "lookup_journal_guide",
+      "lookup_lab_tips",
+      "lookup_named_reaction",
+      "lookup_nmr_solvent",
+      "lookup_periodic_table",
+      "lookup_protecting_group",
+      "lookup_rxn_dev_checklist",
+      "lookup_safety_card",
+      "lookup_solvent_properties",
+      "lookup_tlc_stain",
+      "lookup_workup_procedure",
+      "modify_peptide",
+      "name_to_smiles",
+      "peptide_cyclization_options",
+      "peptide_properties",
+      "peptide_to_smiles",
+      "plan_synthesis",
+      "predict_admet",
+      "predict_atom_mapping",
+      "predict_nmr",
+      "predict_pka",
+      "predict_product",
+      "predict_retrosynthesis",
+      "predict_solubility",
+      "profile_compound",
+      "search_binding_data",
+      "search_chemrxiv",
+      "search_compound",
+      "search_crystal_structures",
+      "search_mass_spectra",
+      "search_materials_project",
+      "search_nist_webbook",
+      "search_papers",
+      "search_protein_structures",
+      "search_tautomers",
+      "search_toxicity",
+      "search_web_of_science",
+      "text_to_procedure",
+      "translate_compound_ids",
+      "validate_cas_number"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.khglynn%2Fspotify-bulk-actions-mcp/versions/0.1.1",
+    "name": "io.github.khglynn/spotify-bulk-actions-mcp@0.1.1",
+    "status": "tools_found",
+    "toolCount": 32,
+    "tools": [
+      "add_reviewed_tracks",
+      "add_tracks_to_playlist",
+      "batch_search_tracks",
+      "check_auth_status",
+      "compare_playlists",
+      "create_playlist",
+      "create_playlist_from_search_results",
+      "export_library_summary",
+      "export_playlist_to_csv",
+      "export_review_csv",
+      "find_duplicate_tracks",
+      "follow_artists",
+      "get_albums_by_song_count",
+      "get_followed_artists",
+      "get_library_artists",
+      "get_playlist_info",
+      "get_playlist_tracks",
+      "get_recently_played",
+      "get_saved_tracks",
+      "get_top_artists",
+      "get_top_tracks",
+      "get_track_preview_url",
+      "import_and_create_playlist",
+      "parse_song_list_csv",
+      "remove_duplicate_tracks",
+      "remove_tracks_from_playlist",
+      "reorder_playlist_tracks",
+      "save_tracks",
+      "search_track",
+      "search_track_fuzzy",
+      "unfollow_artists",
+      "unsave_tracks"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.geored%2Flumino/versions/0.9.2",
+    "name": "io.github.geored/lumino@0.9.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ankitpal181%2Ftoon-parse-mcp/versions/1.0.1-beta",
+    "name": "io.github.ankitpal181/toon-parse-mcp@1.0.1-beta",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ZohaibCodez%2Fdiscrete-structures/versions/0.1.4",
+    "name": "io.github.ZohaibCodez/discrete-structures@0.1.4",
+    "status": "tools_found",
+    "toolCount": 21,
+    "tools": [
+      "aes_encrypt_decrypt",
+      "caesar_cipher",
+      "convert_to_cnf",
+      "convert_to_dnf",
+      "euler_totient",
+      "evaluate_boolean",
+      "gcd_lcm",
+      "generate_rsa_keys",
+      "generate_truth_table",
+      "is_prime",
+      "modular_arithmetic",
+      "prime_factors",
+      "rsa_encrypt_decrypt",
+      "simplify_boolean",
+      "vigenere_cipher",
+      "visualize_bfs_dfs",
+      "visualize_binary_search",
+      "visualize_bubble_sort",
+      "visualize_dijkstra",
+      "visualize_merge_sort",
+      "visualize_quick_sort"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nk3750%2Fjitapi/versions/0.1.1",
+    "name": "io.github.nk3750/jitapi@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agent-polis%2Fimpact-preview/versions/0.2.1",
+    "name": "io.github.agent-polis/impact-preview@0.2.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ReGenNow%2Fregennexus-mcp/versions/0.1.1",
+    "name": "io.github.ReGenNow/regennexus-mcp@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Skills03%2Fscrimba-teaching/versions/1.0.1",
+    "name": "io.github.Skills03/scrimba-teaching@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.king-of-the-grackles%2Freddit-research-mcp/versions/1.0.1",
+    "name": "io.github.king-of-the-grackles/reddit-research-mcp@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.iworkist%2Fbtcmcp/versions/0.1.2",
+    "name": "io.github.iworkist/btcmcp@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-mcp-server/versions/0.3.1",
+    "name": "io.github.signnow/sn-mcp-server@0.3.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-api-helper-mcp/versions/0.1.1",
+    "name": "io.github.signnow/sn-api-helper-mcp@0.1.1",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "get_signnow_api_info"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.35",
+    "name": "com.kekwanu/syncline-mcp-server-python@1.0.35",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.33",
+    "name": "com.kekwanu/syncline-mcp-server-python@1.0.33",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.21",
+    "name": "com.kekwanu/syncline-mcp-server-python@1.0.21",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.20",
+    "name": "com.kekwanu/syncline-mcp-server-python@1.0.20",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.akougkas%2Fzulipchat/versions/0.4.2",
+    "name": "io.github.akougkas/zulipchat@0.4.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manoharanRajesh%2Fpython-version/versions/1.0.0",
+    "name": "io.github.manoharanRajesh/python-version@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vemonet%2Fopenroute-mcp/versions/0.0.4",
+    "name": "io.github.vemonet/openroute-mcp@0.0.4",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "create_route_from_to",
+      "get_coordinates_object",
+      "get_reachable_area",
+      "search_known_routes",
+      "search_location_coordinates",
+      "search_pois"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.luongnv89%2Fmitre-mcp/versions/0.3.1",
+    "name": "io.github.luongnv89/mitre-mcp@0.3.1",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "get_groups",
+      "get_mitigations",
+      "get_software",
+      "get_tactics",
+      "get_technique_by_id",
+      "get_techniques",
+      "get_techniques_by_tactic",
+      "get_techniques_mitigated_by_mitigation",
+      "get_techniques_used_by_group"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yarnabrina%2Fmcp-learning/versions/0.2.0",
+    "name": "io.github.yarnabrina/mcp-learning@0.2.0",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.byteplant-dev%2Fbyteplant-mcp/versions/1.0.0.post2",
+    "name": "io.github.byteplant-dev/byteplant-mcp@1.0.0.post2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyntrisec%2Fcyntrisec/versions/0.1.10",
+    "name": "io.github.cyntrisec/cyntrisec@0.1.10",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CursorTouch%2FWindows-MCP/versions/1.0.0",
+    "name": "io.github.CursorTouch/Windows-MCP@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhichandra21%2Fpromptheus/versions/0.3.1",
+    "name": "io.github.abhichandra21/promptheus@0.3.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fgoogle-sheets-mcp/versions/0.1.6",
+    "name": "io.github.henilcalagiya/google-sheets-mcp@0.1.6",
+    "status": "tools_found",
+    "toolCount": 24,
+    "tools": [
+      "add_table_column_tool",
+      "add_table_records_tool",
+      "analyze_sheet_structure_tool",
+      "create_duplicate_sheet_tool",
+      "create_sheets_tool",
+      "create_table_tool",
+      "delete_sheets_tool",
+      "delete_table_column_tool",
+      "delete_table_records_tool",
+      "delete_table_tool",
+      "discover_spreadsheets_tool",
+      "get_sheet_cells_by_notation_tool",
+      "get_sheet_cells_by_range_tool",
+      "get_table_data_tool",
+      "get_table_metadata_tool",
+      "update_dropdown_options_tool",
+      "update_sheet_titles_tool",
+      "update_spreadsheet_title_tool",
+      "update_table_cells_by_notation_tool",
+      "update_table_cells_by_range_tool",
+      "update_table_column_name_tool",
+      "update_table_column_type_tool",
+      "update_table_sorting_tool",
+      "update_table_title_tool"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fmcp-apple-notes/versions/0.1.2",
+    "name": "io.github.henilcalagiya/mcp-apple-notes@0.1.2",
+    "status": "tools_found",
+    "toolCount": 14,
+    "tools": [
+      "create_folder",
+      "create_note",
+      "delete_folder",
+      "delete_note",
+      "list_all_notes",
+      "list_folder_with_structure",
+      "list_notes_with_structure",
+      "move_folder",
+      "move_note",
+      "read_folder",
+      "read_note",
+      "rename_folder",
+      "search_notes",
+      "update_note"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PyJudge%2Fpdf4vllm/versions/1.0.2",
+    "name": "io.github.PyJudge/pdf4vllm@1.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cr7258%2Felasticsearch-mcp-server/versions/2.0.14",
+    "name": "io.github.cr7258/elasticsearch-mcp-server@2.0.14",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sellisd%2Fmcp-units/versions/0.3.3",
+    "name": "io.github.sellisd/mcp-units@0.3.3",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "convert_temperature",
+      "convert_volume",
+      "convert_weight"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.svnscha%2Fmcp-windbg/versions/0.2.3",
+    "name": "io.github.svnscha/mcp-windbg@0.2.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.simplemindedbot%2Fmnemex/versions/0.5.2",
+    "name": "io.github.simplemindedbot/mnemex@0.5.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.winedarksea%2FAutoTS/versions/1.0.1",
+    "name": "io.github.winedarksea/AutoTS@1.0.1",
+    "status": "tools_found",
+    "toolCount": 28,
+    "tools": [
+      "apply_adjustments",
+      "apply_constraints",
+      "clean_data",
+      "clear_cache",
+      "convert_long_to_wide",
+      "detect_features",
+      "forecast_custom",
+      "forecast_event_risk",
+      "forecast_explainable",
+      "forecast_fast",
+      "forecast_from_features",
+      "generate_synthetic_data",
+      "get_autots_docs",
+      "get_data",
+      "get_detected_features",
+      "get_event_risk_results",
+      "get_forecast",
+      "get_forecast_components",
+      "get_model_params",
+      "get_validation_results",
+      "list_cache",
+      "load_data_from_file",
+      "load_live_data",
+      "load_sample_data",
+      "plot_event_risk",
+      "plot_features",
+      "plot_forecast",
+      "plot_validation"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4R9UN%2Fmcp-kql-server/versions/2.0.8",
+    "name": "io.github.4R9UN/mcp-kql-server@2.0.8",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "execute_kql_query",
+      "schema_memory"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.slingdata%2Fsling-cli/versions/1.4.23",
+    "name": "io.slingdata/sling-cli@1.4.23",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aws%2Fmcp-proxy-for-aws/versions/1.0.0-preview.0",
+    "name": "io.github.aws/mcp-proxy-for-aws@1.0.0-preview.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fplots-mcp/versions/0.0.1",
+    "name": "io.github.MR901/plots-mcp@0.0.1",
+    "status": "failed",
+    "error": "MCP error -32001: Request timed out",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fmcp-plots/versions/0.0.3",
+    "name": "io.github.MR901/mcp-plots@0.0.3",
+    "status": "failed",
+    "error": "MCP error -32001: Request timed out",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.easytocloud%2Fmac-letterhead/versions/0.13.9",
+    "name": "io.github.easytocloud/mac-letterhead@0.13.9",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.files%2Fpython-mcp/versions/1.0.0",
+    "name": "com.files/python-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lxchst%2Fweather-server-python/versions/0.1.1",
+    "name": "io.github.lxchst/weather-server-python@0.1.1",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "get_alerts",
+      "get_forecast"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ryanmat%2Flogicmonitor/versions/1.1.0",
+    "name": "io.github.ryanmat/logicmonitor@1.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bunnyf%2Fkicad-mcp-server/versions/3.5.0",
+    "name": "io.github.bunnyf/kicad-mcp-server@3.5.0",
+    "status": "tools_found",
+    "toolCount": 23,
+    "tools": [
+      "auto_route",
+      "cleanup_tasks",
+      "export_3d",
+      "export_all",
+      "export_bom",
+      "export_gerber",
+      "export_jlcpcb",
+      "export_netlist",
+      "export_pdf",
+      "export_sch_pdf",
+      "export_sch_svg",
+      "export_step",
+      "export_svg",
+      "fill_zones",
+      "get_board_info",
+      "get_output_files",
+      "get_task_status",
+      "get_version",
+      "list_projects",
+      "list_tasks",
+      "read_file",
+      "run_drc",
+      "run_erc"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.redis%2Fmcp-redis/versions/0.4.0",
+    "name": "io.github.redis/mcp-redis@0.4.0",
+    "status": "tools_found",
+    "toolCount": 45,
+    "tools": [
+      "client_list",
+      "create_vector_index_hash",
+      "dbsize",
+      "delete",
+      "expire",
+      "get",
+      "get_index_info",
+      "get_indexed_keys_number",
+      "get_indexes",
+      "get_vector_from_hash",
+      "hdel",
+      "hexists",
+      "hget",
+      "hgetall",
+      "hset",
+      "info",
+      "json_del",
+      "json_get",
+      "json_set",
+      "llen",
+      "lpop",
+      "lpush",
+      "lrange",
+      "publish",
+      "rename",
+      "rpop",
+      "rpush",
+      "sadd",
+      "scan_all_keys",
+      "scan_keys",
+      "search_redis_documents",
+      "set",
+      "set_vector_in_hash",
+      "smembers",
+      "srem",
+      "subscribe",
+      "type",
+      "unsubscribe",
+      "vector_search_hash",
+      "xadd",
+      "xdel",
+      "xrange",
+      "zadd",
+      "zrange",
+      "zrem"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanoamorelli%2Fsec-edgar-mcp/versions/1.0.5",
+    "name": "io.github.stefanoamorelli/sec-edgar-mcp@1.0.5",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YimingYAN%2Ffivetran-mcp/versions/0.3.1",
+    "name": "io.github.YimingYAN/fivetran-mcp@0.3.1",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "get_connection_schema",
+      "get_connection_status",
+      "get_schema",
+      "get_table_columns",
+      "get_table_status",
+      "list_connections",
+      "list_groups",
+      "list_tables",
+      "pause_connection",
+      "reload_schema",
+      "resume_connection",
+      "resync_tables",
+      "test_connection",
+      "trigger_resync",
+      "trigger_sync"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.allstacks%2Fallstacks-mcp/versions/0.1.0",
+    "name": "com.allstacks/allstacks-mcp@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MauroDruwel%2Fsmartschool-mcp/versions/0.1.4",
+    "name": "io.github.MauroDruwel/smartschool-mcp@0.1.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.joshmsimpson%2Fexiftool/versions/0.1.6",
+    "name": "io.github.joshmsimpson/exiftool@0.1.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alondmnt%2Fjoplin-mcp/versions/0.5.0",
+    "name": "io.github.alondmnt/joplin-mcp@0.5.0",
+    "status": "tools_found",
+    "toolCount": 19,
+    "tools": [
+      "create_note",
+      "create_notebook",
+      "create_tag",
+      "delete_note",
+      "delete_notebook",
+      "delete_tag",
+      "find_in_note",
+      "find_notes",
+      "find_notes_in_notebook",
+      "find_notes_with_tag",
+      "get_links",
+      "get_note",
+      "get_tags_by_note",
+      "list_notebooks",
+      "list_tags",
+      "ping_joplin",
+      "tag_note",
+      "untag_note",
+      "update_note"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matbanik%2Fpomera/versions/1.3.7",
+    "name": "io.github.matbanik/pomera@1.3.7",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ramalamadingdong%2Ffirst-agentic-csa/versions/0.3.8",
+    "name": "io.github.ramalamadingdong/first-agentic-csa@0.3.8",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "fetch_frc_doc_page",
+      "list_frc_doc_sections",
+      "search_frc_docs"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnzfitch%2Fpyghidra-lite/versions/0.1.1",
+    "name": "io.github.johnzfitch/pyghidra-lite@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs-mcp/versions/1.0.0",
+    "name": "io.github.barangaroo/crosstabs-mcp@1.0.0",
+    "status": "tools_found",
+    "toolCount": 39,
+    "tools": [
+      "attributable_risk",
+      "bonferroni_correction",
+      "breslow_day_test",
+      "check_assumptions",
+      "chi_square_test",
+      "chi_square_yates",
+      "cmh_test",
+      "cohens_kappa",
+      "correspondence_analysis",
+      "cramers_v",
+      "crosstab_from_csv",
+      "crosstab_from_data",
+      "detect_outliers",
+      "effect_size",
+      "fdr_correction",
+      "fishers_exact",
+      "g_test",
+      "goodman_kruskal_gamma",
+      "kendalls_tau",
+      "lambda_coefficient",
+      "linear_trend_test",
+      "mcnemar_test",
+      "monte_carlo_chi_square",
+      "mosaic_plot_data",
+      "odds_ratio",
+      "phi_coefficient",
+      "post_hoc_chi_square",
+      "power_analysis",
+      "proportion_ci",
+      "recommend_test",
+      "relative_risk",
+      "risk_difference",
+      "somers_d",
+      "spearmans_rho",
+      "stacked_bar_data",
+      "standardized_residuals",
+      "tau_c",
+      "uncertainty_coefficient",
+      "weighted_kappa"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs/versions/1.0.1",
+    "name": "io.github.barangaroo/crosstabs@1.0.1",
+    "status": "tools_found",
+    "toolCount": 39,
+    "tools": [
+      "attributable_risk",
+      "bonferroni_correction",
+      "breslow_day_test",
+      "check_assumptions",
+      "chi_square_test",
+      "chi_square_yates",
+      "cmh_test",
+      "cohens_kappa",
+      "correspondence_analysis",
+      "cramers_v",
+      "crosstab_from_csv",
+      "crosstab_from_data",
+      "detect_outliers",
+      "effect_size",
+      "fdr_correction",
+      "fishers_exact",
+      "g_test",
+      "goodman_kruskal_gamma",
+      "kendalls_tau",
+      "lambda_coefficient",
+      "linear_trend_test",
+      "mcnemar_test",
+      "monte_carlo_chi_square",
+      "mosaic_plot_data",
+      "odds_ratio",
+      "phi_coefficient",
+      "post_hoc_chi_square",
+      "power_analysis",
+      "proportion_ci",
+      "recommend_test",
+      "relative_risk",
+      "risk_difference",
+      "somers_d",
+      "spearmans_rho",
+      "stacked_bar_data",
+      "standardized_residuals",
+      "tau_c",
+      "uncertainty_coefficient",
+      "weighted_kappa"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bethmaloney%2Frdl-mcp/versions/0.1.0",
+    "name": "io.github.bethmaloney/rdl-mcp@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MCPower-Security%2Fmcpower-proxy/versions/0.0.90",
+    "name": "io.github.MCPower-Security/mcpower-proxy@0.0.90",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.elpadev%2Fsample-mcp-server-python-package/versions/0.0.1",
+    "name": "io.github.elpadev/sample-mcp-server-python-package@0.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cafferychen777%2Fchatspatial/versions/1.0.3",
+    "name": "io.github.cafferychen777/chatspatial@1.0.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matjmat%2Feulerian-marketing-platform-mcp/versions/1.0.0",
+    "name": "io.github.matjmat/eulerian-marketing-platform-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.colabfit%2Fcolabfit-mcp/versions/1.0.0",
+    "name": "io.github.colabfit/colabfit-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bpamiri%2Fu2-mcp/versions/0.1.1",
+    "name": "io.github.bpamiri/u2-mcp@0.1.1",
+    "status": "tools_found",
+    "toolCount": 31,
+    "tools": [
+      "analyze_file_structure",
+      "begin_transaction",
+      "call_subroutine",
+      "commit_transaction",
+      "connect",
+      "delete_knowledge",
+      "delete_record",
+      "describe_file",
+      "disconnect",
+      "execute_query",
+      "execute_tcl",
+      "export_to_csv",
+      "export_to_json",
+      "get_account_info",
+      "get_field_definition",
+      "get_file_info",
+      "get_knowledge_topic",
+      "get_select_list",
+      "get_transaction_status",
+      "list_catalog",
+      "list_connections",
+      "list_dictionary",
+      "list_files",
+      "list_knowledge",
+      "read_record",
+      "read_records",
+      "rollback_transaction",
+      "save_knowledge",
+      "search_knowledge",
+      "validate_query",
+      "write_record"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mhcoen%2Fmcp-relay/versions/1.2.4",
+    "name": "io.github.mhcoen/mcp-relay@1.2.4",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "relay_clear",
+      "relay_fetch",
+      "relay_send"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.surendranb%2Fgoogle-analytics-mcp/versions/1.0.0",
+    "name": "io.github.surendranb/google-analytics-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fazure-updates/versions/0.1.1",
+    "name": "io.github.jonnybottles/azure-updates@0.1.1",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "azure_updates_list_categories",
+      "azure_updates_search",
+      "azure_updates_summarize"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fm365-roadmap/versions/0.2.1",
+    "name": "io.github.jonnybottles/m365-roadmap@0.2.1",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "search_roadmap"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augee99%2Fmcp-weather/versions/1.0.0",
+    "name": "io.github.augee99/mcp-weather@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.galaxyproject%2Fgalaxy-mcp/versions/1.3.0",
+    "name": "io.github.galaxyproject/galaxy-mcp@1.3.0",
+    "status": "tools_found",
+    "toolCount": 31,
+    "tools": [
+      "cancel_workflow_invocation",
+      "connect",
+      "create_history",
+      "download_dataset",
+      "get_collection_details",
+      "get_dataset_details",
+      "get_histories",
+      "get_history_contents",
+      "get_history_details",
+      "get_invocations",
+      "get_iwc_workflow_details",
+      "get_iwc_workflows",
+      "get_job_details",
+      "get_server_info",
+      "get_tool_citations",
+      "get_tool_details",
+      "get_tool_panel",
+      "get_tool_run_examples",
+      "get_user",
+      "get_workflow_details",
+      "import_workflow_from_iwc",
+      "invoke_workflow",
+      "list_history_ids",
+      "list_workflows",
+      "recommend_iwc_workflows",
+      "run_tool",
+      "search_iwc_workflows",
+      "search_tools_by_keywords",
+      "search_tools_by_name",
+      "upload_file",
+      "upload_file_from_url"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YinTokey%2Fmcp_hackernews/versions/0.1.1",
+    "name": "io.github.YinTokey/mcp_hackernews@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stepbot%2Fstockfish-mcp/versions/v1.0.2",
+    "name": "io.github.stepbot/stockfish-mcp@v1.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NeerajG03%2Fvector-memory/versions/0.2.0",
+    "name": "io.github.NeerajG03/vector-memory@0.2.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KittyCAD%2Fzoo-mcp/versions/0.9.1",
+    "name": "io.github.KittyCAD/zoo-mcp@0.9.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.TranThienTrong%2Fasset-auto-picker/versions/1.2.0",
+    "name": "io.github.TranThienTrong/asset-auto-picker@1.2.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.guanqun-yang%2Fmcp-server-r-counter/versions/0.0.3",
+    "name": "io.github.guanqun-yang/mcp-server-r-counter@0.0.3",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "count"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marlenezw%2Fpublish-mcp-server/versions/0.1.3",
+    "name": "io.github.marlenezw/publish-mcp-server@0.1.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.2",
+    "name": "io.github.atarkowska/fastmcp-pdftools@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-sqltools/versions/0.3.0",
+    "name": "io.github.atarkowska/fastmcp-sqltools@0.3.0",
+    "status": "tools_found",
+    "toolCount": 4,
+    "tools": [
+      "execute_query",
+      "execute_safe_query",
+      "get_table_schema",
+      "list_tables"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.1",
+    "name": "io.github.atarkowska/fastmcp-pdftools@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fneural-mcp/versions/0.1.4",
+    "name": "io.github.andylbrummer/neural-mcp@0.1.4",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "compute_metrics",
+      "confusion_matrix",
+      "create_dataloader",
+      "define_model",
+      "evaluate_model",
+      "export_model",
+      "get_experiment_status",
+      "get_model_summary",
+      "info",
+      "load_dataset",
+      "load_pretrained",
+      "plot_training_curves",
+      "train_model",
+      "tune_hyperparameters",
+      "visualize_predictions"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/math-mcp@0.1.6",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "create_array",
+      "fft",
+      "find_roots",
+      "ifft",
+      "info",
+      "matrix_multiply",
+      "optimize_function",
+      "solve_linear_system",
+      "symbolic_diff",
+      "symbolic_integrate",
+      "symbolic_simplify",
+      "symbolic_solve"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.4",
+    "name": "io.github.andylbrummer/molecular-mcp@0.1.4",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "add_potential",
+      "analyze_temperature",
+      "compute_msd",
+      "compute_rdf",
+      "create_particles",
+      "density_field",
+      "detect_phase_transition",
+      "get_trajectory",
+      "info",
+      "list_distributions",
+      "load_distribution",
+      "render_trajectory",
+      "run_md",
+      "run_npt",
+      "run_nvt"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.5",
+    "name": "io.github.andylbrummer/quantum-mcp@0.1.5",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "analyze_wavefunction",
+      "create_custom_potential",
+      "create_gaussian_wavepacket",
+      "create_lattice_potential",
+      "create_plane_wave",
+      "get_simulation_result",
+      "get_task_status",
+      "info",
+      "render_video",
+      "solve_schrodinger",
+      "solve_schrodinger_2d",
+      "visualize_potential"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.5",
+    "name": "io.github.andylbrummer/molecular-mcp@0.1.5",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "add_potential",
+      "analyze_temperature",
+      "compute_msd",
+      "compute_rdf",
+      "create_particles",
+      "density_field",
+      "detect_phase_transition",
+      "get_trajectory",
+      "info",
+      "list_distributions",
+      "load_distribution",
+      "render_trajectory",
+      "run_md",
+      "run_npt",
+      "run_nvt"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/quantum-mcp@0.1.6",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "analyze_wavefunction",
+      "create_custom_potential",
+      "create_gaussian_wavepacket",
+      "create_lattice_potential",
+      "create_plane_wave",
+      "get_simulation_result",
+      "get_task_status",
+      "info",
+      "render_video",
+      "solve_schrodinger",
+      "solve_schrodinger_2d",
+      "visualize_potential"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/molecular-mcp@0.1.6",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "add_potential",
+      "analyze_temperature",
+      "compute_msd",
+      "compute_rdf",
+      "create_particles",
+      "density_field",
+      "detect_phase_transition",
+      "get_trajectory",
+      "info",
+      "list_distributions",
+      "load_distribution",
+      "render_trajectory",
+      "run_md",
+      "run_npt",
+      "run_nvt"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.5",
+    "name": "io.github.andylbrummer/math-mcp@0.1.5",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "create_array",
+      "fft",
+      "find_roots",
+      "ifft",
+      "info",
+      "matrix_multiply",
+      "optimize_function",
+      "solve_linear_system",
+      "symbolic_diff",
+      "symbolic_integrate",
+      "symbolic_simplify",
+      "symbolic_solve"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fneural-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/neural-mcp@0.1.6",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "compute_metrics",
+      "confusion_matrix",
+      "create_dataloader",
+      "define_model",
+      "evaluate_model",
+      "export_model",
+      "get_experiment_status",
+      "get_model_summary",
+      "info",
+      "load_dataset",
+      "load_pretrained",
+      "plot_training_curves",
+      "train_model",
+      "tune_hyperparameters",
+      "visualize_predictions"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.qwe4559999%2Fscopus-mcp/versions/0.1.3",
+    "name": "io.github.qwe4559999/scopus-mcp@0.1.3",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "get_abstract_details",
+      "get_author_profile",
+      "search_scopus"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.totonga%2Fodsbox-jaquel-mcp/versions/0.3.5",
+    "name": "io.github.totonga/odsbox-jaquel-mcp@0.3.5",
+    "status": "tools_found",
+    "toolCount": 29,
+    "tools": [
+      "build_filter_condition",
+      "check_entity_schema",
+      "compare_measurements",
+      "connect_ods_server",
+      "debug_query_steps",
+      "disconnect_ods_server",
+      "execute_ods_query",
+      "explain_jaquel_query",
+      "generate_measurement_comparison_notebook",
+      "generate_plotting_code",
+      "generate_query_skeleton",
+      "generate_submatrix_fetcher_script",
+      "get_bulk_api_help",
+      "get_ods_connection_info",
+      "get_operator_documentation",
+      "get_query_pattern",
+      "get_submatrix_measurement_quantities",
+      "get_test_to_measurement_hierarchy",
+      "list_ods_entities",
+      "list_query_patterns",
+      "merge_filter_conditions",
+      "query_measurement_hierarchy",
+      "read_submatrix_data",
+      "suggest_error_fixes",
+      "suggest_optimizations",
+      "validate_field_exists",
+      "validate_filter_against_schema",
+      "validate_filter_condition",
+      "validate_jaquel_query"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.james116blue%2Fjournald-mcp-server/versions/0.1.0",
+    "name": "io.github.james116blue/journald-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.basicmachines-co%2Fbasic-memory/versions/0.17.7",
+    "name": "io.github.basicmachines-co/basic-memory@0.17.7",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wedsamuel1230%2Felectronic-mcp-server/versions/1.0.1",
+    "name": "io.github.wedsamuel1230/electronic-mcp-server@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.josefdc%2Funiprot-mcp/versions/0.1.0",
+    "name": "io.github.josefdc/uniprot-mcp@0.1.0",
+    "status": "tools_found",
+    "toolCount": 5,
+    "tools": [
+      "fetch_entry",
+      "fetch_entry_flatfile",
+      "get_sequence",
+      "map_ids",
+      "search_uniprot"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Snowflake-Labs%2Fmcp/versions/1.3.3",
+    "name": "io.github.Snowflake-Labs/mcp@1.3.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorleese%2Fmcp-toolz/versions/0.3.2",
+    "name": "io.github.taylorleese/mcp-toolz@0.3.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yugui923%2Fdb-connect-mcp/versions/0.3.1",
+    "name": "io.github.yugui923/db-connect-mcp@0.3.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.AdonaiVera%2Ffiftyone-mcp-server/versions/0.1.2",
+    "name": "io.github.AdonaiVera/fiftyone-mcp-server@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4rgon4ut%2Fsutra/versions/0.1.1",
+    "name": "io.github.4rgon4ut/sutra@0.1.1",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "analyze_task_complexity",
+      "backtracking",
+      "design_context_architecture",
+      "get_cell_protocol",
+      "get_molecular_template",
+      "get_organ",
+      "get_prompt_program",
+      "get_protocol_shell",
+      "get_technique_guide",
+      "symbolic_abstract",
+      "understand_question",
+      "verify_logic"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Anarkitty1%2Fsemantic-frame/versions/0.2.1",
+    "name": "io.github.Anarkitty1/semantic-frame@0.2.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.roddutra%2Fagent-mcp-gateway/versions/0.2.5",
+    "name": "io.github.roddutra/agent-mcp-gateway@0.2.5",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-debugger-inc%2Faidb/versions/0.1.2",
+    "name": "io.github.ai-debugger-inc/aidb@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vulnersCom%2Fvulners-mcp/versions/1.0.3",
+    "name": "io.github.vulnersCom/vulners-mcp@1.0.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.rhel-lightspeed%2Flinux-mcp-server/versions/1.2.1",
+    "name": "io.github.rhel-lightspeed/linux-mcp-server@1.2.1",
+    "status": "tools_found",
+    "toolCount": 19,
+    "tools": [
+      "get_cpu_information",
+      "get_disk_usage",
+      "get_hardware_information",
+      "get_journal_logs",
+      "get_listening_ports",
+      "get_memory_information",
+      "get_network_connections",
+      "get_network_interfaces",
+      "get_process_info",
+      "get_service_logs",
+      "get_service_status",
+      "get_system_information",
+      "list_block_devices",
+      "list_directories",
+      "list_files",
+      "list_processes",
+      "list_services",
+      "read_file",
+      "read_log_file"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zzstoatzz%2Ftangled-mcp/versions/0.0.10",
+    "name": "io.github.zzstoatzz/tangled-mcp@0.0.10",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SamMorrowDrums%2Fremarkable/versions/0.6.0",
+    "name": "io.github.SamMorrowDrums/remarkable@0.6.0",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "remarkable_browse",
+      "remarkable_image",
+      "remarkable_read",
+      "remarkable_recent",
+      "remarkable_search",
+      "remarkable_status"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.scrape-badger%2Fscrapebadger/versions/0.1.1",
+    "name": "io.github.scrape-badger/scrapebadger@0.1.1",
+    "status": "tools_found",
+    "toolCount": 16,
+    "tools": [
+      "get_twitter_community_detail",
+      "get_twitter_followers",
+      "get_twitter_following",
+      "get_twitter_list_detail",
+      "get_twitter_list_tweets",
+      "get_twitter_place_trends",
+      "get_twitter_trends",
+      "get_twitter_tweet",
+      "get_twitter_user_about",
+      "get_twitter_user_profile",
+      "get_twitter_user_tweets",
+      "search_twitter_communities",
+      "search_twitter_lists",
+      "search_twitter_places",
+      "search_twitter_tweets",
+      "search_twitter_users"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KuudoAI%2Famazon_ads_mcp/versions/0.2.6",
+    "name": "io.github.KuudoAI/amazon_ads_mcp@0.2.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PagerDuty%2Fpagerduty-mcp/versions/0.2.1",
+    "name": "io.github.PagerDuty/pagerduty-mcp@0.2.1",
+    "status": "tools_found",
+    "toolCount": 37,
+    "tools": [
+      "add_note_to_incident",
+      "add_responders",
+      "add_team_member",
+      "append_event_orchestration_router_rule",
+      "create_alert_grouping_setting",
+      "create_incident",
+      "create_schedule_override",
+      "create_service",
+      "create_team",
+      "delete_alert_grouping_setting",
+      "delete_team",
+      "get_alert_grouping_setting",
+      "get_escalation_policy",
+      "get_event_orchestration",
+      "get_event_orchestration_router",
+      "get_incident",
+      "get_schedule",
+      "get_service",
+      "get_team",
+      "get_user_data",
+      "list_alert_grouping_settings",
+      "list_escalation_policies",
+      "list_event_orchestrations",
+      "list_incidents",
+      "list_oncalls",
+      "list_schedule_users",
+      "list_schedules",
+      "list_services",
+      "list_team_members",
+      "list_teams",
+      "list_users",
+      "manage_incidents",
+      "remove_team_member",
+      "update_alert_grouping_setting",
+      "update_event_orchestration_router",
+      "update_service",
+      "update_team"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tspicer%2Famazon_ads_mcp/versions/0.2.4",
+    "name": "io.github.tspicer/amazon_ads_mcp@0.2.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Memphora%2Fmemphora/versions/0.1.2",
+    "name": "io.github.Memphora/memphora@0.1.2",
+    "status": "tools_found",
+    "toolCount": 5,
+    "tools": [
+      "memphora_delete",
+      "memphora_extract_conversation",
+      "memphora_list_memories",
+      "memphora_search",
+      "memphora_store"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.dragonejt%2Ficeberg-mcp-server/versions/0.1.21",
+    "name": "io.github.dragonejt/iceberg-mcp-server@0.1.21",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fmcp-debug/versions/1.1.6",
+    "name": "io.github.standardbeagle/mcp-debug@1.1.6",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "hello_world"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fdevtool-mcp/versions/0.3.1",
+    "name": "io.github.standardbeagle/devtool-mcp@0.3.1",
+    "status": "tools_found",
+    "toolCount": 7,
+    "tools": [
+      "currentpage",
+      "daemon",
+      "detect",
+      "proc",
+      "proxy",
+      "proxylog",
+      "run"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fmcp-debug/versions/1.1.5",
+    "name": "io.github.standardbeagle/mcp-debug@1.1.5",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "hello_world"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Murugarajr%2Fohm-mcp/versions/1.0.1",
+    "name": "io.github.Murugarajr/ohm-mcp@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.OtherVibes%2Fmcp-as-a-judge/versions/0.3.20",
+    "name": "io.github.OtherVibes/mcp-as-a-judge@0.3.20",
+    "status": "tools_found",
+    "toolCount": 8,
+    "tools": [
+      "get_current_coding_task",
+      "judge_code_change",
+      "judge_coding_plan",
+      "judge_coding_task_completion",
+      "judge_testing_implementation",
+      "raise_missing_requirements",
+      "raise_obstacle",
+      "set_coding_task"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.context-foundry%2Fcontext-foundry/versions/2.2.1",
+    "name": "io.github.context-foundry/context-foundry@2.2.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.motherduckdb%2Fmcp-server-motherduck/versions/0.7.1",
+    "name": "io.github.motherduckdb/mcp-server-motherduck@0.7.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.clarenceh%2Fexpenselm-mcp-server/versions/0.2.3",
+    "name": "io.github.clarenceh/expenselm-mcp-server@0.2.3",
+    "status": "tools_found",
+    "toolCount": 8,
+    "tools": [
+      "download_expense_receipt_image",
+      "get_expense_by_id",
+      "get_expense_summary_by_category_by_currency",
+      "get_expense_summary_by_month_by_currency",
+      "get_expense_summary_by_subscription_by_currency",
+      "get_latest_expenses",
+      "get_latest_subscription_expenses",
+      "save_expense_receipt_image"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SnowLeopard-AI%2Fbigquery-mcp/versions/0.1.0",
+    "name": "io.github.SnowLeopard-AI/bigquery-mcp@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.eghuzefa%2Fengineer-your-data/versions/0.1.0",
+    "name": "io.github.eghuzefa/engineer-your-data@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.robotmcp%2Fros-mcp-server/versions/2.2.1",
+    "name": "io.github.robotmcp/ros-mcp-server@2.2.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.palewire%2Fdatawrapper-mcp/versions/0.0.19",
+    "name": "io.github.palewire/datawrapper-mcp@0.0.19",
+    "status": "tools_found",
+    "toolCount": 8,
+    "tools": [
+      "create_chart",
+      "delete_chart",
+      "export_chart_png",
+      "get_chart",
+      "get_chart_schema",
+      "list_chart_types",
+      "publish_chart",
+      "update_chart"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.beycom%2Fonetool-mcp/versions/1.0.0rc2",
+    "name": "io.github.beycom/onetool-mcp@1.0.0rc2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.appwrite%2Fmcp-for-api/versions/0.2.8",
+    "name": "io.github.appwrite/mcp-for-api@0.2.8",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Epochal-dev%2Fopen-notebook/versions/0.3.0",
+    "name": "io.github.Epochal-dev/open-notebook@0.3.0",
+    "status": "tools_found",
+    "toolCount": 33,
+    "tools": [
+      "ask_question",
+      "ask_simple",
+      "create_chat_session",
+      "create_model",
+      "create_note",
+      "create_notebook",
+      "create_source",
+      "delete_chat_session",
+      "delete_model",
+      "delete_note",
+      "delete_notebook",
+      "delete_source",
+      "execute_chat",
+      "get_chat_context",
+      "get_chat_session",
+      "get_default_models",
+      "get_model",
+      "get_note",
+      "get_notebook",
+      "get_settings",
+      "get_source",
+      "list_chat_sessions",
+      "list_models",
+      "list_notebooks",
+      "list_notes",
+      "list_sources",
+      "search",
+      "search_capabilities",
+      "update_chat_session",
+      "update_note",
+      "update_notebook",
+      "update_settings",
+      "update_source"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.futuresearch%2Feveryrow-mcp/versions/0.1.9",
+    "name": "io.github.futuresearch/everyrow-mcp@0.1.9",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xcollantes%2Fjira-mcp/versions/0.2.2",
+    "name": "io.github.xcollantes/jira-mcp@0.2.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nonatofabio%2Flocal-faiss-mcp/versions/0.2.0-rc.2",
+    "name": "io.github.nonatofabio/local-faiss-mcp@0.2.0-rc.2",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "ingest_document",
+      "query_rag_store"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.srikrishna235%2Fscrimba-teaching-mcp/versions/3.0.2",
+    "name": "io.github.srikrishna235/scrimba-teaching-mcp@3.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aikts%2Fyandex-tracker-mcp/versions/0.5.0",
+    "name": "io.github.aikts/yandex-tracker-mcp@0.5.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.3",
+    "name": "io.github.xt765/mcp_documents_reader@1.0.3",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "read_document"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp-document-converter/versions/0.1.2",
+    "name": "io.github.xt765/mcp-document-converter@0.1.2",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "can_convert",
+      "convert_document",
+      "list_supported_formats"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.0",
+    "name": "io.github.xt765/mcp_documents_reader@1.0.0",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "read_document"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vandewilly%2Fdice-roller/versions/0.1.0",
+    "name": "io.github.vandewilly/dice-roller@0.1.0",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "flip_coin",
+      "pick_random",
+      "roll_dice",
+      "roll_dnd_stats",
+      "roll_multiple",
+      "roll_percentile"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.214140846%2Fskillhub-mcp/versions/1.0.5",
+    "name": "io.github.214140846/skillhub-mcp@1.0.5",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fpowerbi-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/powerbi-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fservicenow-mcp-server/versions/0.1.1",
+    "name": "io.github.asklokesh/servicenow-mcp-server@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fchanty-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/chanty-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ftableau-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/tableau-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fazure-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/azure-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Frundeck-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/rundeck-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/zoho-crm-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fxero-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/xero-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fhootsuite-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/hootsuite-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fquickbooks-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/quickbooks-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fharness-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/harness-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fmailchimp-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/mailchimp-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fargocd-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/argocd-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ffreshbooks-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/freshbooks-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fuipath-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/uipath-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Francher-mcp-server/versions/0.1.0",
+    "name": "io.github.asklokesh/rancher-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lars20070%2Fmathematica-mcp/versions/0.1.6",
+    "name": "io.github.lars20070/mathematica-mcp@0.1.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyberpapiii%2Fimessage-max/versions/0.1.1",
+    "name": "io.github.cyberpapiii/imessage-max@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jackfioru92%2Faruba-email/versions/0.2.1",
+    "name": "io.github.jackfioru92/aruba-email@0.2.1",
+    "status": "tools_found",
+    "toolCount": 14,
+    "tools": [
+      "accept_calendar_event",
+      "check_bounced_emails",
+      "create_calendar_event",
+      "decline_calendar_event",
+      "delete_calendar_event",
+      "get_email_signature",
+      "list_calendar_events",
+      "list_email_signatures",
+      "list_emails",
+      "read_email",
+      "search_emails",
+      "send_email",
+      "set_email_signature",
+      "tentative_calendar_event"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.silversurfer562%2Fmemdocs/versions/2.1.4",
+    "name": "io.github.silversurfer562/memdocs@2.1.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zloeber%2Fterraform-ingest/versions/0.1.21",
+    "name": "io.github.zloeber/terraform-ingest@0.1.21",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pree-dew%2Fmcp-bookmark/versions/0.1.1",
+    "name": "io.github.pree-dew/mcp-bookmark@0.1.1",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "save_bookmark",
+      "search_bookmark"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bharath-krishna%2Fmcp-test/versions/0.1.0",
+    "name": "io.github.bharath-krishna/mcp-test@0.1.0",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "echo"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Wolfe-Jam%2Fgemini-faf-mcp/versions/1.0.2",
+    "name": "io.github.Wolfe-Jam/gemini-faf-mcp@1.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aringad%2Ffattureincloud-mcp/versions/1.1.0",
+    "name": "io.github.aringad/fattureincloud-mcp@1.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stevenvo%2Fslack-mcp-server/versions/0.1.0",
+    "name": "io.github.stevenvo/slack-mcp-server@0.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.detailobsessed%2Funblu/versions/0.4.1",
+    "name": "io.github.detailobsessed/unblu@0.4.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.detailobsessed%2Funblu/versions/0.4.3",
+    "name": "io.github.detailobsessed/unblu@0.4.3",
+    "status": "tools_found",
+    "toolCount": 5,
+    "tools": [
+      "call_api",
+      "get_operation_schema",
+      "list_operations",
+      "list_services",
+      "search_operations"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ariroffe72%2Fzmanim-mcp-server/versions/0.2.0",
+    "name": "io.github.ariroffe72/zmanim-mcp-server@0.2.0",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "zmanim_get_daily_times",
+      "zmanim_get_mincha_times",
+      "zmanim_get_shabbat_times",
+      "zmanim_get_shema_times",
+      "zmanim_get_sunrise_sunset",
+      "zmanim_get_tefila_times"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev5",
+    "name": "io.github.therealtimex/browser-use@0.7.10.dev5",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fun-datacommons-mcp/versions/1.0.1",
+    "name": "io.github.therealtimex/un-datacommons-mcp@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10",
+    "name": "io.github.therealtimex/browser-use@0.7.10",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev1",
+    "name": "io.github.therealtimex/browser-use@0.7.10.dev1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.5",
+    "name": "io.github.blueskylineassets/far-mcp-server@1.0.5",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.1",
+    "name": "io.github.blueskylineassets/far-mcp-server@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CodeLogicIncEngineering%2Fcodelogic-mcp-server/versions/1.0.11",
+    "name": "io.github.CodeLogicIncEngineering/codelogic-mcp-server@1.0.11",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "codelogic-database-impact",
+      "codelogic-method-impact"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KazKozDev%2Fsearch/versions/0.1.1",
+    "name": "io.github.KazKozDev/search@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mickymultani%2Fcrypto-bytes/versions/0.1.1",
+    "name": "io.github.mickymultani/crypto-bytes@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.oogunbiyi21%2Fstats-compass/versions/0.2.9",
+    "name": "io.github.oogunbiyi21/stats-compass@0.2.9",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.oxylabs%2Foxylabs-mcp/versions/0.7.2",
+    "name": "io.oxylabs/oxylabs-mcp@0.7.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drfccv%2Fmcp-server-12306/versions/0.2.6",
+    "name": "io.github.drfccv/mcp-server-12306@0.2.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Dewars30%2Ffulcrum/versions/1.1.0",
+    "name": "io.github.Dewars30/fulcrum@1.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.eks-mcp%2Fserver/versions/1.0.0",
+    "name": "aws.api.us-east-1.eks-mcp/server@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gersonfreire%2Fsimpliq-server/versions/0.1.1",
+    "name": "io.github.gersonfreire/simpliq-server@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zhongweili%2Fnanobanana-mcp-server/versions/1.0.0",
+    "name": "io.github.zhongweili/nanobanana-mcp-server@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fpgtuner_mcp/versions/0.5.2",
+    "name": "io.github.isdaniel/pgtuner_mcp@0.5.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fmcp_weather_server/versions/0.6.1",
+    "name": "io.github.isdaniel/mcp_weather_server@0.6.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.raisiqueira%2Fdjango-telescope/versions/0.1.2",
+    "name": "io.github.raisiqueira/django-telescope@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ubaumann%2Fmkdocs-mcp/versions/0.1.2",
+    "name": "io.github.ubaumann/mkdocs-mcp@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-converter/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-pdf-converter@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-converter/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-file-converter@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-fetch/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-fetch@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-search/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-file-search@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-translator/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-pdf-translator@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marshally%2Fmcp-refactoring/versions/0.1.2",
+    "name": "io.github.marshally/mcp-refactoring@0.1.2",
+    "status": "tools_found",
+    "toolCount": 5,
+    "tools": [
+      "analyze_code",
+      "apply_refactoring",
+      "inspect_structure",
+      "list_refactorings",
+      "preview_refactoring"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.BarhamAgha1%2Fbridge-mcp/versions/1.1.3",
+    "name": "io.github.BarhamAgha1/bridge-mcp@1.1.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnmci%2FClaudeSmalltalk/versions/1.2.1",
+    "name": "io.github.johnmci/ClaudeSmalltalk@1.2.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgaruccio%2Fopenapi-navigator/versions/0.5.1",
+    "name": "io.github.mgaruccio/openapi-navigator@0.5.1",
+    "status": "tools_found",
+    "toolCount": 11,
+    "tools": [
+      "get_endpoint",
+      "get_schema",
+      "get_spec_metadata",
+      "list_loaded_specs",
+      "load_spec",
+      "load_spec_from_url",
+      "make_api_request",
+      "search_endpoints",
+      "search_schemas",
+      "set_spec_headers",
+      "unload_spec"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drivenrajat%2Ff1/versions/0.1.0",
+    "name": "io.github.drivenrajat/f1@0.1.0",
+    "status": "tools_found",
+    "toolCount": 52,
+    "tools": [
+      "analyze_brake_points",
+      "analyze_drs_usage",
+      "analyze_lap_consistency",
+      "analyze_long_run_pace",
+      "analyze_rpm_data",
+      "analyze_starting_tires",
+      "compare_grid_to_finish",
+      "compare_sector_times",
+      "compare_strategies",
+      "compare_tire_age_performance",
+      "compare_tire_compounds",
+      "detect_overtakes",
+      "get_circuit_info",
+      "get_constructor_standings",
+      "get_deleted_laps",
+      "get_dnf_list",
+      "get_driver_info",
+      "get_driver_standings",
+      "get_fastest_lap_data",
+      "get_fastest_pit_stops",
+      "get_fastest_sectors",
+      "get_gap_to_leader",
+      "get_lap_times",
+      "get_live_lap_times",
+      "get_live_positions",
+      "get_live_sector_times",
+      "get_live_session_status",
+      "get_live_telemetry",
+      "get_live_weather",
+      "get_penalties",
+      "get_personal_best_laps",
+      "get_pit_stops",
+      "get_position_changes",
+      "get_qualifying_progression",
+      "get_race_control_messages",
+      "get_race_results",
+      "get_race_winners_history",
+      "get_schedule",
+      "get_session_info",
+      "get_session_summary",
+      "get_speed_trap_comparison",
+      "get_sprint_results",
+      "get_stint_analysis",
+      "get_team_laps",
+      "get_team_radio",
+      "get_track_record",
+      "get_track_status",
+      "get_tyre_strategy",
+      "get_weather_data",
+      "plot_gear_shifts",
+      "plot_telemetry_comparison",
+      "team_head_to_head"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PrefectHQ%2Fprefect-mcp-server/versions/0.0.1-beta.9",
+    "name": "io.github.PrefectHQ/prefect-mcp-server@0.0.1-beta.9",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CogitatorTech%2Fomni-nli/versions/0.1.0",
+    "name": "io.github.CogitatorTech/omni-nli@0.1.0",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zcsabbagh%2Fknowledge-graph-mcp/versions/0.1.0",
+    "name": "io.github.zcsabbagh/knowledge-graph-mcp@0.1.0",
+    "status": "tools_found",
+    "toolCount": 7,
+    "tools": [
+      "add_edge",
+      "add_node",
+      "get_learning_path",
+      "get_statistics",
+      "query_graph",
+      "read_subgraph",
+      "update_node"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agenthotspot%2Fagenthotspot-mcp/versions/1.0.2",
+    "name": "io.github.agenthotspot/agenthotspot-mcp@1.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zwldarren%2Fakshare-one-mcp/versions/0.3.6",
+    "name": "io.github.zwldarren/akshare-one-mcp@0.3.6",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_financial_metrics",
+      "get_hist_data",
+      "get_income_statement",
+      "get_inner_trade_data",
+      "get_news_data",
+      "get_realtime_data",
+      "get_time_info"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.composable-delivery%2Fsnowfakery-mcp/versions/0.0.4",
+    "name": "io.github.composable-delivery/snowfakery-mcp@0.0.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gradion-ai%2Fipybox/versions/0.6.3",
+    "name": "io.github.gradion-ai/ipybox@0.6.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PCfVW%2Fmcp-arangodb-async/versions/0.5.4",
+    "name": "io.github.PCfVW/mcp-arangodb-async@0.5.4",
+    "status": "tools_found",
+    "toolCount": 46,
+    "tools": [
+      "arango_add_edge",
+      "arango_add_edge_definition",
+      "arango_add_vertex",
+      "arango_add_vertex_collection",
+      "arango_advance_workflow_stage",
+      "arango_backup",
+      "arango_backup_graph",
+      "arango_backup_named_graphs",
+      "arango_bulk_insert",
+      "arango_bulk_update",
+      "arango_create_collection",
+      "arango_create_graph",
+      "arango_create_index",
+      "arango_create_schema",
+      "arango_database_status",
+      "arango_delete_index",
+      "arango_explain_query",
+      "arango_get_active_workflow",
+      "arango_get_database_resolution",
+      "arango_get_focused_database",
+      "arango_get_tool_usage_stats",
+      "arango_graph_statistics",
+      "arango_graph_traversal",
+      "arango_insert",
+      "arango_insert_with_validation",
+      "arango_list_available_databases",
+      "arango_list_collections",
+      "arango_list_graphs",
+      "arango_list_indexes",
+      "arango_list_tools_by_category",
+      "arango_list_workflows",
+      "arango_query",
+      "arango_query_builder",
+      "arango_query_profile",
+      "arango_remove",
+      "arango_restore_graph",
+      "arango_search_tools",
+      "arango_set_focused_database",
+      "arango_shortest_path",
+      "arango_switch_workflow",
+      "arango_traverse",
+      "arango_unload_tools",
+      "arango_update",
+      "arango_validate_document",
+      "arango_validate_graph_integrity",
+      "arango_validate_references"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-data/versions/0.3.0",
+    "name": "io.github.antnewman/pm-data@0.3.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-analyse/versions/0.3.0",
+    "name": "io.github.antnewman/pm-analyse@0.3.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-validate/versions/0.3.0",
+    "name": "io.github.antnewman/pm-validate@0.3.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.burningion%2Fvideo-editing-mcp/versions/1.0.1",
+    "name": "io.github.burningion/video-editing-mcp@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Fstreamdeck-mcp/versions/0.1.2",
+    "name": "io.github.verygoodplugins/streamdeck-mcp@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Frobinhood-mcp/versions/0.1.0",
+    "name": "io.github.verygoodplugins/robinhood-mcp@0.1.0",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "robinhood_get_dividends",
+      "robinhood_get_earnings",
+      "robinhood_get_fundamentals",
+      "robinhood_get_historicals",
+      "robinhood_get_news",
+      "robinhood_get_options_positions",
+      "robinhood_get_portfolio",
+      "robinhood_get_positions",
+      "robinhood_get_quote",
+      "robinhood_get_ratings",
+      "robinhood_get_watchlist",
+      "robinhood_search_symbols"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tedfytw1209%2Fmcp-server-EVEfleet/versions/1.0.2",
+    "name": "io.github.tedfytw1209/mcp-server-EVEfleet@1.0.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PiotrAleksander%2Fopen-notebook/versions/0.1.1",
+    "name": "io.github.PiotrAleksander/open-notebook@0.1.1",
+    "status": "tools_found",
+    "toolCount": 33,
+    "tools": [
+      "ask_question",
+      "ask_simple",
+      "create_chat_session",
+      "create_model",
+      "create_note",
+      "create_notebook",
+      "create_source",
+      "delete_chat_session",
+      "delete_model",
+      "delete_note",
+      "delete_notebook",
+      "delete_source",
+      "execute_chat",
+      "get_chat_context",
+      "get_chat_session",
+      "get_default_models",
+      "get_model",
+      "get_note",
+      "get_notebook",
+      "get_settings",
+      "get_source",
+      "list_chat_sessions",
+      "list_models",
+      "list_notebooks",
+      "list_notes",
+      "list_sources",
+      "search",
+      "search_capabilities",
+      "update_chat_session",
+      "update_note",
+      "update_notebook",
+      "update_settings",
+      "update_source"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manusa%2Fpodman-mcp-server/versions/0.0.14",
+    "name": "io.github.manusa/podman-mcp-server@0.0.14",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.HzaCode%2Fonecite/versions/0.0.11",
+    "name": "io.github.HzaCode/onecite@0.0.11",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgwalkerjr95%2Ftexas-grocery/versions/0.1.3",
+    "name": "io.github.mgwalkerjr95/texas-grocery@0.1.3",
+    "status": "tools_found",
+    "toolCount": 25,
+    "tools": [
+      "cart_add",
+      "cart_add_many",
+      "cart_add_with_retry",
+      "cart_check_auth",
+      "cart_get",
+      "cart_remove",
+      "coupon_categories",
+      "coupon_clip",
+      "coupon_clipped",
+      "coupon_list",
+      "coupon_search",
+      "health_live",
+      "health_ready",
+      "product_get",
+      "product_search",
+      "product_search_batch",
+      "session_clear",
+      "session_clear_credentials",
+      "session_refresh",
+      "session_save_credentials",
+      "session_save_instructions",
+      "session_status",
+      "store_change",
+      "store_get_default",
+      "store_search"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.DiaaAj%2Fa-mem-mcp/versions/0.1.1",
+    "name": "io.github.DiaaAj/a-mem-mcp@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fhvac-quotes/versions/1.0.0",
+    "name": "io.github.wmarceau/hvac-quotes@1.0.0",
+    "status": "tools_found",
+    "toolCount": 5,
+    "tools": [
+      "check_rfq_status",
+      "compare_quotes",
+      "get_quotes",
+      "simulate_quote",
+      "submit_rfq"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fupwork/versions/1.0.1",
+    "name": "io.github.wmarceau/upwork@1.0.1",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "upwork_analyze_client",
+      "upwork_auth_status",
+      "upwork_complete_auth",
+      "upwork_draft_proposal",
+      "upwork_get_job_details",
+      "upwork_get_my_contracts",
+      "upwork_get_my_profile",
+      "upwork_get_my_proposals",
+      "upwork_search_jobs"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.2.0",
+    "name": "io.github.wmarceau/fitness-influencer@1.2.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.0",
+    "name": "io.github.wmarceau/apollo@1.1.0",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "enrich_company",
+      "enrich_person",
+      "find_decision_makers",
+      "find_email",
+      "get_credit_balance",
+      "run_full_outreach_pipeline",
+      "search_companies",
+      "search_local_businesses",
+      "search_people"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fyoutube-creator/versions/1.0.0",
+    "name": "io.github.wmarceau/youtube-creator@1.0.0",
+    "status": "tools_found",
+    "toolCount": 11,
+    "tools": [
+      "add_to_playlist",
+      "create_playlist",
+      "get_channel_stats",
+      "get_comments",
+      "get_video_analytics",
+      "list_playlists",
+      "reply_to_comment",
+      "schedule_video",
+      "update_video_metadata",
+      "upload_short",
+      "upload_video"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.0.0",
+    "name": "io.github.wmarceau/fitness-influencer@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.1",
+    "name": "io.github.wmarceau/apollo@1.1.1",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "enrich_company",
+      "enrich_person",
+      "find_decision_makers",
+      "find_email",
+      "get_credit_balance",
+      "run_full_outreach_pipeline",
+      "search_companies",
+      "search_local_businesses",
+      "search_people"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Frideshare-comparison/versions/1.0.0",
+    "name": "io.github.wmarceau/rideshare-comparison@1.0.0",
+    "status": "tools_found",
+    "toolCount": 3,
+    "tools": [
+      "compare_rideshare_prices",
+      "get_booking_link",
+      "get_supported_cities"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
+    "name": "io.github.wmarceau/md-to-pdf@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.3.0",
+    "name": "io.github.wmarceau/fitness-influencer@1.3.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Famazon-seller/versions/1.0.0",
+    "name": "io.github.wmarceau/amazon-seller@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Fato07%2Flog-analyzer-mcp/versions/0.4.2",
+    "name": "io.github.Fato07/log-analyzer-mcp@0.4.2",
+    "status": "tools_found",
+    "toolCount": 14,
+    "tools": [
+      "log_analyzer_ask",
+      "log_analyzer_correlate",
+      "log_analyzer_diff",
+      "log_analyzer_extract_errors",
+      "log_analyzer_multi",
+      "log_analyzer_parse",
+      "log_analyzer_scan_sensitive",
+      "log_analyzer_search",
+      "log_analyzer_suggest_format",
+      "log_analyzer_suggest_patterns",
+      "log_analyzer_summarize",
+      "log_analyzer_tail",
+      "log_analyzer_trace",
+      "log_analyzer_watch"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xorrkaz%2Fcml-mcp/versions/0.24.0",
+    "name": "io.github.xorrkaz/cml-mcp@0.24.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.opsmill%2Finfrahub-mcp/versions/0.1.2",
+    "name": "com.opsmill/infrahub-mcp@0.1.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tmonk%2Fmcp-stata/versions/1.0.3",
+    "name": "io.github.tmonk/mcp-stata@1.0.3",
+    "status": "tools_found",
+    "toolCount": 11,
+    "tools": [
+      "codebook",
+      "describe",
+      "export_graph",
+      "export_graphs_all",
+      "get_data",
+      "get_help",
+      "get_stored_results",
+      "list_graphs",
+      "load_data",
+      "run_command",
+      "run_do_file"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ArkTechNWA%2Fzsh-tool/versions/0.2.1",
+    "name": "io.github.ArkTechNWA/zsh-tool@0.2.1",
+    "status": "tools_found",
+    "toolCount": 10,
+    "tools": [
+      "zsh",
+      "zsh_alan_query",
+      "zsh_alan_stats",
+      "zsh_health",
+      "zsh_kill",
+      "zsh_neverhang_reset",
+      "zsh_neverhang_status",
+      "zsh_poll",
+      "zsh_send",
+      "zsh_tasks"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alex-feel%2Fmcp-context-server/versions/0.2.0",
+    "name": "io.github.alex-feel/mcp-context-server@0.2.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/3.0.1",
+    "name": "io.github.egoughnour/massive-context-mcp@3.0.1",
+    "status": "tools_found",
+    "toolCount": 17,
+    "tools": [
+      "rlm_auto_analyze",
+      "rlm_chunk_context",
+      "rlm_exec",
+      "rlm_filter_context",
+      "rlm_firewall_status",
+      "rlm_get_chunk",
+      "rlm_get_results",
+      "rlm_inspect_context",
+      "rlm_list_contexts",
+      "rlm_load_context",
+      "rlm_ollama_status",
+      "rlm_setup_ollama",
+      "rlm_setup_ollama_direct",
+      "rlm_store_result",
+      "rlm_sub_query",
+      "rlm_sub_query_batch",
+      "rlm_system_check"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcode-firewall-mcp/versions/0.7.0",
+    "name": "io.github.egoughnour/code-firewall-mcp@0.7.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/2.0.6",
+    "name": "io.github.egoughnour/massive-context-mcp@2.0.6",
+    "status": "tools_found",
+    "toolCount": 16,
+    "tools": [
+      "rlm_auto_analyze",
+      "rlm_chunk_context",
+      "rlm_exec",
+      "rlm_filter_context",
+      "rlm_get_chunk",
+      "rlm_get_results",
+      "rlm_inspect_context",
+      "rlm_list_contexts",
+      "rlm_load_context",
+      "rlm_ollama_status",
+      "rlm_setup_ollama",
+      "rlm_setup_ollama_direct",
+      "rlm_store_result",
+      "rlm_sub_query",
+      "rlm_sub_query_batch",
+      "rlm_system_check"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcowork-history/versions/4.0.3",
+    "name": "io.github.egoughnour/cowork-history@4.0.3",
+    "status": "tools_found",
+    "toolCount": 10,
+    "tools": [
+      "cowork_history_get",
+      "cowork_history_list",
+      "cowork_history_projects",
+      "cowork_history_reindex",
+      "cowork_history_search",
+      "cowork_history_stats",
+      "history_ollama_status",
+      "history_setup_ollama",
+      "history_setup_ollama_direct",
+      "history_system_check"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ChengJiale150%2Fjupyter-mcp-server/versions/1.1.0",
+    "name": "io.github.ChengJiale150/jupyter-mcp-server@1.1.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Defenter-AI%2Fdefenter-proxy/versions/0.0.95",
+    "name": "io.github.Defenter-AI/defenter-proxy@0.0.95",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gattjoe%2FACMS/versions/0.0.7",
+    "name": "io.github.gattjoe/ACMS@0.0.7",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.leshchenko1979%2Ffast-mcp-telegram/versions/0.4.5",
+    "name": "io.github.leshchenko1979/fast-mcp-telegram@0.4.5",
+    "status": "tools_found",
+    "toolCount": 9,
+    "tools": [
+      "edit_message",
+      "get_contact_details",
+      "invoke_mtproto",
+      "read_messages",
+      "search_contacts",
+      "search_messages_globally",
+      "search_messages_in_chat",
+      "send_message",
+      "send_message_to_phone"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augmnt%2Faugments-mcp-server/versions/1.0.1",
+    "name": "io.github.augmnt/augments-mcp-server@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ScrapeGraphAI%2Fscrapegraph-mcp/versions/1.0.0",
+    "name": "io.github.ScrapeGraphAI/scrapegraph-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.universalamateur%2Freclaim-mcp-server/versions/0.9.1",
+    "name": "io.github.universalamateur/reclaim-mcp-server@0.9.1",
+    "status": "tools_found",
+    "toolCount": 40,
+    "tools": [
+      "add_time_to_task",
+      "convert_event_to_habit",
+      "create_habit",
+      "create_task",
+      "delete_habit",
+      "delete_task",
+      "disable_habit",
+      "enable_habit",
+      "get_event",
+      "get_focus_insights",
+      "get_focus_settings",
+      "get_habit",
+      "get_task",
+      "get_user_analytics",
+      "health_check",
+      "list_completed_tasks",
+      "list_events",
+      "list_habits",
+      "list_personal_events",
+      "list_tasks",
+      "lock_focus_block",
+      "lock_habit_instance",
+      "mark_habit_done",
+      "mark_task_complete",
+      "move_event",
+      "prioritize_task",
+      "reschedule_focus_block",
+      "restart_task",
+      "set_event_rsvp",
+      "skip_habit",
+      "start_habit",
+      "start_task",
+      "stop_habit",
+      "stop_task",
+      "unlock_focus_block",
+      "unlock_habit_instance",
+      "update_focus_settings",
+      "update_habit",
+      "update_task",
+      "verify_connection"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MervinPraison%2Fpraisonai/versions/2.3.42",
+    "name": "io.github.MervinPraison/praisonai@2.3.42",
+    "status": "failed",
+    "error": "MCP error -32001: Request timed out",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.stackhawk%2Fstackhawk/versions/1.1.1",
+    "name": "com.stackhawk/stackhawk@1.1.1",
+    "status": "tools_found",
+    "toolCount": 16,
+    "tools": [
+      "check_repository_attack_surface",
+      "check_repository_sensitive_data",
+      "create_stackhawk_config",
+      "generate_security_dashboard",
+      "get_app_findings_for_triage",
+      "get_organization_info",
+      "get_sensitive_data_summary",
+      "get_stackhawk_scan_instructions",
+      "get_stackhawk_schema",
+      "list_application_repository_connections",
+      "list_applications",
+      "run_stackhawk_scan",
+      "search_vulnerabilities",
+      "setup_stackhawk_for_project",
+      "validate_field_exists",
+      "validate_stackhawk_config"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nickzren%2Fopentargets/versions/0.1.0",
+    "name": "io.github.nickzren/opentargets@0.1.0",
+    "status": "tools_found",
+    "toolCount": 45,
+    "tools": [
+      "get_credible_set_by_id",
+      "get_disease_associated_targets",
+      "get_disease_info",
+      "get_disease_otar_projects",
+      "get_disease_phenotypes",
+      "get_drug_adverse_events",
+      "get_drug_cross_references",
+      "get_drug_info",
+      "get_drug_linked_diseases",
+      "get_drug_linked_targets",
+      "get_drug_pharmacovigilance",
+      "get_drug_warnings",
+      "get_similar_targets",
+      "get_studies_by_disease",
+      "get_study_credible_sets",
+      "get_study_info",
+      "get_target_alternative_genes",
+      "get_target_associated_diseases",
+      "get_target_chemical_probes",
+      "get_target_class",
+      "get_target_depmap_essentiality",
+      "get_target_disease_biomarkers",
+      "get_target_disease_evidence",
+      "get_target_expression",
+      "get_target_genetic_constraint",
+      "get_target_hallmarks",
+      "get_target_homologues",
+      "get_target_info",
+      "get_target_interactions",
+      "get_target_known_drugs",
+      "get_target_literature_occurrences",
+      "get_target_mouse_phenotypes",
+      "get_target_pathways_and_go_terms",
+      "get_target_prioritization",
+      "get_target_safety_information",
+      "get_target_subcellular_locations",
+      "get_target_tep",
+      "get_target_tractability",
+      "get_variant_credible_sets",
+      "get_variant_evidences",
+      "get_variant_info",
+      "get_variant_pharmacogenomics",
+      "search_entities",
+      "search_facets",
+      "search_suggestions"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Ansvar-Systems%2Fsecurity-controls/versions/0.3.4",
+    "name": "io.github.Ansvar-Systems/security-controls@0.3.4",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KevinRabun%2FFedRAMP20xMCP/versions/1.1.0",
+    "name": "io.github.KevinRabun/FedRAMP20xMCP@1.1.0",
+    "status": "tools_found",
+    "toolCount": 48,
+    "tools": [
+      "add_requirement_comments",
+      "analyze_all_frrs",
+      "analyze_application_code",
+      "analyze_cicd_pipeline",
+      "analyze_frr_code",
+      "analyze_frr_family",
+      "analyze_infrastructure_code",
+      "check_package_vulnerabilities",
+      "check_requirement_dependencies",
+      "compare_with_rev4",
+      "estimate_implementation_effort",
+      "export_to_csv",
+      "export_to_excel",
+      "generate_implementation_checklist",
+      "generate_implementation_questions",
+      "generate_ksi_specification",
+      "get_cloud_native_guidance",
+      "get_control",
+      "get_definition",
+      "get_documentation_file",
+      "get_evidence_automation_architecture",
+      "get_evidence_collection_code",
+      "get_frr_evidence_automation",
+      "get_frr_implementation_status",
+      "get_frr_metadata",
+      "get_implementation_examples",
+      "get_infrastructure_code_for_ksi",
+      "get_ksi",
+      "get_ksi_coverage_status",
+      "get_ksi_coverage_summary",
+      "get_ksi_evidence_artifacts",
+      "get_ksi_evidence_automation",
+      "get_ksi_evidence_queries",
+      "get_ksi_family_status",
+      "get_ksi_implementation_matrix",
+      "get_ksi_implementation_status",
+      "get_ksi_implementation_summary",
+      "list_definitions",
+      "list_documentation_files",
+      "list_family_controls",
+      "list_frrs_by_family",
+      "list_ksi",
+      "scan_dependency_file",
+      "search_definitions",
+      "search_documentation",
+      "search_requirements",
+      "validate_architecture",
+      "validate_fedramp_config"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.religa%2Fmulti-mcp/versions/0.1.1",
+    "name": "io.github.religa/multi-mcp@0.1.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nigue3025%2Ftw-cwa-weather-mcp/versions/1.0.0",
+    "name": "io.github.nigue3025/tw-cwa-weather-mcp@1.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cdnsteve%2Fsugar/versions/3.4.2",
+    "name": "io.github.cdnsteve/sugar@3.4.2",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tm42%2Fmnemograph/versions/0.4.0",
+    "name": "io.github.tm42/mnemograph@0.4.0",
+    "status": "tools_found",
+    "toolCount": 34,
+    "tools": [
+      "add_observations",
+      "branch_add",
+      "branch_checkout",
+      "branch_create",
+      "branch_current",
+      "branch_diff",
+      "branch_list",
+      "clear_graph",
+      "create_entities",
+      "create_entities_force",
+      "create_relations",
+      "delete_entities",
+      "delete_observations",
+      "delete_relations",
+      "diff_timerange",
+      "find_orphans",
+      "find_similar",
+      "get_entity_history",
+      "get_graph_health",
+      "get_primer",
+      "get_relation_weight",
+      "get_state_at",
+      "get_strongest_connections",
+      "get_weak_relations",
+      "merge_entities",
+      "recall",
+      "reload",
+      "remember",
+      "restore_state_at",
+      "rewind",
+      "session_end",
+      "session_start",
+      "set_relation_importance",
+      "suggest_relations"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.0.6",
+    "name": "io.github.domdomegg/time-mcp-pypi@1.0.6",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "get_current_utc_time"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.1.1",
+    "name": "io.github.domdomegg/time-mcp-pypi@1.1.1",
+    "status": "tools_found",
+    "toolCount": 1,
+    "tools": [
+      "get_current_utc_time"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.saucelabs-sample-test-frameworks%2Fsauce-api-mcp/versions/1.0.0",
+    "name": "io.github.saucelabs-sample-test-frameworks/sauce-api-mcp@1.0.0",
+    "status": "tools_found",
+    "toolCount": 30,
+    "tools": [
+      "get_account_info",
+      "get_build",
+      "get_build_for_job",
+      "get_current_jobs_for_tunnel",
+      "get_devices_status",
+      "get_job_details",
+      "get_log_json_file",
+      "get_my_active_team",
+      "get_network_har_file",
+      "get_private_devices",
+      "get_real_device_jobs",
+      "get_recent_jobs",
+      "get_service_account",
+      "get_specific_device",
+      "get_specific_real_device_job",
+      "get_specific_real_device_job_asset",
+      "get_storage_groups",
+      "get_storage_groups_settings",
+      "get_team",
+      "get_test_assets",
+      "get_tunnel_information",
+      "get_tunnel_version_downloads",
+      "get_tunnels_for_user",
+      "get_user",
+      "list_team_members",
+      "lookup_builds",
+      "lookup_jobs_in_build",
+      "lookup_service_accounts",
+      "lookup_teams",
+      "lookup_users"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanstranger%2Favm-mcp-server/versions/0.1.5",
+    "name": "io.github.stefanstranger/avm-mcp-server@0.1.5",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "list_avm_modules",
+      "scrape_avm_module_details"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sharebook-kr%2Fpykrx-mcp/versions/0.1.3",
+    "name": "io.github.sharebook-kr/pykrx-mcp@0.1.3",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MusaddiqueHussainLabs%2Fmhlabs_mcp_tools/versions/2.0.0",
+    "name": "io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools@2.0.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gauravfs-14%2Flit-mcp/versions/0.1.9",
+    "name": "io.github.gauravfs-14/lit-mcp@0.1.9",
+    "status": "tools_found",
+    "toolCount": 2,
+    "tools": [
+      "arxiv_search",
+      "dblp_search"
+    ]
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.michael-denyer%2Fhot-memory-mcp/versions/0.5.10",
+    "name": "io.github.michael-denyer/hot-memory-mcp@0.5.10",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.habedi%2Fomni-lpr/versions/0.3.2",
+    "name": "io.github.habedi/omni-lpr@0.3.2",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tdnupe3%2Fcoinrailz/versions/1.0.1",
+    "name": "io.github.tdnupe3/coinrailz@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vishalsachdev%2Fcanvas-mcp/versions/1.0.6",
+    "name": "io.github.vishalsachdev/canvas-mcp@1.0.6",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ggozad%2Fhaiku-rag/versions/0.16.0",
+    "name": "io.github.ggozad/haiku-rag@0.16.0",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pedro-rivas%2Fandroid-puppeteer-mcp/versions/1.0.1",
+    "name": "io.github.pedro-rivas/android-puppeteer-mcp@1.0.1",
+    "status": "no_tools",
+    "toolCount": 0,
+    "tools": []
+  }
+]
