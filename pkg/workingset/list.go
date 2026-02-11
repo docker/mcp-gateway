@@ -71,7 +71,7 @@ func printListHumanReadable(workingSets []WorkingSet, showPolicy bool) string {
 	}
 	lines = strings.TrimSuffix(lines, "\n")
 	if showPolicy {
-		return fmt.Sprintf("ID\tName\tPolicy\n----\t----\t------\n%s", lines)
+		return fmt.Sprintf("ID\tTitle\tPolicy\n----\t-----\t------\n%s", lines)
 	}
-	return fmt.Sprintf("ID\tName\n----\t----\n%s", lines)
+	return fmt.Sprintf("ID\tTitle\n----\t-----\n%s", lines)
 }
