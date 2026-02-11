@@ -1,5 +1,6 @@
 MODULE := $(shell sh -c "awk '/^module/ { print \$$2 }' go.mod")
 GIT_TAG ?= $(shell git describe --tags --exact-match HEAD 2>/dev/null || git rev-parse HEAD)
+DEV_VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")-dev
 GO_LDFLAGS = -X $(MODULE)/cmd/docker-mcp/version.Version=$(GIT_TAG)
 
 export DOCKER_MCP_PLUGIN_BINARY ?= docker-mcp
@@ -61,7 +62,7 @@ integration:
 	go test -count=1 ./... -run 'TestIntegration'
 
 docker-mcp:
-	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w ${GO_LDFLAGS}" -o ./dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION) ./cmd/docker-mcp
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X $(MODULE)/cmd/docker-mcp/version.Version=$(DEV_VERSION)" -o ./dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION) ./cmd/docker-mcp
 	rm "$(DOCKER_MCP_CLI_PLUGIN_DST)" || true
 	cp "dist/$(DOCKER_MCP_PLUGIN_BINARY)$(EXTENSION)" "$(DOCKER_MCP_CLI_PLUGIN_DST)"
 
