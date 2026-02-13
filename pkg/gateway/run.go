@@ -343,23 +343,22 @@ func (g *Gateway) Run(ctx context.Context) error {
 			log.Log("- Starting OAuth notification monitor")
 			monitor := oauth.NewNotificationMonitor()
 			monitor.OnOAuthEvent = func(event oauth.Event) {
-				g.handleOAuthEvent(event)
+				// Route event to specific provider
+				g.routeEventToProvider(event)
 			}
 			monitor.Start(ctx)
 		}
 
-		// Start OAuth provider for each OAuth server (CE mode only)
-		// In Desktop mode, tokens are auto-refreshed by Secrets Engine - no polling needed
-		if oauth.IsCEMode() {
-			log.Log("- Starting OAuth provider loops (CE mode)...")
-			for _, serverName := range configuration.ServerNames() {
-				serverConfig, _, found := configuration.Find(serverName)
-				if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
-					continue
-				}
-
-				g.startProvider(ctx, serverName)
+		// Start OAuth provider for each OAuth server.
+		// Each provider runs in its own goroutine with dynamic timing based on token expiry.
+		log.Log("- Starting OAuth provider loops...")
+		for _, serverName := range configuration.ServerNames() {
+			serverConfig, _, found := configuration.Find(serverName)
+			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
+				continue
 			}
+
+			g.startProvider(ctx, serverName)
 		}
 	}
 
@@ -662,47 +661,51 @@ func (g *Gateway) stopProvider(serverName string) {
 	}
 }
 
-// handleOAuthEvent handles SSE events from Docker Desktop's notification monitor.
-// Only called in Desktop mode (the notification monitor doesn't start in CE mode).
-// In CE mode, providers handle token refresh via polling - no events needed.
-func (g *Gateway) handleOAuthEvent(event oauth.Event) {
+// routeEventToProvider routes SSE events to the appropriate provider
+func (g *Gateway) routeEventToProvider(event oauth.Event) {
+	g.providersMu.RLock()
+	_, exists := g.oauthProviders[event.Provider]
+	g.providersMu.RUnlock()
+
 	switch event.Type {
 	case oauth.EventLoginSuccess:
-		log.Logf("- OAuth login success for %s", event.Provider)
-		g.reloadOAuthServer(event.Provider)
+		// User just authorized - ensure provider exists
+		if !exists {
+			log.Logf("- Creating provider for %s after login", event.Provider)
+			g.startProvider(context.Background(), event.Provider)
+		}
+
+		// Always send event to trigger reload (connects server and lists tools)
+		// Wait briefly if we just created the provider
+		if !exists {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		g.providersMu.RLock()
+		provider, exists := g.oauthProviders[event.Provider]
+		g.providersMu.RUnlock()
+
+		if exists {
+			provider.SendEvent(event)
+		}
 
 	case oauth.EventTokenRefresh:
-		// Secrets Engine refreshed the token - invalidate cached connections
-		// Next request will create new connection with fresh token
-		log.Logf("- OAuth token refreshed for %s", event.Provider)
+		// Token refreshed - invalidate cached connections directly.
+		// Don't route to Provider (reloadFn would trigger Secrets Engine Filter → SSE loop).
+		// The Provider's timer handles refresh scheduling independently.
+		log.Logf("- OAuth token refreshed for %s, invalidating connections", event.Provider)
 		g.clientPool.InvalidateOAuthClients(event.Provider)
 
 	case oauth.EventLogoutSuccess:
-		log.Logf("- OAuth logout for %s", event.Provider)
-		g.clientPool.InvalidateOAuthClients(event.Provider)
+		// User logged out - stop provider if exists
+		if exists {
+			log.Logf("- Stopping provider for %s after logout", event.Provider)
+			g.stopProvider(event.Provider)
+		}
 
 	default:
-		// Other events (login-start, code-received, error) - no action needed
+		// Other events (login-start, code-received, error) - ignore
 	}
-}
-
-// reloadOAuthServer invalidates cached clients and reloads server capabilities.
-// Used by Desktop mode after login success.
-func (g *Gateway) reloadOAuthServer(serverName string) {
-	g.clientPool.InvalidateOAuthClients(serverName)
-
-	oldCaps, err := g.reloadServerCapabilities(context.Background(), serverName, nil)
-	if err != nil {
-		log.Logf("! Failed to reload OAuth server %s: %v", serverName, err)
-		return
-	}
-
-	g.capabilitiesMu.Lock()
-	newCaps := g.allCapabilities(serverName)
-	_ = g.updateServerCapabilities(serverName, oldCaps, newCaps, nil)
-	g.capabilitiesMu.Unlock()
-
-	log.Logf("> OAuth server %s reloaded", serverName)
 }
 
 // GetToolRegistrations returns a copy of all registered tools

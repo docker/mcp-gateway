@@ -146,15 +146,68 @@ func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (
 }
 
 // GetTokenStatus checks token validity and expiry for refresh scheduling.
-// CE mode only - requires JSON token format with expiry metadata.
-// In Desktop mode, use TokenExists() instead since Secrets Engine returns
-// raw tokens without expiry information.
-func (h *CredentialHelper) GetTokenStatus(_ context.Context, serverName string) (TokenStatus, error) {
-	if !IsCEMode() {
-		return TokenStatus{}, fmt.Errorf("GetTokenStatus is only available in CE mode; use TokenExists() for Desktop mode")
+// Works in both CE and Desktop modes:
+// - CE mode: reads token JSON from credential helper and parses expiry
+// - Desktop mode: queries Secrets Engine and reads ExpiryAt from response metadata
+func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
+	if IsCEMode() {
+		return h.getTokenStatusCE(serverName)
+	}
+	return h.getTokenStatusDesktop(ctx, serverName)
+}
+
+// getTokenStatusDesktop retrieves token status in Desktop mode using Secrets Engine metadata.
+// The Secrets Engine response includes ExpiryAt and ExpiresIn in the metadata map,
+// added by Docker Desktop's OAuthCredential.Metadata() method.
+func (h *CredentialHelper) getTokenStatusDesktop(ctx context.Context, serverName string) (TokenStatus, error) {
+	oauthID := secret.GetOAuthKey(serverName)
+	env, err := secret.GetSecret(ctx, oauthID)
+	if errors.Is(err, secret.ErrSecretNotFound) {
+		return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
+	}
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to query Secrets Engine for %s: %w", serverName, err)
 	}
 
-	// CE mode: Use credential helper directly
+	if string(env.Value) == "" {
+		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
+	}
+
+	// Read ExpiryAt from Secrets Engine response metadata
+	expiryAtStr, hasExpiry := env.Metadata["ExpiryAt"]
+	if !hasExpiry || expiryAtStr == "" {
+		// No expiry metadata available - token exists but we can't determine when it expires.
+		// Return valid with no scheduled refresh (rely on SSE events as fallback).
+		log.Logf("- Token status for %s: valid=true, no expiry metadata available", serverName)
+		return TokenStatus{
+			Valid:        true,
+			ExpiresAt:    time.Time{},
+			NeedsRefresh: false,
+		}, nil
+	}
+
+	expiresAt, err := time.Parse(time.RFC3339, expiryAtStr)
+	if err != nil {
+		return TokenStatus{Valid: false}, fmt.Errorf("failed to parse ExpiryAt metadata for %s: %w", serverName, err)
+	}
+
+	now := time.Now()
+	timeUntilExpiry := expiresAt.Sub(now)
+	needsRefresh := timeUntilExpiry <= 10*time.Second
+
+	log.Logf("- Token status for %s: valid=true, expires_at=%s, time_until_expiry=%v, needs_refresh=%v",
+		serverName, expiresAt.Format(time.RFC3339), timeUntilExpiry.Round(time.Second), needsRefresh)
+
+	return TokenStatus{
+		Valid:        true,
+		ExpiresAt:    expiresAt,
+		NeedsRefresh: needsRefresh,
+	}, nil
+}
+
+// getTokenStatusCE retrieves token status in CE mode using the credential helper.
+// Reads the base64-encoded JSON token and parses the expiry field.
+func (h *CredentialHelper) getTokenStatusCE(serverName string) (TokenStatus, error) {
 	dcrMgr := dcr.NewManager(h.credentialHelper, "")
 	client, err := dcrMgr.GetDCRClient(serverName)
 	if err != nil {
