@@ -61,10 +61,10 @@ func TestWriteCommunityToDatabase(t *testing.T) {
 			},
 		}
 
-		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", servers)
+		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", servers)
 		require.NoError(t, err)
 
-		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 		require.NoError(t, err)
 
 		cat := NewFromDb(dbCatalog)
@@ -88,10 +88,10 @@ func TestWriteCommunityToDatabase(t *testing.T) {
 			},
 		}
 
-		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", servers)
+		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", servers)
 		require.NoError(t, err)
 
-		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 		require.NoError(t, err)
 
 		cat := NewFromDb(dbCatalog)
@@ -120,10 +120,10 @@ func TestWriteCommunityToDatabase(t *testing.T) {
 			},
 		}
 
-		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", servers)
+		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", servers)
 		require.NoError(t, err)
 
-		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 		require.NoError(t, err)
 
 		cat := NewFromDb(dbCatalog)
@@ -140,12 +140,12 @@ func TestWriteCommunityToDatabase(t *testing.T) {
 		dao := setupTestDB(t)
 		ctx := t.Context()
 
-		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", map[string]catalog.Server{})
+		err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{})
 		require.NoError(t, err)
 
-		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+		dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 		require.NoError(t, err)
-		assert.Equal(t, "registry:registry.modelcontextprotocol.io:latest", dbCatalog.Source)
+		assert.Equal(t, "registry:registry.modelcontextprotocol.io", dbCatalog.Source)
 	})
 }
 

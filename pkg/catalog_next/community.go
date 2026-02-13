@@ -106,14 +106,8 @@ func PullCommunity(ctx context.Context, dao db.DAO, refStr string, _ PullCommuni
 		catalogServers[catalogServer.Name] = *catalogServer
 	}
 
-	// Normalize ref with :latest tag for OCI parser compatibility
-	catalogRef := refStr
-	if !strings.Contains(refStr, ":") {
-		catalogRef = refStr + ":latest"
-	}
-
-	// Write to database
-	if err := writeCommunityToDatabase(ctx, dao, catalogRef, catalogServers); err != nil {
+	// Write to database using the raw ref as the key (no OCI normalization needed)
+	if err := writeCommunityToDatabase(ctx, dao, refStr, catalogServers); err != nil {
 		return nil, fmt.Errorf("failed to write catalog to database: %w", err)
 	}
 

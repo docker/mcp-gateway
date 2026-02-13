@@ -137,13 +137,13 @@ func TestPullDetectsAPIRegistry(t *testing.T) {
 	// writeCommunityToDatabase simulates what PullCommunity does to the DB
 	// without hitting the network. Verify the routing logic by checking that
 	// pullCatalog writes the correct source prefix.
-	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", map[string]catalog.Server{
+	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{
 		"test": {Name: "test", Type: "server", Image: "test:latest"},
 	})
 	require.NoError(t, err)
 
 	// Verify the DB entry has the registry source prefix
-	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 	require.NoError(t, err)
 	require.True(t, strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry),
 		"expected source to start with %q, got %q", SourcePrefixRegistry, dbCatalog.Source)
@@ -168,10 +168,10 @@ func TestWriteCommunityToDatabaseCatalogTitle(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", map[string]catalog.Server{})
+	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{})
 	require.NoError(t, err)
 
-	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 	require.NoError(t, err)
 
 	cat := NewFromDb(dbCatalog)
@@ -191,10 +191,10 @@ func TestWriteCommunityToDatabaseSnapshotPreserved(t *testing.T) {
 		},
 	}
 
-	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io:latest", servers)
+	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", servers)
 	require.NoError(t, err)
 
-	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io:latest")
+	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 	require.NoError(t, err)
 
 	cat := NewFromDb(dbCatalog)
