@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,10 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 )
+
+// ErrIncompatibleServer is returned by TransformToDocker when the server has
+// no compatible package type (e.g. no OCI+stdio package and no remote).
+var ErrIncompatibleServer = errors.New("incompatible server")
 
 // Type aliases for imported types from the registry package
 type (
@@ -379,7 +384,7 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 
 	// Validate that we have at least one way to run the server
 	if server.Image == "" && server.Remote.URL == "" {
-		return nil, fmt.Errorf("no OCI packages found")
+		return nil, fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
 	}
 
 	// Add config schema if we have config variables
