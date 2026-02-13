@@ -36,7 +36,7 @@ grafana:
 		"grafana.api_key": "se://docker/mcp/grafana.api_key",
 	}
 
-	args, env := argsAndEnv(t, "grafana", catalogYAML, configYAML, secrets, nil)
+	args, env := argsAndEnv(t, "grafana", catalogYAML, configYAML, secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -56,7 +56,7 @@ secrets:
 		"mongodb.connection_string": "se://docker/mcp/mongodb.connection_string",
 	}
 
-	args, env := argsAndEnv(t, "mongodb", catalogYAML, "", secrets, nil)
+	args, env := argsAndEnv(t, "mongodb", catalogYAML, "", secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -80,7 +80,7 @@ env:
 		"notion.internal_integration_token": "se://docker/mcp/notion.internal_integration_token",
 	}
 
-	args, env := argsAndEnv(t, "notion", catalogYAML, "", secrets, nil)
+	args, env := argsAndEnv(t, "notion", catalogYAML, "", secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -105,7 +105,7 @@ secrets:
 		"api.key":     "my-actual-api-key",
 	}
 
-	args, env := argsAndEnv(t, "myserver", catalogYAML, "", secrets, nil)
+	args, env := argsAndEnv(t, "myserver", catalogYAML, "", secrets)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -126,7 +126,7 @@ hub:
   log_path: /local/logs
 `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil, nil)
+	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -142,7 +142,7 @@ volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, "", nil, nil)
+	args, env := argsAndEnv(t, "hub", catalogYAML, "", nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -161,7 +161,7 @@ hub:
   log_path: /local/logs
 `
 
-	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil, readOnly())
+	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -176,7 +176,7 @@ func TestApplyConfigUser(t *testing.T) {
 user: "1001:2002"
   `
 
-	args, env := argsAndEnv(t, "svc", catalogYAML, "", nil, nil)
+	args, env := argsAndEnv(t, "svc", catalogYAML, "", nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -198,7 +198,7 @@ extraHosts:
   - "anotherhost:10.0.0.1"
   `
 
-	args, env := argsAndEnv(t, "playwright", catalogYAML, "", nil, nil)
+	args, env := argsAndEnv(t, "playwright", catalogYAML, "", nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
@@ -216,10 +216,9 @@ volumes:
   - '/local/data:/data'
   `
 
-	args, env := argsAndEnv(t, "longlived", catalogYAML, "", nil, readOnly())
+	args, env := argsAndEnv(t, "longlived", catalogYAML, "", nil)
 
-	// Even though readOnly is true, volumes should NOT have :ro appended
-	// because long-lived servers share containers across multiple tool calls
+	// Volumes should NOT have :ro appended regardless of readOnly flag
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=longlived", "-l", "docker-mcp-transport=stdio",
@@ -234,18 +233,18 @@ volumes:
   - '/local/data:/data'
   `
 
-	args, env := argsAndEnv(t, "shortlived", catalogYAML, "", nil, readOnly())
+	args, env := argsAndEnv(t, "shortlived", catalogYAML, "", nil)
 
-	// Short-lived servers should respect readOnly flag
+	// Short-lived servers no longer apply read-only mounts automatically
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=shortlived", "-l", "docker-mcp-transport=stdio",
-		"-v", "/local/data:/data:ro",
+		"-v", "/local/data:/data",
 	}, args)
 	assert.Empty(t, env)
 }
 
-func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool) ([]string, []string) {
+func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string) {
 	t.Helper()
 
 	clientPool := &clientPool{
@@ -259,7 +258,7 @@ func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[
 		Spec:    parseSpec(t, catalogYAML),
 		Config:  parseConfig(t, configYAML),
 		Secrets: secrets,
-	}, readOnly, proxies.TargetConfig{})
+	}, proxies.TargetConfig{})
 }
 
 func parseSpec(t *testing.T, contentYAML string) catalog.Server {
@@ -276,14 +275,6 @@ func parseConfig(t *testing.T, contentYAML string) map[string]any {
 	err := yaml.Unmarshal([]byte(contentYAML), &config)
 	require.NoError(t, err)
 	return config
-}
-
-func readOnly() *bool {
-	return boolPtr(true)
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
 
 func TestStdioClientInitialization(t *testing.T) {
@@ -322,7 +313,7 @@ func TestStdioClientInitialization(t *testing.T) {
 	defer cancel()
 
 	// Test client acquisition and initialization
-	client, err := clientPool.AcquireClient(ctx, &serverConfig, &clientConfig{readOnly: boolPtr(false)})
+	client, err := clientPool.AcquireClient(ctx, &serverConfig, &clientConfig{})
 	if err != nil {
 		t.Fatalf("Failed to acquire client: %v", err)
 	}
