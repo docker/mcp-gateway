@@ -16,9 +16,10 @@ import (
 var ErrSecretNotFound = errors.New("secret not found")
 
 type Envelope struct {
-	ID       string `json:"id"`
-	Value    []byte `json:"value"`
-	Provider string `json:"provider"`
+	ID       string            `json:"id"`
+	Value    []byte            `json:"value"`
+	Provider string            `json:"provider"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func socketPath() string {
