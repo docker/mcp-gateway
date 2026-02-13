@@ -193,28 +193,19 @@ func pushCatalogNextCommand() *cobra.Command {
 }
 
 func pullCatalogNextCommand() *cobra.Command {
-	var opts struct {
-		All bool
-	}
-
 	cmd := &cobra.Command{
-		Use:   "pull [reference]",
+		Use:   "pull <reference>",
 		Short: "Pull a catalog from a registry",
 		Long: `Pull a catalog from an OCI registry or community API.
 
 For OCI catalogs, specify the full OCI reference (e.g., mcp/docker-mcp-catalog:latest).
-For community registries, use the registry hostname (e.g., registry.modelcontextprotocol.io).
-
-Use --all to refresh all catalogs in the database.`,
+For community registries, use the registry hostname (e.g., registry.modelcontextprotocol.io).`,
 		Example: `  # Pull the Docker catalog from OCI registry
   docker mcp catalog-next pull mcp/docker-mcp-catalog:latest
 
   # Pull the community registry catalog
-  docker mcp catalog-next pull registry.modelcontextprotocol.io
-
-  # Refresh all catalogs
-  docker mcp catalog-next pull --all`,
-		Args: cobra.MaximumNArgs(1),
+  docker mcp catalog-next pull registry.modelcontextprotocol.io`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
@@ -222,19 +213,9 @@ Use --all to refresh all catalogs in the database.`,
 			}
 			ociService := oci.NewService()
 
-			if opts.All {
-				return catalognext.PullAll(cmd.Context(), dao, ociService)
-			}
-
-			if len(args) == 0 {
-				return fmt.Errorf("reference is required (or use --all to refresh all catalogs)")
-			}
-
 			return catalognext.Pull(cmd.Context(), dao, ociService, args[0])
 		},
 	}
-
-	cmd.Flags().BoolVar(&opts.All, "all", false, "Pull/refresh all catalogs in the database")
 
 	return cmd
 }

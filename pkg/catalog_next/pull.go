@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -37,20 +36,7 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 		return nil
 	}
 
-	// Check if catalog exists in DB and has a community registry source
-	dbCatalog, err := dao.GetCatalog(ctx, refStr)
-	if err == nil && strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry) {
-		// Refresh from community registry
-		result, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
-		if err != nil {
-			return err
-		}
-		printRegistryPullResult(refStr, result)
-		success = true
-		return nil
-	}
-
-	// Default to OCI pull
+	// OCI pull
 	catalog, err := pullOCI(ctx, dao, ociService, refStr)
 	if err != nil {
 		return err
@@ -59,34 +45,6 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
 	success = true
-	return nil
-}
-
-// PullAll pulls/refreshes all catalogs in the database
-func PullAll(ctx context.Context, dao db.DAO, ociService oci.Service) error {
-	catalogs, err := dao.ListCatalogs(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list catalogs: %w", err)
-	}
-
-	if len(catalogs) == 0 {
-		fmt.Println("No catalogs found. Use 'docker mcp catalog-next pull <ref>' to add a catalog.")
-		return nil
-	}
-
-	var pullErrors []string
-	for _, cat := range catalogs {
-		fmt.Printf("Pulling %s...\n", cat.Ref)
-		if err := Pull(ctx, dao, ociService, cat.Ref); err != nil {
-			pullErrors = append(pullErrors, fmt.Sprintf("%s: %v", cat.Ref, err))
-			continue
-		}
-	}
-
-	if len(pullErrors) > 0 {
-		return fmt.Errorf("failed to pull some catalogs:\n  %s", strings.Join(pullErrors, "\n  "))
-	}
-
 	return nil
 }
 
@@ -156,14 +114,7 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 		return err
 	}
 
-	// Check if catalog exists in DB and has a community registry source
-	dbCatalog, err := dao.GetCatalog(ctx, refStr)
-	if err == nil && strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry) {
-		_, err := PullCommunity(ctx, dao, refStr, DefaultPullCommunityOptions())
-		return err
-	}
-
-	_, err = pullOCI(ctx, dao, ociService, refStr)
+	_, err := pullOCI(ctx, dao, ociService, refStr)
 	return err
 }
 

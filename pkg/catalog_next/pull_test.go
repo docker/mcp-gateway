@@ -1,7 +1,6 @@
 package catalognext
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,55 +10,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
-
-func TestPullAll(t *testing.T) {
-	t.Run("empty database prints message", func(t *testing.T) {
-		dao := setupTestDB(t)
-		ctx := t.Context()
-		ociService := mocks.NewMockOCIService()
-
-		output := captureStdout(t, func() {
-			err := PullAll(ctx, dao, ociService)
-			require.NoError(t, err)
-		})
-
-		assert.Contains(t, output, "No catalogs found")
-	})
-
-	t.Run("attempts each catalog in database", func(t *testing.T) {
-		dao := setupTestDB(t)
-		ctx := t.Context()
-		ociService := mocks.NewMockOCIService()
-
-		// Seed DB with two OCI catalogs that will fail to pull (no real OCI backend)
-		for _, ref := range []string{"nonexistent/catalog-a:v1", "nonexistent/catalog-b:v1"} {
-			cat := Catalog{
-				Ref:    ref,
-				Source: SourcePrefixOCI + ref,
-				CatalogArtifact: CatalogArtifact{
-					Title:   ref,
-					Servers: []Server{},
-				},
-			}
-			dbCat, err := cat.ToDb()
-			require.NoError(t, err)
-			require.NoError(t, dao.UpsertCatalog(ctx, dbCat))
-		}
-
-		var pullErr error
-		output := captureStdout(t, func() {
-			pullErr = PullAll(ctx, dao, ociService)
-		})
-
-		// Both catalogs should have been attempted
-		assert.Contains(t, output, "Pulling nonexistent/catalog-a:v1...")
-		assert.Contains(t, output, "Pulling nonexistent/catalog-b:v1...")
-
-		// Both should fail since no real OCI backend
-		require.Error(t, pullErr)
-		assert.Contains(t, pullErr.Error(), "failed to pull some catalogs")
-	})
-}
 
 func TestPrintRegistryPullResult(t *testing.T) {
 	t.Run("basic output format", func(t *testing.T) {
@@ -127,34 +77,19 @@ func TestPrintRegistryPullResult(t *testing.T) {
 }
 
 func TestPullDetectsAPIRegistry(t *testing.T) {
-	// Pull() routes to PullCommunity for well-known community registry hostnames.
-	// We can't mock PullCommunity's internal client, but we can verify the DB
-	// state it produces: the source prefix should be "registry:" not "oci:".
 	dao := setupTestDB(t)
 	ctx := t.Context()
 	ociService := mocks.NewMockOCIService()
 
 	// writeCommunityToDatabase simulates what PullCommunity does to the DB
-	// without hitting the network. Verify the routing logic by checking that
-	// pullCatalog writes the correct source prefix.
 	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{
 		"test": {Name: "test", Type: "server", Image: "test:latest"},
 	})
 	require.NoError(t, err)
 
-	// Verify the DB entry has the registry source prefix
-	dbCatalog, err := dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
-	require.NoError(t, err)
-	require.True(t, strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry),
-		"expected source to start with %q, got %q", SourcePrefixRegistry, dbCatalog.Source)
-
 	// Verify IsAPIRegistry correctly identifies the hostname
 	require.True(t, IsAPIRegistry("registry.modelcontextprotocol.io"))
 	require.True(t, IsAPIRegistry("registry.modelcontextprotocol.io:latest"))
-
-	// Verify pullCatalog checks the DB source prefix for non-hostname refs
-	// by confirming the source prefix check works on the stored catalog
-	require.True(t, strings.HasPrefix(dbCatalog.Source, SourcePrefixRegistry))
 
 	// Verify OCI refs don't get routed to community
 	require.False(t, IsAPIRegistry("docker/mcp-catalog:latest"))
