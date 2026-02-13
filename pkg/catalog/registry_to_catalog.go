@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -335,6 +336,10 @@ func getPublisherProvidedMeta(meta *v0.ServerMeta) map[string]any {
 	return meta.PublisherProvided
 }
 
+// ErrIncompatibleServer is returned by TransformToDocker when the server has
+// no compatible package type (e.g. no OCI+stdio package and no remote).
+var ErrIncompatibleServer = errors.New("incompatible server")
+
 // TransformToDocker transforms a ServerDetail (community format) to Server (catalog format)
 func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 	serverName := extractServerName(serverDetail.Name)
@@ -379,7 +384,7 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 
 	// Validate that we have at least one way to run the server
 	if server.Image == "" && server.Remote.URL == "" {
-		return nil, fmt.Errorf("no OCI packages found")
+		return nil, fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
 	}
 
 	// Add config schema if we have config variables

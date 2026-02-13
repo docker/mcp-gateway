@@ -2,7 +2,9 @@ package catalognext
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -81,6 +83,9 @@ func PullCommunity(ctx context.Context, dao db.DAO, refStr string, _ PullCommuni
 	for _, serverResp := range servers {
 		catalogServer, err := catalog.TransformToDocker(serverResp.Server)
 		if err != nil {
+			if !errors.Is(err, catalog.ErrIncompatibleServer) {
+				fmt.Fprintf(os.Stderr, "Warning: failed to transform server %q: %v\n", serverResp.Server.Name, err)
+			}
 			// Categorize skipped server by its primary package type
 			if len(serverResp.Server.Packages) > 0 {
 				skippedByType[serverResp.Server.Packages[0].RegistryType]++
