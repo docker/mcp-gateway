@@ -7,10 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/name"
-
 	"github.com/docker/mcp-gateway/pkg/db"
-	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
@@ -22,12 +19,11 @@ func Remove(ctx context.Context, dao db.DAO, refStr string) error {
 		duration := time.Since(start)
 		telemetry.RecordCatalogOperation(ctx, "remove", refStr, float64(duration.Milliseconds()), success)
 	}()
-	ref, err := name.ParseReference(refStr)
+	resolved, err := resolveCatalogRef(refStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
+		return err
 	}
-
-	refStr = oci.FullNameWithoutDigest(ref)
+	refStr = resolved
 
 	_, err = dao.GetCatalog(ctx, refStr)
 	if err != nil {

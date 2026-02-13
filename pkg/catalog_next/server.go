@@ -29,16 +29,29 @@ type serverFilter struct {
 	value string
 }
 
-func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
-	ref, err := name.ParseReference(catalogRef)
+// resolveCatalogRef normalises a user-supplied catalog reference.
+// Community registry hostnames are returned as-is; everything else is
+// parsed and normalised as an OCI reference.
+func resolveCatalogRef(refStr string) (string, error) {
+	if IsAPIRegistry(refStr) {
+		return refStr, nil
+	}
+	ref, err := name.ParseReference(refStr)
 	if err != nil {
-		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+		return "", fmt.Errorf("failed to parse oci-reference %s: %w", refStr, err)
 	}
 	if !oci.IsValidInputReference(ref) {
-		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
+		return "", fmt.Errorf("reference %s must be a valid OCI reference without a digest", refStr)
 	}
+	return oci.FullNameWithoutDigest(ref), nil
+}
 
-	catalogRef = oci.FullNameWithoutDigest(ref)
+func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
+	resolved, err := resolveCatalogRef(catalogRef)
+	if err != nil {
+		return err
+	}
+	catalogRef = resolved
 
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
@@ -92,15 +105,11 @@ func ListServers(ctx context.Context, dao db.DAO, catalogRef string, filters []s
 		return err
 	}
 
-	ref, err := name.ParseReference(catalogRef)
+	resolved, err := resolveCatalogRef(catalogRef)
 	if err != nil {
-		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+		return err
 	}
-	if !oci.IsValidInputReference(ref) {
-		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
-	}
-
-	catalogRef = oci.FullNameWithoutDigest(ref)
+	catalogRef = resolved
 
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
@@ -270,15 +279,11 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("at least one server must be specified")
 	}
 
-	ref, err := name.ParseReference(catalogRef)
+	resolved, err := resolveCatalogRef(catalogRef)
 	if err != nil {
-		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+		return err
 	}
-	if !oci.IsValidInputReference(ref) {
-		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
-	}
-
-	catalogRef = oci.FullNameWithoutDigest(ref)
+	catalogRef = resolved
 
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)
@@ -361,15 +366,11 @@ func RemoveServers(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 		return fmt.Errorf("at least one server name must be specified")
 	}
 
-	ref, err := name.ParseReference(catalogRef)
+	resolved, err := resolveCatalogRef(catalogRef)
 	if err != nil {
-		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
+		return err
 	}
-	if !oci.IsValidInputReference(ref) {
-		return fmt.Errorf("reference %s must be a valid OCI reference without a digest", catalogRef)
-	}
-
-	catalogRef = oci.FullNameWithoutDigest(ref)
+	catalogRef = resolved
 
 	// Get the catalog
 	dbCatalog, err := dao.GetCatalog(ctx, catalogRef)

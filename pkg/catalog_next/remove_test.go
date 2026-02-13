@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -47,6 +48,33 @@ func TestRemove(t *testing.T) {
 
 	// Verify it's gone
 	_, err = dao.GetCatalog(ctx, catalog.Ref)
+	require.Error(t, err)
+}
+
+func TestRemoveCommunityRegistry(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Seed a community registry catalog
+	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{
+		"test-server": {Name: "test-server", Type: "server", Image: "test:latest"},
+	})
+	require.NoError(t, err)
+
+	// Verify it exists
+	_, err = dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
+	require.NoError(t, err)
+
+	// Remove using the community hostname
+	output := captureStdout(t, func() {
+		err := Remove(ctx, dao, "registry.modelcontextprotocol.io")
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "Removed catalog registry.modelcontextprotocol.io")
+
+	// Verify it's gone
+	_, err = dao.GetCatalog(ctx, "registry.modelcontextprotocol.io")
 	require.Error(t, err)
 }
 

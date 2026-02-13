@@ -16,6 +16,31 @@ import (
 	"github.com/docker/mcp-gateway/test/mocks"
 )
 
+func TestResolveCatalogRef(t *testing.T) {
+	t.Run("community registry returns as-is", func(t *testing.T) {
+		ref, err := resolveCatalogRef("registry.modelcontextprotocol.io")
+		require.NoError(t, err)
+		assert.Equal(t, "registry.modelcontextprotocol.io", ref)
+	})
+
+	t.Run("community registry with tag returns as-is", func(t *testing.T) {
+		ref, err := resolveCatalogRef("registry.modelcontextprotocol.io:latest")
+		require.NoError(t, err)
+		assert.Equal(t, "registry.modelcontextprotocol.io:latest", ref)
+	})
+
+	t.Run("OCI reference is normalized", func(t *testing.T) {
+		ref, err := resolveCatalogRef("mcp/docker-mcp-catalog:latest")
+		require.NoError(t, err)
+		assert.Contains(t, ref, "mcp/docker-mcp-catalog:latest")
+	})
+
+	t.Run("invalid OCI reference returns error", func(t *testing.T) {
+		_, err := resolveCatalogRef("INVALID:::::REF")
+		require.Error(t, err)
+	})
+}
+
 func TestInspectServer(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
@@ -661,6 +686,28 @@ func TestListServersCatalogNotFound(t *testing.T) {
 	err := ListServers(ctx, dao, "test/nonexistent:latest", []string{}, workingset.OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get catalog")
+}
+
+func TestListServersCommunityRegistry(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := desktop.WithNoDockerDesktop(t.Context())
+
+	// Seed a community registry catalog
+	err := writeCommunityToDatabase(ctx, dao, "registry.modelcontextprotocol.io", map[string]catalog.Server{
+		"community-server": {
+			Name:  "community-server",
+			Type:  "server",
+			Image: "ghcr.io/example/community:latest",
+		},
+	})
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := ListServers(ctx, dao, "registry.modelcontextprotocol.io", []string{}, workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "community-server")
 }
 
 func TestListServersNormalizesCatalogRef(t *testing.T) {

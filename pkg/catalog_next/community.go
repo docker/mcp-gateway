@@ -67,7 +67,7 @@ func PullCommunity(ctx context.Context, dao db.DAO, refStr string, _ PullCommuni
 
 	client := registryapi.NewClient()
 
-	// Fetch all servers from community registry (uses cache if available)
+	// Fetch all servers from community registry
 	servers, err := client.ListServers(ctx, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch servers from community registry: %w", err)

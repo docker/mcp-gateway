@@ -172,16 +172,13 @@ func TestFetchAllServers(t *testing.T) {
 }
 
 func TestListServers(t *testing.T) {
-	t.Run("caches full listing", func(t *testing.T) {
-		tempDir := t.TempDir()
-		t.Setenv("HOME", tempDir)
-
+	t.Run("always fetches from server", func(t *testing.T) {
 		var callCount atomic.Int32
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			callCount.Add(1)
 			resp := registryapi.ServerListResponse{
 				Servers: []registryapi.ServerResponse{
-					{Server: registryapi.ServerJSON{Name: "io.example/cached-server"}},
+					{Server: registryapi.ServerJSON{Name: "io.example/server"}},
 				},
 				Metadata: registryapi.Metadata{Count: 1},
 			}
@@ -192,47 +189,13 @@ func TestListServers(t *testing.T) {
 
 		c := newTestClient(srv.URL)
 
-		// First call should hit the server
 		servers, err := c.ListServers(context.Background(), "")
 		require.NoError(t, err)
 		require.Len(t, servers, 1)
 		require.Equal(t, int32(1), callCount.Load())
 
-		// Second call should use cache
+		// Second call hits server again (no caching)
 		servers, err = c.ListServers(context.Background(), "")
-		require.NoError(t, err)
-		require.Len(t, servers, 1)
-		require.Equal(t, int32(1), callCount.Load()) // still 1 - used cache
-	})
-
-	t.Run("does not cache when query is specified", func(t *testing.T) {
-		tempDir := t.TempDir()
-		t.Setenv("HOME", tempDir)
-
-		var callCount atomic.Int32
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			callCount.Add(1)
-			resp := registryapi.ServerListResponse{
-				Servers: []registryapi.ServerResponse{
-					{Server: registryapi.ServerJSON{Name: "io.example/queried"}},
-				},
-				Metadata: registryapi.Metadata{Count: 1},
-			}
-			w.Header().Set("Content-Type", "application/json")
-			assert.NoError(t, json.NewEncoder(w).Encode(resp))
-		}))
-		defer srv.Close()
-
-		c := newTestClient(srv.URL)
-
-		// First call with query
-		servers, err := c.ListServers(context.Background(), "search")
-		require.NoError(t, err)
-		require.Len(t, servers, 1)
-		require.Equal(t, int32(1), callCount.Load())
-
-		// Second call with query should hit server again
-		servers, err = c.ListServers(context.Background(), "search")
 		require.NoError(t, err)
 		require.Len(t, servers, 1)
 		require.Equal(t, int32(2), callCount.Load())

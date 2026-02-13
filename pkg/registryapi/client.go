@@ -97,28 +97,8 @@ func (c *client) GetServerVersions(ctx context.Context, url *ServerURL) (registr
 // ListServers lists servers from the community registry with optional search query
 // The registry API supports query parameters for filtering
 // This function automatically handles pagination to return all results
-// When query is empty, results are cached locally for faster subsequent requests
 func (c *client) ListServers(ctx context.Context, query string) ([]registryapi.ServerResponse, error) {
-	// Only use cache for full listing (no query filter)
-	// Searching with a query should always fetch fresh results
-	if query == "" {
-		if cached, err := GetCachedServers(); err == nil && cached != nil {
-			return cached, nil
-		}
-	}
-
-	servers, err := c.fetchAllServers(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache results for full listing
-	if query == "" {
-		// Best effort caching - don't fail if cache write fails
-		_ = CacheServers(servers)
-	}
-
-	return servers, nil
+	return c.fetchAllServers(ctx, query)
 }
 
 // fetchAllServers fetches all servers from the registry with pagination
