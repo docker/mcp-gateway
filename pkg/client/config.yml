@@ -266,6 +266,24 @@ system:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  crush:
+    displayName: Crush
+    source: https://github.com/charmbracelet/crush
+    icon: https://avatars.githubusercontent.com/u/42029519?s=120&v=4
+    installCheckPaths:
+      - $HOME/.config/crush
+      - $LOCALAPPDATA\crush
+    paths:
+      linux:
+        - $HOME/.config/crush/crush.json
+      darwin:
+        - $HOME/.config/crush/crush.json
+      windows:
+        - $LOCALAPPDATA\crush\crush.json
+    yq:
+      list: '.mcp | to_entries | map(.value + {"name": .key})'
+      set: .mcp[$NAME] = $JSON+{"type":"stdio"}
+      del: del(.mcp[$NAME])
 project:
   cursor:
     displayname: Cursor
@@ -300,4 +318,12 @@ project:
       list: '.mcpServers | to_entries | map(.value + {"name": .key})'
       set: .mcpServers[$NAME] = $JSON
       del: del(.mcpServers[$NAME])
+  crush:
+    displayname: Crush
+    projectfile: .crush.json
+    icon: https://avatars.githubusercontent.com/u/42029519?s=120&v=4
+    yq:
+      list: '.mcp | to_entries | map(.value + {"name": .key})'
+      set: .mcp[$NAME] = $JSON+{"type":"stdio"}
+      del: del(.mcp[$NAME])
 
