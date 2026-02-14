@@ -13,6 +13,9 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/pkg/db"
+	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
 	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
@@ -119,7 +122,63 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 
 	fmt.Printf("Removed %d server(s) from profile %s\n", removedCount, id)
 
+	// Clean up DCR entries for removed servers not in any other profile
+	cleanupOrphanedDCREntries(ctx, dao, serverNames)
+
 	return nil
+}
+
+// dcrClient abstracts the Desktop API operations needed for cleanup,
+// allowing tests to substitute a mock implementation.
+type dcrClient interface {
+	GetOAuthApp(ctx context.Context, app string) (*desktop.OAuthApp, error)
+	GetDCRClient(ctx context.Context, app string) (*desktop.DCRClient, error)
+	DeleteDCRClient(ctx context.Context, app string) error
+}
+
+// cleanupOrphanedDCREntries removes DCR entries for servers that no longer
+// exist in any profile. This prevents stale OAuth entries from accumulating.
+func cleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string) {
+	if oauth.IsCEMode() {
+		return
+	}
+	doCleanupOrphanedDCREntries(ctx, dao, desktop.NewAuthClient(), serverNames)
+}
+
+func doCleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, client dcrClient, serverNames []string) {
+	allSets, err := dao.ListWorkingSets(ctx)
+	if err != nil {
+		log.Logf("Warning: Failed to list profiles for DCR cleanup: %v", err)
+		return
+	}
+
+	// Build set of all server names still in use across all profiles
+	inUse := make(map[string]bool)
+	for _, ws := range allSets {
+		for _, server := range ws.Servers {
+			if server.Snapshot != nil && server.Snapshot.Server.Name != "" {
+				inUse[server.Snapshot.Server.Name] = true
+			}
+		}
+	}
+
+	for _, name := range serverNames {
+		if inUse[name] {
+			continue
+		}
+		// Only delete if a DCR entry actually exists
+		if _, err := client.GetDCRClient(ctx, name); err != nil {
+			continue
+		}
+		// Keep the DCR entry if the user is still authorized — they may
+		// re-add the server to a profile without needing to re-authorize.
+		if app, err := client.GetOAuthApp(ctx, name); err == nil && app.Authorized {
+			continue
+		}
+		if err := client.DeleteDCRClient(ctx, name); err != nil {
+			log.Logf("Warning: Failed to clean up DCR entry for %s: %v", name, err)
+		}
+	}
 }
 
 type SearchResult struct {
