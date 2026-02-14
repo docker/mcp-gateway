@@ -79,6 +79,15 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				fmt.Printf("Server %s requires OAuth authentication but DCR is disabled.\n", serverName)
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")
 				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
+			} else if mcpOAuthDcrEnabled && server.Type == "remote" && !server.IsOAuthServer() && server.Remote.URL != "" {
+				// Community server without oauth.providers — probe for OAuth
+				if pkgoauth.IsCEMode() {
+					fmt.Printf("Remote server %s enabled. Run 'docker mcp oauth authorize %s' if authentication is required\n", serverName, serverName)
+				} else {
+					if err := pkgoauth.RegisterProviderForDynamicDiscovery(ctx, serverName, server.Remote.URL); err != nil {
+						fmt.Printf("Warning: Dynamic OAuth discovery failed for %s: %v\n", serverName, err)
+					}
+				}
 			}
 		} else {
 			return fmt.Errorf("server %s not found in catalog", serverName)

@@ -24,15 +24,20 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 		if server.Snapshot == nil {
 			continue
 		}
-		if !server.Snapshot.Server.IsRemoteOAuthServer() {
-			continue
-		}
+		if server.Snapshot.Server.IsRemoteOAuthServer() {
+			serverName := server.Snapshot.Server.Name
+			providerName := server.Snapshot.Server.OAuth.Providers[0].Provider
 
-		serverName := server.Snapshot.Server.Name
-		providerName := server.Snapshot.Server.OAuth.Providers[0].Provider
-
-		if err := oauth.RegisterProviderWithSnapshot(ctx, serverName, providerName); err != nil {
-			log.Log(fmt.Sprintf("Warning: Failed to register OAuth provider for %s: %v", serverName, err))
+			if err := oauth.RegisterProviderWithSnapshot(ctx, serverName, providerName); err != nil {
+				log.Log(fmt.Sprintf("Warning: Failed to register OAuth provider for %s: %v", serverName, err))
+			}
+		} else if server.Snapshot.Server.Type == "remote" && server.Snapshot.Server.Remote.URL != "" {
+			// Community servers without oauth.providers: probe for OAuth dynamically
+			serverName := server.Snapshot.Server.Name
+			serverURL := server.Snapshot.Server.Remote.URL
+			if err := oauth.RegisterProviderForDynamicDiscovery(ctx, serverName, serverURL); err != nil {
+				log.Log(fmt.Sprintf("Warning: Failed dynamic OAuth discovery for %s: %v", serverName, err))
+			}
 		}
 	}
 }
