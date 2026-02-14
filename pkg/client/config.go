@@ -25,6 +25,7 @@ const (
 	vendorZed           = "zed"
 	VendorCodex         = "codex"
 	vendorKiro          = "kiro"
+	vendorAmazonQ       = "amazon-q"
 )
 
 var (
@@ -63,8 +64,9 @@ func FindGitProjectRoot(dir string) string {
 
 func GetSupportedMCPClients(cfg Config) []string {
 	tmp := map[string]struct{}{
-		VendorGordon: {},
-		VendorCodex:  {},
+		VendorGordon:  {},
+		VendorCodex:   {},
+		vendorAmazonQ: {},
 	}
 	for k := range cfg.System {
 		tmp[k] = struct{}{}
@@ -154,6 +156,9 @@ func IsSupportedMCPClient(cfg Config, vendor string, global bool) bool {
 	if global && vendor == VendorGordon {
 		return true // global gordon is supported
 	}
+	if global && vendor == vendorAmazonQ {
+		return true
+	}
 	if global {
 		_, ok := cfg.System[vendor]
 		return ok
@@ -170,6 +175,7 @@ type MCPClientCfgBase struct {
 	IsMCPCatalogConnected bool      `json:"dockerMCPCatalogConnected"`
 	WorkingSet            string    `json:"profile"`
 	Err                   *CfgError `json:"error"`
+	SupportsStdio         bool      `json:"supportsStdio"`
 
 	Cfg *MCPJSONLists
 }
