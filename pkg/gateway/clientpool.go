@@ -179,24 +179,23 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 
 	var invalidatedKeys []clientKey
 	for key, keptClient := range cp.keptClients {
-		// Check if this client uses OAuth for the specified provider
-		if keptClient.Config.Spec.OAuth != nil {
-			// Match by server name (for DCR providers, server name matches provider)
-			if keptClient.Config.Name == provider {
-				log.Log(fmt.Sprintf("ClientPool: Closing OAuth connection for server: %s", keptClient.Config.Name))
+		// Check if this remote client matches the OAuth provider
+		// Matches both catalog servers (explicit OAuth metadata) and community servers
+		// (dynamic OAuth discovery via DCR without Spec.OAuth)
+		if keptClient.Config.Name == provider && keptClient.Config.IsRemote() {
+			log.Log(fmt.Sprintf("ClientPool: Closing OAuth connection for server: %s", keptClient.Config.Name))
 
-				// Close the connection
-				client, err := keptClient.Getter.GetClient(context.TODO())
-				if err == nil {
-					client.Session().Close()
-					log.Log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
-				} else {
-					log.Log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
-				}
-
-				// Mark for removal from kept clients
-				invalidatedKeys = append(invalidatedKeys, key)
+			// Close the connection
+			client, err := keptClient.Getter.GetClient(context.TODO())
+			if err == nil {
+				client.Session().Close()
+				log.Log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
+			} else {
+				log.Log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
 			}
+
+			// Mark for removal from kept clients
+			invalidatedKeys = append(invalidatedKeys, key)
 		}
 	}
 
