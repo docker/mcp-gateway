@@ -95,17 +95,18 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 		namesToRemove[name] = true
 	}
 
-	originalCount := len(workingSet.Servers)
+	removedNames := make([]string, 0)
 	filtered := make([]Server, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
 		// TODO: Remove when Snapshot is required
-		if server.Snapshot == nil || !namesToRemove[server.Snapshot.Server.Name] {
+		if server.Snapshot != nil && namesToRemove[server.Snapshot.Server.Name] {
+			removedNames = append(removedNames, server.Snapshot.Server.Name)
+		} else {
 			filtered = append(filtered, server)
 		}
 	}
 
-	removedCount := originalCount - len(filtered)
-	if removedCount == 0 {
+	if len(removedNames) == 0 {
 		return fmt.Errorf("no matching servers found to remove")
 	}
 
@@ -120,10 +121,10 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	fmt.Printf("Removed %d server(s) from profile %s\n", removedCount, id)
+	fmt.Printf("Removed %d server(s) from profile %s\n", len(removedNames), id)
 
 	// Clean up DCR entries for removed servers not in any other profile
-	CleanupOrphanedDCREntries(ctx, dao, serverNames)
+	CleanupOrphanedDCREntries(ctx, dao, removedNames)
 
 	return nil
 }

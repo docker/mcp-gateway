@@ -278,14 +278,6 @@ func parseConfig(t *testing.T, contentYAML string) map[string]any {
 	return config
 }
 
-func readOnly() *bool {
-	return boolPtr(true)
-}
-
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 func TestInvalidateOAuthClients_MatchesCommunityServer(t *testing.T) {
 	// Community server: remote URL set, but no Spec.OAuth metadata.
 	// This verifies Gap 3: InvalidateOAuthClients matches community servers
