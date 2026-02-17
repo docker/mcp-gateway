@@ -1012,3 +1012,132 @@ func TestListServersUnsupportedFilterKey(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported filter key")
 }
+
+func TestAddServerUpsertReplacesExisting(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a profile with one server
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test", []string{
+		"docker://myimage:latest",
+	}, []string{})
+	require.NoError(t, err)
+
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 1)
+	assert.Equal(t, "My Image", dbSet.Servers[0].Snapshot.Server.Name)
+
+	// Add the same server again -- should upsert (replace), not error
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	dbSet, err = dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 1)
+	assert.Equal(t, "My Image", dbSet.Servers[0].Snapshot.Server.Name)
+}
+
+func TestAddServerUpsertPreservesOtherServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a profile with two servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "Test", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	}, []string{})
+	require.NoError(t, err)
+
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 2)
+
+	// Upsert only the first server
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{
+		"docker://myimage:latest",
+	})
+	require.NoError(t, err)
+
+	dbSet, err = dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 2)
+
+	// "Another Image" should still be present (and first, since it was not replaced)
+	assert.Equal(t, "Another Image", dbSet.Servers[0].Snapshot.Server.Name)
+	// "My Image" should be at the end (re-added after filtering)
+	assert.Equal(t, "My Image", dbSet.Servers[1].Snapshot.Server.Name)
+}
+
+func TestAddServerUpsertFromCatalog(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a catalog with a server
+	testCatalog := createTestCatalog(t, dao, []testCatalogServer{
+		{
+			name:       "catalog-server-1",
+			serverType: "image",
+			image:      "catalog-image-1:latest",
+		},
+	})
+
+	// Create a profile with the catalog server
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:      "test-set",
+		Name:    "Test Working Set",
+		Servers: db.ServerList{},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{
+		"catalog://" + testCatalog.Ref + "/catalog-server-1",
+	})
+	require.NoError(t, err)
+
+	dbSet, err := dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 1)
+	assert.Equal(t, "catalog-server-1", dbSet.Servers[0].Snapshot.Server.Name)
+
+	// Now create a second catalog version with an updated server of the same name
+	updatedCatalog := db.Catalog{
+		Ref:    "test/catalog-v2:latest",
+		Digest: "test-digest-v2",
+		Title:  "Test Catalog V2",
+		Source: "https://example.com/catalog-v2",
+		Servers: []db.CatalogServer{
+			{
+				ServerType: "image",
+				Image:      "catalog-image-1:v2",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name:  "catalog-server-1",
+						Type:  "server",
+						Image: "catalog-image-1:v2",
+					},
+				},
+			},
+		},
+	}
+	err = dao.UpsertCatalog(ctx, updatedCatalog)
+	require.NoError(t, err)
+
+	// Upsert the server from the new catalog version
+	err = AddServers(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", []string{
+		"catalog://" + updatedCatalog.Ref + "/catalog-server-1",
+	})
+	require.NoError(t, err)
+
+	dbSet, err = dao.GetWorkingSet(ctx, "test-set")
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 1)
+	assert.Equal(t, "catalog-server-1", dbSet.Servers[0].Snapshot.Server.Name)
+	// Verify it's the updated version
+	assert.Equal(t, "catalog-image-1:v2", dbSet.Servers[0].Image)
+}

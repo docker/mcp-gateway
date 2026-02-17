@@ -389,11 +389,17 @@ func addServerCommand() *cobra.Command {
 		Example: `  # Add servers from a catalog
   docker mcp profile server add dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
 
+  # Add a server from a specific catalog version
+  docker mcp profile server add dev-tools --server catalog://vonwig/private-catalog:v1/bigquery-mcp
+
+  # Add (or update) a server that already exists in the profile
+  docker mcp profile server add dev-tools --server catalog://vonwig/private-catalog:latest/bigquery-mcp
+
   # Add servers with OCI references
   docker mcp profile server add my-profile --server docker://my-server:latest
 
   # Add servers with MCP Registry references
-  docker mcp profile server add my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+  docker mcp profile server add my-profile --server https://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
   # Mix server references
   docker mcp profile server add dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian --server docker://my-server:latest`,
@@ -419,22 +425,26 @@ func removeServerCommand() *cobra.Command {
 	var names []string
 
 	cmd := &cobra.Command{
-		Use:     "remove <profile-id> --name <name1> --name <name2> ...",
+		Use:     "remove <profile-id> [<name1> <name2> ...] [--name <name>]",
 		Aliases: []string{"rm"},
 		Short:   "Remove MCP servers from a profile",
-		Long:    "Remove MCP servers from a profile by server name.",
-		Example: ` # Remove servers by name
-  docker mcp profile server remove dev-tools --name github --name slack
+		Long:    "Remove MCP servers from a profile by server name. Server names can be passed as positional arguments or with the --name flag.",
+		Example: `  # Remove servers by name (positional)
+  docker mcp profile server remove dev-tools github slack
 
   # Remove a single server
-  docker mcp profile server remove dev-tools --name github`,
-		Args: cobra.ExactArgs(1),
+  docker mcp profile server remove dev-tools github
+
+  # Remove servers using --name flag
+  docker mcp profile server remove dev-tools --name github --name slack`,
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			allNames := append(args[1:], names...)
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return workingset.RemoveServers(cmd.Context(), dao, args[0], names)
+			return workingset.RemoveServers(cmd.Context(), dao, args[0], allNames)
 		},
 	}
 
