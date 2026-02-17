@@ -657,7 +657,7 @@ func TestBuildConfigSchema_NoRequiredFields(t *testing.T) {
 
 	// The "required" key must not exist in the map
 	if _, exists := configMap["required"]; exists {
-		t.Error("Expected 'required' key to be absent when no fields are required")
+		t.Fatal("Expected 'required' key to be absent when no fields are required")
 	}
 
 	// Verify it marshals cleanly (no "required": null)
