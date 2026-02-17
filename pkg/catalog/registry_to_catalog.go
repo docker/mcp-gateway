@@ -123,15 +123,16 @@ func buildConfigSchema(configVars map[string]model.Input, serverName string) []a
 		}
 	}
 
-	return []any{
-		map[string]any{
-			"name":        serverName,
-			"type":        "object",
-			"description": fmt.Sprintf("Configuration for %s", serverName),
-			"properties":  properties,
-			"required":    required,
-		},
+	result := map[string]any{
+		"name":        serverName,
+		"type":        "object",
+		"description": fmt.Sprintf("Configuration for %s", serverName),
+		"properties":  properties,
 	}
+	if len(required) > 0 {
+		result["required"] = required
+	}
+	return []any{result}
 }
 
 func buildSecrets(serverName string, secretVars map[string]model.Input) []Secret {
