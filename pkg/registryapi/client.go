@@ -26,6 +26,7 @@ func BuildServerURL(serverName, version string) string {
 type Client interface {
 	GetServer(ctx context.Context, url *ServerURL) (registryapi.ServerResponse, error)
 	GetServerVersions(ctx context.Context, url *ServerURL) (registryapi.ServerListResponse, error)
+	ListServers(ctx context.Context, baseURL string, cursor string) ([]registryapi.ServerResponse, error)
 }
 
 type client struct {
@@ -63,6 +64,46 @@ func (c *client) GetServer(ctx context.Context, url *ServerURL) (registryapi.Ser
 	}
 
 	return serverResp, nil
+}
+
+func (c *client) ListServers(ctx context.Context, baseURL string, cursor string) ([]registryapi.ServerResponse, error) {
+	var all []registryapi.ServerResponse
+	for {
+		u := fmt.Sprintf("%s/v0/servers?version=latest&limit=100", baseURL)
+		if cursor != "" {
+			u += "&cursor=" + url.QueryEscape(cursor)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		var listResp registryapi.ServerListResponse
+		if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		resp.Body.Close()
+
+		all = append(all, listResp.Servers...)
+
+		if listResp.Metadata.NextCursor == "" {
+			break
+		}
+		cursor = listResp.Metadata.NextCursor
+	}
+	return all, nil
 }
 
 func (c *client) GetServerVersions(ctx context.Context, url *ServerURL) (registryapi.ServerListResponse, error) {

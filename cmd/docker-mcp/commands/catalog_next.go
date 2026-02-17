@@ -35,19 +35,30 @@ func catalogNextCommand() *cobra.Command {
 
 func createCatalogNextCommand() *cobra.Command {
 	var opts struct {
-		Title             string
-		FromWorkingSet    string
-		FromLegacyCatalog string
-		Servers           []string
+		Title                 string
+		FromWorkingSet        string
+		FromLegacyCatalog     string
+		FromCommunityRegistry string
+		Servers               []string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create <oci-reference> [--server <ref1> --server <ref2> ...] [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--title <title>]",
-		Short: "Create a new catalog from a profile or legacy catalog",
+		Use:   "create <oci-reference> [--server <ref1> --server <ref2> ...] [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--from-community-registry <hostname>] [--title <title>]",
+		Short: "Create a new catalog from a profile, legacy catalog, or community registry",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opts.FromWorkingSet != "" && opts.FromLegacyCatalog != "" {
-				return fmt.Errorf("cannot use both --from-profile and --from-legacy-catalog")
+			sourceCount := 0
+			if opts.FromWorkingSet != "" {
+				sourceCount++
+			}
+			if opts.FromLegacyCatalog != "" {
+				sourceCount++
+			}
+			if opts.FromCommunityRegistry != "" {
+				sourceCount++
+			}
+			if sourceCount > 1 {
+				return fmt.Errorf("only one of --from-profile, --from-legacy-catalog, or --from-community-registry can be specified")
 			}
 
 			dao, err := db.New()
@@ -56,7 +67,7 @@ func createCatalogNextCommand() *cobra.Command {
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.Title)
+			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title)
 		},
 	}
 
@@ -64,6 +75,7 @@ func createCatalogNextCommand() *cobra.Command {
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
+	flags.StringVar(&opts.FromCommunityRegistry, "from-community-registry", "", "Community registry hostname to fetch servers from (e.g. registry.modelcontextprotocol.io)")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
 
 	return cmd

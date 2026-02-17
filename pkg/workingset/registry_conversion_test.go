@@ -7,6 +7,8 @@ import (
 	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
 func TestConvertRegistryServerToCatalog_BasicOCI(t *testing.T) {
@@ -501,7 +503,7 @@ func TestConvertRegistryServerToCatalog_NoOCIPackages(t *testing.T) {
 
 	_, err := ConvertRegistryServerToCatalog(serverResp)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no OCI packages found")
+	assert.ErrorIs(t, err, catalog.ErrIncompatibleServer)
 }
 
 func TestConvertRegistryServerToCatalog_MultipleOCIPackages(t *testing.T) {
