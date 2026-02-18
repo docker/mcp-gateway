@@ -46,6 +46,19 @@ func AllDisabled() Features {
 	}
 }
 
+// WithEnabled returns a Features with only the named features enabled.
+// Recognised names: "profiles".
+func WithEnabled(names []string) Features {
+	f := &featuresImpl{}
+	for _, name := range names {
+		switch name {
+		case "profiles":
+			f.profilesEnabled = true
+		}
+	}
+	return f
+}
+
 func (f *featuresImpl) InitError() error {
 	return f.initErr
 }

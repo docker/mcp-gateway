@@ -2,6 +2,7 @@
 
 ARG GO_VERSION=1.25.5
 ARG DOCS_FORMATS="md,yaml"
+ARG DOCS_FEATURES=""
 
 FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.8.0-alpine AS lint-base
 
@@ -20,11 +21,12 @@ FROM base AS docs-build
 COPY --from=docs-gen /out/docsgen /usr/bin
 ENV DOCKER_CLI_PLUGIN_ORIGINAL_CLI_COMMAND="mcp"
 ARG DOCS_FORMATS
+ARG DOCS_FEATURES
 RUN --mount=target=/context \
     --mount=target=.,type=tmpfs <<EOT
   set -e
   rsync -a /context/. .
-  docsgen --formats "$DOCS_FORMATS" --source "docs/generator/reference"
+  docsgen --formats "$DOCS_FORMATS" ${DOCS_FEATURES:+--features "$DOCS_FEATURES"} --source "docs/generator/reference"
   mkdir /out
   cp -r docs/generator/reference/* /out/
 EOT
