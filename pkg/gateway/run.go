@@ -298,6 +298,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 	// Add interceptor middleware to the server (includes telemetry)
 	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
 
+	// Add validation middleware FIRST (enabled by default for security)
+	middlewares = append([]mcp.Middleware{g.validateJSONMiddleware()}, middlewares...)
+
 	// Add profile loading middleware for initialize method
 	if g.UseProfiles {
 		middlewares = append(middlewares, g.profileLoadingMiddleware())
