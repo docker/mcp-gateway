@@ -182,6 +182,38 @@ func TestRemoveNoServersFromWorkingSet(t *testing.T) {
 	assert.Contains(t, err.Error(), oneServerError)
 }
 
+func TestRemoveServersCombinedNames(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	workingSetID := "test-set"
+
+	// Create a profile with two servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	}, []string{})
+	require.NoError(t, err)
+
+	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
+	require.NoError(t, err)
+	assert.Len(t, dbSet.Servers, 2)
+
+	// Simulate what the cobra handler produces when mixing positional args and --name flags:
+	// e.g. `docker mcp profile server remove test-set "My Image" --name "Another Image"`
+	// would yield allNames = ["My Image", "Another Image"]
+	allNames := make([]string, 0, 2)
+	allNames = append(allNames, "My Image")      // from positional arg
+	allNames = append(allNames, "Another Image") // from --name flag
+
+	err = RemoveServers(ctx, dao, workingSetID, allNames)
+	require.NoError(t, err)
+
+	dbSet, err = dao.GetWorkingSet(ctx, workingSetID)
+	require.NoError(t, err)
+	assert.Empty(t, dbSet.Servers)
+}
+
 func TestAddServersFromCatalog(t *testing.T) {
 	tests := []struct {
 		name           string

@@ -392,7 +392,9 @@ func removeCatalogNextServersCommand() *cobra.Command {
   docker mcp catalog server remove mcp/my-catalog:latest --name github --name slack`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			allNames := append(args[1:], names...)
+			allNames := make([]string, 0, len(args)-1+len(names))
+			allNames = append(allNames, args[1:]...)
+			allNames = append(allNames, names...)
 			dao, err := db.New()
 			if err != nil {
 				return err
