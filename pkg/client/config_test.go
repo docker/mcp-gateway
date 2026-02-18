@@ -136,6 +136,22 @@ func Test_yq_list(t *testing.T) {
 				HTTPServers: []MCPServerHTTP{},
 			},
 		},
+		{
+			name:    "OpenCode",
+			cfg:     config.System["opencode"],
+			content: "list/opencode.json",
+			result: &MCPJSONLists{
+				STDIOServers: []MCPServerSTDIO{
+					{
+						Name:    "MCP_DOCKER",
+						Command: "docker",
+						Args:    []string{"mcp", "gateway", "run", "--profile", "test"},
+					},
+				},
+				SSEServers:  []MCPServerSSE{},
+				HTTPServers: []MCPServerHTTP{},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
