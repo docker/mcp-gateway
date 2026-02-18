@@ -204,7 +204,7 @@ system:
       windows:
         - $USERPROFILE\.config\opencode\opencode.json
     yq:
-      list: '.mcp | to_entries | map({"name": .key, "command": .value.command[0], "args": (.value.command[1:] // []), "type": "stdio"})'
+      list: '.mcp | to_entries | map({"name": .key, "command": .value.command[0], "args": ((.value.command | .[1:]) // []), "type": "stdio"})'
       set: |
         .mcp[$NAME] = {
           "type": "local",
