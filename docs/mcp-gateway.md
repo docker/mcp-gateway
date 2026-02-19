@@ -78,10 +78,6 @@ services:
 docker compose up
 ```
 
-## More examples
-
-See [Examples](examples/README.md)
-
 ## Complete set of command line flags
 
 ```
