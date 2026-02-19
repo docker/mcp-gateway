@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
+	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
 func Revoke(ctx context.Context, app string) error {
@@ -25,28 +26,21 @@ func Revoke(ctx context.Context, app string) error {
 func revokeDesktopMode(ctx context.Context, app string) error {
 	client := desktop.NewAuthClient()
 
-	// Get catalog to check if this is a remote OAuth server
-	catalogData, err := catalog.GetWithOptions(ctx, true, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get catalog: %w", err)
-	}
-
-	server, found := catalogData.Servers[app]
-	isRemoteOAuth := found && server.IsRemoteOAuthServer()
-
 	// Revoke tokens
 	if err := client.DeleteOAuthApp(ctx, app); err != nil {
 		return fmt.Errorf("failed to revoke OAuth access: %w", err)
 	}
 
-	// For remote OAuth servers, also delete DCR client
-	if isRemoteOAuth {
-		if err := client.DeleteDCRClient(ctx, app); err != nil {
-			return fmt.Errorf("failed to remove DCR client: %w", err)
-		}
+	fmt.Printf("OAuth access revoked for %s\n", app)
+
+	// Clean up DCR entry if the server is not in any profile.
+	// If the server is still in a profile, keep the DCR entry so it
+	// remains visible in the OAuth UI for re-authorization.
+	dao, err := db.New()
+	if err == nil {
+		workingset.CleanupOrphanedDCREntries(ctx, dao, []string{app})
 	}
 
-	fmt.Printf("OAuth access revoked for %s\n", app)
 	return nil
 }
 
