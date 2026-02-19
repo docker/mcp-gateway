@@ -374,10 +374,11 @@ func (g *Gateway) Run(ctx context.Context) error {
 				case configuration := <-configurationUpdates:
 					log.Log("> Configuration updated, reloading...")
 
-					g.filterByPolicy(ctx, &configuration)
+					// Update source-of-truth configuration before applying reload
+					g.configuration = configuration
 
-					if err := g.pullAndVerify(ctx, configuration); err != nil {
-						log.Logf("> Unable to pull and verify images: %s", err)
+					if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+						log.Logf("> Unable to list capabilities: %s", err)
 						continue
 					}
 
