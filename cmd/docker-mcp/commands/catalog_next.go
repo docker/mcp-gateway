@@ -44,8 +44,33 @@ func createCatalogNextCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "create <oci-reference> [--server <ref1> --server <ref2> ...] [--from-profile <profile-id>] [--from-legacy-catalog <url>] [--from-community-registry <hostname>] [--title <title>]",
-		Short: "Create a new catalog from a profile, legacy catalog, or community registry",
-		Args:  cobra.ExactArgs(1),
+		Short: "Create a new catalog from server references, a profile, legacy catalog, or community registry",
+		Long: `Create a new catalog. You can build a catalog directly from server references,
+from an existing profile, from a legacy catalog URL, or from a community registry.
+
+When using --server without --from-profile, --from-legacy-catalog, or --from-community-registry, the --title flag is required.`,
+		Example: `  # Build a catalog directly from server references
+  docker mcp catalog create myorg/catalog:latest --title "My Team Catalog" \
+    --server docker://mcp/custom-tool:latest \
+    --server catalog://my-org/team-catalog:v1/custom-tool
+
+  # Build a catalog with a specific version tag
+  docker mcp catalog create myorg/catalog:v1 --title "v1 Release" \
+    --server catalog://vonwig/private-catalog:v1/bigquery-mcp
+
+  # Copy all servers from one catalog into a new one
+  docker mcp catalog create myorg/new-catalog:latest --title "Combined" \
+    --server catalog://my-org/team-catalog:latest
+
+  # Create from a profile
+  docker mcp catalog create my-catalog --from-profile my-profile --title "My Catalog"
+
+  # Create from a legacy catalog
+  docker mcp catalog create docker-mcp-catalog --from-legacy-catalog https://desktop.docker.com/mcp/catalog/v3/catalog.json
+
+  # Create from a community registry
+  docker mcp catalog create my-catalog --from-community-registry registry.modelcontextprotocol.io --title "Community Servers"`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sourceCount := 0
 			if opts.FromWorkingSet != "" {
@@ -320,6 +345,9 @@ func addCatalogNextServersCommand() *cobra.Command {
 		Example: `  # Add servers from another catalog
   docker mcp catalog server add mcp/my-catalog:latest --server catalog://mcp/docker-mcp-catalog:latest/github
 
+  # Add a server from a specific catalog version
+  docker mcp catalog server add mcp/my-catalog:latest --server catalog://vonwig/private-catalog:v1/bigquery-mcp
+
   # Add servers with OCI references
   docker mcp catalog server add mcp/my-catalog:latest --server docker://my-server:latest
 
@@ -350,22 +378,28 @@ func removeCatalogNextServersCommand() *cobra.Command {
 	var names []string
 
 	cmd := &cobra.Command{
-		Use:     "remove <oci-reference> --name <name1> --name <name2> ...",
+		Use:     "remove <oci-reference> [<name1> <name2> ...] [--name <name>]",
 		Aliases: []string{"rm"},
 		Short:   "Remove MCP servers from a catalog",
-		Long:    "Remove MCP servers from a catalog by server name.",
-		Example: `  # Remove servers by name
-  docker mcp catalog server remove mcp/my-catalog:latest --name github --name slack
+		Long:    "Remove MCP servers from a catalog by server name. Server names can be passed as positional arguments or with the --name flag.",
+		Example: `  # Remove servers by name (positional)
+  docker mcp catalog server remove mcp/my-catalog:latest github slack
 
   # Remove a single server
-  docker mcp catalog server remove mcp/my-catalog:latest --name github`,
-		Args: cobra.ExactArgs(1),
+  docker mcp catalog server remove mcp/my-catalog:latest github
+
+  # Remove servers using --name flag
+  docker mcp catalog server remove mcp/my-catalog:latest --name github --name slack`,
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			allNames := make([]string, 0, len(args)-1+len(names))
+			allNames = append(allNames, args[1:]...)
+			allNames = append(allNames, names...)
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return catalognext.RemoveServers(cmd.Context(), dao, args[0], names)
+			return catalognext.RemoveServers(cmd.Context(), dao, args[0], allNames)
 		},
 	}
 

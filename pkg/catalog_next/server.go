@@ -302,22 +302,34 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("no servers found in provided references")
 	}
 
-	// Convert workingset.Server to catalog Server and add to catalog
+	// Build set of incoming server names for upsert detection
+	newServerNames := make(map[string]bool)
+	for _, ws := range allServers {
+		if ws.Snapshot != nil {
+			newServerNames[ws.Snapshot.Server.Name] = true
+		}
+	}
+
+	// Remove existing servers that will be replaced (upsert)
+	replacedCount := 0
+	filtered := make([]Server, 0, len(catalog.Servers))
+	for _, existing := range catalog.Servers {
+		if existing.Snapshot != nil && newServerNames[existing.Snapshot.Server.Name] {
+			fmt.Printf("Replaced server %s in catalog %s\n", existing.Snapshot.Server.Name, catalogRef)
+			replacedCount++
+		} else {
+			filtered = append(filtered, existing)
+		}
+	}
+	catalog.Servers = filtered
+
+	// Convert workingset.Server to catalog Server and append
 	addedCount := 0
 	for _, wsServer := range allServers {
 		if wsServer.Snapshot == nil {
 			continue
 		}
 
-		serverName := wsServer.Snapshot.Server.Name
-
-		// Check if server already exists
-		if catalog.FindServer(serverName) != nil {
-			fmt.Printf("Server '%s' already exists in catalog (skipping)\n", serverName)
-			continue
-		}
-
-		// Convert to catalog server
 		catalogServer := Server{
 			Type:     wsServer.Type,
 			Snapshot: wsServer.Snapshot,
@@ -336,11 +348,6 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		addedCount++
 	}
 
-	if addedCount == 0 {
-		fmt.Println("No new servers added (all already exist)")
-		return nil
-	}
-
 	// Save the updated catalog
 	dbCatalogUpdated, err := catalog.ToDb()
 	if err != nil {
@@ -351,7 +358,11 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("failed to update catalog: %w", err)
 	}
 
-	fmt.Printf("Added %d server(s) to catalog '%s'\n", addedCount, catalogRef)
+	if replacedCount > 0 {
+		fmt.Printf("Added %d server(s) to catalog '%s' (replaced %d)\n", addedCount, catalogRef, replacedCount)
+	} else {
+		fmt.Printf("Added %d server(s) to catalog '%s'\n", addedCount, catalogRef)
+	}
 	return nil
 }
 
