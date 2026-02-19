@@ -93,6 +93,17 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		} else if token != "" {
 			headers["Authorization"] = "Bearer " + token
 		}
+	} else if c.config.Spec.Remote.URL != "" {
+		// Community servers may have OAuth tokens via dynamic discovery (DCR)
+		// without explicit OAuth metadata in the catalog. Try to get a stored token.
+		credHelper := oauth.NewOAuthCredentialHelper()
+		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+		if err == nil && token != "" {
+			if verbose {
+				log.Logf("    - Using dynamic OAuth token for: %s", c.config.Name)
+			}
+			headers["Authorization"] = "Bearer " + token
+		}
 	}
 
 	var mcpTransport mcp.Transport

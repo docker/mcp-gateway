@@ -352,13 +352,23 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Start OAuth provider for each OAuth server.
 		// Each provider runs in its own goroutine with dynamic timing based on token expiry.
 		log.Log("- Starting OAuth provider loops...")
+		credHelper := oauth.NewOAuthCredentialHelper()
 		for _, serverName := range configuration.ServerNames() {
 			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil || !serverConfig.Spec.IsRemoteOAuthServer() {
+			if !found || serverConfig == nil {
 				continue
 			}
 
-			g.startProvider(ctx, serverName)
+			if serverConfig.Spec.IsRemoteOAuthServer() {
+				g.startProvider(ctx, serverName)
+			} else if serverConfig.IsRemote() {
+				// Community servers: start provider if they have a stored OAuth token
+				// from dynamic discovery (DCR without explicit OAuth metadata)
+				if exists, _ := credHelper.TokenExists(ctx, serverName); exists {
+					log.Logf("- Starting OAuth provider for community server: %s", serverName)
+					g.startProvider(ctx, serverName)
+				}
+			}
 		}
 	}
 
@@ -697,7 +707,9 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 		g.clientPool.InvalidateOAuthClients(event.Provider)
 
 	case oauth.EventLogoutSuccess:
-		// User logged out - stop provider if exists
+		// Invalidate cached OAuth client connections (clear stale bearer tokens)
+		g.clientPool.InvalidateOAuthClients(event.Provider)
+		// Stop provider if exists
 		if exists {
 			log.Logf("- Stopping provider for %s after logout", event.Provider)
 			g.stopProvider(event.Provider)

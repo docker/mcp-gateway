@@ -289,7 +289,8 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		// Handle OAuth DCR only when the client supports elicitation (e.g. not stdio-based clients)
 		if g.McpOAuthDcrEnabled &&
 			serverConfig != nil &&
-			serverConfig.Spec.IsRemoteOAuthServer() {
+			(serverConfig.Spec.IsRemoteOAuthServer() ||
+				(serverConfig.Spec.Type == "remote" && !serverConfig.Spec.IsOAuthServer() && serverConfig.Spec.Remote.URL != "")) {
 
 			init := req.Session.InitializeParams()
 			if init != nil &&
@@ -444,7 +445,20 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 	if !providerExists {
 		// Register DCR client with DD so user can authorize
 		if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			// Fallback: try dynamic discovery for community servers without oauth.providers
+			if serverConfig, _, found := g.configuration.Find(serverName); found && serverConfig.Spec.Remote.URL != "" {
+				if err := oauth.RegisterProviderForDynamicDiscovery(ctx, serverName, serverConfig.Spec.Remote.URL); err != nil {
+					log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+				}
+			} else {
+				log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			}
+		}
+
+		// Verify DCR entry was created — dynamic discovery may have found no OAuth requirement
+		authClient := desktop.NewAuthClient()
+		if _, err := authClient.GetDCRClient(ctx, serverName); err != nil {
+			return true, "" // Server doesn't require OAuth
 		}
 
 		// Start provider (CE mode only - Desktop mode doesn't need polling)

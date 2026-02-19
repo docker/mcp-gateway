@@ -152,10 +152,14 @@ func (p *Provider) Run(ctx context.Context) {
 		// Trigger refresh if needed
 		if shouldTriggerRefresh {
 			if IsCEMode() {
-				// CE mode: Refresh token directly
+				// CE mode: Refresh token directly, then reload server connection
 				go func() {
 					if err := p.refreshTokenCE(); err != nil {
 						log.Logf("! Token refresh failed for %s: %v", p.name, err)
+						return
+					}
+					if err := p.reloadFn(ctx, p.name); err != nil {
+						log.Logf("! Failed to reload %s after token refresh: %v", p.name, err)
 					}
 				}()
 			} else {
