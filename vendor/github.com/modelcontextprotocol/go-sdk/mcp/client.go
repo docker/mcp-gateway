@@ -6,7 +6,6 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"iter"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/internal/json"
 	"github.com/modelcontextprotocol/go-sdk/internal/jsonrpc2"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 )
@@ -27,7 +27,6 @@ import (
 type Client struct {
 	impl                    *Implementation
 	opts                    ClientOptions
-	logger                  *slog.Logger // TODO: file proposal to export this
 	mu                      sync.Mutex
 	roots                   *featureSet[*Root]
 	sessions                []*ClientSession
@@ -42,25 +41,33 @@ type Client struct {
 // The first argument must not be nil.
 //
 // If non-nil, the provided options configure the Client.
-func NewClient(impl *Implementation, opts *ClientOptions) *Client {
+func NewClient(impl *Implementation, options *ClientOptions) *Client {
 	if impl == nil {
 		panic("nil Implementation")
 	}
-	c := &Client{
+	var opts ClientOptions
+	if options != nil {
+		opts = *options
+	}
+	options = nil // prevent reuse
+
+	if opts.Logger == nil { // ensure we have a logger
+		opts.Logger = ensureLogger(nil)
+	}
+
+	return &Client{
 		impl:                    impl,
-		logger:                  ensureLogger(nil), // ensure we have a logger
+		opts:                    opts,
 		roots:                   newFeatureSet(func(r *Root) string { return r.URI }),
 		sendingMethodHandler_:   defaultSendingMethodHandler,
 		receivingMethodHandler_: defaultReceivingMethodHandler[*ClientSession],
 	}
-	if opts != nil {
-		c.opts = *opts
-	}
-	return c
 }
 
 // ClientOptions configures the behavior of the client.
 type ClientOptions struct {
+	// Logger may be set to a non-nil value to enable logging of client activity.
+	Logger *slog.Logger
 	// CreateMessageHandler handles incoming requests for sampling/createMessage.
 	//
 	// Setting CreateMessageHandler to a non-nil value automatically causes the
@@ -407,7 +414,7 @@ func changeAndNotify[P Params](c *Client, notification string, params P, change 
 		}
 	}
 	c.mu.Unlock()
-	notifySessions(sessions, notification, params, c.logger)
+	notifySessions(sessions, notification, params, c.opts.Logger)
 }
 
 // shouldSendListChangedNotification checks if the client's capabilities allow
