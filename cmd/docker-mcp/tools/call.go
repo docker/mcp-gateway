@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -70,6 +71,11 @@ func Call(ctx context.Context, version string, gatewayArgs []string, debug bool,
 	return nil
 }
 
+// toText flattens a CallToolResult into a human-readable string for CLI output.
+//
+// TextContent entries are rendered using their raw text, while any non-text
+// content types fall back to a generic fmt.Sprintf representation. Multiple
+// content blocks are joined with newlines to preserve ordering.
 func toText(response *mcp.CallToolResult) string {
 	var contents []string
 
@@ -84,6 +90,15 @@ func toText(response *mcp.CallToolResult) string {
 	return strings.Join(contents, "\n")
 }
 
+// parseArgs converts CLI arguments in the form key=value into a map suitable
+// for MCP tool invocation.
+//
+// It supports simple values as well as complex JSON payloads. When a value
+// looks like valid JSON (objects, arrays, numbers, booleans, or null), it is
+// automatically unmarshaled into its corresponding Go type. Otherwise, the
+// value is treated as a plain string.
+//
+// Repeated keys are aggregated into a slice to preserve all provided values.
 func parseArgs(args []string) map[string]any {
 	parsed := map[string]any{}
 
@@ -93,15 +108,28 @@ func parseArgs(args []string) map[string]any {
 			value any
 		)
 
+		// Split argument into key=value (only once)
 		parts := strings.SplitN(arg, "=", 2)
 		if len(parts) == 2 {
 			key = parts[0]
-			value = parts[1]
+			rawValue := parts[1]
+
+			// Attempt to parse the value as JSON.
+			// If successful, use the parsed object (map/slice/etc).
+			// Otherwise, fall back to treating it as a plain string.
+			var parsedValue any
+			if err := json.Unmarshal([]byte(rawValue), &parsedValue); err == nil {
+				value = parsedValue
+			} else {
+				value = rawValue
+			}
 		} else {
+			// Flag-style argument without an explicit value
 			key = arg
 			value = nil
 		}
 
+		// Handle repeated keys by aggregating values into a slice
 		if previous, found := parsed[key]; found {
 			switch previous := previous.(type) {
 			case []any:
