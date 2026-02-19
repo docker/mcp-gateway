@@ -215,9 +215,14 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 	args := cp.baseArgs(tool.Name)
 
-	// Attach the MCP servers to the same network as the gateway.
-	for _, network := range cp.networks {
-		args = append(args, "--network", network)
+	// Security options - respect global DisableNetwork flag
+	if cp.DisableNetwork {
+		args = append(args, "--network", "none")
+	} else {
+		// Attach the MCP servers to the same network as the gateway.
+		for _, network := range cp.networks {
+			args = append(args, "--network", network)
+		}
 	}
 
 	// Convert params.Arguments to map[string]any
@@ -306,7 +311,8 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 	var env []string
 
 	// Security options
-	if serverConfig.Spec.DisableNetwork {
+	// Global DisableNetwork flag overrides individual server settings
+	if cp.DisableNetwork || serverConfig.Spec.DisableNetwork {
 		args = append(args, "--network", "none")
 	} else {
 		// Attach the MCP servers to the same network as the gateway.

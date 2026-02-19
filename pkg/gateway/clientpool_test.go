@@ -331,3 +331,90 @@ func TestStdioClientInitialization(t *testing.T) {
 
 	t.Logf("Successfully initialized stdio client and retrieved %d tools", len(tools.Tools))
 }
+
+func TestGlobalDisableNetwork(t *testing.T) {
+	catalogYAML := `
+command:
+  - --transport=stdio
+`
+
+	// Test that global DisableNetwork=true adds --network none
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, true)
+
+	assert.Contains(t, args, "--network")
+	assert.Contains(t, args, "none")
+	assert.Empty(t, env)
+}
+
+func TestGlobalDisableNetworkOverridesServerSetting(t *testing.T) {
+	// Server has disableNetwork: false, but global flag should override
+	catalogYAML := `
+command:
+  - --transport=stdio
+disableNetwork: false
+`
+
+	// Test that global DisableNetwork=true overrides server setting
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, true)
+
+	assert.Contains(t, args, "--network")
+	assert.Contains(t, args, "none")
+	assert.Empty(t, env)
+}
+
+func TestServerDisableNetworkWhenGlobalFalse(t *testing.T) {
+	// Server has disableNetwork: true, global is false - should still disable network
+	catalogYAML := `
+command:
+  - --transport=stdio
+disableNetwork: true
+`
+
+	// Test that server DisableNetwork=true works when global is false
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, false)
+
+	assert.Contains(t, args, "--network")
+	assert.Contains(t, args, "none")
+	assert.Empty(t, env)
+}
+
+func TestNoNetworkDisabledWhenBothFalse(t *testing.T) {
+	// Both server and global disable network are false - should enable networks
+	catalogYAML := `
+command:
+  - --transport=stdio
+disableNetwork: false
+`
+
+	// Test that when both global and server DisableNetwork are false, networks are enabled
+	args, env := argsAndEnvWithGlobalDisableNetwork(t, catalogYAML, "", nil, nil, false)
+
+	// Should not contain --network none
+	networkNoneFound := false
+	for i, arg := range args {
+		if arg == "--network" && i+1 < len(args) && args[i+1] == "none" {
+			networkNoneFound = true
+			break
+		}
+	}
+	assert.False(t, networkNoneFound, "Should not disable network when both global and server settings are false")
+	assert.Empty(t, env)
+}
+
+func argsAndEnvWithGlobalDisableNetwork(t *testing.T, catalogYAML, configYAML string, secrets map[string]string, readOnly *bool, globalDisableNetwork bool) ([]string, []string) {
+	t.Helper()
+
+	clientPool := &clientPool{
+		Options: Options{
+			Cpus:           1,
+			Memory:         "2Gb",
+			DisableNetwork: globalDisableNetwork,
+		},
+	}
+	return clientPool.argsAndEnv(&catalog.ServerConfig{
+		Name:    "test-server",
+		Spec:    parseSpec(t, catalogYAML),
+		Config:  parseConfig(t, configYAML),
+		Secrets: secrets,
+	}, readOnly, proxies.TargetConfig{})
+}
