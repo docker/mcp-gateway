@@ -1,6 +1,7 @@
 package workingset
 
 import (
+	"encoding/json"
 	"testing"
 
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
@@ -97,7 +98,7 @@ func TestCreateWithDockerImages(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "My Test Set", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -123,7 +124,7 @@ func TestCreateWithRegistryServers(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Registry Set", []string{
 		"https://example.com/v0/servers/server1",
 		"https://example.com/v0/servers/server2",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -147,7 +148,7 @@ func TestCreateWithMixedServers(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Mixed Set", []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify the working set was created
@@ -166,7 +167,7 @@ func TestCreateWithCustomId(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "custom-id", "Test Set", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify the working set was created with custom ID
@@ -185,13 +186,13 @@ func TestCreateWithExistingId(t *testing.T) {
 	// Create first working set
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "Test Set 1", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Try to create another with the same ID
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "Test Set 2", []string{
 		"docker://anotherimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already exists")
 }
@@ -203,19 +204,19 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 	// Create first working set
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Create second with same name
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Create third with same name
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// List all working sets
@@ -242,7 +243,7 @@ func TestCreateWithInvalidServerFormat(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"invalid-format",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid server value")
 }
@@ -253,7 +254,7 @@ func TestCreateWithEmptyName(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid profile")
 }
@@ -262,7 +263,7 @@ func TestCreateWithEmptyServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{}, []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify the working set was created with no servers
@@ -279,7 +280,7 @@ func TestCreateAddsDefaultSecrets(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	// Verify default secrets were added
@@ -328,7 +329,7 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 
 			err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", tt.inputName, []string{
 				"docker://myimage:latest",
-			}, []string{})
+			}, []string{}, OutputFormatHumanReadable)
 			require.NoError(t, err)
 
 			// Verify the ID was generated correctly
@@ -338,4 +339,178 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 			assert.Equal(t, tt.expectedID, dbSet.ID)
 		})
 	}
+}
+
+// TestCreateOutputFormatJSON tests that JSON output format returns valid JSON with the profile ID
+func TestCreateOutputFormatJSON(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Capture stdout
+	output := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	// Verify JSON structure
+	var result map[string]string
+	err := json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err, "Output should be valid JSON")
+
+	// Verify the ID field exists and has the expected value
+	assert.Equal(t, "test_set", result["id"])
+	assert.Len(t, result, 1, "JSON output should only contain the id field")
+
+	// Verify the profile was created in the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
+	require.NoError(t, err)
+	assert.Equal(t, "test_set", dbSet.ID)
+}
+
+// TestCreateOutputFormatHuman tests that human-readable format outputs the expected message
+func TestCreateOutputFormatHuman(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Capture stdout
+	output := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+			"docker://myimage:latest",
+			"docker://anotherimage:v1.0",
+		}, []string{}, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	// Verify human-readable output
+	assert.Contains(t, output, "Created profile test_set with 2 servers")
+
+	// Verify the profile was created in the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
+	require.NoError(t, err)
+	assert.Equal(t, "test_set", dbSet.ID)
+	assert.Len(t, dbSet.Servers, 2)
+}
+
+// TestCreateJSONWithDuplicateIDPrevention tests that JSON output reflects the actual ID with duplicate suffix
+func TestCreateJSONWithDuplicateIDPrevention(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create first profile
+	output1 := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result1 map[string]string
+	err := json.Unmarshal([]byte(output1), &result1)
+	require.NoError(t, err)
+	assert.Equal(t, "test", result1["id"])
+
+	// Create second profile with the same name
+	output2 := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result2 map[string]string
+	err = json.Unmarshal([]byte(output2), &result2)
+	require.NoError(t, err)
+	assert.Equal(t, "test_2", result2["id"], "Second profile should have _2 suffix")
+
+	// Create third profile with the same name
+	output3 := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var result3 map[string]string
+	err = json.Unmarshal([]byte(output3), &result3)
+	require.NoError(t, err)
+	assert.Equal(t, "test_3", result3["id"], "Third profile should have _3 suffix")
+}
+
+// TestCreateDefaultOutputFormat tests that the default format is human-readable
+func TestCreateDefaultOutputFormat(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Capture stdout with default format (OutputFormatHumanReadable)
+	output := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatHumanReadable)
+		require.NoError(t, err)
+	})
+
+	// Verify it's human-readable, not JSON
+	assert.Contains(t, output, "Created profile")
+	assert.NotContains(t, output, "{\"id\":")
+}
+
+// TestCreateJSONWithNoServers tests that JSON output works correctly with empty server list
+func TestCreateJSONWithNoServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Capture stdout
+	output := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{}, []string{}, OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	// Verify JSON structure
+	var result map[string]string
+	err := json.Unmarshal([]byte(output), &result)
+	require.NoError(t, err)
+	assert.Equal(t, "empty_set", result["id"])
+
+	// Verify the profile was created in the database with no servers
+	dbSet, err := dao.GetWorkingSet(ctx, "empty_set")
+	require.NoError(t, err)
+	assert.Equal(t, "empty_set", dbSet.ID)
+	assert.Empty(t, dbSet.Servers)
+}
+
+// TestCreateOutputFormatYAML tests that YAML output format returns valid YAML with the profile ID
+func TestCreateOutputFormatYAML(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Capture stdout
+	output := captureStdout(func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+			"docker://myimage:latest",
+		}, []string{}, OutputFormatYAML)
+		require.NoError(t, err)
+	})
+
+	// Verify YAML format
+	assert.Equal(t, "id: test_set\n", output)
+
+	// Verify the profile was created in the database
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set")
+	require.NoError(t, err)
+	assert.Equal(t, "test_set", dbSet.ID)
+}
+
+// TestCreateUnsupportedFormat tests that unsupported formats are rejected
+func TestCreateUnsupportedFormat(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+		"docker://myimage:latest",
+	}, []string{}, OutputFormat("unsupported"))
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported output format")
 }

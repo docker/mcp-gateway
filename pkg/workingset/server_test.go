@@ -93,7 +93,7 @@ func TestRemoveOneServerFromWorkingSet(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-set", "test-set", []string{
 		serverURI,
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, setID)
@@ -122,7 +122,7 @@ func TestRemoveMultipleServersFromWorkingSet(t *testing.T) {
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
@@ -148,7 +148,7 @@ func TestRemoveOneOfManyServerFromWorkingSet(t *testing.T) {
 		"docker://anotherimage:v1.0",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	dbSet, err := dao.GetWorkingSet(ctx, workingSetID)
@@ -174,7 +174,7 @@ func TestRemoveNoServersFromWorkingSet(t *testing.T) {
 		"docker://myimage:latest",
 	}
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", servers, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	err = RemoveServers(ctx, dao, workingSetID, []string{})
@@ -858,7 +858,7 @@ func TestListServersNoFilters(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -881,7 +881,7 @@ func TestListServersFilterByName(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -903,7 +903,7 @@ func TestListServersFilterByNameCaseInsensitive(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -925,12 +925,12 @@ func TestListServersFilterByWorkingSet(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -953,12 +953,12 @@ func TestListServersFilterByBothNameAndWorkingSet(t *testing.T) {
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-2", "Set 2", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
@@ -981,7 +981,7 @@ func TestListServersFilterNoMatches(t *testing.T) {
 
 	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "set-1", "Set 1", []string{
 		"docker://myimage:latest",
-	}, []string{})
+	}, []string{}, OutputFormatHumanReadable)
 	require.NoError(t, err)
 
 	output := captureStdout(func() {
