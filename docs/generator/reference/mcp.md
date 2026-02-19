@@ -7,11 +7,11 @@ Manage MCP servers and clients
 
 | Name                        | Description                             |
 |:----------------------------|:----------------------------------------|
-| [`catalog`](mcp_catalog.md) | Manage MCP server catalogs              |
+| [`catalog`](mcp_catalog.md) | Manage MCP server OCI catalogs          |
 | [`client`](mcp_client.md)   | Manage MCP clients                      |
-| [`config`](mcp_config.md)   | Manage the configuration                |
 | [`feature`](mcp_feature.md) | Manage experimental features            |
 | [`gateway`](mcp_gateway.md) | Manage the MCP Server gateway           |
+| [`profile`](mcp_profile.md) | Manage profiles                         |
 | [`secret`](mcp_secret.md)   | Manage secrets in the local OS Keychain |
 | [`server`](mcp_server.md)   | Manage servers                          |
 | [`tools`](mcp_tools.md)     | Manage tools                            |

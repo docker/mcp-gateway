@@ -67,7 +67,7 @@ options:
       swarm: false
     - option: catalog
       value_type: stringSlice
-      default_value: '[docker-mcp.yaml]'
+      default_value: '[]'
       description: |
         Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)
       deprecated: false
@@ -78,7 +78,7 @@ options:
       swarm: false
     - option: config
       value_type: stringSlice
-      default_value: '[config.yaml]'
+      default_value: '[]'
       description: Paths to the config files (absolute or relative to ~/.docker/mcp/)
       deprecated: false
       hidden: false
@@ -209,9 +209,19 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: profile
+      value_type: string
+      description: |
+        Profile ID to use (mutually exclusive with --servers and --enable-all-servers)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: registry
       value_type: stringSlice
-      default_value: '[registry.yaml]'
+      default_value: '[]'
       description: |
         Paths to the registry files (absolute or relative to ~/.docker/mcp/)
       deprecated: false
@@ -264,7 +274,7 @@ options:
       swarm: false
     - option: tools-config
       value_type: stringSlice
-      default_value: '[tools.yaml]'
+      default_value: '[]'
       description: Paths to the tools files (absolute or relative to ~/.docker/mcp/)
       deprecated: false
       hidden: false
