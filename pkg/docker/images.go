@@ -16,7 +16,11 @@ import (
 )
 
 func (c *dockerClient) ImageExists(ctx context.Context, name string) (bool, error) {
-	_, err := c.apiClient().ContainerInspect(ctx, name)
+	cli, err := c.client()
+	if err != nil {
+		return false, err
+	}
+	_, err = cli.ImageInspect(ctx, name)
 	if cerrdefs.IsNotFound(err) {
 		return false, nil
 	}
@@ -48,11 +52,20 @@ func (c *dockerClient) PullImage(ctx context.Context, name string) error {
 }
 
 func (c *dockerClient) InspectImage(ctx context.Context, name string) (image.InspectResponse, error) {
-	return c.apiClient().ImageInspect(ctx, name)
+	cli, err := c.client()
+	if err != nil {
+		return image.InspectResponse{}, err
+	}
+	return cli.ImageInspect(ctx, name)
 }
 
 func (c *dockerClient) pullImage(ctx context.Context, imageName string, registryAuthFn func() string) error {
-	inspect, err := c.apiClient().ImageInspect(ctx, imageName)
+	cli, err := c.client()
+	if err != nil {
+		return err
+	}
+
+	inspect, err := cli.ImageInspect(ctx, imageName)
 	if err != nil && !cerrdefs.IsNotFound(err) {
 		return fmt.Errorf("inspecting docker image %s: %w", imageName, err)
 	}
@@ -80,7 +93,7 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName string, registry
 		pullOptions.RegistryAuth = registryAuthFn()
 	}
 
-	response, err := c.apiClient().ImagePull(ctx, imageName, pullOptions)
+	response, err := cli.ImagePull(ctx, imageName, pullOptions)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "  - warning: pulling docker image %s: %v", imageName, err)
 		return nil
