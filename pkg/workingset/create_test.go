@@ -94,7 +94,7 @@ func TestCreateWithDockerImages(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "My Test Set", []string{
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "my_test_set", "My Test Set", []string{
 		"docker://myimage:latest",
 		"docker://anotherimage:v1.0",
 	}, []string{})
@@ -120,7 +120,7 @@ func TestCreateWithRegistryServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Registry Set", []string{
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "registry_set", "Registry Set", []string{
 		"https://example.com/v0/servers/server1",
 		"https://example.com/v0/servers/server2",
 	}, []string{})
@@ -144,7 +144,7 @@ func TestCreateWithMixedServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Mixed Set", []string{
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "mixed_set", "Mixed Set", []string{
 		"docker://myimage:latest",
 		"https://example.com/v0/servers/server1",
 	}, []string{})
@@ -196,32 +196,36 @@ func TestCreateWithExistingId(t *testing.T) {
 	assert.Contains(t, err.Error(), "already exists")
 }
 
-func TestCreateGeneratesUniqueIds(t *testing.T) {
+func TestCreateGeneratesTitleFromId(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create first working set
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+	// Create working set with ID but no title
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test_set_one", "", []string{
 		"docker://myimage:latest",
 	}, []string{})
 	require.NoError(t, err)
 
-	// Create second with same name
-	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+	// Verify title equals ID when not explicitly provided
+	dbSet, err := dao.GetWorkingSet(ctx, "test_set_one")
+	require.NoError(t, err)
+	assert.Equal(t, "test_set_one", dbSet.Name)
+
+	// Create another with different ID
+	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "my_profile_v2", "", []string{
 		"docker://anotherimage:v1.0",
 	}, []string{})
 	require.NoError(t, err)
 
-	// Create third with same name
-	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
-		"docker://anotherimage:v1.0",
-	}, []string{})
+	// Verify title equals ID when not explicitly provided
+	dbSet, err = dao.GetWorkingSet(ctx, "my_profile_v2")
 	require.NoError(t, err)
+	assert.Equal(t, "my_profile_v2", dbSet.Name)
 
 	// List all working sets
 	sets, err := dao.ListWorkingSets(ctx)
 	require.NoError(t, err)
-	assert.Len(t, sets, 3)
+	assert.Len(t, sets, 2)
 
 	// Verify IDs are unique
 	ids := make(map[string]bool)
@@ -230,39 +234,43 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 		ids[set.ID] = true
 	}
 
-	// Verify ID pattern
-	assert.Contains(t, ids, "test_set")
-	assert.Contains(t, ids, "test_set_2")
-	assert.Contains(t, ids, "test_set_3")
+	// Verify the expected IDs exist
+	assert.Contains(t, ids, "test_set_one")
+	assert.Contains(t, ids, "my_profile_v2")
 }
 
 func TestCreateWithInvalidServerFormat(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test_set", "Test Set", []string{
 		"invalid-format",
 	}, []string{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid server value")
 }
 
-func TestCreateWithEmptyName(t *testing.T) {
+func TestCreateWithEmptyTitle(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test-id", "", []string{
+	// Create profile with ID but no title - title should equal ID
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test_id", "", []string{
 		"docker://myimage:latest",
 	}, []string{})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid profile")
+	require.NoError(t, err)
+
+	// Verify title equals ID when not explicitly provided
+	dbSet, err := dao.GetWorkingSet(ctx, "test_id")
+	require.NoError(t, err)
+	assert.Equal(t, "test_id", dbSet.Name)
 }
 
 func TestCreateWithEmptyServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Empty Set", []string{}, []string{})
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "empty_set", "Empty Set", []string{}, []string{})
 	require.NoError(t, err)
 
 	// Verify the working set was created with no servers
@@ -277,7 +285,7 @@ func TestCreateAddsDefaultSecrets(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test_set", "Test Set", []string{
 		"docker://myimage:latest",
 	}, []string{})
 	require.NoError(t, err)
@@ -292,31 +300,31 @@ func TestCreateAddsDefaultSecrets(t *testing.T) {
 	assert.Equal(t, "docker-desktop-store", dbSet.Secrets["default"].Provider)
 }
 
-func TestCreateNameWithSpecialCharacters(t *testing.T) {
+func TestCreateTitleGenerationFromID(t *testing.T) {
 	tests := []struct {
-		name       string
-		inputName  string
-		expectedID string
+		name          string
+		inputID       string
+		expectedTitle string
 	}{
 		{
-			name:       "name with spaces",
-			inputName:  "My Test Set",
-			expectedID: "my_test_set",
+			name:          "id with underscores",
+			inputID:       "my_test_set",
+			expectedTitle: "my_test_set",
 		},
 		{
-			name:       "name with special chars",
-			inputName:  "Test@Set#123!",
-			expectedID: "test_set_123_",
+			name:          "id with multiple underscores",
+			inputID:       "test_set_123",
+			expectedTitle: "test_set_123",
 		},
 		{
-			name:       "name with multiple spaces",
-			inputName:  "Test   Set",
-			expectedID: "test_set",
+			name:          "simple id",
+			inputID:       "testset",
+			expectedTitle: "testset",
 		},
 		{
-			name:       "name with underscores",
-			inputName:  "Test_Set_Name",
-			expectedID: "test_set_name",
+			name:          "id with numbers",
+			inputID:       "test_set_v2",
+			expectedTitle: "test_set_v2",
 		},
 	}
 
@@ -326,16 +334,17 @@ func TestCreateNameWithSpecialCharacters(t *testing.T) {
 			dao := setupTestDB(t)
 			ctx := t.Context()
 
-			err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", tt.inputName, []string{
+			// Create profile with ID but no title - title should equal ID
+			err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), tt.inputID, "", []string{
 				"docker://myimage:latest",
 			}, []string{})
 			require.NoError(t, err)
 
-			// Verify the ID was generated correctly
-			dbSet, err := dao.GetWorkingSet(ctx, tt.expectedID)
+			// Verify the title equals ID when not explicitly provided
+			dbSet, err := dao.GetWorkingSet(ctx, tt.inputID)
 			require.NoError(t, err)
 			require.NotNil(t, dbSet)
-			assert.Equal(t, tt.expectedID, dbSet.ID)
+			assert.Equal(t, tt.expectedTitle, dbSet.Name)
 		})
 	}
 }

@@ -70,8 +70,8 @@ func TestListHumanReadable(t *testing.T) {
 	})
 
 	// Verify header
-	assert.Contains(t, output, "ID\tName")
-	assert.Contains(t, output, "----\t----")
+	assert.Contains(t, output, "ID\tTitle")
+	assert.Contains(t, output, "----\t-----")
 
 	// Verify data
 	assert.Contains(t, output, "set-1\tFirst Set")

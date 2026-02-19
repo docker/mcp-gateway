@@ -56,7 +56,32 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 
 	RegisterOAuthProvidersForServers(ctx, newServers)
 
-	workingSet.Servers = append(workingSet.Servers, newServers...)
+	// Implement upsert behavior: if a server with the same name already exists, replace it
+	addedCount := 0
+	updatedCount := 0
+	for _, newServer := range newServers {
+		if newServer.Snapshot == nil {
+			return fmt.Errorf("server missing required snapshot metadata - this indicates a problem with server resolution")
+		}
+
+		// Check if server with this name already exists
+		found := false
+		for i, existingServer := range workingSet.Servers {
+			if existingServer.Snapshot != nil && existingServer.Snapshot.Server.Name == newServer.Snapshot.Server.Name {
+				// Replace existing server
+				workingSet.Servers[i] = newServer
+				found = true
+				updatedCount++
+				break
+			}
+		}
+
+		// If not found, append
+		if !found {
+			workingSet.Servers = append(workingSet.Servers, newServer)
+			addedCount++
+		}
+	}
 
 	if err := workingSet.Validate(); err != nil {
 		return fmt.Errorf("invalid profile: %w", err)
@@ -67,7 +92,11 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	fmt.Printf("Added %d server(s) to profile %s\n", len(newServers), id)
+	if updatedCount > 0 {
+		fmt.Printf("Added %d server(s) and updated %d server(s) in profile %s\n", addedCount, updatedCount, id)
+	} else {
+		fmt.Printf("Added %d server(s) to profile %s\n", addedCount, id)
+	}
 
 	return nil
 }
@@ -277,10 +306,10 @@ func printSearchResultsHuman(results []SearchResult, showPolicy bool) {
 	}
 
 	if showPolicy {
-		header := []string{"PROFILE", "TYPE", "IDENTIFIER", "POLICY"}
+		header := []string{"PROFILE", "TYPE", "NAME", "POLICY"}
 		formatting.PrettyPrintTable(rows, []int{40, 10, 120, 10}, header)
 	} else {
-		header := []string{"PROFILE", "TYPE", "IDENTIFIER"}
+		header := []string{"PROFILE", "TYPE", "NAME"}
 		formatting.PrettyPrintTable(rows, []int{40, 10, 120}, header)
 	}
 }

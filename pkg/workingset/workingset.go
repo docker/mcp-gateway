@@ -348,6 +348,12 @@ func (s *Server) BasicName() string {
 	return "unknown"
 }
 
+// generateTitleFromID returns the profile ID unchanged
+// The title is only different from the ID if the user explicitly provides --title
+func generateTitleFromID(id string) string {
+	return id
+}
+
 func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, error) {
 	// Replace all non-alphanumeric characters with an underscore and make all uppercase lowercase
 	re := regexp.MustCompile("[^a-zA-Z0-9]+")

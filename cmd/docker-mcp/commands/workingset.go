@@ -128,14 +128,13 @@ To view enabled tools, use: docker mcp profile show <profile-id>`,
 
 func createWorkingSetCommand(cfg *client.Config) *cobra.Command {
 	var opts struct {
-		ID      string
-		Name    string
+		Title   string
 		Servers []string
 		Connect []string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create --name <name> [--id <id>] --server <ref1> --server <ref2> ... [--connect <client1> --connect <client2> ...]",
+		Use:   "create <profile-id> [--title <title>] [--server <ref1> --server <ref2> ...] [--connect <client1> --connect <client2> ...]",
 		Short: "Create a new profile of MCP servers",
 		Long: `Create a new profile that groups multiple MCP servers together.
 A profile allows you to organize and manage related servers as a single unit.
@@ -145,34 +144,36 @@ Profiles are decoupled from catalogs. Servers can be:
   - Catalog references with catalog:// prefix (e.g., "catalog://mcp/docker-mcp-catalog/github+obsidian").
   - Local file references with file:// prefix (e.g., "file://./server.yaml").`,
 		Example: `  # Create a profile with servers from a catalog
-  docker mcp profile create --name dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
+  docker mcp profile create dev_tools --title "Dev Tools" --server catalog://mcp/docker-mcp-catalog/github+obsidian
 
   # Create a profile with multiple servers (OCI references)
-  docker mcp profile create --name my-profile --server docker://my-server:latest --server docker://my-other-server:latest
+  docker mcp profile create my_profile --title "My Profile" --server docker://my-server:latest --server docker://my-other-server:latest
 
   # Create a profile with MCP Registry references
-  docker mcp profile create --name my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
+  docker mcp profile create my_profile --title "My Profile" --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
   # Connect to clients upon creation
-  docker mcp profile create --name dev-tools --connect cursor`,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+  docker mcp profile create dev_tools --title "Dev Tools" --connect cursor
+
+  # Create profile without title (title will be same as id)
+  docker mcp profile create dev_tools --server docker://my-server:latest`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers, opts.Connect)
+			profileID := args[0]
+			return workingset.Create(cmd.Context(), dao, registryClient, ociService, profileID, opts.Title, opts.Servers, opts.Connect)
 		},
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
-	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
+	flags.StringVar(&opts.Title, "title", "", "Title of the profile (optional, defaults to profile-id if not provided)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
-	_ = cmd.MarkFlagRequired("name")
 
 	return cmd
 }
@@ -416,30 +417,27 @@ func addServerCommand() *cobra.Command {
 }
 
 func removeServerCommand() *cobra.Command {
-	var names []string
-
 	cmd := &cobra.Command{
-		Use:     "remove <profile-id> --name <name1> --name <name2> ...",
+		Use:     "remove <profile-id> <server-name>",
 		Aliases: []string{"rm"},
-		Short:   "Remove MCP servers from a profile",
-		Long:    "Remove MCP servers from a profile by server name.",
-		Example: ` # Remove servers by name
-  docker mcp profile server remove dev-tools --name github --name slack
+		Short:   "Remove MCP server from a profile",
+		Long:    "Remove MCP server from a profile by server name.",
+		Example: ` # Remove a server by name
+  docker mcp profile server remove dev-tools github
 
-  # Remove a single server
-  docker mcp profile server remove dev-tools --name github`,
-		Args: cobra.ExactArgs(1),
+  # Remove another server
+  docker mcp profile server remove dev-tools slack`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
-			return workingset.RemoveServers(cmd.Context(), dao, args[0], names)
+			profileID := args[0]
+			serverName := args[1]
+			return workingset.RemoveServers(cmd.Context(), dao, profileID, []string{serverName})
 		},
 	}
-
-	flags := cmd.Flags()
-	flags.StringArrayVar(&names, "name", []string{}, "Server name to remove (can be specified multiple times)")
 
 	return cmd
 }

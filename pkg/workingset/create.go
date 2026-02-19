@@ -31,20 +31,23 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 		}
 	}
 
-	var err error
-	if id != "" {
-		_, err := dao.GetWorkingSet(ctx, id)
-		if err == nil {
-			return fmt.Errorf("profile with id %s already exists", id)
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("failed to look for existing profile: %w", err)
-		}
-	} else {
-		id, err = createWorkingSetID(ctx, name, dao)
-		if err != nil {
-			return fmt.Errorf("failed to create profile id: %w", err)
-		}
+	// ID is mandatory
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	// Check if profile with this ID already exists
+	_, err := dao.GetWorkingSet(ctx, id)
+	if err == nil {
+		return fmt.Errorf("profile with id %s already exists", id)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("failed to look for existing profile: %w", err)
+	}
+
+	// Generate title from ID if not provided
+	if name == "" {
+		name = generateTitleFromID(id)
 	}
 
 	// Add default secrets
