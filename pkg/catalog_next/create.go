@@ -220,7 +220,7 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 	var ociCount, remoteCount int
 
 	for _, serverResp := range servers {
-		catalogServer, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.DefaultPyPIVersionResolver())
+		catalogServer, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.WithAllowPyPI(false))
 		if err != nil {
 			if !errors.Is(err, legacycatalog.ErrIncompatibleServer) {
 				fmt.Fprintf(os.Stderr, "Warning: failed to transform server %q: %v\n", serverResp.Server.Name, err)

@@ -18,7 +18,11 @@ func transformTestJSON(t *testing.T, registryJSON string, resolver PyPIVersionRe
 	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
 		t.Fatalf("Failed to parse registry JSON: %v", err)
 	}
-	result, err := TransformToDocker(t.Context(), serverResponse.Server, resolver)
+	var opts []TransformOption
+	if resolver != nil {
+		opts = append(opts, WithPyPIResolver(resolver))
+	}
+	result, err := TransformToDocker(t.Context(), serverResponse.Server, opts...)
 	if err != nil {
 		t.Fatalf("TransformToDocker failed: %v", err)
 	}
@@ -1103,4 +1107,71 @@ func TestTransformOCIWithOptionalConfig(t *testing.T) {
 	}
 
 	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformPyPIDisallowed(t *testing.T) {
+	// PyPI-only server should be rejected when WithAllowPyPI(false) is set
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/pypi-only-server",
+			"title": "PyPI Only Server",
+			"description": "Server with only PyPI package",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"registryBaseUrl": "https://pypi.org",
+				"identifier": "example-mcp-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	_, err := TransformToDocker(t.Context(), serverResponse.Server, WithAllowPyPI(false))
+	if err == nil {
+		t.Fatal("Expected error when PyPI is disallowed, got nil")
+	}
+	if !strings.Contains(err.Error(), "incompatible server") {
+		t.Errorf("Expected incompatible server error, got: %v", err)
+	}
+}
+
+func TestTransformPyPIAllowedByDefault(t *testing.T) {
+	// PyPI-only server should work with default options (no WithAllowPyPI)
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/pypi-default",
+			"title": "PyPI Default Server",
+			"description": "Server with only PyPI package",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"registryBaseUrl": "https://pypi.org",
+				"identifier": "example-mcp-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	result, err := TransformToDocker(t.Context(), serverResponse.Server)
+	if err != nil {
+		t.Fatalf("Expected success for PyPI with default options, got: %v", err)
+	}
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+	if result.Image == "" {
+		t.Error("Expected image to be set for PyPI server")
+	}
 }

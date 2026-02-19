@@ -17,6 +17,30 @@ import (
 // no compatible package type (e.g. no OCI+stdio package and no remote).
 var ErrIncompatibleServer = errors.New("incompatible server")
 
+// TransformOption configures the behavior of TransformToDocker.
+type TransformOption func(*transformOptions)
+
+type transformOptions struct {
+	allowPyPI    bool
+	pypiResolver PyPIVersionResolver
+}
+
+// WithAllowPyPI controls whether PyPI packages are considered during transformation.
+// By default, PyPI packages are allowed.
+func WithAllowPyPI(allow bool) TransformOption {
+	return func(o *transformOptions) {
+		o.allowPyPI = allow
+	}
+}
+
+// WithPyPIResolver sets the PyPI version resolver used to determine the Python
+// version for PyPI packages. If not set, the default Python version is used.
+func WithPyPIResolver(resolver PyPIVersionResolver) TransformOption {
+	return func(o *transformOptions) {
+		o.pypiResolver = resolver
+	}
+}
+
 // Type aliases for imported types from the registry package
 type (
 	ServerDetail  = v0.ServerJSON
@@ -373,7 +397,14 @@ func getPublisherProvidedMeta(meta *v0.ServerMeta) map[string]any {
 }
 
 // TransformToDocker transforms a ServerDetail (community format) to Server (catalog format)
-func TransformToDocker(ctx context.Context, serverDetail ServerDetail, pypiResolver PyPIVersionResolver) (*Server, error) {
+func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...TransformOption) (*Server, error) {
+	options := transformOptions{
+		allowPyPI: true,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	serverName := extractServerName(serverDetail.Name)
 
 	// Find first OCI or PyPI package with stdio transport, preferring OCI
@@ -385,7 +416,7 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, pypiResol
 			break
 		}
 	}
-	if pkg == nil {
+	if pkg == nil && options.allowPyPI {
 		for i := range serverDetail.Packages {
 			if serverDetail.Packages[i].RegistryType == "pypi" &&
 				serverDetail.Packages[i].Transport.Type == "stdio" {
@@ -419,8 +450,8 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, pypiResol
 			}
 		case "pypi":
 			var pythonVersion string
-			if pypiResolver != nil {
-				pythonVersion = pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
+			if options.pypiResolver != nil {
+				pythonVersion = options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
 			}
 			image, command, volumes := extractPyPIInfo(*pkg, pythonVersion)
 			if image != "" {

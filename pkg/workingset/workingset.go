@@ -636,7 +636,7 @@ func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) 
 }
 
 func ConvertRegistryServerToCatalog(ctx context.Context, serverResp *v0.ServerResponse, pypiResolver catalog.PyPIVersionResolver) (catalog.Server, error) {
-	result, err := catalog.TransformToDocker(ctx, serverResp.Server, pypiResolver)
+	result, err := catalog.TransformToDocker(ctx, serverResp.Server, catalog.WithPyPIResolver(pypiResolver))
 	if err != nil {
 		return catalog.Server{}, err
 	}
