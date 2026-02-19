@@ -911,24 +911,24 @@ func TestCreateWorkingSetID(t *testing.T) {
 		{
 			name:       "name with spaces",
 			inputName:  "My Working Set",
-			expectedID: "my-working-set",
+			expectedID: "my_working_set",
 		},
 		{
 			name:       "name with special characters",
 			inputName:  "My@Working#Set!",
-			expectedID: "my-working-set-",
+			expectedID: "my_working_set_",
 		},
 		{
 			name:        "name with collision",
 			inputName:   "test",
 			existingIDs: []string{"test"},
-			expectedID:  "test-2",
+			expectedID:  "test_2",
 		},
 		{
 			name:        "name with multiple collisions",
 			inputName:   "test",
-			existingIDs: []string{"test", "test-2", "test-3"},
-			expectedID:  "test-4",
+			existingIDs: []string{"test", "test_2", "test_3"},
+			expectedID:  "test_4",
 		},
 	}
 
@@ -1577,6 +1577,75 @@ metadata:
 					assert.Equal(t, tt.expected.Server.Metadata.Owner, snapshot.Server.Metadata.Owner)
 				}
 			}
+		})
+	}
+}
+
+func TestIsV0ServerJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		json     string
+		expected bool
+	}{
+		{
+			name: "catalog.Server with type field",
+			json: `{
+				"name": "test-server",
+				"type": "server",
+				"image": "myimage:latest"
+			}`,
+			expected: false,
+		},
+		{
+			name: "v0.ServerJSON with schema field",
+			json: `{
+				"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+				"name": "test-server",
+				"version": "1.0.0"
+			}`,
+			expected: true,
+		},
+		{
+			name: "v0.ServerJSON with packages",
+			json: `{
+				"name": "test-server",
+				"version": "1.0.0",
+				"packages": [{"type": "docker", "uri": "test"}]
+			}`,
+			expected: true,
+		},
+		{
+			name: "v0.ServerJSON with remotes",
+			json: `{
+				"name": "test-server",
+				"version": "1.0.0",
+				"remotes": [{"url": "http://example.com"}]
+			}`,
+			expected: true,
+		},
+		{
+			name: "catalog.Server should not match even with name",
+			json: `{
+				"name": "test-server",
+				"type": "server",
+				"description": "A test server"
+			}`,
+			expected: false,
+		},
+		{
+			name: "ambiguous case without discriminators",
+			json: `{
+				"name": "test-server",
+				"description": "A test server"
+			}`,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isV0ServerJSON([]byte(tt.json))
+			assert.Equal(t, tt.expected, result, "isV0ServerJSON returned unexpected result")
 		})
 	}
 }

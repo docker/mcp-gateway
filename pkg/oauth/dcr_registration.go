@@ -53,8 +53,8 @@ func RegisterProviderWithSnapshot(ctx context.Context, serverName, providerName 
 	client := desktop.NewAuthClient()
 
 	// Idempotent check - already registered?
-	_, err := client.GetDCRClient(ctx, serverName)
-	if err == nil {
+	c, err := client.GetDCRClient(ctx, serverName)
+	if err == nil && c.State == "registered" {
 		return nil // Already registered
 	}
 

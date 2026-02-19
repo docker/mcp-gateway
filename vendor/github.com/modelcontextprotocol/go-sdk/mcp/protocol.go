@@ -13,6 +13,8 @@ package mcp
 import (
 	"encoding/json"
 	"fmt"
+
+	internaljson "github.com/modelcontextprotocol/go-sdk/internal/json"
 )
 
 // Optional annotations for the client. The client can use annotations to inform
@@ -116,17 +118,17 @@ type CallToolResult struct {
 	err error
 }
 
-// TODO(#64): consider exposing setError (and getError), by adding an error
-// field on CallToolResult.
-func (r *CallToolResult) setError(err error) {
+// SetError sets the error for the tool result and populates the Content field
+// with the error text. It also sets IsError to true.
+func (r *CallToolResult) SetError(err error) {
 	r.Content = []Content{&TextContent{Text: err.Error()}}
 	r.IsError = true
 	r.err = err
 }
 
-// getError returns the error set with setError, or nil if none.
+// GetError returns the error set with SetError, or nil if none.
 // This function always returns nil on clients.
-func (r *CallToolResult) getError() error {
+func (r *CallToolResult) GetError() error {
 	return r.err
 }
 
@@ -140,7 +142,7 @@ func (x *CallToolResult) UnmarshalJSON(data []byte) error {
 		res
 		Content []*wireContent `json:"content"`
 	}
-	if err := json.Unmarshal(data, &wire); err != nil {
+	if err := internaljson.Unmarshal(data, &wire); err != nil {
 		return err
 	}
 	var err error
@@ -286,7 +288,7 @@ type CompleteReference struct {
 func (r *CompleteReference) UnmarshalJSON(data []byte) error {
 	type wireCompleteReference CompleteReference // for naive unmarshaling
 	var r2 wireCompleteReference
-	if err := json.Unmarshal(data, &r2); err != nil {
+	if err := internaljson.Unmarshal(data, &r2); err != nil {
 		return err
 	}
 	switch r2.Type {
@@ -402,7 +404,7 @@ func (r *CreateMessageResult) UnmarshalJSON(data []byte) error {
 		result
 		Content *wireContent `json:"content"`
 	}
-	if err := json.Unmarshal(data, &wire); err != nil {
+	if err := internaljson.Unmarshal(data, &wire); err != nil {
 		return err
 	}
 	var err error
@@ -838,7 +840,7 @@ func (m *PromptMessage) UnmarshalJSON(data []byte) error {
 		msg
 		Content *wireContent `json:"content"`
 	}
-	if err := json.Unmarshal(data, &wire); err != nil {
+	if err := internaljson.Unmarshal(data, &wire); err != nil {
 		return err
 	}
 	var err error
@@ -1014,7 +1016,7 @@ func (m *SamplingMessage) UnmarshalJSON(data []byte) error {
 		msg
 		Content *wireContent `json:"content"`
 	}
-	if err := json.Unmarshal(data, &wire); err != nil {
+	if err := internaljson.Unmarshal(data, &wire); err != nil {
 		return err
 	}
 	var err error

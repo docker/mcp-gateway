@@ -3,9 +3,11 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"github.com/modelcontextprotocol/registry/pkg/model"
 )
 
 // transformTestJSON is a test helper that unmarshals registry JSON, calls TransformToDocker,
@@ -934,6 +936,170 @@ func TestTransformPyPIWithEnvVariables(t *testing.T) {
 		if _, ok := properties["log_level"]; !ok {
 			t.Error("Expected log_level in config properties")
 		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestBuildConfigSchema_NoRequiredFields(t *testing.T) {
+	// Bug case: config vars exist but none are required.
+	// "required" key must be omitted, not serialized as null.
+	configVars := map[string]model.Input{
+		"log_level": {
+			Description: "Logging level",
+			Default:     "info",
+		},
+		"timeout": {
+			Description: "Request timeout",
+			Default:     "30",
+		},
+	}
+
+	result := buildConfigSchema(configVars, "test-server")
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 config entry, got %d", len(result))
+	}
+
+	configMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatal("Expected config entry to be map[string]any")
+	}
+
+	// The "required" key must not exist in the map
+	if _, exists := configMap["required"]; exists {
+		t.Fatal("Expected 'required' key to be absent when no fields are required")
+	}
+
+	// Verify it marshals cleanly (no "required": null)
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("Failed to marshal config: %v", err)
+	}
+	jsonStr := string(jsonBytes)
+	if strings.Contains(jsonStr, `"required"`) {
+		t.Errorf("JSON should not contain 'required' key, got: %s", jsonStr)
+	}
+}
+
+func TestBuildConfigSchema_WithRequiredFields(t *testing.T) {
+	configVars := map[string]model.Input{
+		"api_endpoint": {
+			Description: "API endpoint URL",
+			IsRequired:  true,
+		},
+		"log_level": {
+			Description: "Logging level",
+			Default:     "info",
+		},
+	}
+
+	result := buildConfigSchema(configVars, "test-server")
+	if len(result) != 1 {
+		t.Fatalf("Expected 1 config entry, got %d", len(result))
+	}
+
+	configMap, ok := result[0].(map[string]any)
+	if !ok {
+		t.Fatal("Expected config entry to be map[string]any")
+	}
+
+	required, exists := configMap["required"]
+	if !exists {
+		t.Fatal("Expected 'required' key to be present")
+	}
+
+	requiredSlice, ok := required.([]string)
+	if !ok {
+		t.Fatalf("Expected required to be []string, got %T", required)
+	}
+
+	if len(requiredSlice) != 1 || requiredSlice[0] != "api_endpoint" {
+		t.Errorf("Expected required to be [api_endpoint], got %v", requiredSlice)
+	}
+}
+
+func TestBuildConfigSchema_Empty(t *testing.T) {
+	result := buildConfigSchema(map[string]model.Input{}, "test-server")
+	if result != nil {
+		t.Errorf("Expected nil for empty config vars, got %v", result)
+	}
+}
+
+func TestTransformOCIWithOptionalConfig(t *testing.T) {
+	// Regression test: servers with config vars where none are required
+	// must not produce "required": null in the JSON output.
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.example/optional-config-server",
+			"title": "Optional Config Server",
+			"description": "Server with only optional config variables",
+			"version": "1.0.0",
+			"packages": [
+				{
+					"registryType": "oci",
+					"identifier": "docker.io/example/server",
+					"version": "sha256:abc123",
+					"transport": { "type": "stdio" },
+					"environmentVariables": [
+						{
+							"name": "LOG_LEVEL",
+							"value": "{log_level}",
+							"variables": {
+								"log_level": {
+									"description": "Logging level",
+									"default": "info"
+								}
+							}
+						},
+						{
+							"name": "TIMEOUT",
+							"value": "{timeout}",
+							"variables": {
+								"timeout": {
+									"description": "Request timeout in seconds",
+									"format": "number",
+									"default": "30"
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSON(t, registryJSON, nil)
+
+	// The critical assertion: JSON must not contain "required": null
+	if strings.Contains(catalogJSON, `"required": null`) || strings.Contains(catalogJSON, `"required":null`) {
+		t.Errorf("Config schema must not contain 'required: null', got:\n%s", catalogJSON)
+	}
+
+	// Verify config exists with properties but no required field
+	if len(result.Config) == 0 {
+		t.Fatal("Expected config to be present")
+	}
+
+	configMap, ok := result.Config[0].(map[string]any)
+	if !ok {
+		t.Fatal("Expected config to be a map[string]any")
+	}
+
+	if _, exists := configMap["required"]; exists {
+		t.Error("Expected 'required' key to be absent when no config vars are required")
+	}
+
+	// Verify properties are still present
+	properties, ok := configMap["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("Expected properties in config")
+	}
+	if _, ok := properties["log_level"]; !ok {
+		t.Error("Expected log_level in config properties")
+	}
+	if _, ok := properties["timeout"]; !ok {
+		t.Error("Expected timeout in config properties")
 	}
 
 	t.Logf("Catalog JSON:\n%s", catalogJSON)

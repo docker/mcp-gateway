@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,6 +12,10 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/registryapi"
 )
+
+// ErrIncompatibleServer is returned by TransformToDocker when the server has
+// no compatible package type (e.g. no OCI+stdio package and no remote).
+var ErrIncompatibleServer = errors.New("incompatible server")
 
 // Type aliases for imported types from the registry package
 type (
@@ -124,17 +129,16 @@ func buildConfigSchema(configVars map[string]model.Input, serverName string) []a
 		}
 	}
 
-	schema := map[string]any{
+	result := map[string]any{
 		"name":        serverName,
 		"type":        "object",
 		"description": fmt.Sprintf("Configuration for %s", serverName),
 		"properties":  properties,
 	}
 	if len(required) > 0 {
-		schema["required"] = required
+		result["required"] = required
 	}
-
-	return []any{schema}
+	return []any{result}
 }
 
 func buildSecrets(serverName string, secretVars map[string]model.Input) []Secret {
@@ -439,7 +443,7 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, pypiResol
 
 	// Validate that we have at least one way to run the server
 	if server.Image == "" && server.Remote.URL == "" {
-		return nil, fmt.Errorf("no OCI or PyPI packages found")
+		return nil, fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
 	}
 
 	// Add config schema if we have config variables

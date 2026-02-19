@@ -17,8 +17,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 )
 
-func getClientConfig(readOnlyHint *bool, ss *mcp.ServerSession, server *mcp.Server) *clientConfig {
-	return &clientConfig{readOnly: readOnlyHint, serverSession: ss, server: server}
+func getClientConfig(ss *mcp.ServerSession, server *mcp.Server) *clientConfig {
+	return &clientConfig{serverSession: ss, server: server}
 }
 
 // inferServerTransportType determines a transport type label for telemetry.
@@ -59,7 +59,7 @@ func (g *Gateway) mcpToolHandler(tool catalog.Tool) mcp.ToolHandler {
 	}
 }
 
-func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, annotations *mcp.ToolAnnotations, originalToolName string) mcp.ToolHandler {
+func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, _ *mcp.ToolAnnotations, originalToolName string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Look up server configuration
 		serverConfig, _, ok := g.configuration.Find(serverName)
@@ -123,12 +123,7 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, an
 			),
 		)
 
-		var readOnlyHint *bool
-		if annotations != nil && annotations.ReadOnlyHint {
-			readOnlyHint = &annotations.ReadOnlyHint
-		}
-
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(readOnlyHint, req.Session, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(req.Session, server))
 		if err != nil {
 			// Record error in telemetry
 			telemetry.RecordToolError(ctx, span, serverConfig.Name, serverTransportType, req.Params.Name)
@@ -234,7 +229,7 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		// Record prompt get counter
 		telemetry.RecordPromptGet(ctx, req.Params.Name, serverConfig.Name, req.Session.InitializeParams().ClientInfo.Name)
 
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(req.Session, server))
 		if err != nil {
 			span.RecordError(err)
 			telemetry.RecordPromptError(ctx, req.Params.Name, serverConfig.Name, "acquire_failed")
@@ -301,7 +296,7 @@ func (g *Gateway) mcpServerResourceHandler(serverName string, server *mcp.Server
 		// Record counter with server attribution
 		telemetry.RecordResourceRead(ctx, req.Params.URI, serverConfig.Name, req.Session.InitializeParams().ClientInfo.Name)
 
-		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(nil, req.Session, server))
+		client, err := g.clientPool.AcquireClient(ctx, serverConfig, getClientConfig(req.Session, server))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "Failed to acquire client")

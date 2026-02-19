@@ -40,7 +40,6 @@ type clientPool struct {
 }
 
 type clientConfig struct {
-	readOnly      *bool
 	serverSession *mcp.ServerSession
 	server        *mcp.Server
 }
@@ -302,7 +301,7 @@ func (cp *clientPool) baseArgs(name string) []string {
 	return args
 }
 
-func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *bool, targetConfig proxies.TargetConfig) ([]string, []string) {
+func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string) {
 	args := cp.baseArgs(serverConfig.Name)
 	var env []string
 
@@ -365,14 +364,7 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, readOnly *b
 			continue
 		}
 
-		// For long-lived servers, never mount volumes as read-only
-		// because the container will be shared across multiple tool calls
-		isLongLived := serverConfig.Spec.LongLived || cp.LongLived
-		if !isLongLived && readOnly != nil && *readOnly && !strings.HasSuffix(mount, ":ro") {
-			args = append(args, "-v", mount+":ro")
-		} else {
-			args = append(args, "-v", mount)
-		}
+		args = append(args, "-v", mount)
 	}
 
 	// User
@@ -474,11 +466,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				}
 
 				image := cg.serverConfig.Spec.Image
-				var readOnly *bool
-				if cg.clientConfig != nil {
-					readOnly = cg.clientConfig.readOnly
-				}
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, readOnly, targetConfig)
+				args, env := cg.cp.argsAndEnv(cg.serverConfig, targetConfig)
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
