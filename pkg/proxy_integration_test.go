@@ -30,7 +30,7 @@ func TestIntegrationWithoutProxy(t *testing.T) {
 	env := clearProxyEnv(os.Environ())
 
 	// Test catalog show command without proxy
-	out := runDockerMCPWithEnv(t, env, "catalog", "show", "docker-mcp", "--format=json")
+	out := runDockerMCPWithEnv(t, env, "catalog", "show", "mcp/docker-mcp-catalog:latest", "--format=json")
 
 	// Verify catalog content
 	assert.Contains(t, out, `"registry"`, "Catalog should contain registry section")
@@ -64,7 +64,7 @@ func TestIntegrationWithBadProxy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "docker", "mcp", "catalog", "show", "docker-mcp", "--format=json")
+	cmd := exec.CommandContext(ctx, "docker", "mcp", "catalog", "show", "mcp/docker-mcp-catalog:latest", "--format=json")
 	cmd.Env = env
 
 	err := cmd.Run()
@@ -96,7 +96,7 @@ func TestIntegrationWithGoodProxy(t *testing.T) {
 	)
 
 	// Test catalog show command with good proxy
-	out := runDockerMCPWithEnv(t, env, "catalog", "show", "docker-mcp", "--format=json")
+	out := runDockerMCPWithEnv(t, env, "catalog", "show", "mcp/docker-mcp-catalog:latest", "--format=json")
 
 	// Verify catalog content
 	assert.Contains(t, out, `"registry"`, "Catalog should contain registry section")
