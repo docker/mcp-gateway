@@ -452,7 +452,11 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 		case "pypi":
 			var pythonVersion string
 			if options.pypiResolver != nil {
-				pythonVersion = options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
+				pv, found := options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
+				if !found {
+					return nil, fmt.Errorf("pypi package %s@%s was not found", pkg.Identifier, pkg.Version)
+				}
+				pythonVersion = pv
 			}
 			image, command, volumes := extractPyPIInfo(*pkg, pythonVersion, serverName)
 			if image != "" {

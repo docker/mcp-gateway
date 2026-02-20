@@ -18,8 +18,9 @@ const (
 )
 
 // PyPIVersionResolver resolves the minimum Python version for a PyPI package.
-// It returns the minimum Python version string (e.g., "3.10") or empty string if unknown.
-type PyPIVersionResolver func(ctx context.Context, identifier, version, registryBaseURL string) string
+// It returns the minimum Python version string (e.g., "3.10") or empty string if unknown,
+// and a boolean indicating whether the package was found.
+type PyPIVersionResolver func(ctx context.Context, identifier, version, registryBaseURL string) (string, bool)
 
 type pypiPackageInfo struct {
 	Info struct {
@@ -29,10 +30,10 @@ type pypiPackageInfo struct {
 
 // NewPyPIVersionResolver creates a resolver that queries the PyPI JSON API.
 func NewPyPIVersionResolver(httpClient *http.Client) PyPIVersionResolver {
-	return func(ctx context.Context, identifier, version, registryBaseURL string) string {
+	return func(ctx context.Context, identifier, version, registryBaseURL string) (string, bool) {
 		// Only query PyPI for standard PyPI registry
 		if registryBaseURL != "" && registryBaseURL != "https://pypi.org" {
-			return ""
+			return "", false
 		}
 
 		var url string
@@ -44,25 +45,25 @@ func NewPyPIVersionResolver(httpClient *http.Client) PyPIVersionResolver {
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			return ""
+			return "", false
 		}
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			return ""
+			return "", false
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			return ""
+			return "", false
 		}
 
 		var info pypiPackageInfo
 		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-			return ""
+			return "", false
 		}
 
-		return parsePythonVersion(info.Info.RequiresPython)
+		return parsePythonVersion(info.Info.RequiresPython), true
 	}
 }
 
@@ -89,14 +90,15 @@ func parsePythonVersion(requiresPython string) string {
 	re := regexp.MustCompile(`(~=|==|!=|<=|>=|<|>)\s*(\d+)(?:\.(\d+))?`)
 	allMatches := re.FindAllStringSubmatch(requiresPython, -1)
 
-	// If any >= or > constraint exists, the package supports newer versions — use latest
+	hasLowerBound := false
 	for _, m := range allMatches {
 		if m[1] == ">=" || m[1] == ">" {
-			return ""
+			hasLowerBound = true
+			break
 		}
 	}
 
-	// Look for pinning constraints
+	// Look for pinning constraints; these take priority over lower-bound-only specifiers
 	for _, m := range allMatches {
 		if m[3] == "" {
 			continue // no minor version component, skip
@@ -111,6 +113,11 @@ func parsePythonVersion(requiresPython string) string {
 			}
 			return fmt.Sprintf("%s.%d", m[2], minor-1)
 		}
+	}
+
+	// If a lower bound (>= or >) exists but no pinning constraint was found, use latest
+	if hasLowerBound {
+		return ""
 	}
 
 	return ""

@@ -644,8 +644,8 @@ func TestTransformPyPI(t *testing.T) {
 	}`
 
 	// Mock resolver that returns Python 3.12 (simulates ==3.12 or ~=3.12)
-	mockResolver := func(_ context.Context, _, _, _ string) string {
-		return "3.12"
+	mockResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "3.12", true
 	}
 
 	result, catalogJSON := transformTestJSON(t, registryJSON, mockResolver)
@@ -1178,5 +1178,43 @@ func TestTransformPyPIAllowedByDefault(t *testing.T) {
 	}
 	if result.Image == "" {
 		t.Error("Expected image to be set for PyPI server")
+	}
+}
+
+func TestTransformPyPIPackageNotFound(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/pypi-not-found",
+			"title": "PyPI Not Found Server",
+			"description": "Server whose PyPI package does not exist",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "pypi",
+				"registryBaseUrl": "https://pypi.org",
+				"identifier": "nonexistent-mcp-server",
+				"version": "9.9.9",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	notFoundResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "", false
+	}
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	_, err := TransformToDocker(t.Context(), serverResponse.Server, WithPyPIResolver(notFoundResolver))
+	if err == nil {
+		t.Fatal("Expected error when PyPI package is not found, got nil")
+	}
+	if !strings.Contains(err.Error(), "was not found") {
+		t.Errorf("Expected 'was not found' in error message, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "nonexistent-mcp-server@9.9.9") {
+		t.Errorf("Expected package identifier and version in error message, got: %v", err)
 	}
 }

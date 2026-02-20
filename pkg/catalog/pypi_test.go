@@ -15,6 +15,8 @@ func TestParsePythonVersion(t *testing.T) {
 		{"greater than or equal with upper bound uses latest", ">=3.10,<4", ""},
 		{"less than or equal uses pinned version", "<=3.10", "3.10"},
 		{"less than uses pinned version below", "<3.10", "3.9"},
+		{"less than with upper bound uses pinned version below", "<3.14,>=3.10", "3.13"},
+		{"less than with upper bound and lower bound uses pinned version below", "<3.13,>=3.12", "3.12"},
 		{"compatible release pins", "~=3.10", "3.10"},
 		{"exact version pins", "==3.12", "3.12"},
 		{"gte with patch uses latest", ">=3.10.2", ""},
