@@ -682,11 +682,16 @@ func TestTransformPyPI(t *testing.T) {
 		}
 	}
 
+	// Verify PyPI servers are long-lived
+	if !result.LongLived {
+		t.Error("Expected PyPI server to be long-lived")
+	}
+
 	// Verify cache volume
 	if len(result.Volumes) == 0 {
 		t.Error("Expected volumes to be present")
 	} else {
-		expectedVolume := "docker-mcp-uv-cache:/root/.cache/uv"
+		expectedVolume := "docker-mcp-uv-cache-io-github-stevenvo-slack-mcp-server:/root/.cache/uv"
 		if result.Volumes[0] != expectedVolume {
 			t.Errorf("Expected volume '%s', got '%s'", expectedVolume, result.Volumes[0])
 		}

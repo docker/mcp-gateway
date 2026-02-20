@@ -190,7 +190,7 @@ func extractImageInfo(pkg model.Package) string {
 	return ""
 }
 
-func extractPyPIInfo(pkg model.Package, pythonVersion string) (image string, command []string, volumes []string) {
+func extractPyPIInfo(pkg model.Package, pythonVersion string, serverName string) (image string, command []string, volumes []string) {
 	if pkg.RegistryType != "pypi" {
 		return "", nil, nil
 	}
@@ -214,8 +214,9 @@ func extractPyPIInfo(pkg model.Package, pythonVersion string) (image string, com
 	// Add the package name
 	command = append(command, pkg.Identifier)
 
-	// Add uv cache volume
-	volumes = []string{"docker-mcp-uv-cache:/root/.cache/uv"}
+	// Add uv cache volume (keyed per server to avoid cross-contamination)
+	volumeName := fmt.Sprintf("docker-mcp-uv-cache-%s", serverName)
+	volumes = []string{volumeName + ":/root/.cache/uv"}
 
 	return image, command, volumes
 }
@@ -453,12 +454,13 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 			if options.pypiResolver != nil {
 				pythonVersion = options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
 			}
-			image, command, volumes := extractPyPIInfo(*pkg, pythonVersion)
+			image, command, volumes := extractPyPIInfo(*pkg, pythonVersion, serverName)
 			if image != "" {
 				server.Image = image
 				server.Command = command
 				server.Volumes = volumes
 				server.Type = "server"
+				server.LongLived = true
 			}
 		default:
 			return nil, fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)
