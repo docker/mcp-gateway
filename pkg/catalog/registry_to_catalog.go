@@ -17,6 +17,15 @@ import (
 // no compatible package type (e.g. no OCI+stdio package and no remote).
 var ErrIncompatibleServer = errors.New("incompatible server")
 
+// TransformSource describes the package type that TransformToDocker resolved.
+type TransformSource string
+
+const (
+	TransformSourceOCI    TransformSource = "oci"
+	TransformSourcePyPI   TransformSource = "pypi"
+	TransformSourceRemote TransformSource = "remote"
+)
+
 // TransformOption configures the behavior of TransformToDocker.
 type TransformOption func(*transformOptions)
 
@@ -397,8 +406,9 @@ func getPublisherProvidedMeta(meta *v0.ServerMeta) map[string]any {
 	return meta.PublisherProvided
 }
 
-// TransformToDocker transforms a ServerDetail (community format) to Server (catalog format)
-func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...TransformOption) (*Server, error) {
+// TransformToDocker transforms a ServerDetail (community format) to Server (catalog format).
+// The returned TransformSource indicates which package type was used (oci, pypi, or remote).
+func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...TransformOption) (*Server, TransformSource, error) {
 	options := transformOptions{
 		allowPyPI: true,
 	}
@@ -441,6 +451,8 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 		Description: serverDetail.Description,
 	}
 
+	var source TransformSource
+
 	// Add image and command for OCI or PyPI package
 	if pkg != nil {
 		switch pkg.RegistryType {
@@ -448,13 +460,14 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 			if image := extractImageInfo(*pkg); image != "" {
 				server.Image = image
 				server.Type = "server"
+				source = TransformSourceOCI
 			}
 		case "pypi":
 			var pythonVersion string
 			if options.pypiResolver != nil {
 				pv, found := options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
 				if !found {
-					return nil, fmt.Errorf("pypi package %s@%s was not found", pkg.Identifier, pkg.Version)
+					return nil, "", fmt.Errorf("pypi package %s@%s was not found", pkg.Identifier, pkg.Version)
 				}
 				pythonVersion = pv
 			}
@@ -465,9 +478,10 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 				server.Volumes = volumes
 				server.Type = "server"
 				server.LongLived = true
+				source = TransformSourcePyPI
 			}
 		default:
-			return nil, fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)
+			return nil, "", fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)
 		}
 	}
 
@@ -476,11 +490,12 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 		remoteVal := convertRemote(*remote, serverName)
 		server.Remote = remoteVal
 		server.Type = "remote"
+		source = TransformSourceRemote
 	}
 
 	// Validate that we have at least one way to run the server
 	if server.Image == "" && server.Remote.URL == "" {
-		return nil, fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
+		return nil, "", fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
 	}
 
 	// Add config schema if we have config variables
@@ -548,5 +563,5 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 		}
 	}
 
-	return server, nil
+	return server, source, nil
 }

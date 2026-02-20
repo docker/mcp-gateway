@@ -21,7 +21,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, communityRegistryRef string, title string) error {
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, communityRegistryRef string, title string, includePyPI bool) error {
 	telemetry.Init()
 	start := time.Now()
 	var success bool
@@ -49,7 +49,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
 	} else if communityRegistryRef != "" {
-		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, communityRegistryRef)
+		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, communityRegistryRef, includePyPI)
 		if err != nil {
 			return fmt.Errorf("failed to create catalog from community registry: %w", err)
 		}
@@ -202,13 +202,14 @@ func workingSetServerToCatalogServer(server workingset.Server) Server {
 type communityRegistryResult struct {
 	serversAdded   int
 	serversOCI     int
+	serversPyPI    int
 	serversRemote  int
 	serversSkipped int
 	totalServers   int
 	skippedByType  map[string]int
 }
 
-func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string) (Catalog, error) {
+func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string, includePyPI bool) (Catalog, error) {
 	baseURL := "https://" + registryRef
 	servers, err := registryClient.ListServers(ctx, baseURL, "")
 	if err != nil {
@@ -217,10 +218,10 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 
 	catalogServers := make([]Server, 0)
 	skippedByType := make(map[string]int)
-	var ociCount, remoteCount int
+	var ociCount, remoteCount, pypiCount int
 
 	for _, serverResp := range servers {
-		catalogServer, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.WithAllowPyPI(false))
+		catalogServer, transformSource, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.WithAllowPyPI(includePyPI), legacycatalog.WithPyPIResolver(legacycatalog.DefaultPyPIVersionResolver()))
 		if err != nil {
 			if !errors.Is(err, legacycatalog.ErrIncompatibleServer) {
 				fmt.Fprintf(os.Stderr, "Warning: failed to transform server %q: %v\n", serverResp.Server.Name, err)
@@ -242,7 +243,12 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 		var s Server
 		switch catalogServer.Type {
 		case "server":
-			ociCount++
+			switch transformSource {
+			case legacycatalog.TransformSourcePyPI:
+				pypiCount++
+			default:
+				ociCount++
+			}
 			s = Server{
 				Type:  workingset.ServerTypeImage,
 				Image: catalogServer.Image,
@@ -272,12 +278,13 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 	result := communityRegistryResult{
 		serversAdded:   len(catalogServers),
 		serversOCI:     ociCount,
+		serversPyPI:    pypiCount,
 		serversRemote:  remoteCount,
 		serversSkipped: totalSkipped(skippedByType),
 		totalServers:   len(servers),
 		skippedByType:  skippedByType,
 	}
-	printCommunityRegistryResult(registryRef, result)
+	printCommunityRegistryResult(registryRef, result, includePyPI)
 
 	return Catalog{
 		CatalogArtifact: CatalogArtifact{
@@ -296,11 +303,14 @@ func totalSkipped(skippedByType map[string]int) int {
 	return total
 }
 
-func printCommunityRegistryResult(refStr string, result communityRegistryResult) {
+func printCommunityRegistryResult(refStr string, result communityRegistryResult, includePyPI bool) {
 	fmt.Fprintf(os.Stderr, "Fetched %d servers from %s\n", result.serversAdded, refStr)
 	fmt.Fprintf(os.Stderr, "  Total in registry: %d\n", result.totalServers)
 	fmt.Fprintf(os.Stderr, "  Imported:          %d\n", result.serversAdded)
 	fmt.Fprintf(os.Stderr, "    OCI (stdio):     %d\n", result.serversOCI)
+	if includePyPI {
+		fmt.Fprintf(os.Stderr, "    PyPI (stdio):    %d\n", result.serversPyPI)
+	}
 	fmt.Fprintf(os.Stderr, "    Remote:          %d\n", result.serversRemote)
 	fmt.Fprintf(os.Stderr, "  Skipped:           %d\n", result.serversSkipped)
 

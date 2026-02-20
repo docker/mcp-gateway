@@ -11,7 +11,7 @@ import (
 )
 
 // transformTestJSON is a test helper that unmarshals registry JSON, calls TransformToDocker,
-// and returns both the Server and a pretty-printed JSON string of the result.
+// and returns the Server, the TransformSource, and a pretty-printed JSON string of the result.
 func transformTestJSON(t *testing.T, registryJSON string, resolver PyPIVersionResolver) (Server, string) {
 	t.Helper()
 	var serverResponse v0.ServerResponse
@@ -22,7 +22,7 @@ func transformTestJSON(t *testing.T, registryJSON string, resolver PyPIVersionRe
 	if resolver != nil {
 		opts = append(opts, WithPyPIResolver(resolver))
 	}
-	result, err := TransformToDocker(t.Context(), serverResponse.Server, opts...)
+	result, _, err := TransformToDocker(t.Context(), serverResponse.Server, opts...)
 	if err != nil {
 		t.Fatalf("TransformToDocker failed: %v", err)
 	}
@@ -1137,7 +1137,7 @@ func TestTransformPyPIDisallowed(t *testing.T) {
 		t.Fatalf("Failed to parse registry JSON: %v", err)
 	}
 
-	_, err := TransformToDocker(t.Context(), serverResponse.Server, WithAllowPyPI(false))
+	_, _, err := TransformToDocker(t.Context(), serverResponse.Server, WithAllowPyPI(false))
 	if err == nil {
 		t.Fatal("Expected error when PyPI is disallowed, got nil")
 	}
@@ -1169,9 +1169,12 @@ func TestTransformPyPIAllowedByDefault(t *testing.T) {
 		t.Fatalf("Failed to parse registry JSON: %v", err)
 	}
 
-	result, err := TransformToDocker(t.Context(), serverResponse.Server)
+	result, source, err := TransformToDocker(t.Context(), serverResponse.Server)
 	if err != nil {
 		t.Fatalf("Expected success for PyPI with default options, got: %v", err)
+	}
+	if source != TransformSourcePyPI {
+		t.Errorf("Expected source %q, got %q", TransformSourcePyPI, source)
 	}
 	if result.Type != "server" {
 		t.Errorf("Expected type 'server', got '%s'", result.Type)
@@ -1207,7 +1210,7 @@ func TestTransformPyPIPackageNotFound(t *testing.T) {
 		t.Fatalf("Failed to parse registry JSON: %v", err)
 	}
 
-	_, err := TransformToDocker(t.Context(), serverResponse.Server, WithPyPIResolver(notFoundResolver))
+	_, _, err := TransformToDocker(t.Context(), serverResponse.Server, WithPyPIResolver(notFoundResolver))
 	if err == nil {
 		t.Fatal("Expected error when PyPI package is not found, got nil")
 	}

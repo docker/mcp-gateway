@@ -40,6 +40,7 @@ func createCatalogNextCommand() *cobra.Command {
 		FromLegacyCatalog     string
 		FromCommunityRegistry string
 		Servers               []string
+		IncludePyPI           bool
 	}
 
 	cmd := &cobra.Command{
@@ -61,13 +62,17 @@ func createCatalogNextCommand() *cobra.Command {
 				return fmt.Errorf("only one of --from-profile, --from-legacy-catalog, or --from-community-registry can be specified")
 			}
 
+			if opts.IncludePyPI && opts.FromCommunityRegistry == "" {
+				return fmt.Errorf("--include-pypi can only be used when creating a catalog from a community registry")
+			}
+
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title)
+			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title, opts.IncludePyPI)
 		},
 	}
 
@@ -77,6 +82,9 @@ func createCatalogNextCommand() *cobra.Command {
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.FromCommunityRegistry, "from-community-registry", "", "Community registry hostname to fetch servers from (e.g. registry.modelcontextprotocol.io)")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
+
+	flags.BoolVar(&opts.IncludePyPI, "include-pypi", false, "Include PyPI servers when creating a catalog from a community registry")
+	cmd.Flags().MarkHidden("include-pypi") //nolint:errcheck
 
 	return cmd
 }

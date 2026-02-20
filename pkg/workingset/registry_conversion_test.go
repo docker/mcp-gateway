@@ -30,9 +30,10 @@ func TestConvertRegistryServerToCatalog_BasicOCI(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, source, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
+	assert.Equal(t, catalog.TransformSourceOCI, source)
 	assert.Equal(t, "io-github-user-test-server", catalogServer.Name)
 	assert.Equal(t, "server", catalogServer.Type)
 	assert.Equal(t, "ghcr.io/user/test-server:1.0.0", catalogServer.Image)
@@ -66,7 +67,7 @@ func TestConvertRegistryServerToCatalog_WithIcon(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	assert.Equal(t, "https://example.com/icon.png", catalogServer.Icon)
@@ -109,7 +110,7 @@ func TestConvertRegistryServerToCatalog_WithVolumesAndUser(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	assert.Len(t, catalogServer.Volumes, 1)
@@ -155,7 +156,7 @@ func TestConvertRegistryServerToCatalog_WithVolumeVariables(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	// Volume should be extracted with placeholder converted to {{serverName.var}} format
@@ -213,7 +214,7 @@ func TestConvertRegistryServerToCatalog_WithCommand(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	assert.Len(t, catalogServer.Command, 2)
@@ -260,7 +261,7 @@ func TestConvertRegistryServerToCatalog_WithSecrets(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	assert.Len(t, catalogServer.Secrets, 2)
@@ -308,7 +309,7 @@ func TestConvertRegistryServerToCatalog_WithEnvironmentVariables(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	assert.Len(t, catalogServer.Env, 1)
@@ -363,7 +364,7 @@ func TestConvertRegistryServerToCatalog_WithConfigVariables(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	// Verify Env entry is created with converted placeholders
@@ -450,7 +451,7 @@ func TestConvertRegistryServerToCatalog_MultipleSimpleEnvVars(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	// Should have 1 config item named after server with all properties merged
@@ -501,7 +502,7 @@ func TestConvertRegistryServerToCatalog_NoOCIPackages(t *testing.T) {
 		},
 	}
 
-	_, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	_, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, catalog.ErrIncompatibleServer)
 }
@@ -530,7 +531,7 @@ func TestConvertRegistryServerToCatalog_MultipleOCIPackages(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	// Should return the first OCI package
@@ -559,7 +560,7 @@ func TestConvertRegistryServerToCatalog_MixedPackageTypes(t *testing.T) {
 		},
 	}
 
-	catalogServer, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(t.Context(), serverResp, nil)
 	require.NoError(t, err)
 
 	// Should return the OCI package, ignoring npm
