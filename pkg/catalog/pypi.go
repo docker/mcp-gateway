@@ -17,6 +17,8 @@ const (
 	uvBaseImage          = "ghcr.io/astral-sh/uv"
 )
 
+var pythonVersionRe = regexp.MustCompile(`(~=|==|!=|<=|>=|<|>)\s*(\d+)(?:\.(\d+))?`)
+
 // PyPIVersionResolver resolves the minimum Python version for a PyPI package.
 // It returns the minimum Python version string (e.g., "3.10") or empty string if unknown,
 // and a boolean indicating whether the package was found.
@@ -86,9 +88,7 @@ func parsePythonVersion(requiresPython string) string {
 		return ""
 	}
 
-	// Match all operator-version pairs in the specifier
-	re := regexp.MustCompile(`(~=|==|!=|<=|>=|<|>)\s*(\d+)(?:\.(\d+))?`)
-	allMatches := re.FindAllStringSubmatch(requiresPython, -1)
+	allMatches := pythonVersionRe.FindAllStringSubmatch(requiresPython, -1)
 
 	hasLowerBound := false
 	for _, m := range allMatches {
