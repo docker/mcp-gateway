@@ -466,7 +466,7 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 			var pythonVersion string
 			if options.pypiResolver != nil {
 				pv, found := options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
-				if !found {
+				if !found && remote == nil { // Only fail if we can't use a remote fallback
 					return nil, "", fmt.Errorf("pypi package %s@%s was not found", pkg.Identifier, pkg.Version)
 				}
 				pythonVersion = pv

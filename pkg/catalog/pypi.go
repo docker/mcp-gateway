@@ -35,7 +35,7 @@ func NewPyPIVersionResolver(httpClient *http.Client) PyPIVersionResolver {
 	return func(ctx context.Context, identifier, version, registryBaseURL string) (string, bool) {
 		// Only query PyPI for standard PyPI registry
 		if registryBaseURL != "" && registryBaseURL != "https://pypi.org" {
-			return "", false
+			return "", true // assume found for non-standard registries
 		}
 
 		var url string
