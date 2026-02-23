@@ -66,7 +66,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 
 			if os.Getenv("DOCKER_MCP_IN_CONTAINER") != "1" {
 				if features.IsProfilesFeatureEnabled() {
-					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "catalogs", "profile"}) {
+					if isSubcommandOf(cmd, []string{"catalog-next", "catalog", "catalogs", "profile", "template"}) {
 						dao, err := db.New()
 						if err != nil {
 							return err
@@ -100,6 +100,7 @@ func Root(ctx context.Context, cwd string, dockerCli command.Cli, features featu
 
 	if features.IsProfilesFeatureEnabled() {
 		cmd.AddCommand(workingSetCommand(cwd))
+		cmd.AddCommand(templateCommand())
 		cmd.AddCommand(catalogNextCommand())
 		cmd.AddCommand(obsoleteCommand("config", "See `docker mcp profile config --help` instead."))
 	} else {

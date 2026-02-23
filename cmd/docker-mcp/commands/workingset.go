@@ -11,6 +11,8 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/telemetry"
+	"github.com/docker/mcp-gateway/pkg/template"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -128,14 +130,15 @@ To view enabled tools, use: docker mcp profile show <profile-id>`,
 
 func createWorkingSetCommand(cfg *client.Config) *cobra.Command {
 	var opts struct {
-		ID      string
-		Name    string
-		Servers []string
-		Connect []string
+		ID           string
+		Name         string
+		Servers      []string
+		Connect      []string
+		FromTemplate string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create --name <name> [--id <id>] --server <ref1> --server <ref2> ... [--connect <client1> --connect <client2> ...]",
+		Use:   "create [--name <name>] [--id <id>] [--server <ref> ...] [--from-template <template-id>] [--connect <client> ...]",
 		Short: "Create a new profile of MCP servers",
 		Long: `Create a new profile that groups multiple MCP servers together.
 A profile allows you to organize and manage related servers as a single unit.
@@ -143,20 +146,67 @@ Profiles are decoupled from catalogs. Servers can be:
   - MCP Registry references (e.g. http://registry.modelcontextprotocol.io/v0/servers/312e45a4-2216-4b21-b9a8-0f1a51425073)
   - OCI image references with docker:// prefix (e.g., "docker://my-server:latest"). Images must be self-describing.
   - Catalog references with catalog:// prefix (e.g., "catalog://mcp/docker-mcp-catalog/github+obsidian").
-  - Local file references with file:// prefix (e.g., "file://./server.yaml").`,
-		Example: `  # Create a profile with servers from a catalog
+  - Local file references with file:// prefix (e.g., "file://./server.yaml").
+
+Alternatively, use --from-template to create a profile from a starter template.
+Use 'docker mcp template list' to see available templates.`,
+		Example: `  # Create a profile from a starter template
+  docker mcp profile create --from-template ai-coding
+
+  # Create from a template and connect to a client
+  docker mcp profile create --from-template ai-coding --connect cursor
+
+  # Create from a template with a custom name
+  docker mcp profile create --from-template ai-coding --name "My AI Tools"
+
+  # Create a profile with servers from a catalog
   docker mcp profile create --name dev-tools --server catalog://mcp/docker-mcp-catalog/github+obsidian
 
   # Create a profile with multiple servers (OCI references)
   docker mcp profile create --name my-profile --server docker://my-server:latest --server docker://my-other-server:latest
 
-  # Create a profile with MCP Registry references
-  docker mcp profile create --name my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
-
   # Connect to clients upon creation
   docker mcp profile create --name dev-tools --connect cursor`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if opts.FromTemplate != "" && len(opts.Servers) > 0 {
+				return fmt.Errorf("--from-template and --server are mutually exclusive")
+			}
+
+			if opts.FromTemplate != "" {
+				tmpl := template.FindByID(opts.FromTemplate)
+				if tmpl == nil {
+					return fmt.Errorf("unknown template: %s. Use `docker mcp template list` to see available templates", opts.FromTemplate)
+				}
+				if opts.Name == "" {
+					opts.Name = tmpl.Title
+				}
+				opts.Servers = []string{tmpl.CatalogServerRef()}
+
+				ociService := oci.NewService()
+				dao, err := db.New()
+				if err != nil {
+					return err
+				}
+
+				if err := template.EnsureCatalogExists(cmd.Context(), dao, ociService); err != nil {
+					return err
+				}
+
+				registryClient := registryapi.NewClient()
+				if err := workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers, opts.Connect); err != nil {
+					return err
+				}
+
+				telemetry.Init()
+				telemetry.RecordTemplateUsage(cmd.Context(), opts.FromTemplate, "profile-create-flag")
+				return nil
+			}
+
+			if opts.Name == "" {
+				return fmt.Errorf("--name is required (or use --from-template)")
+			}
+
 			dao, err := db.New()
 			if err != nil {
 				return err
@@ -168,11 +218,11 @@ Profiles are decoupled from catalogs. Servers can be:
 	}
 
 	flags := cmd.Flags()
-	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required)")
+	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required unless --from-template is used)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
-	_ = cmd.MarkFlagRequired("name")
+	flags.StringVar(&opts.FromTemplate, "from-template", "", "Create profile from a starter template (use `docker mcp template list` to see options)")
 
 	return cmd
 }
