@@ -1068,6 +1068,116 @@ func TestAddServers(t *testing.T) {
 	})
 }
 
+func TestAddServersUpsert(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	mockOci := mocks.NewMockOCIService(mocks.WithLocalImages([]mocks.MockImage{
+		{
+			Ref: "existing-server:v2",
+			Labels: map[string]string{
+				"io.docker.server.metadata": "name: existing-server\ntype: server\nimage: existing-server:v2",
+			},
+			DigestString: "sha256:abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+		},
+	}))
+
+	t.Run("upsert replaces existing", func(t *testing.T) {
+		catalogObj := Catalog{
+			Ref: "test/upsert-catalog:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Upsert Catalog",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "existing-server:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name:  "existing-server",
+								Type:  "server",
+								Image: "existing-server:v1",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		// Add a server with the same name but different image -- should upsert
+		err = AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mockOci, catalogObj.Ref, []string{
+			"docker://existing-server:v2",
+		})
+		require.NoError(t, err)
+
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 1)
+		assert.Equal(t, "existing-server", cat.Servers[0].Snapshot.Server.Name)
+		assert.Equal(t, "existing-server:v2", cat.Servers[0].Image)
+	})
+
+	t.Run("upsert preserves other servers", func(t *testing.T) {
+		catalogObj := Catalog{
+			Ref: "test/upsert-catalog2:latest",
+			CatalogArtifact: CatalogArtifact{
+				Title: "Upsert Catalog 2",
+				Servers: []Server{
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "existing-server:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name:  "existing-server",
+								Type:  "server",
+								Image: "existing-server:v1",
+							},
+						},
+					},
+					{
+						Type:  workingset.ServerTypeImage,
+						Image: "other-server:v1",
+						Snapshot: &workingset.ServerSnapshot{
+							Server: catalog.Server{
+								Name:  "other-server",
+								Type:  "server",
+								Image: "other-server:v1",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		dbCat, err := catalogObj.ToDb()
+		require.NoError(t, err)
+		err = dao.UpsertCatalog(ctx, dbCat)
+		require.NoError(t, err)
+
+		// Upsert only existing-server
+		err = AddServers(ctx, dao, mocks.NewMockRegistryAPIClient(), mockOci, catalogObj.Ref, []string{
+			"docker://existing-server:v2",
+		})
+		require.NoError(t, err)
+
+		dbCat2, err := dao.GetCatalog(ctx, catalogObj.Ref)
+		require.NoError(t, err)
+		cat := NewFromDb(dbCat2)
+		assert.Len(t, cat.Servers, 2)
+		// other-server should be first (preserved in place)
+		assert.Equal(t, "other-server", cat.Servers[0].Snapshot.Server.Name)
+		assert.Equal(t, "other-server:v1", cat.Servers[0].Image)
+		// existing-server should be at the end (re-added after filtering)
+		assert.Equal(t, "existing-server", cat.Servers[1].Snapshot.Server.Name)
+		assert.Equal(t, "existing-server:v2", cat.Servers[1].Image)
+	})
+}
+
 func TestRemoveServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

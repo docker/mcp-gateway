@@ -56,6 +56,27 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 
 	RegisterOAuthProvidersForServers(ctx, newServers)
 
+	// Build set of incoming server names for upsert detection
+	newServerNames := make(map[string]bool)
+	for _, s := range newServers {
+		if s.Snapshot != nil {
+			newServerNames[s.Snapshot.Server.Name] = true
+		}
+	}
+
+	// Remove existing servers that will be replaced (upsert)
+	replacedCount := 0
+	filtered := make([]Server, 0, len(workingSet.Servers))
+	for _, existing := range workingSet.Servers {
+		if existing.Snapshot != nil && newServerNames[existing.Snapshot.Server.Name] {
+			fmt.Printf("Replaced server %s in profile %s\n", existing.Snapshot.Server.Name, id)
+			replacedCount++
+		} else {
+			filtered = append(filtered, existing)
+		}
+	}
+	workingSet.Servers = filtered
+
 	workingSet.Servers = append(workingSet.Servers, newServers...)
 
 	if err := workingSet.Validate(); err != nil {
@@ -67,7 +88,11 @@ func AddServers(ctx context.Context, dao db.DAO, registryClient registryapi.Clie
 		return fmt.Errorf("failed to update profile: %w", err)
 	}
 
-	fmt.Printf("Added %d server(s) to profile %s\n", len(newServers), id)
+	if replacedCount > 0 {
+		fmt.Printf("Added %d server(s) to profile %s (replaced %d)\n", len(newServers), id, replacedCount)
+	} else {
+		fmt.Printf("Added %d server(s) to profile %s\n", len(newServers), id)
+	}
 
 	return nil
 }
