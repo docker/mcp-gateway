@@ -177,7 +177,7 @@ func createProfileHandler(g *Gateway) mcp.ToolHandler {
 		// If client is claude-code, update profiles.json in current directory
 		clientInfo := req.Session.InitializeParams().ClientInfo
 		// SaveProfileForClient handles Claude Code detection and profile saving
-		_ = project.SaveProfileForClient(clientInfo, profileName)
+		_ = project.SaveProfileForClient(clientInfo, ws)
 
 		// Build success message
 		var resultMessage string

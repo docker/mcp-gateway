@@ -88,7 +88,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		if g.embeddingsClient != nil {
 			handler = embeddingStrategy(g)
 		} else {
-			handler = keywordStrategy(configuration)
+			handler = bm25Strategy(g)
 		}
 		log.Log("  > mcp-find: tool for finding MCP servers in the catalog")
 		mcpFindTool := g.createMcpFindTool(configuration, handler)

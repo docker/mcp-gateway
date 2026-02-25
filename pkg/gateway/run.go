@@ -82,6 +82,9 @@ type Gateway struct {
 	refreshMu         sync.Mutex
 	refreshingServers map[string]bool
 
+	// Protect configuration modifications during profile activation
+	configurationMu sync.Mutex
+
 	// embeddings client for vector search
 	embeddingsClient *embeddings.VectorDBClient
 
