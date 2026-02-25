@@ -1,6 +1,7 @@
 package workingset
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -212,6 +213,35 @@ func TestRemoveServersCombinedNames(t *testing.T) {
 	dbSet, err = dao.GetWorkingSet(ctx, workingSetID)
 	require.NoError(t, err)
 	assert.Empty(t, dbSet.Servers)
+}
+
+func TestRemoveServersTriggersDCRCleanup(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	workingSetID := "test-set"
+
+	// Create a profile with two servers
+	err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), workingSetID, "My Test Set", []string{
+		"docker://myimage:latest",
+		"docker://anotherimage:v1.0",
+	}, []string{})
+	require.NoError(t, err)
+
+	// Track which server names are passed to the cleanup function
+	var cleanedUpNames []string
+	old := cleanupDCREntriesFunc
+	cleanupDCREntriesFunc = func(_ context.Context, _ db.DAO, names []string) {
+		cleanedUpNames = append(cleanedUpNames, names...)
+	}
+	defer func() { cleanupDCREntriesFunc = old }()
+
+	// Remove one server
+	err = RemoveServers(ctx, dao, workingSetID, []string{"My Image"})
+	require.NoError(t, err)
+
+	// Verify cleanup was called with the removed server name
+	assert.Equal(t, []string{"My Image"}, cleanedUpNames)
 }
 
 func TestAddServersFromCatalog(t *testing.T) {
