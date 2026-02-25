@@ -87,7 +87,7 @@ func registerProviderForDynamicDiscovery(ctx context.Context, serverName, server
 	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	discovery, err := prober.DiscoverOAuthRequirements(probeCtx, serverURL)
-	if err != nil || !discovery.RequiresOAuth {
+	if err != nil || discovery == nil || !discovery.RequiresOAuth {
 		return nil // Server doesn't need OAuth, not an error
 	}
 

@@ -84,6 +84,18 @@ func TestRegisterProviderForDynamicDiscovery_SkipsWhenNoOAuthRequired(t *testing
 	assert.Empty(t, client.registered, "should not register when OAuth not required")
 }
 
+func TestRegisterProviderForDynamicDiscovery_SkipsOnNilDiscovery(t *testing.T) {
+	client := newMockDCRClient()
+	prober := &mockProber{
+		discovery: nil,
+		err:       nil,
+	}
+
+	err := registerProviderForDynamicDiscovery(t.Context(), "my-server", "https://example.com/mcp", client, prober)
+	require.NoError(t, err)
+	assert.Empty(t, client.registered, "should not register when discovery is nil")
+}
+
 func TestRegisterProviderForDynamicDiscovery_SkipsOnProbeError(t *testing.T) {
 	client := newMockDCRClient()
 	prober := &mockProber{

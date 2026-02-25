@@ -81,26 +81,16 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		headers[k] = expandEnv(v, env)
 	}
 
-	// Add OAuth token if remote server has OAuth configuration
-	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
-		if verbose {
-			log.Logf("    - Using OAuth token for: %s", c.config.Name)
-		}
+	// Add OAuth token for remote servers — covers both catalog servers (explicit
+	// OAuth metadata) and community servers (dynamic discovery via DCR).
+	if c.config.Spec.Remote.URL != "" {
 		credHelper := oauth.NewOAuthCredentialHelper()
 		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
 		if err != nil {
 			log.Logf("Failed to get OAuth token for %s: %v", c.config.Name, err)
 		} else if token != "" {
-			headers["Authorization"] = "Bearer " + token
-		}
-	} else if c.config.Spec.Remote.URL != "" {
-		// Community servers may have OAuth tokens via dynamic discovery (DCR)
-		// without explicit OAuth metadata in the catalog. Try to get a stored token.
-		credHelper := oauth.NewOAuthCredentialHelper()
-		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
-		if err == nil && token != "" {
 			if verbose {
-				log.Logf("    - Using dynamic OAuth token for: %s", c.config.Name)
+				log.Logf("    - Using OAuth token for: %s", c.config.Name)
 			}
 			headers["Authorization"] = "Bearer " + token
 		}

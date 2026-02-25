@@ -158,7 +158,6 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 // Tests can override this to verify the call without requiring Docker Desktop.
 var cleanupDCREntriesFunc = CleanupOrphanedDCREntries
 
-
 // dcrClient abstracts the Desktop API operations needed for cleanup,
 // allowing tests to substitute a mock implementation.
 type dcrClient interface {
