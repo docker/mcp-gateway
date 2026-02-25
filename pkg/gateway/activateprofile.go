@@ -147,59 +147,75 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 			serverConfigMap := profileConfig.config[serverName]
 
 			for _, configItem := range serverConfig.Config {
-				// Config items should be schema objects with a "name" property
+				// Config items are object schemas with a "properties" map.
+				// The "name" field is just an identifier, not a key in serverConfigMap.
 				schemaMap, ok := configItem.(map[string]any)
 				if !ok {
 					continue
 				}
 
-				// Get the name field - this identifies which config to validate
-				configName, ok := schemaMap["name"].(string)
-				if !ok || configName == "" {
+				properties, ok := schemaMap["properties"].(map[string]any)
+				if !ok {
 					continue
 				}
 
-				// Get the actual config value to validate
-				if serverConfigMap == nil {
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (missing)", configName))
-					continue
-				}
-
-				// Extract the specific config value for this schema, not the entire map
-				configValue, exists := serverConfigMap[configName]
-				if !exists {
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (missing)", configName))
-					continue
-				}
-
-				// Convert the schema map to a jsonschema.Schema for validation
-				schemaBytes, err := json.Marshal(schemaMap)
-				if err != nil {
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", configName))
-					continue
-				}
-
-				var schema jsonschema.Schema
-				if err := json.Unmarshal(schemaBytes, &schema); err != nil {
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", configName))
-					continue
-				}
-
-				// Resolve the schema
-				resolved, err := schema.Resolve(nil)
-				if err != nil {
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (schema resolution failed)", configName))
-					continue
-				}
-
-				// Validate the config value against the schema
-				if err := resolved.Validate(configValue); err != nil {
-					// Extract a helpful error message
-					errMsg := err.Error()
-					if len(errMsg) > 100 {
-						errMsg = errMsg[:97] + "..."
+				// Build a set of required property names
+				requiredProps := make(map[string]bool)
+				if requiredList, ok := schemaMap["required"].([]any); ok {
+					for _, r := range requiredList {
+						if s, ok := r.(string); ok {
+							requiredProps[s] = true
+						}
 					}
-					validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (%s)", configName, errMsg))
+				}
+
+				// Validate each property individually
+				for propName, propSchema := range properties {
+					propSchemaMap, ok := propSchema.(map[string]any)
+					if !ok {
+						continue
+					}
+
+					// Get the value from the user-provided config
+					configValue, exists := serverConfigMap[propName]
+					if !exists {
+						// If the property has a default, the server will use it
+						if _, hasDefault := propSchemaMap["default"]; hasDefault {
+							continue
+						}
+						// Only flag as missing if explicitly required
+						if requiredProps[propName] {
+							validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (missing)", propName))
+						}
+						continue
+					}
+
+					// Validate the value against the property schema
+					schemaBytes, err := json.Marshal(propSchemaMap)
+					if err != nil {
+						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", propName))
+						continue
+					}
+
+					var propSchemaObj jsonschema.Schema
+					if err := json.Unmarshal(schemaBytes, &propSchemaObj); err != nil {
+						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", propName))
+						continue
+					}
+
+					resolved, err := propSchemaObj.Resolve(nil)
+					if err != nil {
+						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (schema resolution failed)", propName))
+						continue
+					}
+
+					if err := resolved.Validate(configValue); err != nil {
+						errMsg := err.Error()
+						if len(errMsg) > 100 {
+							errMsg = errMsg[:97] + "..."
+						}
+						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (%s)", propName, errMsg))
+					}
 				}
 			}
 		}

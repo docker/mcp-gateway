@@ -172,7 +172,6 @@ func LoadProfilesForClient(ctx context.Context, clientInfo *mcp.Implementation, 
 		log.Log(fmt.Sprintf("- Activating %d profile(s) from profiles.json", len(profiles)))
 		activatedCount := 0
 		for profileName, ws := range profiles {
-			log.Log(fmt.Sprintf("- Activating profile: %s", profileName))
 			if err := activator.ActivateProfile(ctx, ws); err != nil {
 				log.Log(fmt.Sprintf("! Failed to activate profile %s: %v", profileName, err))
 				// Continue with other profiles even if one fails
