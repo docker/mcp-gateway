@@ -209,7 +209,12 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 	}
 
 	// Apply filtering based on batch results.
-	filteredServers := make(map[string]catalog.Server)
+	// Start with all existing servers (to preserve catalog servers for mcp-find)
+	filteredServers := make(map[string]catalog.Server, len(c.servers))
+	for name, server := range c.servers {
+		filteredServers[name] = server
+	}
+
 	filteredServerNames := make([]string, 0, len(c.serverNames))
 	filteredConfig := make(map[string]map[string]any)
 	filteredTools := config.ToolsConfig{
@@ -218,6 +223,8 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 
 	for _, name := range c.serverNames {
 		if !allowedServers[name] {
+			// Remove denied enabled servers from the servers map
+			delete(filteredServers, name)
 			continue
 		}
 
