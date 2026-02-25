@@ -149,10 +149,14 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	fmt.Printf("Removed %d server(s) from profile %s\n", len(removedNames), id)
 
 	// Clean up DCR entries for removed servers not in any other profile
-	CleanupOrphanedDCREntries(ctx, dao, removedNames)
+	cleanupDCREntriesFunc(ctx, dao, removedNames)
 
 	return nil
 }
+
+// cleanupDCREntriesFunc is called by RemoveServers for DCR cleanup.
+// Tests can override this to verify the call without requiring Docker Desktop.
+var cleanupDCREntriesFunc = CleanupOrphanedDCREntries
 
 // dcrClient abstracts the Desktop API operations needed for cleanup,
 // allowing tests to substitute a mock implementation.
