@@ -80,7 +80,7 @@ func newMockTokenServerError(t *testing.T) *httptest.Server {
 
 // setupIntegrationManager creates a Manager with a fake credential helper and a
 // DCR client whose TokenEndpoint and AuthorizationEndpoint point to mockServerURL.
-func setupIntegrationManager(t *testing.T, serverName, tokenEndpointURL, authEndpointURL string) (*Manager, dcr.Client) {
+func setupIntegrationManager(t *testing.T, serverName, tokenEndpointURL string) (*Manager, dcr.Client) {
 	t.Helper()
 	helper := newFakeCredentialHelper()
 	manager := NewManager(helper)
@@ -90,7 +90,7 @@ func setupIntegrationManager(t *testing.T, serverName, tokenEndpointURL, authEnd
 		ProviderName:          serverName,
 		ClientID:              "test-client-id-integration",
 		ClientName:            "MCP Gateway - " + serverName,
-		AuthorizationEndpoint: authEndpointURL,
+		AuthorizationEndpoint: "https://auth.example.com/authorize",
 		TokenEndpoint:         tokenEndpointURL,
 		ResourceURL:           "https://api.example.com",
 		ScopesSupported:       []string{"read", "write"},
@@ -117,7 +117,7 @@ func TestIntegration_FullCEOAuthFlow_HappyPath(t *testing.T) {
 
 	// Setup manager with DCR client pointing to mock token endpoint
 	serverName := "integration-test-server"
-	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL, "https://auth.example.com/authorize")
+	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL)
 
 	// Start callback server
 	callbackServer, err := NewCallbackServer()
@@ -150,7 +150,9 @@ func TestIntegration_FullCEOAuthFlow_HappyPath(t *testing.T) {
 
 	// Simulate OAuth provider redirect to callback server
 	callbackState := fmt.Sprintf("mcp-gateway:%d:%s", callbackServer.Port(), baseState)
-	callbackResp, err := http.Get(fmt.Sprintf("http://localhost:%d/callback?code=mock-auth-code&state=%s", callbackServer.Port(), callbackState))
+	callbackReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("http://localhost:%d/callback?code=mock-auth-code&state=%s", callbackServer.Port(), callbackState), nil)
+	require.NoError(t, err)
+	callbackResp, err := http.DefaultClient.Do(callbackReq)
 	require.NoError(t, err)
 	defer callbackResp.Body.Close()
 	assert.Equal(t, http.StatusOK, callbackResp.StatusCode)
@@ -193,7 +195,7 @@ func TestIntegration_CEOAuthFlow_TokenExchangeFailure(t *testing.T) {
 	tokenServer := newMockTokenServerError(t)
 
 	serverName := "exchange-error-server"
-	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL, "https://auth.example.com/authorize")
+	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL)
 
 	// Build auth URL
 	authURL, baseState, _, err := manager.BuildAuthorizationURL(
@@ -231,10 +233,12 @@ func TestIntegration_CEOAuthFlow_CallbackError(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Simulate OAuth provider returning error
-	resp, err := http.Get(fmt.Sprintf(
+	errReq, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf(
 		"http://localhost:%d/callback?error=access_denied&error_description=User+denied+access",
 		callbackServer.Port(),
-	))
+	), nil)
+	require.NoError(t, err)
+	resp, err := http.DefaultClient.Do(errReq)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -281,7 +285,7 @@ func TestIntegration_CEOAuthFlow_StateValidation(t *testing.T) {
 	tokenServer, _ := newMockTokenServer(t)
 
 	serverName := "state-validation-server"
-	manager, _ := setupIntegrationManager(t, serverName, tokenServer.URL, "https://auth.example.com/authorize")
+	manager, _ := setupIntegrationManager(t, serverName, tokenServer.URL)
 
 	// Generate two states
 	_, baseState1, _, err := manager.BuildAuthorizationURL(
@@ -331,7 +335,7 @@ func TestIntegration_CEOAuthFlow_PKCEVerification(t *testing.T) {
 	tokenServer, rec := newMockTokenServer(t)
 
 	serverName := "pkce-test-server"
-	manager, _ := setupIntegrationManager(t, serverName, tokenServer.URL, "https://auth.example.com/authorize")
+	manager, _ := setupIntegrationManager(t, serverName, tokenServer.URL)
 
 	// Build auth URL and capture verifier
 	_, baseState, verifier, err := manager.BuildAuthorizationURL(
@@ -403,7 +407,7 @@ func TestIntegration_CEOAuthFlow_RevokeToken(t *testing.T) {
 	tokenServer, _ := newMockTokenServer(t)
 
 	serverName := "revoke-test-server"
-	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL, "https://auth.example.com/authorize")
+	manager, dcrClient := setupIntegrationManager(t, serverName, tokenServer.URL)
 
 	// Build auth URL and exchange to get a stored token
 	_, baseState, _, err := manager.BuildAuthorizationURL(
