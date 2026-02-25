@@ -19,14 +19,14 @@ import (
 
 // tokenExchangeRecord captures the form values sent to the mock token endpoint.
 type tokenExchangeRecord struct {
-	mu            sync.Mutex
-	GrantType     string
-	Code          string
-	CodeVerifier  string
-	RedirectURI   string
-	Resource      string
-	Called        bool
-	CalledCount   int
+	mu           sync.Mutex
+	GrantType    string
+	Code         string
+	CodeVerifier string
+	RedirectURI  string
+	Resource     string
+	Called       bool
+	CalledCount  int
 }
 
 func (r *tokenExchangeRecord) record(req *http.Request) {
