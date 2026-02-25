@@ -132,10 +132,11 @@ func createWorkingSetCommand(cfg *client.Config) *cobra.Command {
 		Name    string
 		Servers []string
 		Connect []string
+		Format  string
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create --name <name> [--id <id>] --server <ref1> --server <ref2> ... [--connect <client1> --connect <client2> ...]",
+		Use:   "create --name <name> [--id <id>] --server <ref1> --server <ref2> ... [--connect <client1> --connect <client2> ...] [--format <format>]",
 		Short: "Create a new profile of MCP servers",
 		Long: `Create a new profile that groups multiple MCP servers together.
 A profile allows you to organize and manage related servers as a single unit.
@@ -154,16 +155,23 @@ Profiles are decoupled from catalogs. Servers can be:
   docker mcp profile create --name my-profile --server http://registry.modelcontextprotocol.io/v0/servers/71de5a2a-6cfb-4250-a196-f93080ecc860
 
   # Connect to clients upon creation
-  docker mcp profile create --name dev-tools --connect cursor`,
+  docker mcp profile create --name dev-tools --connect cursor
+
+  # Create a profile with JSON output
+  docker mcp profile create --name dev-tools --format json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			supported := slices.Contains(workingset.SupportedFormats(), opts.Format)
+			if !supported {
+				return fmt.Errorf("unsupported format: %s", opts.Format)
+			}
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers, opts.Connect)
+			return workingset.Create(cmd.Context(), dao, registryClient, ociService, opts.ID, opts.Name, opts.Servers, opts.Connect, workingset.OutputFormat(opts.Format))
 		},
 	}
 
@@ -172,6 +180,7 @@ Profiles are decoupled from catalogs. Servers can be:
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
 	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
+	flags.StringVar(&opts.Format, "format", string(workingset.OutputFormatHumanReadable), fmt.Sprintf("Supported: %s.", strings.Join(workingset.SupportedFormats(), ", ")))
 	_ = cmd.MarkFlagRequired("name")
 
 	return cmd
