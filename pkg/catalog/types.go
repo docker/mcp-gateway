@@ -63,7 +63,10 @@ func (s *Server) IsOAuthServer() bool {
 	return s.OAuth != nil && len(s.OAuth.Providers) > 0
 }
 
-func (s *Server) IsRemoteOAuthServer() bool {
+// HasExplicitOAuthProviders returns true if this is a remote server with
+// explicit OAuth provider metadata in the catalog (e.g. oauth.providers YAML).
+// Community servers that discover OAuth dynamically will return false here.
+func (s *Server) HasExplicitOAuthProviders() bool {
 	return s.Type == "remote" && s.IsOAuthServer()
 }
 

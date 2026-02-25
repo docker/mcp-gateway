@@ -61,7 +61,7 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 			}
 
 			// DCR flag enabled AND type="remote" AND oauth present
-			if mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
+			if mcpOAuthDcrEnabled && server.HasExplicitOAuthProviders() {
 				// In CE mode, skip lazy setup - DCR happens during oauth authorize
 				if pkgoauth.IsCEMode() {
 					fmt.Printf("OAuth server %s enabled. Run 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
@@ -74,7 +74,7 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 						fmt.Printf("OAuth provider configured for %s - use 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 					}
 				}
-			} else if !mcpOAuthDcrEnabled && server.IsRemoteOAuthServer() {
+			} else if !mcpOAuthDcrEnabled && server.HasExplicitOAuthProviders() {
 				// Provide guidance when DCR is needed but disabled
 				fmt.Printf("Server %s requires OAuth authentication but DCR is disabled.\n", serverName)
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")

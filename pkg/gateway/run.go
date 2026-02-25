@@ -359,12 +359,14 @@ func (g *Gateway) Run(ctx context.Context) error {
 				continue
 			}
 
-			if serverConfig.Spec.IsRemoteOAuthServer() {
+			if serverConfig.Spec.HasExplicitOAuthProviders() {
 				g.startProvider(ctx, serverName)
 			} else if serverConfig.IsRemote() {
 				// Community servers: start provider if they have a stored OAuth token
 				// from dynamic discovery (DCR without explicit OAuth metadata)
-				if exists, _ := credHelper.TokenExists(ctx, serverName); exists {
+				if exists, err := credHelper.TokenExists(ctx, serverName); err != nil {
+					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
+				} else if exists {
 					log.Logf("- Starting OAuth provider for community server: %s", serverName)
 					g.startProvider(ctx, serverName)
 				}

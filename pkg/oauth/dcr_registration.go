@@ -3,12 +3,12 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"time"
 
 	oauthhelpers "github.com/docker/mcp-gateway-oauth-helpers"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // dcrRegistrationClient is the subset of desktop.Tools used for DCR registration.
@@ -54,7 +54,7 @@ func RegisterProviderForLazySetup(ctx context.Context, serverName string) error 
 	}
 
 	// Verify this is a remote OAuth server (Type="remote" && OAuth providers exist)
-	if !server.IsRemoteOAuthServer() {
+	if !server.HasExplicitOAuthProviders() {
 		return fmt.Errorf("server %s is not a remote OAuth server", serverName)
 	}
 
@@ -83,12 +83,15 @@ func registerProviderForDynamicDiscovery(ctx context.Context, serverName, server
 		return nil // Already registered
 	}
 
-	// Probe the server with a timeout to discover OAuth requirements
-	probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	discovery, err := prober.DiscoverOAuthRequirements(probeCtx, serverURL)
-	if err != nil || discovery == nil || !discovery.RequiresOAuth {
-		return nil // Server doesn't need OAuth, not an error
+	// Probe the server to discover OAuth requirements.
+	// The discovery library uses its own 30s HTTP timeout internally.
+	discovery, err := prober.DiscoverOAuthRequirements(ctx, serverURL)
+	if err != nil {
+		log.Logf("Dynamic OAuth discovery failed for %s: %v", serverName, err)
+		return nil // Probe failed, not fatal
+	}
+	if discovery == nil || !discovery.RequiresOAuth {
+		return nil // Server doesn't need OAuth
 	}
 
 	// Register with DD (pending DCR state) using server name as provider name

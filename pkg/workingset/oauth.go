@@ -24,7 +24,7 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 		if server.Snapshot == nil {
 			continue
 		}
-		if server.Snapshot.Server.IsRemoteOAuthServer() {
+		if server.Snapshot.Server.HasExplicitOAuthProviders() {
 			serverName := server.Snapshot.Server.Name
 			providerName := server.Snapshot.Server.OAuth.Providers[0].Provider
 
