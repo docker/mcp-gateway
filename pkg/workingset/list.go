@@ -20,6 +20,10 @@ func List(ctx context.Context, dao db.DAO, format OutputFormat) error {
 
 	if len(dbSets) == 0 && format == OutputFormatHumanReadable {
 		fmt.Println("No profiles found. Use `docker mcp profile create --name <name>` to create a profile.")
+		fmt.Println("")
+		fmt.Println("Tip: Get started quickly with a starter template:")
+		fmt.Println("  docker mcp template list       View available templates")
+		fmt.Println("  docker mcp template use <id>   Create a profile from a template")
 		return nil
 	}
 

@@ -80,6 +80,9 @@ var (
 	ResourceTemplateErrorCounter metric.Int64Counter
 	ResourceTemplatesDiscovered  metric.Int64Gauge
 	ListResourceTemplatesCounter metric.Int64Counter
+
+	// Profile template usage metrics
+	TemplateUsageCounter metric.Int64Counter
 )
 
 // Init initializes the telemetry package with global providers
@@ -373,6 +376,17 @@ func Init() {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating list resource templates counter: %v\n", err)
+		}
+	}
+
+	// Initialize profile template metrics
+	TemplateUsageCounter, err = meter.Int64Counter("mcp.template.usage",
+		metric.WithDescription("Number of profile template usages"),
+		metric.WithUnit("1"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating template usage counter: %v\n", err)
 		}
 	}
 
@@ -906,5 +920,23 @@ func RecordResourceTemplateList(ctx context.Context, serverName string, template
 	ResourceTemplatesDiscovered.Record(ctx, int64(templateCount),
 		metric.WithAttributes(
 			attribute.String("mcp.server.origin", serverName),
+		))
+}
+
+// RecordTemplateUsage records a profile template usage event.
+// source indicates the entry point: "profile-create-flag" or "template-use".
+func RecordTemplateUsage(ctx context.Context, templateID string, source string) {
+	if TemplateUsageCounter == nil {
+		return // Telemetry not initialized
+	}
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Template used: %s via %s\n", templateID, source)
+	}
+
+	TemplateUsageCounter.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.template.id", templateID),
+			attribute.String("mcp.template.source", source),
 		))
 }
