@@ -26,7 +26,7 @@ func Revoke(ctx context.Context, app string) error {
 func revokeDesktopMode(ctx context.Context, app string) error {
 	client := desktop.NewAuthClient()
 
-	// Revoke tokens
+	// Revoke tokens via Docker Desktop
 	if err := client.DeleteOAuthApp(ctx, app); err != nil {
 		return fmt.Errorf("failed to revoke OAuth access: %w", err)
 	}

@@ -4,9 +4,31 @@ import (
 	"context"
 	"fmt"
 
+	oauthhelpers "github.com/docker/mcp-gateway-oauth-helpers"
+
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
+
+// dcrRegistrationClient is the subset of desktop.Tools used for DCR registration.
+// Extracted as an interface to enable testing.
+type dcrRegistrationClient interface {
+	GetDCRClient(ctx context.Context, app string) (*desktop.DCRClient, error)
+	RegisterDCRClientPending(ctx context.Context, app string, req desktop.RegisterDCRRequest) error
+}
+
+// oauthProber abstracts OAuth discovery to enable testing.
+type oauthProber interface {
+	DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*oauthhelpers.Discovery, error)
+}
+
+// defaultOAuthProber wraps the package-level function.
+type defaultOAuthProber struct{}
+
+func (defaultOAuthProber) DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*oauthhelpers.Discovery, error) {
+	return oauthhelpers.DiscoverOAuthRequirements(ctx, serverURL)
+}
 
 // RegisterProviderForLazySetup registers a DCR provider with Docker Desktop
 // This allows 'docker mcp oauth authorize' to work before full DCR is complete
@@ -32,7 +54,7 @@ func RegisterProviderForLazySetup(ctx context.Context, serverName string) error 
 	}
 
 	// Verify this is a remote OAuth server (Type="remote" && OAuth providers exist)
-	if !server.IsRemoteOAuthServer() {
+	if !server.HasExplicitOAuthProviders() {
 		return fmt.Errorf("server %s is not a remote OAuth server", serverName)
 	}
 
@@ -44,6 +66,38 @@ func RegisterProviderForLazySetup(ctx context.Context, serverName string) error 
 	}
 
 	return client.RegisterDCRClientPending(ctx, serverName, dcrRequest)
+}
+
+// RegisterProviderForDynamicDiscovery probes a remote server for OAuth support
+// and creates a pending DCR entry if the server requires OAuth.
+// This is used for community servers that lack oauth.providers metadata in the catalog.
+// Idempotent - safe to call multiple times for the same server.
+func RegisterProviderForDynamicDiscovery(ctx context.Context, serverName, serverURL string) error {
+	return registerProviderForDynamicDiscovery(ctx, serverName, serverURL, desktop.NewAuthClient(), defaultOAuthProber{})
+}
+
+func registerProviderForDynamicDiscovery(ctx context.Context, serverName, serverURL string, client dcrRegistrationClient, prober oauthProber) error {
+	// Idempotent check - already registered?
+	_, err := client.GetDCRClient(ctx, serverName)
+	if err == nil {
+		return nil // Already registered
+	}
+
+	// Probe the server to discover OAuth requirements.
+	// The discovery library uses its own 30s HTTP timeout internally.
+	discovery, err := prober.DiscoverOAuthRequirements(ctx, serverURL)
+	if err != nil {
+		log.Logf("Dynamic OAuth discovery failed for %s: %v", serverName, err)
+		return nil // Probe failed, not fatal
+	}
+	if discovery == nil || !discovery.RequiresOAuth {
+		return nil // Server doesn't need OAuth
+	}
+
+	// Register with DD (pending DCR state) using server name as provider name
+	return client.RegisterDCRClientPending(ctx, serverName, desktop.RegisterDCRRequest{
+		ProviderName: serverName,
+	})
 }
 
 // RegisterProviderWithSnapshot registers a DCR provider using OAuth metadata from the server snapshot

@@ -167,7 +167,8 @@ type dcrClient interface {
 }
 
 // CleanupOrphanedDCREntries removes DCR entries for servers that no longer
-// exist in any profile. This prevents stale OAuth entries from accumulating.
+// exist in any profile and are not authorized. This prevents stale OAuth
+// entries from accumulating.
 func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string) {
 	if oauth.IsCEMode() {
 		return

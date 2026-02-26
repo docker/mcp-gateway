@@ -286,10 +286,12 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}
 		}
 
-		// Handle OAuth DCR only when the client supports elicitation (e.g. not stdio-based clients)
+		// Handle OAuth DCR for any remote server — covers both catalog servers
+		// (explicit OAuth metadata) and community servers (dynamic discovery).
+		// getRemoteOAuthServerStatus handles the case where OAuth is not needed.
 		if g.McpOAuthDcrEnabled &&
 			serverConfig != nil &&
-			serverConfig.Spec.IsRemoteOAuthServer() {
+			serverConfig.IsRemote() {
 
 			init := req.Session.InitializeParams()
 			if init != nil &&
@@ -444,7 +446,25 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 	if !providerExists {
 		// Register DCR client with DD so user can authorize
 		if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-			log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			// Fallback: try dynamic discovery for community servers without oauth.providers
+			if serverConfig, _, found := g.configuration.Find(serverName); found && serverConfig.Spec.Remote.URL != "" {
+				if err := oauth.RegisterProviderForDynamicDiscovery(ctx, serverName, serverConfig.Spec.Remote.URL); err != nil {
+					log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+				}
+			} else {
+				log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+			}
+		}
+
+		// Verify DCR entry was created — dynamic discovery may have found no OAuth requirement.
+		// Distinguish "not found" (server doesn't need OAuth) from transient API errors.
+		authClient := desktop.NewAuthClient()
+		if _, err := authClient.GetDCRClient(ctx, serverName); err != nil {
+			if strings.Contains(err.Error(), "HTTP 404") {
+				return true, "" // Server doesn't require OAuth
+			}
+			log.Logf("Warning: Failed to verify DCR entry for %s (may be transient): %v", serverName, err)
+			return true, "" // Fail open — avoid blocking the add flow on transient errors
 		}
 
 		// Start provider (CE mode only - Desktop mode doesn't need polling)

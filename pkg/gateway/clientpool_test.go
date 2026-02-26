@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -275,6 +276,197 @@ func parseConfig(t *testing.T, contentYAML string) map[string]any {
 	err := yaml.Unmarshal([]byte(contentYAML), &config)
 	require.NoError(t, err)
 	return config
+}
+
+func TestInvalidateOAuthClients_MatchesCommunityServer(t *testing.T) {
+	// Community server: remote URL set, but no Spec.OAuth metadata.
+	// This verifies Gap 3: InvalidateOAuthClients matches community servers
+	// that use dynamic OAuth discovery without explicit OAuth config.
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	getter := &clientGetter{}
+	getter.once.Do(func() {}) // mark as executed
+	getter.err = fmt.Errorf("mock: no real client")
+
+	key := clientKey{serverName: "com-notion-mcp"}
+	cp.keptClients[key] = keptClient{
+		Name:   "com-notion-mcp",
+		Getter: getter,
+		Config: &catalog.ServerConfig{
+			Name: "com-notion-mcp",
+			Spec: catalog.Server{
+				Type: "remote",
+				Remote: catalog.Remote{
+					URL:       "https://mcp.notion.so/mcp",
+					Transport: "streamable-http",
+				},
+				// No OAuth field - community server
+			},
+		},
+	}
+
+	cp.InvalidateOAuthClients("com-notion-mcp")
+
+	assert.Empty(t, cp.keptClients, "community server should be invalidated by name")
+}
+
+func TestInvalidateOAuthClients_MatchesCatalogServer(t *testing.T) {
+	// Catalog server: remote URL set WITH Spec.OAuth metadata.
+	// Verifies backward compatibility: catalog servers still get invalidated.
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	getter := &clientGetter{}
+	getter.once.Do(func() {})
+	getter.err = fmt.Errorf("mock: no real client")
+
+	key := clientKey{serverName: "notion-remote"}
+	cp.keptClients[key] = keptClient{
+		Name:   "notion-remote",
+		Getter: getter,
+		Config: &catalog.ServerConfig{
+			Name: "notion-remote",
+			Spec: catalog.Server{
+				Type: "remote",
+				Remote: catalog.Remote{
+					URL:       "https://mcp.notion.so/mcp",
+					Transport: "streamable-http",
+				},
+				OAuth: &catalog.OAuth{
+					Providers: []catalog.OAuthProvider{{Provider: "notion"}},
+				},
+			},
+		},
+	}
+
+	cp.InvalidateOAuthClients("notion-remote")
+
+	assert.Empty(t, cp.keptClients, "catalog server should be invalidated by name")
+}
+
+func TestInvalidateOAuthClients_SkipsNonRemoteServer(t *testing.T) {
+	// Docker container server: not remote, should NOT be invalidated.
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	getter := &clientGetter{}
+	getter.once.Do(func() {})
+	getter.err = fmt.Errorf("mock: no real client")
+
+	key := clientKey{serverName: "my-container-server"}
+	cp.keptClients[key] = keptClient{
+		Name:   "my-container-server",
+		Getter: getter,
+		Config: &catalog.ServerConfig{
+			Name: "my-container-server",
+			Spec: catalog.Server{
+				Type:  "server",
+				Image: "mcp/my-server:latest",
+				// Not remote - no URL
+			},
+		},
+	}
+
+	cp.InvalidateOAuthClients("my-container-server")
+
+	assert.Len(t, cp.keptClients, 1, "non-remote server should NOT be invalidated")
+}
+
+func TestInvalidateOAuthClients_SkipsMismatchedName(t *testing.T) {
+	// Remote server with different name: should NOT be invalidated.
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	getter := &clientGetter{}
+	getter.once.Do(func() {})
+	getter.err = fmt.Errorf("mock: no real client")
+
+	key := clientKey{serverName: "other-server"}
+	cp.keptClients[key] = keptClient{
+		Name:   "other-server",
+		Getter: getter,
+		Config: &catalog.ServerConfig{
+			Name: "other-server",
+			Spec: catalog.Server{
+				Type: "remote",
+				Remote: catalog.Remote{
+					URL: "https://other.example.com/mcp",
+				},
+			},
+		},
+	}
+
+	cp.InvalidateOAuthClients("com-notion-mcp")
+
+	assert.Len(t, cp.keptClients, 1, "server with different name should NOT be invalidated")
+}
+
+func TestInvalidateOAuthClients_OnlyMatchingRemoved(t *testing.T) {
+	// Multiple clients: only the matching remote server should be removed.
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	makeGetter := func() *clientGetter {
+		g := &clientGetter{}
+		g.once.Do(func() {})
+		g.err = fmt.Errorf("mock: no real client")
+		return g
+	}
+
+	// Community OAuth server (should be invalidated)
+	cp.keptClients[clientKey{serverName: "com-notion-mcp"}] = keptClient{
+		Name:   "com-notion-mcp",
+		Getter: makeGetter(),
+		Config: &catalog.ServerConfig{
+			Name: "com-notion-mcp",
+			Spec: catalog.Server{
+				Type:   "remote",
+				Remote: catalog.Remote{URL: "https://mcp.notion.so/mcp"},
+			},
+		},
+	}
+
+	// Different remote server (should NOT be invalidated)
+	cp.keptClients[clientKey{serverName: "github-remote"}] = keptClient{
+		Name:   "github-remote",
+		Getter: makeGetter(),
+		Config: &catalog.ServerConfig{
+			Name: "github-remote",
+			Spec: catalog.Server{
+				Type:   "remote",
+				Remote: catalog.Remote{URL: "https://mcp.github.com/mcp"},
+			},
+		},
+	}
+
+	// Docker container server (should NOT be invalidated)
+	cp.keptClients[clientKey{serverName: "local-server"}] = keptClient{
+		Name:   "local-server",
+		Getter: makeGetter(),
+		Config: &catalog.ServerConfig{
+			Name: "local-server",
+			Spec: catalog.Server{
+				Type:  "server",
+				Image: "mcp/local:latest",
+			},
+		},
+	}
+
+	cp.InvalidateOAuthClients("com-notion-mcp")
+
+	assert.Len(t, cp.keptClients, 2, "only the matching remote server should be removed")
+	_, hasNotion := cp.keptClients[clientKey{serverName: "com-notion-mcp"}]
+	assert.False(t, hasNotion, "com-notion-mcp should have been removed")
+	_, hasGithub := cp.keptClients[clientKey{serverName: "github-remote"}]
+	assert.True(t, hasGithub, "github-remote should remain")
+	_, hasLocal := cp.keptClients[clientKey{serverName: "local-server"}]
+	assert.True(t, hasLocal, "local-server should remain")
 }
 
 func TestStdioClientInitialization(t *testing.T) {
