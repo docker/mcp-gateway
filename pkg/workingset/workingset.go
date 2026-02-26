@@ -405,7 +405,7 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 		}
 		return []Server{server}, nil
 	} else if v, ok := strings.CutPrefix(value, "file://"); ok {
-		return ResolveFile(v)
+		return ResolveFile(ctx, v)
 	}
 	return nil, fmt.Errorf("invalid server value: %s", value)
 }
@@ -436,7 +436,7 @@ func isV0ServerJSON(buf []byte) bool {
 	return false
 }
 
-func ResolveFile(value string) ([]Server, error) {
+func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 	buf, err := os.ReadFile(value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -473,7 +473,7 @@ func ResolveFile(value string) ([]Server, error) {
 				var serverResp v0.ServerResponse
 				if err := json.Unmarshal(buf, &serverResp); err == nil && serverResp.Server.Name != "" {
 					// Successfully parsed as v0.ServerResponse
-					catalogServer, err := ConvertRegistryServerToCatalog(&serverResp)
+					catalogServer, _, err := ConvertRegistryServerToCatalog(ctx, &serverResp, catalog.DefaultPyPIVersionResolver())
 					if err != nil {
 						return nil, fmt.Errorf("failed to convert v0.ServerResponse to catalog.Server: %w", err)
 					}
@@ -486,7 +486,7 @@ func ResolveFile(value string) ([]Server, error) {
 						serverResp := &v0.ServerResponse{
 							Server: serverJSON,
 						}
-						catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+						catalogServer, _, err := ConvertRegistryServerToCatalog(ctx, serverResp, catalog.DefaultPyPIVersionResolver())
 						if err != nil {
 							return nil, fmt.Errorf("failed to convert v0.ServerJSON to catalog.Server: %w", err)
 						}
@@ -635,12 +635,12 @@ func ResolveImageRef(ctx context.Context, ociService oci.Service, value string) 
 	return fullRef, nil
 }
 
-func ConvertRegistryServerToCatalog(serverResp *v0.ServerResponse) (catalog.Server, error) {
-	result, err := catalog.TransformToDocker(serverResp.Server)
+func ConvertRegistryServerToCatalog(ctx context.Context, serverResp *v0.ServerResponse, pypiResolver catalog.PyPIVersionResolver) (catalog.Server, catalog.TransformSource, error) {
+	result, source, err := catalog.TransformToDocker(ctx, serverResp.Server, catalog.WithPyPIResolver(pypiResolver))
 	if err != nil {
-		return catalog.Server{}, err
+		return catalog.Server{}, "", err
 	}
-	return *result, nil
+	return *result, source, nil
 }
 
 func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (Server, error) {
@@ -678,7 +678,7 @@ func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, val
 	}
 
 	// Check for OCI packages and convert to catalog format
-	catalogServer, err := ConvertRegistryServerToCatalog(serverResp)
+	catalogServer, _, err := ConvertRegistryServerToCatalog(ctx, serverResp, catalog.DefaultPyPIVersionResolver())
 	if err != nil {
 		return Server{}, fmt.Errorf("failed to convert registry server: %w", err)
 	}

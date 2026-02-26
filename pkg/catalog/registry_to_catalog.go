@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,39 @@ import (
 // ErrIncompatibleServer is returned by TransformToDocker when the server has
 // no compatible package type (e.g. no OCI+stdio package and no remote).
 var ErrIncompatibleServer = errors.New("incompatible server")
+
+// TransformSource describes the package type that TransformToDocker resolved.
+type TransformSource string
+
+const (
+	TransformSourceOCI    TransformSource = "oci"
+	TransformSourcePyPI   TransformSource = "pypi"
+	TransformSourceRemote TransformSource = "remote"
+)
+
+// TransformOption configures the behavior of TransformToDocker.
+type TransformOption func(*transformOptions)
+
+type transformOptions struct {
+	allowPyPI    bool
+	pypiResolver PyPIVersionResolver
+}
+
+// WithAllowPyPI controls whether PyPI packages are considered during transformation.
+// By default, PyPI packages are allowed.
+func WithAllowPyPI(allow bool) TransformOption {
+	return func(o *transformOptions) {
+		o.allowPyPI = allow
+	}
+}
+
+// WithPyPIResolver sets the PyPI version resolver used to determine the Python
+// version for PyPI packages. If not set, the default Python version is used.
+func WithPyPIResolver(resolver PyPIVersionResolver) TransformOption {
+	return func(o *transformOptions) {
+		o.pypiResolver = resolver
+	}
+}
 
 // Type aliases for imported types from the registry package
 type (
@@ -163,6 +197,37 @@ func extractImageInfo(pkg model.Package) string {
 		return pkg.Identifier
 	}
 	return ""
+}
+
+func extractPyPIInfo(pkg model.Package, pythonVersion string, serverName string) (image string, command []string, volumes []string) {
+	if pkg.RegistryType != "pypi" {
+		return "", nil, nil
+	}
+
+	// Set the uv Docker image based on Python version
+	image = pythonVersionToImageTag(pythonVersion)
+
+	// Build uvx command
+	command = []string{"uvx"}
+
+	// Add custom registry if specified (and not default PyPI)
+	if pkg.RegistryBaseURL != "" && pkg.RegistryBaseURL != "https://pypi.org" {
+		command = append(command, "--index-url", pkg.RegistryBaseURL)
+	}
+
+	// Add version specifier if present
+	if pkg.Version != "" {
+		command = append(command, "--from", fmt.Sprintf("%s==%s", pkg.Identifier, pkg.Version))
+	}
+
+	// Add the package name
+	command = append(command, pkg.Identifier)
+
+	// Add uv cache volume (keyed per server to avoid cross-contamination)
+	volumeName := fmt.Sprintf("docker-mcp-uv-cache-%s", serverName)
+	volumes = []string{volumeName + ":/root/.cache/uv"}
+
+	return image, command, volumes
 }
 
 func restoreInterpolatedValue(processedValue string, variables map[string]model.Input, serverName string) string {
@@ -341,16 +406,34 @@ func getPublisherProvidedMeta(meta *v0.ServerMeta) map[string]any {
 	return meta.PublisherProvided
 }
 
-// TransformToDocker transforms a ServerDetail (community format) to Server (catalog format)
-func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
+// TransformToDocker transforms a ServerDetail (community format) to Server (catalog format).
+// The returned TransformSource indicates which package type was used (oci, pypi, or remote).
+func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...TransformOption) (*Server, TransformSource, error) {
+	options := transformOptions{
+		allowPyPI: true,
+	}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	serverName := extractServerName(serverDetail.Name)
 
-	// Find first OCI package with stdio transport
+	// Find first OCI or PyPI package with stdio transport, preferring OCI
 	var pkg *model.Package
 	for i := range serverDetail.Packages {
-		if serverDetail.Packages[i].RegistryType == "oci" && serverDetail.Packages[i].Transport.Type == "stdio" {
+		if serverDetail.Packages[i].RegistryType == "oci" &&
+			serverDetail.Packages[i].Transport.Type == "stdio" {
 			pkg = &serverDetail.Packages[i]
 			break
+		}
+	}
+	if pkg == nil && options.allowPyPI {
+		for i := range serverDetail.Packages {
+			if serverDetail.Packages[i].RegistryType == "pypi" &&
+				serverDetail.Packages[i].Transport.Type == "stdio" {
+				pkg = &serverDetail.Packages[i]
+				break
+			}
 		}
 	}
 
@@ -368,11 +451,37 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 		Description: serverDetail.Description,
 	}
 
-	// Add image if it's an OCI package
+	var source TransformSource
+
+	// Add image and command for OCI or PyPI package
 	if pkg != nil {
-		if image := extractImageInfo(*pkg); image != "" {
-			server.Image = image
-			server.Type = "server"
+		switch pkg.RegistryType {
+		case "oci":
+			if image := extractImageInfo(*pkg); image != "" {
+				server.Image = image
+				server.Type = "server"
+				source = TransformSourceOCI
+			}
+		case "pypi":
+			var pythonVersion string
+			if options.pypiResolver != nil {
+				pv, found := options.pypiResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
+				if !found && remote == nil { // Only fail if we can't use a remote fallback
+					return nil, "", fmt.Errorf("pypi package %s@%s was not found", pkg.Identifier, pkg.Version)
+				}
+				pythonVersion = pv
+			}
+			image, command, volumes := extractPyPIInfo(*pkg, pythonVersion, serverName)
+			if image != "" {
+				server.Image = image
+				server.Command = command
+				server.Volumes = volumes
+				server.Type = "server"
+				server.LongLived = true
+				source = TransformSourcePyPI
+			}
+		default:
+			return nil, "", fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)
 		}
 	}
 
@@ -381,11 +490,12 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 		remoteVal := convertRemote(*remote, serverName)
 		server.Remote = remoteVal
 		server.Type = "remote"
+		source = TransformSourceRemote
 	}
 
 	// Validate that we have at least one way to run the server
 	if server.Image == "" && server.Remote.URL == "" {
-		return nil, fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
+		return nil, "", fmt.Errorf("%w: no compatible packages for %s", ErrIncompatibleServer, serverDetail.Name)
 	}
 
 	// Add config schema if we have config variables
@@ -403,9 +513,15 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 		server.Env = convertEnvVariables(pkg.EnvironmentVariables, configVars, serverName)
 	}
 
-	// Add command from package arguments
+	// Add package arguments
 	if pkg != nil && len(pkg.PackageArguments) > 0 {
-		server.Command = convertPackageArgsToCommand(pkg.PackageArguments, serverName)
+		if pkg.RegistryType == "pypi" {
+			// For PyPI: append package args to the uvx command
+			server.Command = append(server.Command, convertPackageArgsToCommand(pkg.PackageArguments, serverName)...)
+		} else {
+			// For OCI: package args become the full command
+			server.Command = convertPackageArgsToCommand(pkg.PackageArguments, serverName)
+		}
 	}
 
 	// Add user from runtime arguments
@@ -418,7 +534,7 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 	// Add volumes from runtime arguments
 	if pkg != nil {
 		if volumes := extractVolumesFromRuntimeArgs(pkg.RuntimeArguments, serverName); len(volumes) > 0 {
-			server.Volumes = volumes
+			server.Volumes = append(server.Volumes, volumes...)
 		}
 	}
 
@@ -447,26 +563,5 @@ func TransformToDocker(serverDetail ServerDetail) (*Server, error) {
 		}
 	}
 
-	return server, nil
-}
-
-// TransformJSON transforms community registry JSON to catalog JSON
-func TransformJSON(registryJSON string) (string, error) {
-	var serverResponse v0.ServerResponse
-
-	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
-		return "", fmt.Errorf("failed to parse registry JSON: %w", err)
-	}
-
-	dockerServer, err := TransformToDocker(serverResponse.Server)
-	if err != nil {
-		return "", fmt.Errorf("failed to transform: %w", err)
-	}
-
-	catalogJSON, err := json.MarshalIndent(dockerServer, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal catalog JSON: %w", err)
-	}
-
-	return string(catalogJSON), nil
+	return server, source, nil
 }

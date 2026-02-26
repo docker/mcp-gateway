@@ -354,7 +354,9 @@ func createVolume(arg Argument, serverName string) (map[string]any, string) {
 			config = map[string]any{
 				"type":       "object",
 				"properties": properties,
-				"required":   required,
+			}
+			if len(required) > 0 {
+				config["required"] = required
 			}
 		}
 	}
