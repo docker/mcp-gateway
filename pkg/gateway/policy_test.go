@@ -140,6 +140,41 @@ func TestFilterByPolicy(t *testing.T) {
 			"blocked tool should be removed, allowed tool should remain")
 	})
 
+	t.Run("preserves_empty_tools_list_disable_all", func(t *testing.T) {
+		// Setup: server with empty tools list (all tools disabled via --disable-all).
+		// FilterByPolicy must preserve the empty entry so that isToolEnabled
+		// sees exists=true and blocks every tool.
+		mock := newMockPolicyClient()
+
+		cfg := &Configuration{
+			serverNames: []string{"test-server"},
+			servers: map[string]catalog.Server{
+				"test-server": {Image: "test-image"},
+			},
+			config: make(map[string]map[string]any),
+			tools: config.ToolsConfig{
+				ServerTools: map[string][]string{
+					"test-server": {}, // empty = disable all tools
+				},
+			},
+		}
+
+		// Execute
+		err := cfg.FilterByPolicy(context.Background(), mock)
+
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, []string{"test-server"}, cfg.serverNames, "server should remain")
+		require.Contains(t, cfg.tools.ServerTools, "test-server",
+			"empty tools entry must be preserved after policy filtering")
+		assert.Empty(t, cfg.tools.ServerTools["test-server"],
+			"tools list should remain empty (disable all)")
+
+		// Verify isToolEnabled respects the preserved empty list
+		assert.False(t, isToolEnabled(*cfg, "test-server", "test-image", "any-tool", nil),
+			"no tool should be enabled when tools list is empty")
+	})
+
 	t.Run("nil_policy_client_allows_all", func(t *testing.T) {
 		// Setup: nil policy client should be a no-op
 		cfg := &Configuration{

@@ -232,6 +232,10 @@ func (c *Configuration) FilterByPolicy(ctx context.Context, pc policy.Client) er
 
 		// Filter tools for this server if any.
 		if tools, ok := c.tools.ServerTools[name]; ok {
+			// Preserve the entry even when empty (explicit "disable all tools" signal).
+			if _, exists := filteredTools.ServerTools[name]; !exists {
+				filteredTools.ServerTools[name] = []string{}
+			}
 			for _, t := range tools {
 				if allowedTools[name][t] {
 					filteredTools.ServerTools[name] = append(filteredTools.ServerTools[name], t)
