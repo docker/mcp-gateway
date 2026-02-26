@@ -61,10 +61,10 @@ func TestIntegrationWithBadProxy(t *testing.T) {
 	)
 
 	// Test catalog show command with bad proxy - should fail
-	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "docker", "mcp", "catalog", "show", "mcp/docker-mcp-catalog:latest", "--format=json")
+	cmd := exec.CommandContext(ctx, "docker", "mcp", "catalog", "show", "mcp/docker-mcp-catalog:latest", "--pull=always", "--format=json")
 	cmd.Env = env
 
 	err := cmd.Run()

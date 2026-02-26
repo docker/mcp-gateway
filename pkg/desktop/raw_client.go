@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 )
@@ -20,11 +21,22 @@ var (
 	desktopProxyTransportInst http.RoundTripper
 )
 
-// ProxyTransport returns an HTTP transport configured to use Docker Desktop's HTTP proxy socket
-// when Docker Desktop is running. If Docker Desktop is not running, it returns http.DefaultTransport.
+// ProxyTransport returns an HTTP transport configured to proxy HTTP requests.
+// If HTTP_PROXY/HTTPS_PROXY environment variables are set, they take precedence and
+// are respected via http.ProxyFromEnvironment. Otherwise, when Docker Desktop is running,
+// traffic is routed through Docker Desktop's HTTP proxy socket. If neither applies,
+// http.DefaultTransport is returned.
 // The transport is initialized once using sync.Once and cached for subsequent calls.
 func ProxyTransport() http.RoundTripper {
 	desktopProxyTransportOnce.Do(func() {
+		// Env proxy vars take precedence over Docker Desktop's proxy socket.
+		if hasEnvProxyVars() {
+			desktopProxyTransportInst = &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+			}
+			return
+		}
+
 		ctx := context.Background()
 		if !IsRunningInDockerDesktop(ctx) {
 			desktopProxyTransportInst = http.DefaultTransport
@@ -42,6 +54,16 @@ func ProxyTransport() http.RoundTripper {
 	})
 
 	return desktopProxyTransportInst
+}
+
+// hasEnvProxyVars returns true if any HTTP proxy environment variables are set.
+func hasEnvProxyVars() bool {
+	for _, name := range []string{"HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"} {
+		if os.Getenv(name) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func AvoidResourceSaverMode(ctx context.Context) {
