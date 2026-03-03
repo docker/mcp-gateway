@@ -75,22 +75,140 @@ docker mcp --help
 > ```
 > This is useful when running in WSL2, containerized environments, or Docker CE where Desktop backend sockets are unavailable.
 
-### Catalog Management
+> [!NOTE]
+> **Enabling Profiles outside Docker Desktop**
+>
+> Profiles are enabled automatically in Docker Desktop. If you are using the CLI independently (e.g. Docker CE, WSL2, or a containerized environment), enable the profiles feature first:
+> ```bash
+> docker mcp feature enable profiles
+> ```
 
-Manage the catalogs available to the MCP gateway. The [default catalog](https://hub.docker.com/mcp) is available with the name 'docker-mcp'.
+### Profile Management
+
+Servers are organized into **profiles**. A profile groups related MCP servers together and can be connected to clients, exported, and shared via OCI registries.
+
+Servers in a profile can reference multiple sources:
+- **Catalog references**: `catalog://mcp/docker-mcp-catalog/github`
+- **OCI image references**: `docker://my-server:latest`
+- **MCP Registry references**: `https://registry.modelcontextprotocol.io/v0/servers/<id>`
+- **Local file references**: `file://./server.yaml`
 
 ```bash
-# Manage server catalogs
-docker mcp catalog --help
+# Make sure to `docker mcp catalog pull mcp/docker-mcp-catalog` first.
 
-# Initialize the default Docker MCP Catalog
-docker mcp catalog init
+# Create a new profile
+docker mcp profile create --name dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/github
 
-# List available catalogs
+# Create a profile and connect it to a client
+docker mcp profile create --name dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/github \
+  --connect cursor
+
+# List all profiles
+docker mcp profile list
+
+# Show profile details
+docker mcp profile show <profile-id>
+
+# Remove a profile
+docker mcp profile remove <profile-id>
+
+# Export/import profiles
+docker mcp profile export <profile-id> output.yaml
+docker mcp profile import input.yaml
+
+# Push/pull profiles to OCI registries
+docker mcp profile push <profile-id> <oci-reference>
+docker mcp profile pull <oci-reference>
+```
+
+#### Manage servers in a profile
+
+```bash
+# List servers across all profiles
+docker mcp profile server ls
+
+# Filter servers by name or profile
+docker mcp profile server ls --filter name=github
+docker mcp profile server ls --filter profile=dev-tools
+
+# Add servers to a profile
+docker mcp profile server add dev-tools \
+  --server catalog://mcp/docker-mcp-catalog/notion
+
+# Remove servers from a profile
+docker mcp profile server remove dev-tools github slack
+```
+
+#### Configure servers in a profile
+
+```bash
+# Set configuration values
+docker mcp profile config <profile-id> --set key=value
+
+# Get configuration values
+docker mcp profile config <profile-id> --get key
+
+# Get all configuration
+docker mcp profile config <profile-id> --get-all
+
+# Delete configuration values
+docker mcp profile config <profile-id> --del key
+```
+
+#### Manage tool allowlists in a profile
+
+```bash
+# Enable specific tools (dot notation: <server>.<tool>)
+docker mcp profile tools <profile-id> --enable github.create_issue --enable github.list_repos
+
+# Disable specific tools
+docker mcp profile tools <profile-id> --disable github.search_code
+
+# Enable/disable all tools for a server
+docker mcp profile tools <profile-id> --enable-all github
+docker mcp profile tools <profile-id> --disable-all github
+```
+
+### Catalog Management
+
+Manage the OCI-based catalogs available to the MCP gateway. The [default catalog](https://hub.docker.com/mcp) is the image `mcp/docker-mcp-catalog`.
+
+```bash
+# List catalogs
 docker mcp catalog ls
 
-# Show all servers in a catalog
-docker mcp catalog show docker-mcp
+# Show a catalog
+docker mcp catalog show <oci-reference>
+
+# Create a catalog from server references
+docker mcp catalog create myorg/catalog:latest --title "My Catalog" \
+  --server catalog://mcp/docker-mcp-catalog/github \
+  --server file://./my-server.yaml
+
+# Create a catalog from an existing profile
+docker mcp catalog create myorg/catalog:latest --from-profile dev-tools
+
+# Create a catalog from the community registry
+docker mcp catalog create myorg/catalog:latest \
+  --from-community-registry registry.modelcontextprotocol.io
+
+# Push/pull catalogs to OCI registries
+docker mcp catalog push <oci-reference>
+docker mcp catalog pull <oci-reference>
+
+# Manage servers within a catalog
+docker mcp catalog server ls <oci-reference>
+docker mcp catalog server add <oci-reference> --server docker://my-server:latest
+docker mcp catalog server remove <oci-reference> github
+docker mcp catalog server inspect <oci-reference> <server-name>
+
+# Remove a catalog
+docker mcp catalog remove <oci-reference>
+
+# Tag a catalog
+docker mcp catalog tag <source>:<tag> <target>:<tag>
 ```
 
 * more about [the MCP Catalog](docs/catalog.md).
@@ -101,50 +219,34 @@ docker mcp catalog show docker-mcp
 Start up an MCP Gateway. This can be used for one client, or to service multiple clients if using either `sse` or `streaming` transports.
 
 ```bash
-# Run the MCP gateway (stdio)
+# Run the MCP gateway (stdio, using the default profile)
 docker mcp gateway run
+
+# Run with a specific profile
+docker mcp gateway run --profile dev-tools
 
 # Run the MCP gateway (streaming)
 docker mcp gateway run --port 8080 --transport streaming
 ```
 
+If no `--profile` flag is provided, the gateway uses the `default` profile.
+
 * more about [the MCP Gateway](docs/mcp-gateway.md)
 * [running an unpublished local image](docs/self-configured.md)
 
-### Server Management
+### Client Connection
 
-Enable and disable the set of MCP servers that will be available for default clients. The MCP gateway can be configured to expose different sets of servers and tools but enabling and disabling servers here impacts the default gateway configuration.
-
-```bash
-# List enabled servers
-docker mcp server ls
-
-# Enable one or more servers
-docker mcp server enable <server-name> [server-name...]
-
-# Disable servers
-docker mcp server disable <server-name> [server-name...]
-
-# Get detailed information about a server
-docker mcp server inspect <server-name>
-
-# Reset (disable all servers)
-docker mcp server reset
-```
-
-### Configuration Management
-
-Configure any MCP servers that require custom runtime configuration.
+Connect AI clients to the MCP gateway.
 
 ```bash
-# Read current configuration
-docker mcp config read
+# List client configurations
+docker mcp client ls
 
-# Write new configuration
-docker mcp config write '<yaml-config>'
+# Connect a client to a profile
+docker mcp client connect <client-name> --profile <profile-id>
 
-# Reset configuration to defaults
-docker mcp config reset
+# Disconnect from a client
+docker mcp client disconnect <client-name>
 ```
 
 ### Secrets and OAuth
@@ -158,21 +260,15 @@ docker mcp secret --help
 # Handle OAuth flows
 docker mcp oauth --help
 
-# Manage access policies
-docker mcp policy --help
-
 # export any desktop secrets needed by either server1 or server2
 #   (temporary requirement to export secrets for docker cloud runs - this command
-#    will no longer be required once Docker Cloud can access secret stores) 
+#    will no longer be required once Docker Cloud can access secret stores)
 docker mcp secret export server1 server2
 ```
 
 ### Tool Management
 
 ```bash
-# Show available commands
-docker mcp --help
-
 # Count available tools
 docker mcp tools count
 
@@ -187,19 +283,15 @@ docker mcp tools inspect <tool-name>
 
 # Call a tool with arguments
 docker mcp tools call <tool-name> [arguments...]
+
+# Enable/disable tools for a server in a profile
+docker mcp profile tools <profile-id> --enable <server>.<tool>
+docker mcp profile tools <profile-id> --disable <server>.<tool>
 ```
 
 ## Configuration
 
-The MCP CLI uses several configuration files:
-
-- **`docker-mcp.yaml`**: Server catalog defining available MCP servers
-- **`registry.yaml`**: Registry of enabled servers
-- **`config.yaml`**: Configuration per server
-- **`tools.yaml`**: Enabled tools per server
-
-Configuration files are typically stored in `~/.docker/mcp/`. This is in this directory that Docker Desktop's
-MCP Toolkit with store its configuration.
+Configuration is stored in a local database. Profiles, catalogs, and server configuration are managed through the `docker mcp profile` and `docker mcp catalog` commands. Feature flags are stored in `~/.docker/config.json`.
 
 ### Environment Variables
 
@@ -216,7 +308,7 @@ Example usage:
 export CLAUDE_CONFIG_DIR=/path/to/custom/config
 
 # Connect MCP Gateway to Claude Code
-docker mcp client connect claude-code --global
+docker mcp client connect claude-code --profile dev-tools --global
 
 # Claude Code will now use /path/to/custom/config/.claude.json
 ```
