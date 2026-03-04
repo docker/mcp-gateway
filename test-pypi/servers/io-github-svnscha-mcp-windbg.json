@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.svnscha%2Fmcp-windbg/versions/0.2.3",
+  "serverName": "io-github-svnscha-mcp-windbg",
+  "registryName": "io.github.svnscha/mcp-windbg",
+  "version": "0.2.3",
+  "canTest": false,
+  "skipReason": "Requires Windows with WinDBG/CDB installed for crash dump analysis. Cannot run in a Linux/macOS Docker container.",
+  "config": {},
+  "services": []
+}

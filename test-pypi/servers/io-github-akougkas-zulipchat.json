@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.akougkas%2Fzulipchat/versions/0.4.2",
+  "serverName": "io-github-akougkas-zulipchat",
+  "registryName": "io.github.akougkas/zulipchat",
+  "version": "0.4.2",
+  "canTest": false,
+  "skipReason": "Requires a Zulip API key (ZULIP_API_KEY marked as secret) and access to a Zulip server instance. Zulip is a SaaS/self-hosted service requiring valid credentials that cannot be provisioned automatically for testing.",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/1.0.0",
+  "serverName": "io-github-neo4j-contrib-mcp-neo4j-aura-manager",
+  "registryName": "io.github.neo4j-contrib/mcp-neo4j-aura-manager",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET which are paid/cloud API credentials for Neo4j Aura cloud service that cannot be provided locally",
+  "config": {},
+  "services": []
+}

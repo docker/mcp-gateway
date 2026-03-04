@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Famazon-seller/versions/1.0.0",
+  "serverName": "io-github-wmarceau-amazon-seller",
+  "registryName": "io.github.wmarceau/amazon-seller",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires Amazon SP-API credentials (AMAZON_REFRESH_TOKEN, AMAZON_LWA_APP_ID, AMAZON_LWA_CLIENT_SECRET) which are paid/cloud API keys that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

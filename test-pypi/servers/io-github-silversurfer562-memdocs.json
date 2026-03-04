@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.silversurfer562%2Fmemdocs/versions/2.1.4",
+  "serverName": "io-github-silversurfer562-memdocs",
+  "registryName": "io.github.silversurfer562/memdocs",
+  "version": "2.1.4",
+  "canTest": false,
+  "skipReason": "Requires ANTHROPIC_API_KEY (marked as required and secret) for Claude AI operations (summarization, analysis). This is a paid SaaS API key that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

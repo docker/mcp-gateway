@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ScrapeGraphAI%2Fscrapegraph-mcp/versions/1.0.0",
+  "serverName": "io-github-ScrapeGraphAI-scrapegraph-mcp",
+  "registryName": "io.github.ScrapeGraphAI/scrapegraph-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires SGAI_API_KEY (ScapeGraph API key) which is a paid/cloud SaaS API key that cannot be provided locally",
+  "config": {},
+  "services": []
+}

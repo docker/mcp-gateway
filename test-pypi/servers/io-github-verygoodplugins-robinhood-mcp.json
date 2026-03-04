@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Frobinhood-mcp/versions/0.1.0",
+  "serverName": "io-github-verygoodplugins-robinhood-mcp",
+  "registryName": "io.github.verygoodplugins/robinhood-mcp",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Robinhood MCP requires authentication with a Robinhood brokerage account (username/password/MFA) to access portfolio data. Cannot test without real Robinhood credentials.",
+  "config": {},
+  "services": []
+}

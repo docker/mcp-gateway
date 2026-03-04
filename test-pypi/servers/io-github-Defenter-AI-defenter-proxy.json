@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Defenter-AI%2Fdefenter-proxy/versions/0.0.95",
+  "serverName": "io-github-Defenter-AI-defenter-proxy",
+  "registryName": "io.github.Defenter-AI/defenter-proxy",
+  "version": "0.0.95",
+  "canTest": false,
+  "skipReason": "Defenter Proxy is a security proxy service that likely requires authentication/API keys to connect to the Defenter AI platform. No environment variables are documented in the registry entry, but the service description ('Real-time semantic security for AI coding agents') implies it needs to communicate with Defenter AI's cloud infrastructure, which would require credentials we cannot provide.",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vandewilly%2Fdice-roller/versions/0.1.0",
+  "serverName": "io-github-vandewilly-dice-roller",
+  "registryName": "io.github.vandewilly/dice-roller",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.saucelabs-sample-test-frameworks%2Fsauce-api-mcp/versions/1.0.0",
+  "serverName": "io-github-saucelabs-sample-test-frameworks-sauce-api-mcp",
+  "registryName": "io.github.saucelabs-sample-test-frameworks/sauce-api-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires SAUCE_USERNAME and SAUCE_ACCESS_KEY credentials for the Sauce Labs SaaS platform, which cannot be provided locally",
+  "config": {},
+  "services": []
+}

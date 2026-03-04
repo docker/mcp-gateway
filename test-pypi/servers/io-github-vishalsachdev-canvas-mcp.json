@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vishalsachdev%2Fcanvas-mcp/versions/1.0.6",
+  "serverName": "io-github-vishalsachdev-canvas-mcp",
+  "registryName": "io.github.vishalsachdev/canvas-mcp",
+  "version": "1.0.6",
+  "canTest": false,
+  "skipReason": "Requires Canvas LMS API credentials (CANVAS_API_TOKEN and CANVAS_BASE_URL) to connect to a Canvas LMS instance, which is a paid/institutional SaaS platform",
+  "config": {},
+  "services": []
+}

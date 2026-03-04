@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ZohaibCodez%2Fdiscrete-structures/versions/0.1.4",
+  "serverName": "io-github-ZohaibCodez-discrete-structures",
+  "registryName": "io.github.ZohaibCodez/discrete-structures",
+  "version": "0.1.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

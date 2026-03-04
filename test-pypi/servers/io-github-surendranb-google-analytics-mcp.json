@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.surendranb%2Fgoogle-analytics-mcp/versions/1.0.0",
+  "serverName": "io-github-surendranb-google-analytics-mcp",
+  "registryName": "io.github.surendranb/google-analytics-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires YOUR_API_KEY (Google Analytics API key) which is a secret/paid API credential that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

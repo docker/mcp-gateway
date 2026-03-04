@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ryanmat%2Flogicmonitor/versions/1.1.0",
+  "serverName": "io-github-ryanmat-logicmonitor",
+  "registryName": "io.github.ryanmat/logicmonitor",
+  "version": "1.1.0",
+  "canTest": false,
+  "skipReason": "Requires LM_BEARER_TOKEN (LogicMonitor API Bearer token) and LM_PORTAL (LogicMonitor portal hostname) which are paid/cloud SaaS credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

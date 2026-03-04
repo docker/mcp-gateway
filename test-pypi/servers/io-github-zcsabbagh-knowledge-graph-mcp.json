@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zcsabbagh%2Fknowledge-graph-mcp/versions/0.1.0",
+  "serverName": "io-github-zcsabbagh-knowledge-graph-mcp",
+  "registryName": "io.github.zcsabbagh/knowledge-graph-mcp",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "KNOWLEDGE_GRAPH_DB_PATH": "/tmp/knowledge.db"
+  },
+  "services": []
+}

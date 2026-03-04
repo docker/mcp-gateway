@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.palewire%2Fdatawrapper-mcp/versions/0.0.19",
+  "serverName": "io-github-palewire-datawrapper-mcp",
+  "registryName": "io.github.palewire/datawrapper-mcp",
+  "version": "0.0.19",
+  "canTest": false,
+  "skipReason": "Requires DATAWRAPPER_ACCESS_TOKEN (a paid/cloud SaaS API key for the Datawrapper service) which cannot be provided locally",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.elpadev%2Fsample-mcp-server-python-package/versions/0.0.1",
+  "serverName": "io-github-elpadev-sample-mcp-server-python-package",
+  "registryName": "io.github.elpadev/sample-mcp-server-python-package",
+  "version": "0.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.2",
+  "serverName": "io-github-atarkowska-fastmcp-pdftools",
+  "registryName": "io.github.atarkowska/fastmcp-pdftools",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

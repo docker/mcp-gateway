@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pedro-rivas%2Fandroid-puppeteer-mcp/versions/1.0.1",
+  "serverName": "io-github-pedro-rivas-android-puppeteer-mcp",
+  "registryName": "io.github.pedro-rivas/android-puppeteer-mcp",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires a physical or emulated Android device connected via ADB. The server automates Android UI interactions, screenshots, and device control, which cannot be provided by a simple backing service container.",
+  "config": {},
+  "services": []
+}

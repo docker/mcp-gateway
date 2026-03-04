@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tm42%2Fmnemograph/versions/0.4.0",
+  "serverName": "io-github-tm42-mnemograph",
+  "registryName": "io.github.tm42/mnemograph",
+  "version": "0.4.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "MEMORY_PATH": "/tmp/mnemograph-test"
+  },
+  "services": []
+}

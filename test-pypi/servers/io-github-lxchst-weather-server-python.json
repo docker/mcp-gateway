@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lxchst%2Fweather-server-python/versions/0.1.1",
+  "serverName": "io-github-lxchst-weather-server-python",
+  "registryName": "io.github.lxchst/weather-server-python",
+  "version": "0.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

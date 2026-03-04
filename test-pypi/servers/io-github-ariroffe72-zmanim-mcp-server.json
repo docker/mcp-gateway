@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ariroffe72%2Fzmanim-mcp-server/versions/0.2.0",
+  "serverName": "io-github-ariroffe72-zmanim-mcp-server",
+  "registryName": "io.github.ariroffe72/zmanim-mcp-server",
+  "version": "0.2.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

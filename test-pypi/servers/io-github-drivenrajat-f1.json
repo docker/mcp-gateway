@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drivenrajat%2Ff1/versions/0.1.0",
+  "serverName": "io-github-drivenrajat-f1",
+  "registryName": "io.github.drivenrajat/f1",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

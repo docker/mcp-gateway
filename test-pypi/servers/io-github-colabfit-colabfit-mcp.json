@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.colabfit%2Fcolabfit-mcp/versions/1.0.0",
+  "serverName": "io-github-colabfit-colabfit-mcp",
+  "registryName": "io.github.colabfit/colabfit-mcp",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

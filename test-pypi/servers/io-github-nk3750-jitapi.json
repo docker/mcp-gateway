@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nk3750%2Fjitapi/versions/0.1.1",
+  "serverName": "io-github-nk3750-jitapi",
+  "registryName": "io.github.nk3750/jitapi",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

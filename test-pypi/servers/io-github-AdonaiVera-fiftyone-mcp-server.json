@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.AdonaiVera%2Ffiftyone-mcp-server/versions/0.1.2",
+  "serverName": "io-github-AdonaiVera-fiftyone-mcp-server",
+  "registryName": "io.github.AdonaiVera/fiftyone-mcp-server",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "FiftyOne MCP server requires a running FiftyOne application/service with MongoDB backend and dataset storage. FiftyOne is a complex computer vision platform that cannot be trivially spun up as a backing service in a test environment.",
+  "config": {},
+  "services": []
+}

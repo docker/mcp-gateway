@@ -1,0 +1,29 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cr7258%2Felasticsearch-mcp-server/versions/2.0.14",
+  "serverName": "io-github-cr7258-elasticsearch-mcp-server",
+  "registryName": "io.github.cr7258/elasticsearch-mcp-server",
+  "version": "2.0.14",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "ELASTICSEARCH_HOSTS": "https://host.docker.internal:9200",
+    "ELASTICSEARCH_USERNAME": "elastic",
+    "ELASTICSEARCH_PASSWORD": "testpassword",
+    "ELASTICSEARCH_VERIFY_CERTS": "false"
+  },
+  "services": [
+    {
+      "name": "elasticsearch",
+      "image": "elasticsearch:8.15.0",
+      "ports": [
+        "9200:9200"
+      ],
+      "env": {
+        "discovery.type": "single-node",
+        "xpack.security.enabled": "false",
+        "xpack.security.http.ssl.enabled": "false",
+        "ES_JAVA_OPTS": "-Xms512m -Xmx512m"
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.luongnv89%2Fmitre-mcp/versions/0.3.1",
+  "serverName": "io-github-luongnv89-mitre-mcp",
+  "registryName": "io.github.luongnv89/mitre-mcp",
+  "version": "0.3.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

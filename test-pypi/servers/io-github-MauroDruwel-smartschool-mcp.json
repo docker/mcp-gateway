@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MauroDruwel%2Fsmartschool-mcp/versions/0.1.4",
+  "serverName": "io-github-MauroDruwel-smartschool-mcp",
+  "registryName": "io.github.MauroDruwel/smartschool-mcp",
+  "version": "0.1.4",
+  "canTest": false,
+  "skipReason": "Smartschool MCP server requires authentication credentials (Smartschool platform URL, username, and password) to connect to a Smartschool instance, which is a paid/institutional SaaS platform. Cannot test without valid Smartschool account credentials.",
+  "config": {},
+  "services": []
+}

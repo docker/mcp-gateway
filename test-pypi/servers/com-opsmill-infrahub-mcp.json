@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/com.opsmill%2Finfrahub-mcp/versions/0.1.2",
+  "serverName": "com-opsmill-infrahub-mcp",
+  "registryName": "com.opsmill/infrahub-mcp",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "Requires INFRAHUB_API_TOKEN (secret) for authentication with an Infrahub instance, which is a commercial/self-hosted infrastructure management platform that cannot be trivially spun up as a local backing service",
+  "config": {},
+  "services": []
+}

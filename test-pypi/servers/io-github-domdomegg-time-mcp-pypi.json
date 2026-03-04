@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.1.1",
+  "serverName": "io-github-domdomegg-time-mcp-pypi",
+  "registryName": "io.github.domdomegg/time-mcp-pypi",
+  "version": "1.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manoharanRajesh%2Fpython-version/versions/1.0.0",
+  "serverName": "io-github-manoharanRajesh-python-version",
+  "registryName": "io.github.manoharanRajesh/python-version",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires YOUR_API_KEY (secret, required) - appears to be a paid/external API key that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

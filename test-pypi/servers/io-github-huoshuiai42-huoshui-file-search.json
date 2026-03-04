@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-search/versions/1.0.0",
+  "serverName": "io-github-huoshuiai42-huoshui-file-search",
+  "registryName": "io.github.huoshuiai42/huoshui-file-search",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "This MCP server provides macOS Spotlight file search capabilities, which requires access to the macOS Spotlight index (mdfind). This cannot work inside a Docker container as Spotlight is a macOS-specific system service not available in Linux containers.",
+  "config": {},
+  "services": []
+}

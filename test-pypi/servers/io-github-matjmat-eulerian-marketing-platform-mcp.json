@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matjmat%2Feulerian-marketing-platform-mcp/versions/1.0.0",
+  "serverName": "io-github-matjmat-eulerian-marketing-platform-mcp",
+  "registryName": "io.github.matjmat/eulerian-marketing-platform-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires EMP_API_TOKEN (a secret API key for the Eulerian Marketing Platform SaaS service) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

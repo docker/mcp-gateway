@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.oxylabs%2Foxylabs-mcp/versions/0.7.2",
+  "serverName": "io-oxylabs-oxylabs-mcp",
+  "registryName": "io.oxylabs/oxylabs-mcp",
+  "version": "0.7.2",
+  "canTest": false,
+  "skipReason": "Requires Oxylabs API credentials (OXYLABS_USERNAME, OXYLABS_PASSWORD, or OXYLABS_AI_STUDIO_API_KEY) which are paid SaaS service secrets that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

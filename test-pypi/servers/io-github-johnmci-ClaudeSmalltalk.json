@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnmci%2FClaudeSmalltalk/versions/1.2.1",
+  "serverName": "io-github-johnmci-ClaudeSmalltalk",
+  "registryName": "io.github.johnmci/ClaudeSmalltalk",
+  "version": "1.2.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

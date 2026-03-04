@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fservicenow-mcp-server/versions/0.1.1",
+  "serverName": "io-github-asklokesh-servicenow-mcp-server",
+  "registryName": "io.github.asklokesh/servicenow-mcp-server",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires SERVICENOW_API_KEY (a paid/cloud SaaS API key for ServiceNow) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

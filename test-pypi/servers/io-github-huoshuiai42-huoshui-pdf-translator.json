@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-translator/versions/1.0.0",
+  "serverName": "io-github-huoshuiai42-huoshui-pdf-translator",
+  "registryName": "io.github.huoshuiai42/huoshui-pdf-translator",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.crypto-ninja%2Fgithub-mcp-server/versions/2.5.7",
+  "serverName": "io-github-crypto-ninja-github-mcp-server",
+  "registryName": "io.github.crypto-ninja/github-mcp-server",
+  "version": "2.5.7",
+  "canTest": false,
+  "skipReason": "Requires a GitHub personal access token (GITHUB_TOKEN) to interact with the GitHub API. This is a cloud/SaaS API key that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

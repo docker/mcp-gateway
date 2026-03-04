@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bethmaloney%2Frdl-mcp/versions/0.1.0",
+  "serverName": "io-github-bethmaloney-rdl-mcp",
+  "registryName": "io.github.bethmaloney/rdl-mcp",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "RDL_MCP_LOG_LEVEL": "DEBUG"
+  },
+  "services": []
+}

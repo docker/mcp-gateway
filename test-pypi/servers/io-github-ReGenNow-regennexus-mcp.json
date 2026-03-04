@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ReGenNow%2Fregennexus-mcp/versions/0.1.1",
+  "serverName": "io-github-ReGenNow-regennexus-mcp",
+  "registryName": "io.github.ReGenNow/regennexus-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Server controls physical hardware (GPIO, robotics, sensors, cameras). Requires actual hardware devices connected to function meaningfully. Cannot test in a containerized environment without physical IoT hardware.",
+  "config": {
+    "REGENNEXUS_MODE": "local"
+  },
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhichandra21%2Fpromptheus/versions/0.3.1",
+  "serverName": "io-github-abhichandra21-promptheus",
+  "registryName": "io.github.abhichandra21/promptheus",
+  "version": "0.3.1",
+  "canTest": false,
+  "skipReason": "Requires at least one LLM provider API key (Google Gemini, Anthropic, OpenAI, Groq, Qwen, or GLM) - all are paid/cloud SaaS secrets that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

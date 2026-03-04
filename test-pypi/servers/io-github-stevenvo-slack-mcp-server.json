@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stevenvo%2Fslack-mcp-server/versions/0.1.0",
+  "serverName": "io-github-stevenvo-slack-mcp-server",
+  "registryName": "io.github.stevenvo/slack-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires Slack OAuth tokens (SLACK_USER_TOKEN or SLACK_BOT_TOKEN) which are secret API credentials from a Slack workspace that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

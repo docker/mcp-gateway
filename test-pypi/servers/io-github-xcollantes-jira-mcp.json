@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xcollantes%2Fjira-mcp/versions/0.2.2",
+  "serverName": "io-github-xcollantes-jira-mcp",
+  "registryName": "io.github.xcollantes/jira-mcp",
+  "version": "0.2.2",
+  "canTest": false,
+  "skipReason": "Requires JIRA_API_TOKEN (secret) to authenticate with a Jira cloud/server instance. This is a paid/cloud SaaS credential that cannot be provided in a local test environment.",
+  "config": {
+    "JIRA_AUTH_TYPE": "basic"
+  },
+  "services": []
+}

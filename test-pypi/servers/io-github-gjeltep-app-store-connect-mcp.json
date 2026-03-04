@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gjeltep%2Fapp-store-connect-mcp/versions/0.3.0",
+  "serverName": "io-github-gjeltep-app-store-connect-mcp",
+  "registryName": "io.github.gjeltep/app-store-connect-mcp",
+  "version": "0.3.0",
+  "canTest": false,
+  "skipReason": "Requires Apple App Store Connect API credentials (APP_STORE_KEY_ID, APP_STORE_ISSUER_ID, and a .p8 private key file) which are paid/proprietary credentials that cannot be provisioned locally",
+  "config": {},
+  "services": []
+}

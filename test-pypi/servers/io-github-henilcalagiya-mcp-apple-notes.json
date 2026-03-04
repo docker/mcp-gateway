@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fmcp-apple-notes/versions/0.1.2",
+  "serverName": "io-github-henilcalagiya-mcp-apple-notes",
+  "registryName": "io.github.henilcalagiya/mcp-apple-notes",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "This MCP server integrates with Apple Notes via AppleScript, which requires macOS and the Apple Notes application. It cannot function inside a Docker container as AppleScript and Apple Notes are not available in containerized environments.",
+  "config": {},
+  "services": []
+}

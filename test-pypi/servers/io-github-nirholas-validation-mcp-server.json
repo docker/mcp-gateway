@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fvalidation-mcp-server/versions/1.0.0",
+  "serverName": "io-github-nirholas-validation-mcp-server",
+  "registryName": "io.github.nirholas/validation-mcp-server",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

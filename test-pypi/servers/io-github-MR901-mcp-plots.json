@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fmcp-plots/versions/0.0.3",
+  "serverName": "io-github-MR901-mcp-plots",
+  "registryName": "io.github.MR901/mcp-plots",
+  "version": "0.0.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

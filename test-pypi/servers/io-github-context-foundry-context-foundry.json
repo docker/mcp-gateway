@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.context-foundry%2Fcontext-foundry/versions/2.2.1",
+  "serverName": "io-github-context-foundry-context-foundry",
+  "registryName": "io.github.context-foundry/context-foundry",
+  "version": "2.2.1",
+  "canTest": false,
+  "skipReason": "Requires ANTHROPIC_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tedfytw1209%2Fmcp-server-EVEfleet/versions/1.0.2",
+  "serverName": "io-github-tedfytw1209-mcp-server-EVEfleet",
+  "registryName": "io.github.tedfytw1209/mcp-server-EVEfleet",
+  "version": "1.0.2",
+  "canTest": false,
+  "skipReason": "Requires YOUR_API_KEY (secret) for EVE Online API access - this is a paid/cloud API key we cannot provide",
+  "config": {},
+  "services": []
+}

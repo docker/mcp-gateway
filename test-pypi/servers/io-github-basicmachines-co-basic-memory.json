@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.basicmachines-co%2Fbasic-memory/versions/0.17.7",
+  "serverName": "io-github-basicmachines-co-basic-memory",
+  "registryName": "io.github.basicmachines-co/basic-memory",
+  "version": "0.17.7",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

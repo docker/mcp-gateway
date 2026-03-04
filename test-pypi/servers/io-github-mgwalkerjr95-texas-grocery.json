@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgwalkerjr95%2Ftexas-grocery/versions/0.1.3",
+  "serverName": "io-github-mgwalkerjr95-texas-grocery",
+  "registryName": "io.github.mgwalkerjr95/texas-grocery",
+  "version": "0.1.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

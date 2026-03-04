@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KazKozDev%2Fsearch/versions/0.1.1",
+  "serverName": "io-github-KazKozDev-search",
+  "registryName": "io.github.KazKozDev/search",
+  "version": "0.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

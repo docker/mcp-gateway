@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marlenezw%2Fpublish-mcp-server/versions/0.1.3",
+  "serverName": "io-github-marlenezw-publish-mcp-server",
+  "registryName": "io.github.marlenezw/publish-mcp-server",
+  "version": "0.1.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

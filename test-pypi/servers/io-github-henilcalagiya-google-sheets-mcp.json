@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fgoogle-sheets-mcp/versions/0.1.6",
+  "serverName": "io-github-henilcalagiya-google-sheets-mcp",
+  "registryName": "io.github.henilcalagiya/google-sheets-mcp",
+  "version": "0.1.6",
+  "canTest": false,
+  "skipReason": "Requires Google Sheets API credentials (OAuth or service account JSON) to authenticate with Google's cloud API. These are paid/cloud service credentials that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

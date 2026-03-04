@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Skills03%2Fscrimba-teaching/versions/1.0.1",
+  "serverName": "io-github-Skills03-scrimba-teaching",
+  "registryName": "io.github.Skills03/scrimba-teaching",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

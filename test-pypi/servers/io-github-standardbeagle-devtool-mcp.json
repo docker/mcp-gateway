@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fdevtool-mcp/versions/0.3.1",
+  "serverName": "io-github-standardbeagle-devtool-mcp",
+  "registryName": "io.github.standardbeagle/devtool-mcp",
+  "version": "0.3.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

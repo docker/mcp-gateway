@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.clarenceh%2Fexpenselm-mcp-server/versions/0.2.3",
+  "serverName": "io-github-clarenceh-expenselm-mcp-server",
+  "registryName": "io.github.clarenceh/expenselm-mcp-server",
+  "version": "0.2.3",
+  "canTest": false,
+  "skipReason": "Requires EXPENSELM_API_KEY (a paid/cloud SaaS API key for ExpenseLM) which cannot be provided in a local test environment",
+  "config": {},
+  "services": []
+}

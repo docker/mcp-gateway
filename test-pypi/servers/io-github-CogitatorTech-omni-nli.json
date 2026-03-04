@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CogitatorTech%2Fomni-nli/versions/0.1.0",
+  "serverName": "io-github-CogitatorTech-omni-nli",
+  "registryName": "io.github.CogitatorTech/omni-nli",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

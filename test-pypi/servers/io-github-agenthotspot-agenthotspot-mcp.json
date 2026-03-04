@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agenthotspot%2Fagenthotspot-mcp/versions/1.0.2",
+  "serverName": "io-github-agenthotspot-agenthotspot-mcp",
+  "registryName": "io.github.agenthotspot/agenthotspot-mcp",
+  "version": "1.0.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

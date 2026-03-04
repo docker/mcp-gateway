@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tdnupe3%2Fcoinrailz/versions/1.0.1",
+  "serverName": "io-github-tdnupe3-coinrailz",
+  "registryName": "io.github.tdnupe3/coinrailz",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires COINRAILZ_API_KEY (a paid/SaaS API key) for authenticated access to crypto micropayment services. This is a secret environment variable that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

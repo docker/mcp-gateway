@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KevinRabun%2FFedRAMP20xMCP/versions/1.1.0",
+  "serverName": "io-github-KevinRabun-FedRAMP20xMCP",
+  "registryName": "io.github.KevinRabun/FedRAMP20xMCP",
+  "version": "1.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

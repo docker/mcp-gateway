@@ -1,0 +1,25 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.6.0",
+  "serverName": "io-github-jztan-redmine-mcp-server",
+  "registryName": "io.github.jztan/redmine-mcp-server",
+  "version": "0.6.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "REDMINE_URL": "http://host.docker.internal:3000",
+    "REDMINE_USERNAME": "admin",
+    "REDMINE_PASSWORD": "admin"
+  },
+  "services": [
+    {
+      "name": "redmine",
+      "image": "redmine:5",
+      "ports": [
+        "3000:3000"
+      ],
+      "env": {
+        "REDMINE_NO_DB_MIGRATE": "false"
+      }
+    }
+  ]
+}

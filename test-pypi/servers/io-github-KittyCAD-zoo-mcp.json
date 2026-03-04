@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KittyCAD%2Fzoo-mcp/versions/0.9.1",
+  "serverName": "io-github-KittyCAD-zoo-mcp",
+  "registryName": "io.github.KittyCAD/zoo-mcp",
+  "version": "0.9.1",
+  "canTest": false,
+  "skipReason": "Requires ZOO_TOKEN (Zoo API key) which is a paid/cloud SaaS credential obtained from https://zoo.dev/account/developer",
+  "config": {},
+  "services": []
+}

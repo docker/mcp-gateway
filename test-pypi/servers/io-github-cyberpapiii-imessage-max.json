@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyberpapiii%2Fimessage-max/versions/0.1.1",
+  "serverName": "io-github-cyberpapiii-imessage-max",
+  "registryName": "io.github.cyberpapiii/imessage-max",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires macOS iMessage/Messages.app access and the local chat.db SQLite database, which is not available inside a Docker container",
+  "config": {},
+  "services": []
+}

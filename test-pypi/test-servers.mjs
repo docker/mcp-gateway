@@ -1,12 +1,18 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { execSync, spawn } from "child_process";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, existsSync, readdirSync } from "fs";
+import { resolve, join } from "path";
+import {
+  startBackingServices,
+  stopBackingServices,
+} from "./backing-services.mjs";
 
 // Configuration
 const DOCKER_BIN = "docker";
 const SERVERS_FILE = resolve(import.meta.dirname, "../pypi-servers.txt");
+const SERVERS_DIR = resolve(import.meta.dirname, "servers");
+const MANIFEST_FILE = resolve(import.meta.dirname, "server-manifest.json");
 const TIMEOUT_MS = 120_000; // 2 minutes per server
 const CONCURRENCY = 1; // how many servers to test in parallel
 
@@ -28,7 +34,10 @@ function handleShutdown(signal) {
     } catch {}
   }
   activeTransports.clear();
-  process.exit(1);
+  // Stop backing services before exiting
+  stopBackingServices()
+    .catch(() => {})
+    .finally(() => process.exit(1));
 }
 
 process.on("SIGINT", () => handleShutdown("SIGINT"));
@@ -48,15 +57,65 @@ const DYNAMIC_TOOLS = new Set([
   "mcp-discover",
 ]);
 
-function loadServers() {
+// ---------------------------------------------------------------------------
+// Server config loading
+// ---------------------------------------------------------------------------
+
+/**
+ * Load per-server configs from test-pypi/servers/*.json.
+ * Returns a Map keyed by registry URL.
+ */
+function loadServerConfigs() {
+  const configs = new Map();
+  if (!existsSync(SERVERS_DIR)) return configs;
+
+  const files = readdirSync(SERVERS_DIR).filter((f) => f.endsWith(".json"));
+  for (const file of files) {
+    try {
+      const data = JSON.parse(
+        readFileSync(join(SERVERS_DIR, file), "utf-8")
+      );
+      if (data.url) {
+        configs.set(data.url, data);
+      }
+    } catch {
+      // Skip malformed configs
+    }
+  }
+  return configs;
+}
+
+/**
+ * Load server URLs. Prefers manifest (deduplicated), falls back to raw file.
+ */
+function loadServerUrls() {
+  // Prefer the deduplicated manifest
+  if (existsSync(MANIFEST_FILE)) {
+    try {
+      const manifest = JSON.parse(readFileSync(MANIFEST_FILE, "utf-8"));
+      const urls = manifest.servers.map((s) => s.url);
+      if (urls.length > 0) {
+        console.log(
+          `Loaded ${urls.length} deduplicated servers from server-manifest.json`
+        );
+        return urls;
+      }
+    } catch {
+      // Fall through to raw file
+    }
+  }
+
+  // Fall back to raw pypi-servers.txt
   const content = readFileSync(SERVERS_FILE, "utf-8");
-  return content
+  const urls = content
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && line.startsWith("http"));
+  console.log(`Loaded ${urls.length} servers from pypi-servers.txt`);
+  return urls;
 }
 
-function extractServerName(url) {
+function extractServerDisplayName(url) {
   // Extract a short name from the registry URL for display
   const match = url.match(/servers\/([^/]+)\/versions\/(.+)$/);
   if (match) {
@@ -64,6 +123,10 @@ function extractServerName(url) {
   }
   return url;
 }
+
+// ---------------------------------------------------------------------------
+// Profile management
+// ---------------------------------------------------------------------------
 
 async function createProfile(serverUrl, profileId) {
   try {
@@ -87,6 +150,34 @@ async function createProfile(serverUrl, profileId) {
     return { ok: false, error: err.stderr?.toString() || err.message };
   }
 }
+
+/**
+ * Apply config values to a profile.
+ * Uses: docker mcp profile config <profileId> --set <serverName>.<key>=<value>
+ */
+function applyProfileConfig(profileId, serverName, config) {
+  if (!config || Object.keys(config).length === 0) return;
+
+  for (const [key, value] of Object.entries(config)) {
+    const setValue =
+      typeof value === "string" ? value : JSON.stringify(value);
+    const arg = `${serverName}.${key}=${setValue}`;
+    try {
+      execSync(
+        `${DOCKER_BIN} mcp profile config ${profileId} --set ${JSON.stringify(arg)}`,
+        { stdio: "pipe", timeout: 15_000 }
+      );
+    } catch (err) {
+      console.warn(
+        `    Warning: failed to set config ${key}: ${(err.stderr?.toString() || err.message).slice(0, 80)}`
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tool testing
+// ---------------------------------------------------------------------------
 
 async function testServerTools(profileId, timeoutMs) {
   return new Promise((resolvePromise) => {
@@ -117,7 +208,7 @@ async function testServerTools(profileId, timeoutMs) {
     const timer = setTimeout(() => {
       finish({
         success: false,
-        error: "Timeout after " + (timeoutMs / 1000) + "s",
+        error: "Timeout after " + timeoutMs / 1000 + "s",
         toolCount: 0,
         tools: [],
       });
@@ -164,13 +255,33 @@ async function testServerTools(profileId, timeoutMs) {
   });
 }
 
-async function testServer(serverUrl, index, total) {
-  const name = extractServerName(serverUrl);
-  const profileId = `pypi-test-${index}`;
+// ---------------------------------------------------------------------------
+// Server test orchestration
+// ---------------------------------------------------------------------------
 
-  process.stdout.write(
-    `[${index + 1}/${total}] Testing: ${name}... `
-  );
+async function testServer(serverUrl, index, total, serverConfigs) {
+  const displayName = extractServerDisplayName(serverUrl);
+  const profileId = `pypi-test-${index}`;
+  const config = serverConfigs.get(serverUrl);
+
+  // Check if server is marked as untestable
+  if (config && config.canTest === false) {
+    console.log(
+      `[${index + 1}/${total}] SKIPPED: ${displayName} — ${config.skipReason || "untestable"}`
+    );
+    return {
+      serverUrl,
+      name: displayName,
+      serverName: config?.serverName,
+      status: "skipped",
+      skipReason: config.skipReason || "untestable",
+      toolCount: 0,
+      tools: [],
+      hasServices: false,
+    };
+  }
+
+  process.stdout.write(`[${index + 1}/${total}] Testing: ${displayName}... `);
 
   // Create profile
   const profileResult = await createProfile(serverUrl, profileId);
@@ -178,12 +289,19 @@ async function testServer(serverUrl, index, total) {
     console.log(`PROFILE_FAILED - ${profileResult.error?.slice(0, 100)}`);
     return {
       serverUrl,
-      name,
+      name: displayName,
+      serverName: config?.serverName,
       status: "profile_failed",
       error: profileResult.error,
       toolCount: 0,
       tools: [],
+      hasServices: !!(config?.services?.length),
     };
+  }
+
+  // Apply config if available
+  if (config && config.serverName && config.config) {
+    applyProfileConfig(profileId, config.serverName, config.config);
   }
 
   // Test tools
@@ -199,61 +317,117 @@ async function testServer(serverUrl, index, total) {
     // ignore cleanup errors
   }
 
+  const hasServices = !!(config?.services?.length);
+
   if (toolsResult.success && toolsResult.toolCount > 0) {
     console.log(
       `OK - ${toolsResult.toolCount} tools [${toolsResult.tools.slice(0, 3).join(", ")}${toolsResult.toolCount > 3 ? "..." : ""}]`
     );
     return {
       serverUrl,
-      name,
+      name: displayName,
+      serverName: config?.serverName,
       status: "tools_found",
       toolCount: toolsResult.toolCount,
       tools: toolsResult.tools,
+      hasServices,
     };
   } else if (toolsResult.success && toolsResult.toolCount === 0) {
     console.log(`NO_TOOLS - connected but 0 server tools`);
     return {
       serverUrl,
-      name,
+      name: displayName,
+      serverName: config?.serverName,
       status: "no_tools",
       toolCount: 0,
       tools: [],
+      hasServices,
     };
   } else {
-    console.log(
-      `FAILED - ${toolsResult.error?.slice(0, 100)}`
-    );
+    console.log(`FAILED - ${toolsResult.error?.slice(0, 100)}`);
     return {
       serverUrl,
-      name,
+      name: displayName,
+      serverName: config?.serverName,
       status: "failed",
       error: toolsResult.error,
       toolCount: 0,
       tools: [],
+      hasServices,
     };
   }
 }
 
-async function runBatch(servers, startIdx, total) {
+async function runBatch(servers, startIdx, total, serverConfigs) {
   return Promise.all(
-    servers.map((url, i) => testServer(url, startIdx + i, total))
+    servers.map((url, i) =>
+      testServer(url, startIdx + i, total, serverConfigs)
+    )
   );
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 async function main() {
-  const servers = loadServers();
-  console.log(`\nLoaded ${servers.length} servers from pypi-servers.txt\n`);
-  console.log("=".repeat(80));
+  // Load server configs (from prepare-servers.mjs output)
+  const serverConfigs = loadServerConfigs();
+  const hasConfigs = serverConfigs.size > 0;
+
+  if (hasConfigs) {
+    console.log(`Loaded ${serverConfigs.size} server config(s) from servers/`);
+  } else {
+    console.log(
+      "No server configs found in servers/ — running without config/service support"
+    );
+    console.log(
+      '  (Run "node prepare-servers.mjs" first for full support)\n'
+    );
+  }
+
+  // Load server URLs
+  const servers = loadServerUrls();
+
+  // Collect and start backing services
+  let backingServicesStarted = false;
+  if (hasConfigs) {
+    const allServices = [];
+    for (const config of serverConfigs.values()) {
+      if (config.canTest !== false && Array.isArray(config.services)) {
+        allServices.push(...config.services);
+      }
+    }
+
+    if (allServices.length > 0) {
+      await startBackingServices(allServices);
+      backingServicesStarted = true;
+    }
+  }
+
+  console.log("\n" + "=".repeat(80));
 
   const results = [];
   const startTime = Date.now();
 
-  // Process in batches for controlled concurrency
-  for (let i = 0; i < servers.length; i += CONCURRENCY) {
-    if (shuttingDown) break;
-    const batch = servers.slice(i, i + CONCURRENCY);
-    const batchResults = await runBatch(batch, i, servers.length);
-    results.push(...batchResults);
+  try {
+    // Process in batches for controlled concurrency
+    for (let i = 0; i < servers.length; i += CONCURRENCY) {
+      if (shuttingDown) break;
+      const batch = servers.slice(i, i + CONCURRENCY);
+      const batchResults = await runBatch(
+        batch,
+        i,
+        servers.length,
+        serverConfigs
+      );
+      results.push(...batchResults);
+    }
+  } finally {
+    // Always clean up backing services
+    if (backingServicesStarted) {
+      await stopBackingServices();
+    }
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -267,18 +441,48 @@ async function main() {
   const noTools = results.filter((r) => r.status === "no_tools");
   const failed = results.filter((r) => r.status === "failed");
   const profileFailed = results.filter((r) => r.status === "profile_failed");
+  const skipped = results.filter((r) => r.status === "skipped");
 
-  console.log(`\nTotal servers tested:     ${results.length}`);
-  console.log(`Servers WITH tools:      ${toolsFound.length} (${((toolsFound.length / results.length) * 100).toFixed(1)}%)`);
-  console.log(`Servers with NO tools:   ${noTools.length}`);
-  console.log(`Servers FAILED:          ${failed.length}`);
-  console.log(`Profile creation FAILED: ${profileFailed.length}`);
+  // Enhanced reporting: split by service dependency
+  const toolsNoSvc = toolsFound.filter((r) => !r.hasServices);
+  const toolsWithSvc = toolsFound.filter((r) => r.hasServices);
+
+  const tested = results.filter((r) => r.status !== "skipped");
+
+  console.log(`\nTotal servers:           ${results.length}`);
+  console.log(`Tested:                  ${tested.length}`);
+  console.log(`Skipped (untestable):    ${skipped.length}`);
   console.log(`Time elapsed:            ${elapsed}s`);
+
+  console.log(`\n--- Results ---`);
+  if (toolsWithSvc.length > 0 || toolsNoSvc.length > 0) {
+    console.log(
+      `  Testable (no services):   ${toolsNoSvc.length}/${tested.length} with tools`
+    );
+    console.log(
+      `  Testable (with services): ${toolsWithSvc.length}/${tested.length} with tools`
+    );
+  } else {
+    console.log(
+      `  Servers WITH tools:       ${toolsFound.length} (${((toolsFound.length / Math.max(tested.length, 1)) * 100).toFixed(1)}%)`
+    );
+  }
+  console.log(`  Servers with NO tools:    ${noTools.length}`);
+  console.log(`  Servers FAILED:           ${failed.length}`);
+  console.log(`  Profile creation FAILED:  ${profileFailed.length}`);
+
+  if (skipped.length > 0) {
+    console.log(`\n--- Skipped servers (${skipped.length}) ---`);
+    for (const r of skipped) {
+      console.log(`  ${r.name}: ${r.skipReason}`);
+    }
+  }
 
   if (toolsFound.length > 0) {
     console.log(`\n--- Servers WITH tools (${toolsFound.length}) ---`);
     for (const r of toolsFound) {
-      console.log(`  ${r.name}: ${r.toolCount} tools`);
+      const svcTag = r.hasServices ? " [svc]" : "";
+      console.log(`  ${r.name}: ${r.toolCount} tools${svcTag}`);
       if (r.tools.length <= 10) {
         console.log(`    Tools: ${r.tools.join(", ")}`);
       } else {
@@ -304,7 +508,9 @@ async function main() {
   }
 
   if (profileFailed.length > 0) {
-    console.log(`\n--- Profile creation FAILED (${profileFailed.length}) ---`);
+    console.log(
+      `\n--- Profile creation FAILED (${profileFailed.length}) ---`
+    );
     for (const r of profileFailed) {
       console.log(`  ${r.name}: ${r.error?.slice(0, 120)}`);
     }

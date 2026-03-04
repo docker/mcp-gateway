@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NitishGourishetty%2Fcontextual-mcp-server/versions/0.1.0",
+  "serverName": "io-github-NitishGourishetty-contextual-mcp-server",
+  "registryName": "io.github.NitishGourishetty/contextual-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires a Contextual AI API key (API_KEY) which is a paid/cloud SaaS credential that cannot be provided locally",
+  "config": {},
+  "services": []
+}

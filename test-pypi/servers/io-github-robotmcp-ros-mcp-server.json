@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.robotmcp%2Fros-mcp-server/versions/2.2.1",
+  "serverName": "io-github-robotmcp-ros-mcp-server",
+  "registryName": "io.github.robotmcp/ros-mcp-server",
+  "version": "2.2.1",
+  "canTest": false,
+  "skipReason": "Requires a running ROS (Robot Operating System) environment with roscore/ros2 daemon, which cannot be provided as a simple backing service",
+  "config": {},
+  "services": []
+}

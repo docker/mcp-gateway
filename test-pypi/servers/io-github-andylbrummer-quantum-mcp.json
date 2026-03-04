@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.6",
+  "serverName": "io-github-andylbrummer-quantum-mcp",
+  "registryName": "io.github.andylbrummer/quantum-mcp",
+  "version": "0.1.6",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

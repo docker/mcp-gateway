@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xorrkaz%2Fcml-mcp/versions/0.24.0",
+  "serverName": "io-github-xorrkaz-cml-mcp",
+  "registryName": "io.github.xorrkaz/cml-mcp",
+  "version": "0.24.0",
+  "canTest": false,
+  "skipReason": "Requires a Cisco Modeling Labs (CML) server instance with valid credentials (CML_URL, CML_USERNAME, CML_PASSWORD). CML is a paid Cisco product/service that cannot be substituted with a local backing service.",
+  "config": {},
+  "services": []
+}

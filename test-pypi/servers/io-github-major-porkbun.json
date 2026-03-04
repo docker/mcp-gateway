@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.1.0",
+  "serverName": "io-github-major-porkbun",
+  "registryName": "io.github.major/porkbun",
+  "version": "1.1.0",
+  "canTest": false,
+  "skipReason": "Requires PORKBUN_API_KEY and PORKBUN_SECRET_KEY which are paid/cloud API credentials for the Porkbun DNS service that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

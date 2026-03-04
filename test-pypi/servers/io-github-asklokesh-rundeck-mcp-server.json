@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Frundeck-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-rundeck-mcp-server",
+  "registryName": "io.github.asklokesh/rundeck-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires RUNDECK_API_KEY (a secret API key) for Rundeck API integration. Rundeck is a self-hosted or SaaS service that requires authentication, and the API key cannot be generated automatically for testing.",
+  "config": {},
+  "services": []
+}

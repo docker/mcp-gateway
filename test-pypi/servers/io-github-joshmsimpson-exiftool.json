@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.joshmsimpson%2Fexiftool/versions/0.1.6",
+  "serverName": "io-github-joshmsimpson-exiftool",
+  "registryName": "io.github.joshmsimpson/exiftool",
+  "version": "0.1.6",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

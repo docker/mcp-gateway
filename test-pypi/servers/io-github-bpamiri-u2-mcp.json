@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bpamiri%2Fu2-mcp/versions/0.1.1",
+  "serverName": "io-github-bpamiri-u2-mcp",
+  "registryName": "io.github.bpamiri/u2-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires a Rocket Universe/UniData MultiValue database server which is proprietary commercial software with no public Docker image available. The U2_HOST, U2_USER, U2_PASSWORD, and U2_ACCOUNT environment variables require a running Universe/UniData instance that cannot be provisioned locally.",
+  "config": {},
+  "services": []
+}

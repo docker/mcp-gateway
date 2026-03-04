@@ -1,0 +1,11 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-analyse/versions/0.3.0",
+  "serverName": "io-github-antnewman-pm-analyse",
+  "registryName": "io.github.antnewman/pm-analyse",
+  "version": "0.3.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": [],
+  "analysisError": "spawnSync /bin/sh ETIMEDOUT"
+}

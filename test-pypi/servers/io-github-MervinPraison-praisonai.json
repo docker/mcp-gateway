@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MervinPraison%2Fpraisonai/versions/2.3.42",
+  "serverName": "io-github-MervinPraison-praisonai",
+  "registryName": "io.github.MervinPraison/praisonai",
+  "version": "2.3.42",
+  "canTest": false,
+  "skipReason": "PraisonAI is an AI Agents framework that requires LLM API keys (e.g., OPENAI_API_KEY) to function. Without a valid paid API key, the server cannot operate.",
+  "config": {},
+  "services": []
+}

@@ -2,129 +2,81 @@
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/1.0.0",
     "name": "io.github.neo4j-contrib/mcp-neo4j-memory@1.0.0",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-memory",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.1",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.1",
-    "status": "tools_found",
-    "toolCount": 16,
-    "tools": [
-      "export_to_arrows_json",
-      "export_to_neo4j_graphrag_pkg_schema",
-      "export_to_owl_turtle",
-      "export_to_pydantic_models",
-      "get_constraints_cypher_queries",
-      "get_example_data_model",
-      "get_mermaid_config_str",
-      "get_node_cypher_ingest_query",
-      "get_relationship_cypher_ingest_query",
-      "list_example_data_models",
-      "load_from_arrows_json",
-      "load_from_neo4j_graphrag_pkg_schema",
-      "load_from_owl_turtle",
-      "validate_data_model",
-      "validate_node",
-      "validate_relationship"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/1.0.0",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/1.0.0",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/0.4.6",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@0.4.6",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/0.5.2",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@0.5.2",
-    "status": "tools_found",
-    "toolCount": 3,
-    "tools": [
-      "get_neo4j_schema",
-      "read_neo4j_cypher",
-      "write_neo4j_cypher"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.7.0",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.7.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/0.4.3",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@0.4.3",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.2",
     "name": "io.github.neo4j-contrib/mcp-neo4j-data-modeling@0.8.2",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-data-modeling",
     "status": "tools_found",
     "toolCount": 16,
     "tools": [
-      "export_to_arrows_json",
-      "export_to_neo4j_graphrag_pkg_schema",
-      "export_to_owl_turtle",
-      "export_to_pydantic_models",
-      "get_constraints_cypher_queries",
-      "get_example_data_model",
-      "get_mermaid_config_str",
-      "get_node_cypher_ingest_query",
-      "get_relationship_cypher_ingest_query",
-      "list_example_data_models",
-      "load_from_arrows_json",
-      "load_from_neo4j_graphrag_pkg_schema",
-      "load_from_owl_turtle",
-      "validate_data_model",
-      "validate_node",
-      "validate_relationship"
-    ]
+      "neo4j-export_to_arrows_json",
+      "neo4j-export_to_neo4j_graphrag_pkg_schema",
+      "neo4j-export_to_owl_turtle",
+      "neo4j-export_to_pydantic_models",
+      "neo4j-get_constraints_cypher_queries",
+      "neo4j-get_example_data_model",
+      "neo4j-get_mermaid_config_str",
+      "neo4j-get_node_cypher_ingest_query",
+      "neo4j-get_relationship_cypher_ingest_query",
+      "neo4j-list_example_data_models",
+      "neo4j-load_from_arrows_json",
+      "neo4j-load_from_neo4j_graphrag_pkg_schema",
+      "neo4j-load_from_owl_turtle",
+      "neo4j-validate_data_model",
+      "neo4j-validate_node",
+      "neo4j-validate_relationship"
+    ],
+    "hasServices": false
   },
   {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/0.4.4",
-    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@0.4.4",
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-aura-manager",
+    "status": "skipped",
+    "skipReason": "Requires NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET which are paid/cloud API credentials for Neo4j Aura cloud service that cannot be provided locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-cypher",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.crypto-ninja%2Fgithub-mcp-server/versions/2.5.7",
     "name": "io.github.crypto-ninja/github-mcp-server@2.5.7",
-    "status": "no_tools",
+    "serverName": "io-github-crypto-ninja-github-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires a GitHub personal access token (GITHUB_TOKEN) to interact with the GitHub API. This is a cloud/SaaS API key that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.4.5",
-    "name": "io.github.jztan/redmine-mcp-server@0.4.5",
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.6.0",
+    "name": "io.github.jztan/redmine-mcp-server@0.6.0",
+    "serverName": "io-github-jztan-redmine-mcp-server",
     "status": "failed",
     "error": "MCP error -32001: Request timed out",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fpdf-mcp/versions/1.1.1",
     "name": "io.github.jztan/pdf-mcp@1.1.1",
+    "serverName": "io-github-jztan-pdf-mcp",
     "status": "tools_found",
     "toolCount": 8,
     "tools": [
@@ -136,74 +88,70 @@
       "pdf_read_all",
       "pdf_read_pages",
       "pdf_search"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.6.0",
-    "name": "io.github.jztan/redmine-mcp-server@0.6.0",
-    "status": "failed",
-    "error": "MCP error -32001: Request timed out",
-    "toolCount": 0,
-    "tools": []
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Inflectra%2Fmcp-server-spira/versions/1.1.1",
     "name": "io.github.Inflectra/mcp-server-spira@1.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-Inflectra-mcp-server-spira",
+    "status": "skipped",
+    "skipReason": "Requires Inflectra Spira SaaS credentials (INFLECTRA_SPIRA_BASE_URL, INFLECTRA_SPIRA_USERNAME, INFLECTRA_SPIRA_API_KEY) which are paid/cloud service credentials that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NitishGourishetty%2Fcontextual-mcp-server/versions/0.1.0",
     "name": "io.github.NitishGourishetty/contextual-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-NitishGourishetty-contextual-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires a Contextual AI API key (API_KEY) which is a paid/cloud SaaS credential that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sidart10%2Frunway-mcp-server/versions/0.1.0",
     "name": "io.github.sidart10/runway-mcp-server@0.1.0",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "cancel_task",
-      "edit_video_with_aleph",
-      "extend_video",
-      "generate_image_gen4",
-      "generate_video_first_last_frame",
-      "generate_video_image_to_video",
-      "generate_video_text_to_video",
-      "get_api_info",
-      "get_task_status",
-      "list_available_models",
-      "restyle_video",
-      "upscale_video_4k"
-    ]
+    "serverName": "io-github-sidart10-runway-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires RUNWAY_API_KEY (paid API key from dev.runwayml.com) which is a secret cloud/SaaS credential that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Ftransaction-mcp-server/versions/1.0.0",
     "name": "io.github.nirholas/transaction-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-transaction-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fkeystore-mcp-server/versions/1.0.0",
     "name": "io.github.nirholas/keystore-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-keystore-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fsigning-mcp-server/versions/1.0.0",
     "name": "io.github.nirholas/signing-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-signing-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fvalidation-mcp-server/versions/1.0.0",
     "name": "io.github.nirholas/validation-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-validation-mcp-server",
     "status": "tools_found",
     "toolCount": 15,
     "tools": [
@@ -222,154 +170,90 @@
       "validate_hex_data",
       "validate_private_key",
       "validate_signature"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0-1",
     "name": "io.github.nirholas/abi-to-mcp@0.1.0-1",
-    "status": "no_tools",
+    "serverName": "io-github-nirholas-abi-to-mcp",
+    "status": "skipped",
+    "skipReason": "Requires ETHERSCAN_API_KEY (paid/free-tier API key from Etherscan) and WEB3_PROVIDER_URL (Ethereum JSON-RPC endpoint, typically from a paid provider like Infura/Alchemy). These are external SaaS credentials that cannot be provided locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fethereum-wallet-mcp/versions/1.0.0",
     "name": "io.github.nirholas/ethereum-wallet-mcp@1.0.0",
+    "serverName": "io-github-nirholas-ethereum-wallet-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0",
-    "name": "io.github.nirholas/abi-to-mcp@0.1.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.1.0",
     "name": "io.github.vladkarpman/screen-buffer-mcp@2.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-vladkarpman-screen-buffer-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a physical Android device connected via ADB and scrcpy running locally to capture screen frames. Cannot be tested with only local backing services.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fdevice-manager-mcp/versions/1.0.7",
     "name": "io.github.vladkarpman/device-manager-mcp@1.0.7",
-    "status": "no_tools",
+    "serverName": "io-github-vladkarpman-device-manager-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a physical Android device connected via ADB and scrcpy installed on the host. Cannot be tested in a purely containerized environment.",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.0.1",
-    "name": "io.github.vladkarpman/screen-buffer-mcp@2.0.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/0.1.2",
-    "name": "io.github.major/porkbun@0.1.2",
-    "status": "tools_found",
-    "toolCount": 25,
-    "tools": [
-      "dns_create",
-      "dns_delete",
-      "dns_delete_by_name_type",
-      "dns_edit",
-      "dns_edit_by_name_type",
-      "dns_get",
-      "dns_get_by_name_type",
-      "dns_list",
-      "dnssec_create",
-      "dnssec_delete",
-      "dnssec_list",
-      "domains_add_url_forward",
-      "domains_check_availability",
-      "domains_create_glue_record",
-      "domains_delete_glue_record",
-      "domains_delete_url_forward",
-      "domains_get_glue_records",
-      "domains_get_nameservers",
-      "domains_get_url_forwards",
-      "domains_list",
-      "domains_update_glue_record",
-      "domains_update_nameservers",
-      "ping",
-      "pricing_get",
-      "ssl_retrieve"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.2.0",
-    "name": "io.github.major/pcp@1.2.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.0.0",
-    "name": "io.github.major/porkbun@1.0.0",
-    "status": "tools_found",
-    "toolCount": 25,
-    "tools": [
-      "dns_create",
-      "dns_delete",
-      "dns_delete_by_name_type",
-      "dns_edit",
-      "dns_edit_by_name_type",
-      "dns_get",
-      "dns_get_by_name_type",
-      "dns_list",
-      "dnssec_create",
-      "dnssec_delete",
-      "dnssec_list",
-      "domains_add_url_forward",
-      "domains_check_availability",
-      "domains_create_glue_record",
-      "domains_delete_glue_record",
-      "domains_delete_url_forward",
-      "domains_get_glue_records",
-      "domains_get_nameservers",
-      "domains_get_url_forwards",
-      "domains_list",
-      "domains_update_glue_record",
-      "domains_update_nameservers",
-      "ping",
-      "pricing_get",
-      "ssl_retrieve"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
-    "name": "io.github.major/pcp@1.3.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.1.0",
     "name": "io.github.major/porkbun@1.1.0",
+    "serverName": "io-github-major-porkbun",
+    "status": "skipped",
+    "skipReason": "Requires PORKBUN_API_KEY and PORKBUN_SECRET_KEY which are paid/cloud API credentials for the Porkbun DNS service that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
+    "name": "io.github.major/pcp@1.3.1",
+    "serverName": "io-github-major-pcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-mcpower%2Fmcpower-proxy/versions/0.0.87",
     "name": "io.github.ai-mcpower/mcpower-proxy@0.0.87",
-    "status": "no_tools",
+    "serverName": "io-github-ai-mcpower-mcpower-proxy",
+    "status": "skipped",
+    "skipReason": "MCPower Security Proxy wraps other MCP servers with monitoring and policy enforcement. It requires configuration of a downstream MCP server to proxy, and likely needs an API key or account for the MCPower security platform. Cannot test in isolation without these dependencies.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fbookmark-lens/versions/0.0.7",
     "name": "io.github.cornelcroi/bookmark-lens@0.0.7",
+    "serverName": "io-github-cornelcroi-bookmark-lens",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fcontext-lens/versions/0.1.5",
     "name": "io.github.cornelcroi/context-lens@0.1.5",
+    "serverName": "io-github-cornelcroi-context-lens",
     "status": "tools_found",
     "toolCount": 6,
     "tools": [
@@ -379,59 +263,71 @@
       "list_documents",
       "remove_document",
       "search_documents"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhishekbhakat%2Fairflow-mcp-server/versions/0.9.0",
     "name": "io.github.abhishekbhakat/airflow-mcp-server@0.9.0",
-    "status": "no_tools",
+    "serverName": "io-github-abhishekbhakat-airflow-mcp-server",
+    "status": "skipped",
+    "skipReason": "AUTH_TOKEN is a required secret (JWT token) that must be dynamically obtained from a running Airflow instance. Even with a local Airflow backing service, the JWT token cannot be statically pre-configured and requires an authentication flow against the running instance to generate.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gjeltep%2Fapp-store-connect-mcp/versions/0.3.0",
     "name": "io.github.gjeltep/app-store-connect-mcp@0.3.0",
-    "status": "no_tools",
+    "serverName": "io-github-gjeltep-app-store-connect-mcp",
+    "status": "skipped",
+    "skipReason": "Requires Apple App Store Connect API credentials (APP_STORE_KEY_ID, APP_STORE_ISSUER_ID, and a .p8 private key file) which are paid/proprietary credentials that cannot be provisioned locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/ai.mcpcap%2Fmcpcap/versions/0.6.0",
     "name": "ai.mcpcap/mcpcap@0.6.0",
+    "serverName": "ai-mcpcap-mcpcap",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.fkom13%2Fgencodedoc/versions/2.0.0",
     "name": "io.github.fkom13/gencodedoc@2.0.0",
+    "serverName": "io-github-fkom13-gencodedoc",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-msdefenderkql/versions/1.0.0",
     "name": "io.github.trickyfalcon/mcp-msdefenderkql@1.0.0",
-    "status": "tools_found",
-    "toolCount": 2,
-    "tools": [
-      "get_hunting_schema",
-      "run_hunting_query"
-    ]
+    "serverName": "io-github-trickyfalcon-mcp-msdefenderkql",
+    "status": "skipped",
+    "skipReason": "Requires Microsoft Defender API credentials (Azure AD tenant ID, client ID, client secret) to authenticate and execute KQL queries against Microsoft Defender Advanced Hunting. These are paid/cloud SaaS credentials that cannot be provided locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-defender/versions/0.1.0",
     "name": "io.github.trickyfalcon/mcp-defender@0.1.0",
-    "status": "tools_found",
-    "toolCount": 2,
-    "tools": [
-      "get_hunting_schema",
-      "run_hunting_query"
-    ]
+    "serverName": "io-github-trickyfalcon-mcp-defender",
+    "status": "skipped",
+    "skipReason": "Requires Microsoft Defender / Azure AD credentials (TENANT_ID, CLIENT_ID, CLIENT_SECRET) to authenticate against Microsoft Defender Advanced Hunting API. These are paid/cloud SaaS credentials that cannot be provided locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wtfregia%2Fmtg-mcp/versions/0.1.3",
     "name": "io.github.wtfregia/mtg-mcp@0.1.3",
+    "serverName": "io-github-wtfregia-mtg-mcp",
     "status": "tools_found",
     "toolCount": 13,
     "tools": [
@@ -448,32 +344,42 @@
       "mtg-rules-get",
       "mtg-rules-search",
       "mtg-ruling-search"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nowledge-co%2Fserver.json/versions/1.0.0",
     "name": "io.github.nowledge-co/server.json@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-nowledge-co-server-json",
+    "status": "skipped",
+    "skipReason": "Nowledge Mem is a cloud/SaaS memory service that requires Nowledge API credentials to authenticate. No environment variables are specified in the registry entry, but the service cannot function without valid Nowledge account authentication.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.IvanRublev%2Fkeyphrases-mcp/versions/0.0.4",
     "name": "io.github.IvanRublev/keyphrases-mcp@0.0.4",
+    "serverName": "io-github-IvanRublev-keyphrases-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.esrisaudiarabia%2Farcgis-mcp-server/versions/1.1.4",
     "name": "io.github.esrisaudiarabia/arcgis-mcp-server@1.1.4",
-    "status": "no_tools",
+    "serverName": "io-github-esrisaudiarabia-arcgis-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires ArcGIS Portal credentials (ARCGIS_URL, ARCGIS_USERNAME, ARCGIS_PASSWORD) for a cloud/enterprise ArcGIS service that cannot be provisioned locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.JonasRackl%2Flabmate-mcp/versions/7.3.1",
     "name": "io.github.JonasRackl/labmate-mcp@7.3.1",
+    "serverName": "io-github-JonasRackl-labmate-mcp",
     "status": "tools_found",
     "toolCount": 81,
     "tools": [
@@ -558,65 +464,42 @@
       "text_to_procedure",
       "translate_compound_ids",
       "validate_cas_number"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.khglynn%2Fspotify-bulk-actions-mcp/versions/0.1.1",
     "name": "io.github.khglynn/spotify-bulk-actions-mcp@0.1.1",
-    "status": "tools_found",
-    "toolCount": 32,
-    "tools": [
-      "add_reviewed_tracks",
-      "add_tracks_to_playlist",
-      "batch_search_tracks",
-      "check_auth_status",
-      "compare_playlists",
-      "create_playlist",
-      "create_playlist_from_search_results",
-      "export_library_summary",
-      "export_playlist_to_csv",
-      "export_review_csv",
-      "find_duplicate_tracks",
-      "follow_artists",
-      "get_albums_by_song_count",
-      "get_followed_artists",
-      "get_library_artists",
-      "get_playlist_info",
-      "get_playlist_tracks",
-      "get_recently_played",
-      "get_saved_tracks",
-      "get_top_artists",
-      "get_top_tracks",
-      "get_track_preview_url",
-      "import_and_create_playlist",
-      "parse_song_list_csv",
-      "remove_duplicate_tracks",
-      "remove_tracks_from_playlist",
-      "reorder_playlist_tracks",
-      "save_tracks",
-      "search_track",
-      "search_track_fuzzy",
-      "unfollow_artists",
-      "unsave_tracks"
-    ]
+    "serverName": "io-github-khglynn-spotify-bulk-actions-mcp",
+    "status": "skipped",
+    "skipReason": "Requires SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET from developer.spotify.com (paid/cloud SaaS API credentials that cannot be provided locally)",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.geored%2Flumino/versions/0.9.2",
     "name": "io.github.geored/lumino@0.9.2",
-    "status": "no_tools",
+    "serverName": "io-github-geored-lumino",
+    "status": "skipped",
+    "skipReason": "Requires a running Kubernetes/OpenShift cluster with KUBECONFIG access. Cannot provision a real K8s cluster as a backing service in a simple Docker test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ankitpal181%2Ftoon-parse-mcp/versions/1.0.1-beta",
     "name": "io.github.ankitpal181/toon-parse-mcp@1.0.1-beta",
+    "serverName": "io-github-ankitpal181-toon-parse-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ZohaibCodez%2Fdiscrete-structures/versions/0.1.4",
     "name": "io.github.ZohaibCodez/discrete-structures@0.1.4",
+    "serverName": "io-github-ZohaibCodez-discrete-structures",
     "status": "tools_found",
     "toolCount": 21,
     "tools": [
@@ -641,125 +524,129 @@
       "visualize_dijkstra",
       "visualize_merge_sort",
       "visualize_quick_sort"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nk3750%2Fjitapi/versions/0.1.1",
     "name": "io.github.nk3750/jitapi@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-nk3750-jitapi",
+    "status": "skipped",
+    "skipReason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agent-polis%2Fimpact-preview/versions/0.2.1",
     "name": "io.github.agent-polis/impact-preview@0.2.1",
+    "serverName": "io-github-agent-polis-impact-preview",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ReGenNow%2Fregennexus-mcp/versions/0.1.1",
     "name": "io.github.ReGenNow/regennexus-mcp@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-ReGenNow-regennexus-mcp",
+    "status": "skipped",
+    "skipReason": "Server controls physical hardware (GPIO, robotics, sensors, cameras). Requires actual hardware devices connected to function meaningfully. Cannot test in a containerized environment without physical IoT hardware.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Skills03%2Fscrimba-teaching/versions/1.0.1",
     "name": "io.github.Skills03/scrimba-teaching@1.0.1",
+    "serverName": "io-github-Skills03-scrimba-teaching",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.king-of-the-grackles%2Freddit-research-mcp/versions/1.0.1",
     "name": "io.github.king-of-the-grackles/reddit-research-mcp@1.0.1",
+    "serverName": "io-github-king-of-the-grackles-reddit-research-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.iworkist%2Fbtcmcp/versions/0.1.2",
     "name": "io.github.iworkist/btcmcp@0.1.2",
+    "serverName": "io-github-iworkist-btcmcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-mcp-server/versions/0.3.1",
     "name": "io.github.signnow/sn-mcp-server@0.3.1",
-    "status": "no_tools",
+    "serverName": "io-github-signnow-sn-mcp-server",
+    "status": "skipped",
+    "skipReason": "SignNow MCP Server requires SignNow API credentials (API key, OAuth token, or client ID/secret) to connect to the SignNow eSignature SaaS platform. These are paid/cloud service credentials that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-api-helper-mcp/versions/0.1.1",
     "name": "io.github.signnow/sn-api-helper-mcp@0.1.1",
-    "status": "tools_found",
-    "toolCount": 1,
-    "tools": [
-      "get_signnow_api_info"
-    ]
+    "serverName": "io-github-signnow-sn-api-helper-mcp",
+    "status": "skipped",
+    "skipReason": "SignNow is a cloud/SaaS e-signature platform requiring API credentials (API key, client ID, client secret, OAuth tokens) that cannot be provided in a test environment.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.35",
     "name": "com.kekwanu/syncline-mcp-server-python@1.0.35",
-    "status": "no_tools",
+    "serverName": "com-kekwanu-syncline-mcp-server-python",
+    "status": "skipped",
+    "skipReason": "Requires SYNCLINE_API_KEY from https://syncline.run/developer (paid/cloud SaaS API key that cannot be provided locally)",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.33",
-    "name": "com.kekwanu/syncline-mcp-server-python@1.0.33",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.21",
-    "name": "com.kekwanu/syncline-mcp-server-python@1.0.21",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.20",
-    "name": "com.kekwanu/syncline-mcp-server-python@1.0.20",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.akougkas%2Fzulipchat/versions/0.4.2",
     "name": "io.github.akougkas/zulipchat@0.4.2",
-    "status": "no_tools",
+    "serverName": "io-github-akougkas-zulipchat",
+    "status": "skipped",
+    "skipReason": "Requires a Zulip API key (ZULIP_API_KEY marked as secret) and access to a Zulip server instance. Zulip is a SaaS/self-hosted service requiring valid credentials that cannot be provisioned automatically for testing.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manoharanRajesh%2Fpython-version/versions/1.0.0",
     "name": "io.github.manoharanRajesh/python-version@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-manoharanRajesh-python-version",
+    "status": "skipped",
+    "skipReason": "Requires YOUR_API_KEY (secret, required) - appears to be a paid/external API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vemonet%2Fopenroute-mcp/versions/0.0.4",
     "name": "io.github.vemonet/openroute-mcp@0.0.4",
-    "status": "tools_found",
-    "toolCount": 6,
-    "tools": [
-      "create_route_from_to",
-      "get_coordinates_object",
-      "get_reachable_area",
-      "search_known_routes",
-      "search_location_coordinates",
-      "search_pois"
-    ]
+    "serverName": "io-github-vemonet-openroute-mcp",
+    "status": "skipped",
+    "skipReason": "Requires OPENROUTESERVICE_API_KEY (a secret API key for the OpenRouteService cloud API at api.openrouteservice.org). This is a paid/free-tier SaaS API key that cannot be provisioned locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.luongnv89%2Fmitre-mcp/versions/0.3.1",
     "name": "io.github.luongnv89/mitre-mcp@0.3.1",
+    "serverName": "io-github-luongnv89-mitre-mcp",
     "status": "tools_found",
     "toolCount": 9,
     "tools": [
@@ -772,140 +659,134 @@
       "get_techniques_by_tactic",
       "get_techniques_mitigated_by_mitigation",
       "get_techniques_used_by_group"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yarnabrina%2Fmcp-learning/versions/0.2.0",
     "name": "io.github.yarnabrina/mcp-learning@0.2.0",
+    "serverName": "io-github-yarnabrina-mcp-learning",
     "status": "profile_failed",
-    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "error": "failed to resolve registry: failed to convert registry server: incompatible server: no compatible packages for io.github.yarnabrina/mcp-learning\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.byteplant-dev%2Fbyteplant-mcp/versions/1.0.0.post2",
     "name": "io.github.byteplant-dev/byteplant-mcp@1.0.0.post2",
-    "status": "no_tools",
+    "serverName": "io-github-byteplant-dev-byteplant-mcp",
+    "status": "skipped",
+    "skipReason": "All environment variables (EV_TOKEN, AV_TOKEN, PV_TOKEN) are secret API tokens for Byteplant's paid Email, Phone, and Address Validation SaaS services. No local backing services can substitute for these.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyntrisec%2Fcyntrisec/versions/0.1.10",
     "name": "io.github.cyntrisec/cyntrisec@0.1.10",
-    "status": "no_tools",
+    "serverName": "io-github-cyntrisec-cyntrisec",
+    "status": "skipped",
+    "skipReason": "Requires AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) or a configured AWS_PROFILE to authenticate with AWS for security analysis. These are cloud/SaaS credentials that cannot be provided locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CursorTouch%2FWindows-MCP/versions/1.0.0",
     "name": "io.github.CursorTouch/Windows-MCP@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-CursorTouch-Windows-MCP",
+    "status": "skipped",
+    "skipReason": "This MCP server is designed for Windows OS computer-use (controlling Windows desktop, mouse, keyboard). It requires a Windows environment to function and cannot work in a Docker container on macOS.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhichandra21%2Fpromptheus/versions/0.3.1",
     "name": "io.github.abhichandra21/promptheus@0.3.1",
-    "status": "no_tools",
+    "serverName": "io-github-abhichandra21-promptheus",
+    "status": "skipped",
+    "skipReason": "Requires at least one LLM provider API key (Google Gemini, Anthropic, OpenAI, Groq, Qwen, or GLM) - all are paid/cloud SaaS secrets that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fgoogle-sheets-mcp/versions/0.1.6",
     "name": "io.github.henilcalagiya/google-sheets-mcp@0.1.6",
-    "status": "tools_found",
-    "toolCount": 24,
-    "tools": [
-      "add_table_column_tool",
-      "add_table_records_tool",
-      "analyze_sheet_structure_tool",
-      "create_duplicate_sheet_tool",
-      "create_sheets_tool",
-      "create_table_tool",
-      "delete_sheets_tool",
-      "delete_table_column_tool",
-      "delete_table_records_tool",
-      "delete_table_tool",
-      "discover_spreadsheets_tool",
-      "get_sheet_cells_by_notation_tool",
-      "get_sheet_cells_by_range_tool",
-      "get_table_data_tool",
-      "get_table_metadata_tool",
-      "update_dropdown_options_tool",
-      "update_sheet_titles_tool",
-      "update_spreadsheet_title_tool",
-      "update_table_cells_by_notation_tool",
-      "update_table_cells_by_range_tool",
-      "update_table_column_name_tool",
-      "update_table_column_type_tool",
-      "update_table_sorting_tool",
-      "update_table_title_tool"
-    ]
+    "serverName": "io-github-henilcalagiya-google-sheets-mcp",
+    "status": "skipped",
+    "skipReason": "Requires Google Sheets API credentials (OAuth or service account JSON) to authenticate with Google's cloud API. These are paid/cloud service credentials that cannot be provided in a test environment.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fmcp-apple-notes/versions/0.1.2",
     "name": "io.github.henilcalagiya/mcp-apple-notes@0.1.2",
-    "status": "tools_found",
-    "toolCount": 14,
-    "tools": [
-      "create_folder",
-      "create_note",
-      "delete_folder",
-      "delete_note",
-      "list_all_notes",
-      "list_folder_with_structure",
-      "list_notes_with_structure",
-      "move_folder",
-      "move_note",
-      "read_folder",
-      "read_note",
-      "rename_folder",
-      "search_notes",
-      "update_note"
-    ]
+    "serverName": "io-github-henilcalagiya-mcp-apple-notes",
+    "status": "skipped",
+    "skipReason": "This MCP server integrates with Apple Notes via AppleScript, which requires macOS and the Apple Notes application. It cannot function inside a Docker container as AppleScript and Apple Notes are not available in containerized environments.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PyJudge%2Fpdf4vllm/versions/1.0.2",
     "name": "io.github.PyJudge/pdf4vllm@1.0.2",
+    "serverName": "io-github-PyJudge-pdf4vllm",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cr7258%2Felasticsearch-mcp-server/versions/2.0.14",
     "name": "io.github.cr7258/elasticsearch-mcp-server@2.0.14",
+    "serverName": "io-github-cr7258-elasticsearch-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sellisd%2Fmcp-units/versions/0.3.3",
     "name": "io.github.sellisd/mcp-units@0.3.3",
+    "serverName": "io-github-sellisd-mcp-units",
     "status": "tools_found",
     "toolCount": 3,
     "tools": [
       "convert_temperature",
       "convert_volume",
       "convert_weight"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.svnscha%2Fmcp-windbg/versions/0.2.3",
     "name": "io.github.svnscha/mcp-windbg@0.2.3",
-    "status": "no_tools",
+    "serverName": "io-github-svnscha-mcp-windbg",
+    "status": "skipped",
+    "skipReason": "Requires Windows with WinDBG/CDB installed for crash dump analysis. Cannot run in a Linux/macOS Docker container.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.simplemindedbot%2Fmnemex/versions/0.5.2",
     "name": "io.github.simplemindedbot/mnemex@0.5.2",
-    "status": "no_tools",
+    "serverName": "io-github-simplemindedbot-mnemex",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package mnemex@0.5.2 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.winedarksea%2FAutoTS/versions/1.0.1",
     "name": "io.github.winedarksea/AutoTS@1.0.1",
+    "serverName": "io-github-winedarksea-AutoTS",
     "status": "tools_found",
     "toolCount": 28,
     "tools": [
@@ -937,82 +818,104 @@
       "plot_features",
       "plot_forecast",
       "plot_validation"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4R9UN%2Fmcp-kql-server/versions/2.0.8",
     "name": "io.github.4R9UN/mcp-kql-server@2.0.8",
-    "status": "tools_found",
-    "toolCount": 2,
-    "tools": [
-      "execute_kql_query",
-      "schema_memory"
-    ]
+    "serverName": "io-github-4R9UN-mcp-kql-server",
+    "status": "skipped",
+    "skipReason": "Requires Azure Data Explorer (Kusto) cluster credentials and endpoint. This is a cloud/SaaS service that cannot be replicated locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.slingdata%2Fsling-cli/versions/1.4.23",
     "name": "io.slingdata/sling-cli@1.4.23",
+    "serverName": "io-slingdata-sling-cli",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aws%2Fmcp-proxy-for-aws/versions/1.0.0-preview.0",
     "name": "io.github.aws/mcp-proxy-for-aws@1.0.0-preview.0",
-    "status": "no_tools",
+    "serverName": "io-github-aws-mcp-proxy-for-aws",
+    "status": "skipped",
+    "skipReason": "AWS MCP Server requires valid AWS credentials and connects to AWS cloud API endpoint (https://aws-mcp.us-east-1.api.aws/mcp). Cannot test without AWS account credentials.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fplots-mcp/versions/0.0.1",
     "name": "io.github.MR901/plots-mcp@0.0.1",
+    "serverName": "io-github-MR901-plots-mcp",
     "status": "failed",
     "error": "MCP error -32001: Request timed out",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fmcp-plots/versions/0.0.3",
     "name": "io.github.MR901/mcp-plots@0.0.3",
+    "serverName": "io-github-MR901-mcp-plots",
     "status": "failed",
     "error": "MCP error -32001: Request timed out",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.easytocloud%2Fmac-letterhead/versions/0.13.9",
     "name": "io.github.easytocloud/mac-letterhead@0.13.9",
-    "status": "no_tools",
+    "serverName": "io-github-easytocloud-mac-letterhead",
+    "status": "skipped",
+    "skipReason": "This server is a macOS-specific professional letterhead PDF generator that requires macOS system features and local file system access for letterhead templates and PDF generation. It cannot run meaningfully in a Docker container.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.files%2Fpython-mcp/versions/1.0.0",
     "name": "com.files/python-mcp@1.0.0",
-    "status": "no_tools",
+    "serverName": "com-files-python-mcp",
+    "status": "skipped",
+    "skipReason": "Requires FILES_COM_API_KEY, a paid/cloud SaaS API key for Files.com that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lxchst%2Fweather-server-python/versions/0.1.1",
     "name": "io.github.lxchst/weather-server-python@0.1.1",
+    "serverName": "io-github-lxchst-weather-server-python",
     "status": "tools_found",
     "toolCount": 2,
     "tools": [
       "get_alerts",
       "get_forecast"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ryanmat%2Flogicmonitor/versions/1.1.0",
     "name": "io.github.ryanmat/logicmonitor@1.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-ryanmat-logicmonitor",
+    "status": "skipped",
+    "skipReason": "Requires LM_BEARER_TOKEN (LogicMonitor API Bearer token) and LM_PORTAL (LogicMonitor portal hostname) which are paid/cloud SaaS credentials that cannot be provided locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bunnyf%2Fkicad-mcp-server/versions/3.5.0",
     "name": "io.github.bunnyf/kicad-mcp-server@3.5.0",
+    "serverName": "io-github-bunnyf-kicad-mcp-server",
     "status": "tools_found",
     "toolCount": 23,
     "tools": [
@@ -1039,11 +942,13 @@
       "read_file",
       "run_drc",
       "run_erc"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.redis%2Fmcp-redis/versions/0.4.0",
     "name": "io.github.redis/mcp-redis@0.4.0",
+    "serverName": "io-github-redis-mcp-redis",
     "status": "tools_found",
     "toolCount": 45,
     "tools": [
@@ -1092,114 +997,103 @@
       "zadd",
       "zrange",
       "zrem"
-    ]
+    ],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanoamorelli%2Fsec-edgar-mcp/versions/1.0.5",
     "name": "io.github.stefanoamorelli/sec-edgar-mcp@1.0.5",
+    "serverName": "io-github-stefanoamorelli-sec-edgar-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YimingYAN%2Ffivetran-mcp/versions/0.3.1",
     "name": "io.github.YimingYAN/fivetran-mcp@0.3.1",
-    "status": "tools_found",
-    "toolCount": 15,
-    "tools": [
-      "get_connection_schema",
-      "get_connection_status",
-      "get_schema",
-      "get_table_columns",
-      "get_table_status",
-      "list_connections",
-      "list_groups",
-      "list_tables",
-      "pause_connection",
-      "reload_schema",
-      "resume_connection",
-      "resync_tables",
-      "test_connection",
-      "trigger_resync",
-      "trigger_sync"
-    ]
+    "serverName": "io-github-YimingYAN-fivetran-mcp",
+    "status": "skipped",
+    "skipReason": "Requires FIVETRAN_API_KEY and FIVETRAN_API_SECRET which are paid/cloud SaaS API credentials for the Fivetran data pipeline service that cannot be provided locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.allstacks%2Fallstacks-mcp/versions/0.1.0",
     "name": "com.allstacks/allstacks-mcp@0.1.0",
-    "status": "no_tools",
+    "serverName": "com-allstacks-allstacks-mcp",
+    "status": "skipped",
+    "skipReason": "Allstacks MCP server requires access to the Allstacks API, which is a paid SaaS engineering intelligence platform. No API key or credentials can be provided for testing.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MauroDruwel%2Fsmartschool-mcp/versions/0.1.4",
     "name": "io.github.MauroDruwel/smartschool-mcp@0.1.4",
-    "status": "no_tools",
+    "serverName": "io-github-MauroDruwel-smartschool-mcp",
+    "status": "skipped",
+    "skipReason": "Smartschool MCP server requires authentication credentials (Smartschool platform URL, username, and password) to connect to a Smartschool instance, which is a paid/institutional SaaS platform. Cannot test without valid Smartschool account credentials.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.joshmsimpson%2Fexiftool/versions/0.1.6",
     "name": "io.github.joshmsimpson/exiftool@0.1.6",
+    "serverName": "io-github-joshmsimpson-exiftool",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alondmnt%2Fjoplin-mcp/versions/0.5.0",
     "name": "io.github.alondmnt/joplin-mcp@0.5.0",
-    "status": "tools_found",
-    "toolCount": 19,
-    "tools": [
-      "create_note",
-      "create_notebook",
-      "create_tag",
-      "delete_note",
-      "delete_notebook",
-      "delete_tag",
-      "find_in_note",
-      "find_notes",
-      "find_notes_in_notebook",
-      "find_notes_with_tag",
-      "get_links",
-      "get_note",
-      "get_tags_by_note",
-      "list_notebooks",
-      "list_tags",
-      "ping_joplin",
-      "tag_note",
-      "untag_note",
-      "update_note"
-    ]
+    "serverName": "io-github-alondmnt-joplin-mcp",
+    "status": "skipped",
+    "skipReason": "Requires JOPLIN_TOKEN (a Web Clipper authentication token from a running Joplin desktop application). Joplin is a desktop note-taking app that must be running locally with its Web Clipper service enabled to generate this token. There is no official Joplin server Docker image that can be used as a backing service.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matbanik%2Fpomera/versions/1.3.7",
     "name": "io.github.matbanik/pomera@1.3.7",
+    "serverName": "io-github-matbanik-pomera",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ramalamadingdong%2Ffirst-agentic-csa/versions/0.3.8",
     "name": "io.github.ramalamadingdong/first-agentic-csa@0.3.8",
+    "serverName": "io-github-ramalamadingdong-first-agentic-csa",
     "status": "tools_found",
     "toolCount": 3,
     "tools": [
       "fetch_frc_doc_page",
       "list_frc_doc_sections",
       "search_frc_docs"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnzfitch%2Fpyghidra-lite/versions/0.1.1",
     "name": "io.github.johnzfitch/pyghidra-lite@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-johnzfitch-pyghidra-lite",
+    "status": "skipped",
+    "skipReason": "Requires GHIDRA_INSTALL_DIR pointing to a local Ghidra installation. Ghidra is a large (~1GB) reverse engineering tool from the NSA that must be downloaded and installed separately, and there is no standard lightweight Docker image available to provide it as a backing service.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs-mcp/versions/1.0.0",
     "name": "io.github.barangaroo/crosstabs-mcp@1.0.0",
+    "serverName": "io-github-barangaroo-crosstabs-mcp",
     "status": "tools_found",
     "toolCount": 39,
     "tools": [
@@ -1242,11 +1136,13 @@
       "tau_c",
       "uncertainty_coefficient",
       "weighted_kappa"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs/versions/1.0.1",
     "name": "io.github.barangaroo/crosstabs@1.0.1",
+    "serverName": "io-github-barangaroo-crosstabs",
     "status": "tools_found",
     "toolCount": 39,
     "tools": [
@@ -1289,234 +1185,223 @@
       "tau_c",
       "uncertainty_coefficient",
       "weighted_kappa"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bethmaloney%2Frdl-mcp/versions/0.1.0",
     "name": "io.github.bethmaloney/rdl-mcp@0.1.0",
+    "serverName": "io-github-bethmaloney-rdl-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MCPower-Security%2Fmcpower-proxy/versions/0.0.90",
     "name": "io.github.MCPower-Security/mcpower-proxy@0.0.90",
-    "status": "no_tools",
+    "serverName": "io-github-MCPower-Security-mcpower-proxy",
+    "status": "skipped",
+    "skipReason": "MCPower Security Proxy requires wrapping another MCP server and likely needs an API key or account with the MCPower Security service for monitoring and policy enforcement. It acts as a proxy layer, not a standalone MCP server with its own tools.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.elpadev%2Fsample-mcp-server-python-package/versions/0.0.1",
     "name": "io.github.elpadev/sample-mcp-server-python-package@0.0.1",
+    "serverName": "io-github-elpadev-sample-mcp-server-python-package",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cafferychen777%2Fchatspatial/versions/1.0.3",
     "name": "io.github.cafferychen777/chatspatial@1.0.3",
+    "serverName": "io-github-cafferychen777-chatspatial",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matjmat%2Feulerian-marketing-platform-mcp/versions/1.0.0",
     "name": "io.github.matjmat/eulerian-marketing-platform-mcp@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-matjmat-eulerian-marketing-platform-mcp",
+    "status": "skipped",
+    "skipReason": "Requires EMP_API_TOKEN (a secret API key for the Eulerian Marketing Platform SaaS service) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.colabfit%2Fcolabfit-mcp/versions/1.0.0",
     "name": "io.github.colabfit/colabfit-mcp@1.0.0",
+    "serverName": "io-github-colabfit-colabfit-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bpamiri%2Fu2-mcp/versions/0.1.1",
     "name": "io.github.bpamiri/u2-mcp@0.1.1",
-    "status": "tools_found",
-    "toolCount": 31,
-    "tools": [
-      "analyze_file_structure",
-      "begin_transaction",
-      "call_subroutine",
-      "commit_transaction",
-      "connect",
-      "delete_knowledge",
-      "delete_record",
-      "describe_file",
-      "disconnect",
-      "execute_query",
-      "execute_tcl",
-      "export_to_csv",
-      "export_to_json",
-      "get_account_info",
-      "get_field_definition",
-      "get_file_info",
-      "get_knowledge_topic",
-      "get_select_list",
-      "get_transaction_status",
-      "list_catalog",
-      "list_connections",
-      "list_dictionary",
-      "list_files",
-      "list_knowledge",
-      "read_record",
-      "read_records",
-      "rollback_transaction",
-      "save_knowledge",
-      "search_knowledge",
-      "validate_query",
-      "write_record"
-    ]
+    "serverName": "io-github-bpamiri-u2-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a Rocket Universe/UniData MultiValue database server which is proprietary commercial software with no public Docker image available. The U2_HOST, U2_USER, U2_PASSWORD, and U2_ACCOUNT environment variables require a running Universe/UniData instance that cannot be provisioned locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mhcoen%2Fmcp-relay/versions/1.2.4",
     "name": "io.github.mhcoen/mcp-relay@1.2.4",
+    "serverName": "io-github-mhcoen-mcp-relay",
     "status": "tools_found",
     "toolCount": 3,
     "tools": [
       "relay_clear",
       "relay_fetch",
       "relay_send"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.surendranb%2Fgoogle-analytics-mcp/versions/1.0.0",
     "name": "io.github.surendranb/google-analytics-mcp@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-surendranb-google-analytics-mcp",
+    "status": "skipped",
+    "skipReason": "Requires YOUR_API_KEY (Google Analytics API key) which is a secret/paid API credential that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fazure-updates/versions/0.1.1",
     "name": "io.github.jonnybottles/azure-updates@0.1.1",
+    "serverName": "io-github-jonnybottles-azure-updates",
     "status": "tools_found",
     "toolCount": 3,
     "tools": [
       "azure_updates_list_categories",
       "azure_updates_search",
       "azure_updates_summarize"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fm365-roadmap/versions/0.2.1",
     "name": "io.github.jonnybottles/m365-roadmap@0.2.1",
+    "serverName": "io-github-jonnybottles-m365-roadmap",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "search_roadmap"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augee99%2Fmcp-weather/versions/1.0.0",
     "name": "io.github.augee99/mcp-weather@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-augee99-mcp-weather",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package mcp-weather-augee99@0.1.0 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.galaxyproject%2Fgalaxy-mcp/versions/1.3.0",
     "name": "io.github.galaxyproject/galaxy-mcp@1.3.0",
-    "status": "tools_found",
-    "toolCount": 31,
-    "tools": [
-      "cancel_workflow_invocation",
-      "connect",
-      "create_history",
-      "download_dataset",
-      "get_collection_details",
-      "get_dataset_details",
-      "get_histories",
-      "get_history_contents",
-      "get_history_details",
-      "get_invocations",
-      "get_iwc_workflow_details",
-      "get_iwc_workflows",
-      "get_job_details",
-      "get_server_info",
-      "get_tool_citations",
-      "get_tool_details",
-      "get_tool_panel",
-      "get_tool_run_examples",
-      "get_user",
-      "get_workflow_details",
-      "import_workflow_from_iwc",
-      "invoke_workflow",
-      "list_history_ids",
-      "list_workflows",
-      "recommend_iwc_workflows",
-      "run_tool",
-      "search_iwc_workflows",
-      "search_tools_by_keywords",
-      "search_tools_by_name",
-      "upload_file",
-      "upload_file_from_url"
-    ]
+    "serverName": "io-github-galaxyproject-galaxy-mcp",
+    "status": "skipped",
+    "skipReason": "Requires GALAXY_API_KEY (secret) for authenticating with a Galaxy bioinformatics instance, and GALAXY_URL pointing to a running Galaxy server (cloud/SaaS service like usegalaxy.org). Cannot provision a local Galaxy instance as a simple backing service.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YinTokey%2Fmcp_hackernews/versions/0.1.1",
     "name": "io.github.YinTokey/mcp_hackernews@0.1.1",
+    "serverName": "io-github-YinTokey-mcp_hackernews",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stepbot%2Fstockfish-mcp/versions/v1.0.2",
     "name": "io.github.stepbot/stockfish-mcp@v1.0.2",
+    "serverName": "io-github-stepbot-stockfish-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NeerajG03%2Fvector-memory/versions/0.2.0",
     "name": "io.github.NeerajG03/vector-memory@0.2.0",
-    "status": "no_tools",
+    "serverName": "io-github-NeerajG03-vector-memory",
+    "status": "skipped",
+    "skipReason": "Likely requires an OpenAI API key (or similar embedding service API key) for generating semantic vector embeddings",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KittyCAD%2Fzoo-mcp/versions/0.9.1",
     "name": "io.github.KittyCAD/zoo-mcp@0.9.1",
-    "status": "no_tools",
+    "serverName": "io-github-KittyCAD-zoo-mcp",
+    "status": "skipped",
+    "skipReason": "Requires ZOO_TOKEN (Zoo API key) which is a paid/cloud SaaS credential obtained from https://zoo.dev/account/developer",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.TranThienTrong%2Fasset-auto-picker/versions/1.2.0",
     "name": "io.github.TranThienTrong/asset-auto-picker@1.2.0",
+    "serverName": "io-github-TranThienTrong-asset-auto-picker",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.guanqun-yang%2Fmcp-server-r-counter/versions/0.0.3",
     "name": "io.github.guanqun-yang/mcp-server-r-counter@0.0.3",
+    "serverName": "io-github-guanqun-yang-mcp-server-r-counter",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "count"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marlenezw%2Fpublish-mcp-server/versions/0.1.3",
     "name": "io.github.marlenezw/publish-mcp-server@0.1.3",
+    "serverName": "io-github-marlenezw-publish-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.2",
     "name": "io.github.atarkowska/fastmcp-pdftools@0.1.2",
-    "status": "no_tools",
+    "serverName": "io-github-atarkowska-fastmcp-pdftools",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package fastmcp-pdftools@0.1.2 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-sqltools/versions/0.3.0",
     "name": "io.github.atarkowska/fastmcp-sqltools@0.3.0",
+    "serverName": "io-github-atarkowska-fastmcp-sqltools",
     "status": "tools_found",
     "toolCount": 4,
     "tools": [
@@ -1524,190 +1409,13 @@
       "execute_safe_query",
       "get_table_schema",
       "list_tables"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.1",
-    "name": "io.github.atarkowska/fastmcp-pdftools@0.1.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fneural-mcp/versions/0.1.4",
-    "name": "io.github.andylbrummer/neural-mcp@0.1.4",
-    "status": "tools_found",
-    "toolCount": 15,
-    "tools": [
-      "compute_metrics",
-      "confusion_matrix",
-      "create_dataloader",
-      "define_model",
-      "evaluate_model",
-      "export_model",
-      "get_experiment_status",
-      "get_model_summary",
-      "info",
-      "load_dataset",
-      "load_pretrained",
-      "plot_training_curves",
-      "train_model",
-      "tune_hyperparameters",
-      "visualize_predictions"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.6",
-    "name": "io.github.andylbrummer/math-mcp@0.1.6",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "create_array",
-      "fft",
-      "find_roots",
-      "ifft",
-      "info",
-      "matrix_multiply",
-      "optimize_function",
-      "solve_linear_system",
-      "symbolic_diff",
-      "symbolic_integrate",
-      "symbolic_simplify",
-      "symbolic_solve"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.4",
-    "name": "io.github.andylbrummer/molecular-mcp@0.1.4",
-    "status": "tools_found",
-    "toolCount": 15,
-    "tools": [
-      "add_potential",
-      "analyze_temperature",
-      "compute_msd",
-      "compute_rdf",
-      "create_particles",
-      "density_field",
-      "detect_phase_transition",
-      "get_trajectory",
-      "info",
-      "list_distributions",
-      "load_distribution",
-      "render_trajectory",
-      "run_md",
-      "run_npt",
-      "run_nvt"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.5",
-    "name": "io.github.andylbrummer/quantum-mcp@0.1.5",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "analyze_wavefunction",
-      "create_custom_potential",
-      "create_gaussian_wavepacket",
-      "create_lattice_potential",
-      "create_plane_wave",
-      "get_simulation_result",
-      "get_task_status",
-      "info",
-      "render_video",
-      "solve_schrodinger",
-      "solve_schrodinger_2d",
-      "visualize_potential"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.5",
-    "name": "io.github.andylbrummer/molecular-mcp@0.1.5",
-    "status": "tools_found",
-    "toolCount": 15,
-    "tools": [
-      "add_potential",
-      "analyze_temperature",
-      "compute_msd",
-      "compute_rdf",
-      "create_particles",
-      "density_field",
-      "detect_phase_transition",
-      "get_trajectory",
-      "info",
-      "list_distributions",
-      "load_distribution",
-      "render_trajectory",
-      "run_md",
-      "run_npt",
-      "run_nvt"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.6",
-    "name": "io.github.andylbrummer/quantum-mcp@0.1.6",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "analyze_wavefunction",
-      "create_custom_potential",
-      "create_gaussian_wavepacket",
-      "create_lattice_potential",
-      "create_plane_wave",
-      "get_simulation_result",
-      "get_task_status",
-      "info",
-      "render_video",
-      "solve_schrodinger",
-      "solve_schrodinger_2d",
-      "visualize_potential"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.6",
-    "name": "io.github.andylbrummer/molecular-mcp@0.1.6",
-    "status": "tools_found",
-    "toolCount": 15,
-    "tools": [
-      "add_potential",
-      "analyze_temperature",
-      "compute_msd",
-      "compute_rdf",
-      "create_particles",
-      "density_field",
-      "detect_phase_transition",
-      "get_trajectory",
-      "info",
-      "list_distributions",
-      "load_distribution",
-      "render_trajectory",
-      "run_md",
-      "run_npt",
-      "run_nvt"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.5",
-    "name": "io.github.andylbrummer/math-mcp@0.1.5",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "create_array",
-      "fft",
-      "find_roots",
-      "ifft",
-      "info",
-      "matrix_multiply",
-      "optimize_function",
-      "solve_linear_system",
-      "symbolic_diff",
-      "symbolic_integrate",
-      "symbolic_simplify",
-      "symbolic_solve"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fneural-mcp/versions/0.1.6",
     "name": "io.github.andylbrummer/neural-mcp@0.1.6",
+    "serverName": "io-github-andylbrummer-neural-mcp",
     "status": "tools_found",
     "toolCount": 15,
     "tools": [
@@ -1726,80 +1434,129 @@
       "train_model",
       "tune_hyperparameters",
       "visualize_predictions"
-    ]
+    ],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/math-mcp@0.1.6",
+    "serverName": "io-github-andylbrummer-math-mcp",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "create_array",
+      "fft",
+      "find_roots",
+      "ifft",
+      "info",
+      "matrix_multiply",
+      "optimize_function",
+      "solve_linear_system",
+      "symbolic_diff",
+      "symbolic_integrate",
+      "symbolic_simplify",
+      "symbolic_solve"
+    ],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/molecular-mcp@0.1.6",
+    "serverName": "io-github-andylbrummer-molecular-mcp",
+    "status": "tools_found",
+    "toolCount": 15,
+    "tools": [
+      "add_potential",
+      "analyze_temperature",
+      "compute_msd",
+      "compute_rdf",
+      "create_particles",
+      "density_field",
+      "detect_phase_transition",
+      "get_trajectory",
+      "info",
+      "list_distributions",
+      "load_distribution",
+      "render_trajectory",
+      "run_md",
+      "run_npt",
+      "run_nvt"
+    ],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.6",
+    "name": "io.github.andylbrummer/quantum-mcp@0.1.6",
+    "serverName": "io-github-andylbrummer-quantum-mcp",
+    "status": "tools_found",
+    "toolCount": 12,
+    "tools": [
+      "analyze_wavefunction",
+      "create_custom_potential",
+      "create_gaussian_wavepacket",
+      "create_lattice_potential",
+      "create_plane_wave",
+      "get_simulation_result",
+      "get_task_status",
+      "info",
+      "render_video",
+      "solve_schrodinger",
+      "solve_schrodinger_2d",
+      "visualize_potential"
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.qwe4559999%2Fscopus-mcp/versions/0.1.3",
     "name": "io.github.qwe4559999/scopus-mcp@0.1.3",
-    "status": "tools_found",
-    "toolCount": 3,
-    "tools": [
-      "get_abstract_details",
-      "get_author_profile",
-      "search_scopus"
-    ]
+    "serverName": "io-github-qwe4559999-scopus-mcp",
+    "status": "skipped",
+    "skipReason": "Requires SCOPUS_API_KEY (Elsevier Scopus API key), which is a paid/cloud API credential that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.totonga%2Fodsbox-jaquel-mcp/versions/0.3.5",
     "name": "io.github.totonga/odsbox-jaquel-mcp@0.3.5",
-    "status": "tools_found",
-    "toolCount": 29,
-    "tools": [
-      "build_filter_condition",
-      "check_entity_schema",
-      "compare_measurements",
-      "connect_ods_server",
-      "debug_query_steps",
-      "disconnect_ods_server",
-      "execute_ods_query",
-      "explain_jaquel_query",
-      "generate_measurement_comparison_notebook",
-      "generate_plotting_code",
-      "generate_query_skeleton",
-      "generate_submatrix_fetcher_script",
-      "get_bulk_api_help",
-      "get_ods_connection_info",
-      "get_operator_documentation",
-      "get_query_pattern",
-      "get_submatrix_measurement_quantities",
-      "get_test_to_measurement_hierarchy",
-      "list_ods_entities",
-      "list_query_patterns",
-      "merge_filter_conditions",
-      "query_measurement_hierarchy",
-      "read_submatrix_data",
-      "suggest_error_fixes",
-      "suggest_optimizations",
-      "validate_field_exists",
-      "validate_filter_against_schema",
-      "validate_filter_condition",
-      "validate_jaquel_query"
-    ]
+    "serverName": "io-github-totonga-odsbox-jaquel-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a running ASAM ODS server (proprietary automotive data standard) which cannot be easily provided as a local backing service. No standard Docker image exists for an ASAM ODS compatible server.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.james116blue%2Fjournald-mcp-server/versions/0.1.0",
     "name": "io.github.james116blue/journald-mcp-server@0.1.0",
+    "serverName": "io-github-james116blue-journald-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.basicmachines-co%2Fbasic-memory/versions/0.17.7",
     "name": "io.github.basicmachines-co/basic-memory@0.17.7",
+    "serverName": "io-github-basicmachines-co-basic-memory",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wedsamuel1230%2Felectronic-mcp-server/versions/1.0.1",
     "name": "io.github.wedsamuel1230/electronic-mcp-server@1.0.1",
+    "serverName": "io-github-wedsamuel1230-electronic-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.josefdc%2Funiprot-mcp/versions/0.1.0",
     "name": "io.github.josefdc/uniprot-mcp@0.1.0",
+    "serverName": "io-github-josefdc-uniprot-mcp",
     "status": "tools_found",
     "toolCount": 5,
     "tools": [
@@ -1808,39 +1565,51 @@
       "get_sequence",
       "map_ids",
       "search_uniprot"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Snowflake-Labs%2Fmcp/versions/1.3.3",
     "name": "io.github.Snowflake-Labs/mcp@1.3.3",
-    "status": "no_tools",
+    "serverName": "io-github-Snowflake-Labs-mcp",
+    "status": "skipped",
+    "skipReason": "Snowflake MCP server requires a Snowflake cloud account with credentials (SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD). Snowflake is a paid SaaS platform that cannot be emulated with local backing services.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorleese%2Fmcp-toolz/versions/0.3.2",
     "name": "io.github.taylorleese/mcp-toolz@0.3.2",
+    "serverName": "io-github-taylorleese-mcp-toolz",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yugui923%2Fdb-connect-mcp/versions/0.3.1",
     "name": "io.github.yugui923/db-connect-mcp@0.3.1",
+    "serverName": "io-github-yugui923-db-connect-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.AdonaiVera%2Ffiftyone-mcp-server/versions/0.1.2",
     "name": "io.github.AdonaiVera/fiftyone-mcp-server@0.1.2",
-    "status": "no_tools",
+    "serverName": "io-github-AdonaiVera-fiftyone-mcp-server",
+    "status": "skipped",
+    "skipReason": "FiftyOne MCP server requires a running FiftyOne application/service with MongoDB backend and dataset storage. FiftyOne is a complex computer vision platform that cannot be trivially spun up as a backing service in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4rgon4ut%2Fsutra/versions/0.1.1",
     "name": "io.github.4rgon4ut/sutra@0.1.1",
+    "serverName": "io-github-4rgon4ut-sutra",
     "status": "tools_found",
     "toolCount": 12,
     "tools": [
@@ -1856,199 +1625,149 @@
       "symbolic_abstract",
       "understand_question",
       "verify_logic"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Anarkitty1%2Fsemantic-frame/versions/0.2.1",
     "name": "io.github.Anarkitty1/semantic-frame@0.2.1",
+    "serverName": "io-github-Anarkitty1-semantic-frame",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.roddutra%2Fagent-mcp-gateway/versions/0.2.5",
     "name": "io.github.roddutra/agent-mcp-gateway@0.2.5",
+    "serverName": "io-github-roddutra-agent-mcp-gateway",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-debugger-inc%2Faidb/versions/0.1.2",
     "name": "io.github.ai-debugger-inc/aidb@0.1.2",
+    "serverName": "io-github-ai-debugger-inc-aidb",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vulnersCom%2Fvulners-mcp/versions/1.0.3",
     "name": "io.github.vulnersCom/vulners-mcp@1.0.3",
-    "status": "no_tools",
+    "serverName": "io-github-vulnersCom-vulners-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a Vulners.com API key to access the vulnerability database API. This is an external SaaS service with no local substitute.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.rhel-lightspeed%2Flinux-mcp-server/versions/1.2.1",
     "name": "io.github.rhel-lightspeed/linux-mcp-server@1.2.1",
-    "status": "tools_found",
-    "toolCount": 19,
-    "tools": [
-      "get_cpu_information",
-      "get_disk_usage",
-      "get_hardware_information",
-      "get_journal_logs",
-      "get_listening_ports",
-      "get_memory_information",
-      "get_network_connections",
-      "get_network_interfaces",
-      "get_process_info",
-      "get_service_logs",
-      "get_service_status",
-      "get_system_information",
-      "list_block_devices",
-      "list_directories",
-      "list_files",
-      "list_processes",
-      "list_services",
-      "read_file",
-      "read_log_file"
-    ]
+    "serverName": "io-github-rhel-lightspeed-linux-mcp-server",
+    "status": "skipped",
+    "skipReason": "Server requires SSH connections to Linux hosts (LINUX_MCP_USER is required). It is a remote system administration tool that needs actual SSH targets to connect to, which cannot be provided by local backing services alone.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zzstoatzz%2Ftangled-mcp/versions/0.0.10",
     "name": "io.github.zzstoatzz/tangled-mcp@0.0.10",
+    "serverName": "io-github-zzstoatzz-tangled-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SamMorrowDrums%2Fremarkable/versions/0.6.0",
     "name": "io.github.SamMorrowDrums/remarkable@0.6.0",
-    "status": "tools_found",
-    "toolCount": 6,
-    "tools": [
-      "remarkable_browse",
-      "remarkable_image",
-      "remarkable_read",
-      "remarkable_recent",
-      "remarkable_search",
-      "remarkable_status"
-    ]
+    "serverName": "io-github-SamMorrowDrums-remarkable",
+    "status": "skipped",
+    "skipReason": "Requires REMARKABLE_TOKEN - a secret authentication token for the reMarkable Cloud API obtained by registering at https://my.remarkable.com/device/browser/connect. This is a paid/cloud SaaS credential that cannot be provided in a test environment.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.scrape-badger%2Fscrapebadger/versions/0.1.1",
     "name": "io.github.scrape-badger/scrapebadger@0.1.1",
-    "status": "tools_found",
-    "toolCount": 16,
-    "tools": [
-      "get_twitter_community_detail",
-      "get_twitter_followers",
-      "get_twitter_following",
-      "get_twitter_list_detail",
-      "get_twitter_list_tweets",
-      "get_twitter_place_trends",
-      "get_twitter_trends",
-      "get_twitter_tweet",
-      "get_twitter_user_about",
-      "get_twitter_user_profile",
-      "get_twitter_user_tweets",
-      "search_twitter_communities",
-      "search_twitter_lists",
-      "search_twitter_places",
-      "search_twitter_tweets",
-      "search_twitter_users"
-    ]
+    "serverName": "io-github-scrape-badger-scrapebadger",
+    "status": "skipped",
+    "skipReason": "Requires SCRAPEBADGER_API_KEY, a paid/cloud API key from scrapebadger.com that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KuudoAI%2Famazon_ads_mcp/versions/0.2.6",
     "name": "io.github.KuudoAI/amazon_ads_mcp@0.2.6",
-    "status": "no_tools",
+    "serverName": "io-github-KuudoAI-amazon_ads_mcp",
+    "status": "skipped",
+    "skipReason": "Requires Amazon Ads API credentials (client ID, client secret, refresh token) or Openbridge API credentials, which are paid/cloud SaaS services that cannot be provisioned locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PagerDuty%2Fpagerduty-mcp/versions/0.2.1",
     "name": "io.github.PagerDuty/pagerduty-mcp@0.2.1",
-    "status": "tools_found",
-    "toolCount": 37,
-    "tools": [
-      "add_note_to_incident",
-      "add_responders",
-      "add_team_member",
-      "append_event_orchestration_router_rule",
-      "create_alert_grouping_setting",
-      "create_incident",
-      "create_schedule_override",
-      "create_service",
-      "create_team",
-      "delete_alert_grouping_setting",
-      "delete_team",
-      "get_alert_grouping_setting",
-      "get_escalation_policy",
-      "get_event_orchestration",
-      "get_event_orchestration_router",
-      "get_incident",
-      "get_schedule",
-      "get_service",
-      "get_team",
-      "get_user_data",
-      "list_alert_grouping_settings",
-      "list_escalation_policies",
-      "list_event_orchestrations",
-      "list_incidents",
-      "list_oncalls",
-      "list_schedule_users",
-      "list_schedules",
-      "list_services",
-      "list_team_members",
-      "list_teams",
-      "list_users",
-      "manage_incidents",
-      "remove_team_member",
-      "update_alert_grouping_setting",
-      "update_event_orchestration_router",
-      "update_service",
-      "update_team"
-    ]
+    "serverName": "io-github-PagerDuty-pagerduty-mcp",
+    "status": "skipped",
+    "skipReason": "Requires PAGERDUTY_USER_API_KEY which is a paid SaaS API token obtained from a PagerDuty account",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tspicer%2Famazon_ads_mcp/versions/0.2.4",
     "name": "io.github.tspicer/amazon_ads_mcp@0.2.4",
-    "status": "no_tools",
+    "serverName": "io-github-tspicer-amazon_ads_mcp",
+    "status": "skipped",
+    "skipReason": "Requires Amazon Ads API credentials (client ID, client secret, refresh token) or Openbridge API credentials, which are paid/cloud SaaS services that cannot be provided locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Memphora%2Fmemphora/versions/0.1.2",
     "name": "io.github.Memphora/memphora@0.1.2",
-    "status": "tools_found",
-    "toolCount": 5,
-    "tools": [
-      "memphora_delete",
-      "memphora_extract_conversation",
-      "memphora_list_memories",
-      "memphora_search",
-      "memphora_store"
-    ]
+    "serverName": "io-github-Memphora-memphora",
+    "status": "skipped",
+    "skipReason": "Requires MEMPHORA_API_KEY, a paid/cloud API key from memphora.ai/dashboard that cannot be provided locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.dragonejt%2Ficeberg-mcp-server/versions/0.1.21",
     "name": "io.github.dragonejt/iceberg-mcp-server@0.1.21",
+    "serverName": "io-github-dragonejt-iceberg-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fmcp-debug/versions/1.1.6",
     "name": "io.github.standardbeagle/mcp-debug@1.1.6",
+    "serverName": "io-github-standardbeagle-mcp-debug",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "hello_world"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fdevtool-mcp/versions/0.3.1",
     "name": "io.github.standardbeagle/devtool-mcp@0.3.1",
+    "serverName": "io-github-standardbeagle-devtool-mcp",
     "status": "tools_found",
     "toolCount": 7,
     "tools": [
@@ -2059,232 +1778,204 @@
       "proxy",
       "proxylog",
       "run"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fmcp-debug/versions/1.1.5",
-    "name": "io.github.standardbeagle/mcp-debug@1.1.5",
-    "status": "tools_found",
-    "toolCount": 1,
-    "tools": [
-      "hello_world"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Murugarajr%2Fohm-mcp/versions/1.0.1",
     "name": "io.github.Murugarajr/ohm-mcp@1.0.1",
+    "serverName": "io-github-Murugarajr-ohm-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.OtherVibes%2Fmcp-as-a-judge/versions/0.3.20",
     "name": "io.github.OtherVibes/mcp-as-a-judge@0.3.20",
-    "status": "tools_found",
-    "toolCount": 8,
-    "tools": [
-      "get_current_coding_task",
-      "judge_code_change",
-      "judge_coding_plan",
-      "judge_coding_task_completion",
-      "judge_testing_implementation",
-      "raise_missing_requirements",
-      "raise_obstacle",
-      "set_coding_task"
-    ]
+    "serverName": "io-github-OtherVibes-mcp-as-a-judge",
+    "status": "skipped",
+    "skipReason": "mcp-as-a-judge requires an LLM API key (e.g., OpenAI, Anthropic) to perform its evaluation functionality. It acts as a behavioral judge that calls LLMs to evaluate code, which requires a paid API key that cannot be provided in a test environment.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.context-foundry%2Fcontext-foundry/versions/2.2.1",
     "name": "io.github.context-foundry/context-foundry@2.2.1",
-    "status": "no_tools",
+    "serverName": "io-github-context-foundry-context-foundry",
+    "status": "skipped",
+    "skipReason": "Requires ANTHROPIC_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.motherduckdb%2Fmcp-server-motherduck/versions/0.7.1",
     "name": "io.github.motherduckdb/mcp-server-motherduck@0.7.1",
+    "serverName": "io-github-motherduckdb-mcp-server-motherduck",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.clarenceh%2Fexpenselm-mcp-server/versions/0.2.3",
     "name": "io.github.clarenceh/expenselm-mcp-server@0.2.3",
-    "status": "tools_found",
-    "toolCount": 8,
-    "tools": [
-      "download_expense_receipt_image",
-      "get_expense_by_id",
-      "get_expense_summary_by_category_by_currency",
-      "get_expense_summary_by_month_by_currency",
-      "get_expense_summary_by_subscription_by_currency",
-      "get_latest_expenses",
-      "get_latest_subscription_expenses",
-      "save_expense_receipt_image"
-    ]
+    "serverName": "io-github-clarenceh-expenselm-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires EXPENSELM_API_KEY (a paid/cloud SaaS API key for ExpenseLM) which cannot be provided in a local test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SnowLeopard-AI%2Fbigquery-mcp/versions/0.1.0",
     "name": "io.github.SnowLeopard-AI/bigquery-mcp@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-SnowLeopard-AI-bigquery-mcp",
+    "status": "skipped",
+    "skipReason": "Requires Google Cloud credentials and a BigQuery project to access. The server connects to Google BigQuery, which is a paid cloud/SaaS service requiring GCP authentication (service account key or OAuth) that cannot be provided in a local test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.eghuzefa%2Fengineer-your-data/versions/0.1.0",
     "name": "io.github.eghuzefa/engineer-your-data@0.1.0",
+    "serverName": "io-github-eghuzefa-engineer-your-data",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.robotmcp%2Fros-mcp-server/versions/2.2.1",
     "name": "io.github.robotmcp/ros-mcp-server@2.2.1",
-    "status": "no_tools",
+    "serverName": "io-github-robotmcp-ros-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires a running ROS (Robot Operating System) environment with roscore/ros2 daemon, which cannot be provided as a simple backing service",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.palewire%2Fdatawrapper-mcp/versions/0.0.19",
     "name": "io.github.palewire/datawrapper-mcp@0.0.19",
-    "status": "tools_found",
-    "toolCount": 8,
-    "tools": [
-      "create_chart",
-      "delete_chart",
-      "export_chart_png",
-      "get_chart",
-      "get_chart_schema",
-      "list_chart_types",
-      "publish_chart",
-      "update_chart"
-    ]
+    "serverName": "io-github-palewire-datawrapper-mcp",
+    "status": "skipped",
+    "skipReason": "Requires DATAWRAPPER_ACCESS_TOKEN (a paid/cloud SaaS API key for the Datawrapper service) which cannot be provided locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.beycom%2Fonetool-mcp/versions/1.0.0rc2",
     "name": "io.github.beycom/onetool-mcp@1.0.0rc2",
+    "serverName": "io-github-beycom-onetool-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.appwrite%2Fmcp-for-api/versions/0.2.8",
     "name": "io.github.appwrite/mcp-for-api@0.2.8",
-    "status": "no_tools",
+    "serverName": "io-github-appwrite-mcp-for-api",
+    "status": "skipped",
+    "skipReason": "Requires an Appwrite API key and project ID generated from a running Appwrite instance. While Appwrite is self-hostable, it requires a complex multi-service stack (MariaDB, Redis, Appwrite core, etc.) and the API key must be created interactively through the Appwrite console.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Epochal-dev%2Fopen-notebook/versions/0.3.0",
     "name": "io.github.Epochal-dev/open-notebook@0.3.0",
-    "status": "tools_found",
-    "toolCount": 33,
-    "tools": [
-      "ask_question",
-      "ask_simple",
-      "create_chat_session",
-      "create_model",
-      "create_note",
-      "create_notebook",
-      "create_source",
-      "delete_chat_session",
-      "delete_model",
-      "delete_note",
-      "delete_notebook",
-      "delete_source",
-      "execute_chat",
-      "get_chat_context",
-      "get_chat_session",
-      "get_default_models",
-      "get_model",
-      "get_note",
-      "get_notebook",
-      "get_settings",
-      "get_source",
-      "list_chat_sessions",
-      "list_models",
-      "list_notebooks",
-      "list_notes",
-      "list_sources",
-      "search",
-      "search_capabilities",
-      "update_chat_session",
-      "update_note",
-      "update_notebook",
-      "update_settings",
-      "update_source"
-    ]
+    "serverName": "io-github-Epochal-dev-open-notebook",
+    "status": "skipped",
+    "skipReason": "Requires a running Open Notebook instance (complex self-hosted application with its own dependencies like Neo4j). No simple single-container Docker image available to use as a backing service.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.futuresearch%2Feveryrow-mcp/versions/0.1.9",
     "name": "io.github.futuresearch/everyrow-mcp@0.1.9",
-    "status": "no_tools",
+    "serverName": "io-github-futuresearch-everyrow-mcp",
+    "status": "skipped",
+    "skipReason": "Requires EVERYROW_API_KEY, a paid/cloud API key from https://everyrow.io/api-key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xcollantes%2Fjira-mcp/versions/0.2.2",
     "name": "io.github.xcollantes/jira-mcp@0.2.2",
-    "status": "no_tools",
+    "serverName": "io-github-xcollantes-jira-mcp",
+    "status": "skipped",
+    "skipReason": "Requires JIRA_API_TOKEN (secret) to authenticate with a Jira cloud/server instance. This is a paid/cloud SaaS credential that cannot be provided in a local test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nonatofabio%2Flocal-faiss-mcp/versions/0.2.0-rc.2",
     "name": "io.github.nonatofabio/local-faiss-mcp@0.2.0-rc.2",
+    "serverName": "io-github-nonatofabio-local-faiss-mcp",
     "status": "tools_found",
     "toolCount": 2,
     "tools": [
       "ingest_document",
       "query_rag_store"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.srikrishna235%2Fscrimba-teaching-mcp/versions/3.0.2",
     "name": "io.github.srikrishna235/scrimba-teaching-mcp@3.0.2",
+    "serverName": "io-github-srikrishna235-scrimba-teaching-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aikts%2Fyandex-tracker-mcp/versions/0.5.0",
     "name": "io.github.aikts/yandex-tracker-mcp@0.5.0",
-    "status": "no_tools",
+    "serverName": "io-github-aikts-yandex-tracker-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a Yandex Tracker API token/OAuth token to authenticate with the Yandex Tracker cloud service. This is a paid/cloud SaaS API that cannot be replicated locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.3",
     "name": "io.github.xt765/mcp_documents_reader@1.0.3",
+    "serverName": "io-github-xt765-mcp_documents_reader",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "read_document"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp-document-converter/versions/0.1.2",
     "name": "io.github.xt765/mcp-document-converter@0.1.2",
+    "serverName": "io-github-xt765-mcp-document-converter",
     "status": "tools_found",
     "toolCount": 3,
     "tools": [
       "can_convert",
       "convert_document",
       "list_supported_formats"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.0",
-    "name": "io.github.xt765/mcp_documents_reader@1.0.0",
-    "status": "tools_found",
-    "toolCount": 1,
-    "tools": [
-      "read_document"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vandewilly%2Fdice-roller/versions/0.1.0",
     "name": "io.github.vandewilly/dice-roller@0.1.0",
+    "serverName": "io-github-vandewilly-dice-roller",
     "status": "tools_found",
     "toolCount": 6,
     "tools": [
@@ -2294,240 +1985,291 @@
       "roll_dnd_stats",
       "roll_multiple",
       "roll_percentile"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.214140846%2Fskillhub-mcp/versions/1.0.5",
     "name": "io.github.214140846/skillhub-mcp@1.0.5",
+    "serverName": "io-github-214140846-skillhub-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fpowerbi-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/powerbi-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-powerbi-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires POWERBI_API_KEY which is a paid/cloud SaaS API key for Microsoft Power BI that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fservicenow-mcp-server/versions/0.1.1",
     "name": "io.github.asklokesh/servicenow-mcp-server@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-servicenow-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires SERVICENOW_API_KEY (a paid/cloud SaaS API key for ServiceNow) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fchanty-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/chanty-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-chanty-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires CHANTY_API_KEY (a paid/cloud SaaS API key) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ftableau-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/tableau-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-tableau-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires TABLEAU_API_KEY (a paid/cloud SaaS API key for Tableau) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fazure-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/azure-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-azure-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires Azure cloud credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID) for Azure API integration. These are paid/cloud service credentials that cannot be provided locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Frundeck-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/rundeck-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-rundeck-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires RUNDECK_API_KEY (a secret API key) for Rundeck API integration. Rundeck is a self-hosted or SaaS service that requires authentication, and the API key cannot be generated automatically for testing.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/zoho-crm-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-zoho-crm-mcp-server",
+    "status": "skipped",
+    "skipReason": "Failed to fetch registry: Failed to fetch https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-m",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fxero-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/xero-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-xero-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires XERO_API_KEY which is a paid/cloud SaaS API key for the Xero accounting platform that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fhootsuite-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/hootsuite-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-hootsuite-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires HOOTSUITE_API_KEY which is a paid/cloud SaaS API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fquickbooks-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/quickbooks-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-quickbooks-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires QUICKBOOKS_API_KEY which is a paid/cloud SaaS API key for QuickBooks that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fharness-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/harness-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-harness-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires HARNESS_API_KEY (a paid/cloud SaaS API key for Harness CI/CD platform) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fmailchimp-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/mailchimp-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-mailchimp-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires MAILCHIMP_API_KEY which is a paid/SaaS API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fargocd-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/argocd-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-argocd-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires ARGOCD_API_KEY (secret, paid/self-hosted ArgoCD instance) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ffreshbooks-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/freshbooks-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-freshbooks-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires FRESHBOOKS_API_KEY which is a paid/cloud SaaS API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fuipath-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/uipath-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-uipath-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires UIPATH_API_KEY (secret, paid/cloud SaaS API key) for UiPath API integration that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Francher-mcp-server/versions/0.1.0",
     "name": "io.github.asklokesh/rancher-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-asklokesh-rancher-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires RANCHER_API_KEY (a paid/cloud SaaS API key for Rancher) which cannot be provided in a local test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lars20070%2Fmathematica-mcp/versions/0.1.6",
     "name": "io.github.lars20070/mathematica-mcp@0.1.6",
-    "status": "no_tools",
+    "serverName": "io-github-lars20070-mathematica-mcp",
+    "status": "skipped",
+    "skipReason": "Requires WolframScript/Mathematica to be installed, which is a paid commercial product requiring a license",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyberpapiii%2Fimessage-max/versions/0.1.1",
     "name": "io.github.cyberpapiii/imessage-max@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-cyberpapiii-imessage-max",
+    "status": "skipped",
+    "skipReason": "Requires macOS iMessage/Messages.app access and the local chat.db SQLite database, which is not available inside a Docker container",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jackfioru92%2Faruba-email/versions/0.2.1",
     "name": "io.github.jackfioru92/aruba-email@0.2.1",
-    "status": "tools_found",
-    "toolCount": 14,
-    "tools": [
-      "accept_calendar_event",
-      "check_bounced_emails",
-      "create_calendar_event",
-      "decline_calendar_event",
-      "delete_calendar_event",
-      "get_email_signature",
-      "list_calendar_events",
-      "list_email_signatures",
-      "list_emails",
-      "read_email",
-      "search_emails",
-      "send_email",
-      "set_email_signature",
-      "tentative_calendar_event"
-    ]
+    "serverName": "io-github-jackfioru92-aruba-email",
+    "status": "skipped",
+    "skipReason": "Requires Aruba email credentials (EMAIL_USER and EMAIL_PASSWORD) to connect to Aruba's IMAP/SMTP/CalDAV services. These are paid/cloud service credentials that cannot be provided in a test environment.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.silversurfer562%2Fmemdocs/versions/2.1.4",
     "name": "io.github.silversurfer562/memdocs@2.1.4",
-    "status": "no_tools",
+    "serverName": "io-github-silversurfer562-memdocs",
+    "status": "skipped",
+    "skipReason": "Requires ANTHROPIC_API_KEY (marked as required and secret) for Claude AI operations (summarization, analysis). This is a paid SaaS API key that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zloeber%2Fterraform-ingest/versions/0.1.21",
     "name": "io.github.zloeber/terraform-ingest@0.1.21",
+    "serverName": "io-github-zloeber-terraform-ingest",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pree-dew%2Fmcp-bookmark/versions/0.1.1",
     "name": "io.github.pree-dew/mcp-bookmark@0.1.1",
-    "status": "tools_found",
-    "toolCount": 2,
-    "tools": [
-      "save_bookmark",
-      "search_bookmark"
-    ]
+    "serverName": "io-github-pree-dew-mcp-bookmark",
+    "status": "skipped",
+    "skipReason": "Requires OPENAI_API_KEY (secret, paid SaaS API key) which cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bharath-krishna%2Fmcp-test/versions/0.1.0",
     "name": "io.github.bharath-krishna/mcp-test@0.1.0",
+    "serverName": "io-github-bharath-krishna-mcp-test",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "echo"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Wolfe-Jam%2Fgemini-faf-mcp/versions/1.0.2",
     "name": "io.github.Wolfe-Jam/gemini-faf-mcp@1.0.2",
+    "serverName": "io-github-Wolfe-Jam-gemini-faf-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aringad%2Ffattureincloud-mcp/versions/1.1.0",
     "name": "io.github.aringad/fattureincloud-mcp@1.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-aringad-fattureincloud-mcp",
+    "status": "skipped",
+    "skipReason": "Requires FIC_ACCESS_TOKEN (Fatture in Cloud API access token), which is a paid/cloud SaaS API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stevenvo%2Fslack-mcp-server/versions/0.1.0",
     "name": "io.github.stevenvo/slack-mcp-server@0.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-stevenvo-slack-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires Slack OAuth tokens (SLACK_USER_TOKEN or SLACK_BOT_TOKEN) which are secret API credentials from a Slack workspace that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.detailobsessed%2Funblu/versions/0.4.1",
-    "name": "io.github.detailobsessed/unblu@0.4.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.detailobsessed%2Funblu/versions/0.4.3",
     "name": "io.github.detailobsessed/unblu@0.4.3",
-    "status": "tools_found",
-    "toolCount": 5,
-    "tools": [
-      "call_api",
-      "get_operation_schema",
-      "list_operations",
-      "list_services",
-      "search_operations"
-    ]
+    "serverName": "io-github-detailobsessed-unblu",
+    "status": "skipped",
+    "skipReason": "Requires access to an Unblu cloud/SaaS instance. UNBLU_BASE_URL must point to a real Unblu instance and authentication requires either an API key (UNBLU_API_KEY) or username/password credentials (UNBLU_USERNAME/UNBLU_PASSWORD) for a paid Unblu service.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ariroffe72%2Fzmanim-mcp-server/versions/0.2.0",
     "name": "io.github.ariroffe72/zmanim-mcp-server@0.2.0",
+    "serverName": "io-github-ariroffe72-zmanim-mcp-server",
     "status": "tools_found",
     "toolCount": 6,
     "tools": [
@@ -2537,189 +2279,224 @@
       "zmanim_get_shema_times",
       "zmanim_get_sunrise_sunset",
       "zmanim_get_tefila_times"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev5",
     "name": "io.github.therealtimex/browser-use@0.7.10.dev5",
-    "status": "no_tools",
+    "serverName": "io-github-therealtimex-browser-use",
+    "status": "skipped",
+    "skipReason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fun-datacommons-mcp/versions/1.0.1",
     "name": "io.github.therealtimex/un-datacommons-mcp@1.0.1",
-    "status": "no_tools",
+    "serverName": "io-github-therealtimex-un-datacommons-mcp",
+    "status": "skipped",
+    "skipReason": "Requires DC_API_KEY (Data Commons API key from apikeys.datacommons.org) which is a paid/external API key we cannot provide",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10",
-    "name": "io.github.therealtimex/browser-use@0.7.10",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev1",
-    "name": "io.github.therealtimex/browser-use@0.7.10.dev1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.5",
     "name": "io.github.blueskylineassets/far-mcp-server@1.0.5",
+    "serverName": "io-github-blueskylineassets-far-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.1",
-    "name": "io.github.blueskylineassets/far-mcp-server@1.0.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CodeLogicIncEngineering%2Fcodelogic-mcp-server/versions/1.0.11",
     "name": "io.github.CodeLogicIncEngineering/codelogic-mcp-server@1.0.11",
-    "status": "tools_found",
-    "toolCount": 2,
-    "tools": [
-      "codelogic-database-impact",
-      "codelogic-method-impact"
-    ]
+    "serverName": "io-github-CodeLogicIncEngineering-codelogic-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires CodeLogic SaaS platform credentials (CODELOGIC_SERVER_HOST, CODELOGIC_USERNAME, CODELOGIC_PASSWORD, CODELOGIC_WORKSPACE_NAME) which are paid/cloud service credentials that cannot be provided locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KazKozDev%2Fsearch/versions/0.1.1",
     "name": "io.github.KazKozDev/search@0.1.1",
+    "serverName": "io-github-KazKozDev-search",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mickymultani%2Fcrypto-bytes/versions/0.1.1",
     "name": "io.github.mickymultani/crypto-bytes@0.1.1",
+    "serverName": "io-github-mickymultani-crypto-bytes",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.oogunbiyi21%2Fstats-compass/versions/0.2.9",
     "name": "io.github.oogunbiyi21/stats-compass@0.2.9",
+    "serverName": "io-github-oogunbiyi21-stats-compass",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.oxylabs%2Foxylabs-mcp/versions/0.7.2",
     "name": "io.oxylabs/oxylabs-mcp@0.7.2",
-    "status": "no_tools",
+    "serverName": "io-oxylabs-oxylabs-mcp",
+    "status": "skipped",
+    "skipReason": "Requires Oxylabs API credentials (OXYLABS_USERNAME, OXYLABS_PASSWORD, or OXYLABS_AI_STUDIO_API_KEY) which are paid SaaS service secrets that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drfccv%2Fmcp-server-12306/versions/0.2.6",
     "name": "io.github.drfccv/mcp-server-12306@0.2.6",
+    "serverName": "io-github-drfccv-mcp-server-12306",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Dewars30%2Ffulcrum/versions/1.1.0",
     "name": "io.github.Dewars30/fulcrum@1.1.0",
-    "status": "no_tools",
+    "serverName": "io-github-Dewars30-fulcrum",
+    "status": "skipped",
+    "skipReason": "Requires a Fulcrum gRPC API endpoint and tenant ID. Fulcrum is a SaaS/cloud governance platform with no publicly available local server image to run as a backing service.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.eks-mcp%2Fserver/versions/1.0.0",
     "name": "aws.api.us-east-1.eks-mcp/server@1.0.0",
-    "status": "no_tools",
+    "serverName": "aws-api-us-east-1-eks-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires valid AWS credentials and access to the Amazon EKS MCP cloud service endpoint (https://eks-mcp.us-east-1.api.aws/mcp). This is a SaaS/cloud API that cannot be replicated locally.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gersonfreire%2Fsimpliq-server/versions/0.1.1",
     "name": "io.github.gersonfreire/simpliq-server@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-gersonfreire-simpliq-server",
+    "status": "skipped",
+    "skipReason": "Server connects LLMs to SQL databases via semantic mapping and likely requires database connection configuration and semantic mapping setup. Unable to verify exact required environment variables from repository. Without knowing the specific config env vars (database URL, mapping config), the server cannot be reliably tested.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zhongweili%2Fnanobanana-mcp-server/versions/1.0.0",
     "name": "io.github.zhongweili/nanobanana-mcp-server@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-zhongweili-nanobanana-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires GEMINI_API_KEY (Google Gemini API key) which is a paid/cloud API secret that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fpgtuner_mcp/versions/0.5.2",
     "name": "io.github.isdaniel/pgtuner_mcp@0.5.2",
+    "serverName": "io-github-isdaniel-pgtuner_mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fmcp_weather_server/versions/0.6.1",
     "name": "io.github.isdaniel/mcp_weather_server@0.6.1",
+    "serverName": "io-github-isdaniel-mcp_weather_server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.raisiqueira%2Fdjango-telescope/versions/0.1.2",
     "name": "io.github.raisiqueira/django-telescope@0.1.2",
-    "status": "no_tools",
+    "serverName": "io-github-raisiqueira-django-telescope",
+    "status": "skipped",
+    "skipReason": "Requires DJANGO_SETTINGS_MODULE pointing to a valid Django project's settings module. Cannot function without an actual Django application configured with django-telescope installed.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ubaumann%2Fmkdocs-mcp/versions/0.1.2",
     "name": "io.github.ubaumann/mkdocs-mcp@0.1.2",
+    "serverName": "io-github-ubaumann-mkdocs-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-converter/versions/1.0.0",
     "name": "io.github.huoshuiai42/huoshui-pdf-converter@1.0.0",
+    "serverName": "io-github-huoshuiai42-huoshui-pdf-converter",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-converter/versions/1.0.0",
     "name": "io.github.huoshuiai42/huoshui-file-converter@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-huoshuiai42-huoshui-file-converter",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package huoshui-file-converter@1.0.0 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-fetch/versions/1.0.0",
     "name": "io.github.huoshuiai42/huoshui-fetch@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-huoshuiai42-huoshui-fetch",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package huoshui-fetch@1.0.0 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-search/versions/1.0.0",
     "name": "io.github.huoshuiai42/huoshui-file-search@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-huoshuiai42-huoshui-file-search",
+    "status": "skipped",
+    "skipReason": "This MCP server provides macOS Spotlight file search capabilities, which requires access to the macOS Spotlight index (mdfind). This cannot work inside a Docker container as Spotlight is a macOS-specific system service not available in Linux containers.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-translator/versions/1.0.0",
     "name": "io.github.huoshuiai42/huoshui-pdf-translator@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-huoshuiai42-huoshui-pdf-translator",
+    "status": "profile_failed",
+    "error": "failed to resolve registry: failed to convert registry server: pypi package huoshui-pdf-translator@1.0.0 was not found\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marshally%2Fmcp-refactoring/versions/0.1.2",
     "name": "io.github.marshally/mcp-refactoring@0.1.2",
+    "serverName": "io-github-marshally-mcp-refactoring",
     "status": "tools_found",
     "toolCount": 5,
     "tools": [
@@ -2728,25 +2505,32 @@
       "inspect_structure",
       "list_refactorings",
       "preview_refactoring"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.BarhamAgha1%2Fbridge-mcp/versions/1.1.3",
     "name": "io.github.BarhamAgha1/bridge-mcp@1.1.3",
-    "status": "no_tools",
+    "serverName": "io-github-BarhamAgha1-bridge-mcp",
+    "status": "skipped",
+    "skipReason": "This server requires a Windows desktop environment to automate apps and inputs. It cannot run in a headless Docker container.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnmci%2FClaudeSmalltalk/versions/1.2.1",
     "name": "io.github.johnmci/ClaudeSmalltalk@1.2.1",
+    "serverName": "io-github-johnmci-ClaudeSmalltalk",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgaruccio%2Fopenapi-navigator/versions/0.5.1",
     "name": "io.github.mgaruccio/openapi-navigator@0.5.1",
+    "serverName": "io-github-mgaruccio-openapi-navigator",
     "status": "tools_found",
     "toolCount": 11,
     "tools": [
@@ -2761,11 +2545,13 @@
       "search_schemas",
       "set_spec_headers",
       "unload_spec"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drivenrajat%2Ff1/versions/0.1.0",
     "name": "io.github.drivenrajat/f1@0.1.0",
+    "serverName": "io-github-drivenrajat-f1",
     "status": "tools_found",
     "toolCount": 52,
     "tools": [
@@ -2821,26 +2607,33 @@
       "plot_gear_shifts",
       "plot_telemetry_comparison",
       "team_head_to_head"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PrefectHQ%2Fprefect-mcp-server/versions/0.0.1-beta.9",
     "name": "io.github.PrefectHQ/prefect-mcp-server@0.0.1-beta.9",
-    "status": "no_tools",
+    "serverName": "io-github-PrefectHQ-prefect-mcp-server",
+    "status": "skipped",
+    "skipReason": "Prefect MCP server requires a connection to a Prefect server or Prefect Cloud instance. Prefect Cloud requires an API key (PREFECT_API_KEY) and API URL (PREFECT_API_URL) which are paid/cloud services. While a local Prefect server could theoretically be run, the prefect-mcp package likely requires specific Prefect server APIs and configuration that make reliable automated testing impractical without a properly initialized Prefect instance with workflows and deployments.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CogitatorTech%2Fomni-nli/versions/0.1.0",
     "name": "io.github.CogitatorTech/omni-nli@0.1.0",
+    "serverName": "io-github-CogitatorTech-omni-nli",
     "status": "profile_failed",
-    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "error": "failed to resolve registry: failed to convert registry server: incompatible server: no compatible packages for io.github.CogitatorTech/omni-nli\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zcsabbagh%2Fknowledge-graph-mcp/versions/0.1.0",
     "name": "io.github.zcsabbagh/knowledge-graph-mcp@0.1.0",
+    "serverName": "io-github-zcsabbagh-knowledge-graph-mcp",
     "status": "tools_found",
     "toolCount": 7,
     "tools": [
@@ -2851,18 +2644,22 @@
       "query_graph",
       "read_subgraph",
       "update_node"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agenthotspot%2Fagenthotspot-mcp/versions/1.0.2",
     "name": "io.github.agenthotspot/agenthotspot-mcp@1.0.2",
+    "serverName": "io-github-agenthotspot-agenthotspot-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zwldarren%2Fakshare-one-mcp/versions/0.3.6",
     "name": "io.github.zwldarren/akshare-one-mcp@0.3.6",
+    "serverName": "io-github-zwldarren-akshare-one-mcp",
     "status": "tools_found",
     "toolCount": 9,
     "tools": [
@@ -2875,25 +2672,32 @@
       "get_news_data",
       "get_realtime_data",
       "get_time_info"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.composable-delivery%2Fsnowfakery-mcp/versions/0.0.4",
     "name": "io.github.composable-delivery/snowfakery-mcp@0.0.4",
+    "serverName": "io-github-composable-delivery-snowfakery-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gradion-ai%2Fipybox/versions/0.6.3",
     "name": "io.github.gradion-ai/ipybox@0.6.3",
-    "status": "no_tools",
+    "serverName": "io-github-gradion-ai-ipybox",
+    "status": "skipped",
+    "skipReason": "Requires Docker daemon/socket access to create sandboxed execution containers; not available from within the MCP gateway container",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PCfVW%2Fmcp-arangodb-async/versions/0.5.4",
     "name": "io.github.PCfVW/mcp-arangodb-async@0.5.4",
+    "serverName": "io-github-PCfVW-mcp-arangodb-async",
     "status": "tools_found",
     "toolCount": 46,
     "tools": [
@@ -2943,128 +2747,108 @@
       "arango_validate_document",
       "arango_validate_graph_integrity",
       "arango_validate_references"
-    ]
+    ],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-data/versions/0.3.0",
     "name": "io.github.antnewman/pm-data@0.3.0",
+    "serverName": "io-github-antnewman-pm-data",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-analyse/versions/0.3.0",
     "name": "io.github.antnewman/pm-analyse@0.3.0",
+    "serverName": "io-github-antnewman-pm-analyse",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-validate/versions/0.3.0",
     "name": "io.github.antnewman/pm-validate@0.3.0",
+    "serverName": "io-github-antnewman-pm-validate",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.burningion%2Fvideo-editing-mcp/versions/1.0.1",
     "name": "io.github.burningion/video-editing-mcp@1.0.1",
-    "status": "no_tools",
+    "serverName": "io-github-burningion-video-editing-mcp",
+    "status": "skipped",
+    "skipReason": "Requires VJ_API_KEY (Video Jungle API key) which is a paid/cloud SaaS credential obtained from https://www.video-jungle.com/user/settings",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Fstreamdeck-mcp/versions/0.1.2",
     "name": "io.github.verygoodplugins/streamdeck-mcp@0.1.2",
-    "status": "no_tools",
+    "serverName": "io-github-verygoodplugins-streamdeck-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a physical Elgato Stream Deck device connected to the host. The MCP server controls Stream Deck hardware (set buttons, manage pages, wire actions) which cannot be emulated with backing services.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Frobinhood-mcp/versions/0.1.0",
     "name": "io.github.verygoodplugins/robinhood-mcp@0.1.0",
-    "status": "tools_found",
-    "toolCount": 12,
-    "tools": [
-      "robinhood_get_dividends",
-      "robinhood_get_earnings",
-      "robinhood_get_fundamentals",
-      "robinhood_get_historicals",
-      "robinhood_get_news",
-      "robinhood_get_options_positions",
-      "robinhood_get_portfolio",
-      "robinhood_get_positions",
-      "robinhood_get_quote",
-      "robinhood_get_ratings",
-      "robinhood_get_watchlist",
-      "robinhood_search_symbols"
-    ]
+    "serverName": "io-github-verygoodplugins-robinhood-mcp",
+    "status": "skipped",
+    "skipReason": "Robinhood MCP requires authentication with a Robinhood brokerage account (username/password/MFA) to access portfolio data. Cannot test without real Robinhood credentials.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tedfytw1209%2Fmcp-server-EVEfleet/versions/1.0.2",
     "name": "io.github.tedfytw1209/mcp-server-EVEfleet@1.0.2",
-    "status": "no_tools",
+    "serverName": "io-github-tedfytw1209-mcp-server-EVEfleet",
+    "status": "skipped",
+    "skipReason": "Requires YOUR_API_KEY (secret) for EVE Online API access - this is a paid/cloud API key we cannot provide",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PiotrAleksander%2Fopen-notebook/versions/0.1.1",
     "name": "io.github.PiotrAleksander/open-notebook@0.1.1",
-    "status": "tools_found",
-    "toolCount": 33,
-    "tools": [
-      "ask_question",
-      "ask_simple",
-      "create_chat_session",
-      "create_model",
-      "create_note",
-      "create_notebook",
-      "create_source",
-      "delete_chat_session",
-      "delete_model",
-      "delete_note",
-      "delete_notebook",
-      "delete_source",
-      "execute_chat",
-      "get_chat_context",
-      "get_chat_session",
-      "get_default_models",
-      "get_model",
-      "get_note",
-      "get_notebook",
-      "get_settings",
-      "get_source",
-      "list_chat_sessions",
-      "list_models",
-      "list_notebooks",
-      "list_notes",
-      "list_sources",
-      "search",
-      "search_capabilities",
-      "update_chat_session",
-      "update_note",
-      "update_notebook",
-      "update_settings",
-      "update_source"
-    ]
+    "serverName": "io-github-PiotrAleksander-open-notebook",
+    "status": "skipped",
+    "skipReason": "Requires a running Open Notebook instance. Open Notebook is a self-hosted application with its own complex setup (requires Neo4j, Ollama, etc.) that cannot be trivially started as a single backing service container.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manusa%2Fpodman-mcp-server/versions/0.0.14",
     "name": "io.github.manusa/podman-mcp-server@0.0.14",
+    "serverName": "io-github-manusa-podman-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.HzaCode%2Fonecite/versions/0.0.11",
     "name": "io.github.HzaCode/onecite@0.0.11",
+    "serverName": "io-github-HzaCode-onecite",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgwalkerjr95%2Ftexas-grocery/versions/0.1.3",
     "name": "io.github.mgwalkerjr95/texas-grocery@0.1.3",
+    "serverName": "io-github-mgwalkerjr95-texas-grocery",
     "status": "tools_found",
     "toolCount": 25,
     "tools": [
@@ -3093,18 +2877,23 @@
       "store_change",
       "store_get_default",
       "store_search"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.DiaaAj%2Fa-mem-mcp/versions/0.1.1",
     "name": "io.github.DiaaAj/a-mem-mcp@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-DiaaAj-a-mem-mcp",
+    "status": "skipped",
+    "skipReason": "Requires OPENAI_API_KEY (secret, paid API key) with no local-only LLM backend that works out of the box without additional setup",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fhvac-quotes/versions/1.0.0",
     "name": "io.github.wmarceau/hvac-quotes@1.0.0",
+    "serverName": "io-github-wmarceau-hvac-quotes",
     "status": "tools_found",
     "toolCount": 5,
     "tools": [
@@ -3113,127 +2902,82 @@
       "get_quotes",
       "simulate_quote",
       "submit_rfq"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fupwork/versions/1.0.1",
     "name": "io.github.wmarceau/upwork@1.0.1",
-    "status": "tools_found",
-    "toolCount": 9,
-    "tools": [
-      "upwork_analyze_client",
-      "upwork_auth_status",
-      "upwork_complete_auth",
-      "upwork_draft_proposal",
-      "upwork_get_job_details",
-      "upwork_get_my_contracts",
-      "upwork_get_my_profile",
-      "upwork_get_my_proposals",
-      "upwork_search_jobs"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.2.0",
-    "name": "io.github.wmarceau/fitness-influencer@1.2.0",
-    "status": "no_tools",
+    "serverName": "io-github-wmarceau-upwork",
+    "status": "skipped",
+    "skipReason": "Requires Upwork API credentials (UPWORK_CLIENT_ID, UPWORK_CLIENT_SECRET) from the Upwork developer portal, which is a paid/cloud SaaS API that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.0",
-    "name": "io.github.wmarceau/apollo@1.1.0",
-    "status": "tools_found",
-    "toolCount": 9,
-    "tools": [
-      "enrich_company",
-      "enrich_person",
-      "find_decision_makers",
-      "find_email",
-      "get_credit_balance",
-      "run_full_outreach_pipeline",
-      "search_companies",
-      "search_local_businesses",
-      "search_people"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fyoutube-creator/versions/1.0.0",
-    "name": "io.github.wmarceau/youtube-creator@1.0.0",
-    "status": "tools_found",
-    "toolCount": 11,
-    "tools": [
-      "add_to_playlist",
-      "create_playlist",
-      "get_channel_stats",
-      "get_comments",
-      "get_video_analytics",
-      "list_playlists",
-      "reply_to_comment",
-      "schedule_video",
-      "update_video_metadata",
-      "upload_short",
-      "upload_video"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.0.0",
-    "name": "io.github.wmarceau/fitness-influencer@1.0.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.1",
-    "name": "io.github.wmarceau/apollo@1.1.1",
-    "status": "tools_found",
-    "toolCount": 9,
-    "tools": [
-      "enrich_company",
-      "enrich_person",
-      "find_decision_makers",
-      "find_email",
-      "get_credit_balance",
-      "run_full_outreach_pipeline",
-      "search_companies",
-      "search_local_businesses",
-      "search_people"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Frideshare-comparison/versions/1.0.0",
-    "name": "io.github.wmarceau/rideshare-comparison@1.0.0",
-    "status": "tools_found",
-    "toolCount": 3,
-    "tools": [
-      "compare_rideshare_prices",
-      "get_booking_link",
-      "get_supported_cities"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
-    "name": "io.github.wmarceau/md-to-pdf@1.0.1",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.3.0",
     "name": "io.github.wmarceau/fitness-influencer@1.3.0",
+    "serverName": "io-github-wmarceau-fitness-influencer",
+    "status": "skipped",
+    "skipReason": "Requires XAI_API_KEY (paid xAI/Grok API) and GOOGLE_CREDENTIALS_PATH (Google OAuth credentials) which are external paid/cloud services that cannot be provided locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.1",
+    "name": "io.github.wmarceau/apollo@1.1.1",
+    "serverName": "io-github-wmarceau-apollo",
+    "status": "skipped",
+    "skipReason": "Requires APOLLO_API_KEY - a paid/cloud API key from Apollo.io (https://app.apollo.io/settings/integrations) that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fyoutube-creator/versions/1.0.0",
+    "name": "io.github.wmarceau/youtube-creator@1.0.0",
+    "serverName": "io-github-wmarceau-youtube-creator",
+    "status": "skipped",
+    "skipReason": "Requires Google Cloud OAuth client secrets (YOUTUBE_CREDENTIALS_PATH) for YouTube API access, which is a cloud/SaaS credential that cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Frideshare-comparison/versions/1.0.0",
+    "name": "io.github.wmarceau/rideshare-comparison@1.0.0",
+    "serverName": "io-github-wmarceau-rideshare-comparison",
+    "status": "skipped",
+    "skipReason": "Requires RIDESHARE_API_KEY for a paid/external rideshare comparison service that cannot be provisioned locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
+    "name": "io.github.wmarceau/md-to-pdf@1.0.1",
+    "serverName": "io-github-wmarceau-md-to-pdf",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Famazon-seller/versions/1.0.0",
     "name": "io.github.wmarceau/amazon-seller@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-wmarceau-amazon-seller",
+    "status": "skipped",
+    "skipReason": "Requires Amazon SP-API credentials (AMAZON_REFRESH_TOKEN, AMAZON_LWA_APP_ID, AMAZON_LWA_CLIENT_SECRET) which are paid/cloud API keys that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Fato07%2Flog-analyzer-mcp/versions/0.4.2",
     "name": "io.github.Fato07/log-analyzer-mcp@0.4.2",
+    "serverName": "io-github-Fato07-log-analyzer-mcp",
     "status": "tools_found",
     "toolCount": 14,
     "tools": [
@@ -3251,44 +2995,43 @@
       "log_analyzer_tail",
       "log_analyzer_trace",
       "log_analyzer_watch"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xorrkaz%2Fcml-mcp/versions/0.24.0",
     "name": "io.github.xorrkaz/cml-mcp@0.24.0",
-    "status": "no_tools",
+    "serverName": "io-github-xorrkaz-cml-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a Cisco Modeling Labs (CML) server instance with valid credentials (CML_URL, CML_USERNAME, CML_PASSWORD). CML is a paid Cisco product/service that cannot be substituted with a local backing service.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.opsmill%2Finfrahub-mcp/versions/0.1.2",
     "name": "com.opsmill/infrahub-mcp@0.1.2",
-    "status": "no_tools",
+    "serverName": "com-opsmill-infrahub-mcp",
+    "status": "skipped",
+    "skipReason": "Requires INFRAHUB_API_TOKEN (secret) for authentication with an Infrahub instance, which is a commercial/self-hosted infrastructure management platform that cannot be trivially spun up as a local backing service",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tmonk%2Fmcp-stata/versions/1.0.3",
     "name": "io.github.tmonk/mcp-stata@1.0.3",
-    "status": "tools_found",
-    "toolCount": 11,
-    "tools": [
-      "codebook",
-      "describe",
-      "export_graph",
-      "export_graphs_all",
-      "get_data",
-      "get_help",
-      "get_stored_results",
-      "list_graphs",
-      "load_data",
-      "run_command",
-      "run_do_file"
-    ]
+    "serverName": "io-github-tmonk-mcp-stata",
+    "status": "skipped",
+    "skipReason": "Requires a licensed installation of Stata (commercial statistical software). Stata is proprietary and cannot be provided as a backing service.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ArkTechNWA%2Fzsh-tool/versions/0.2.1",
     "name": "io.github.ArkTechNWA/zsh-tool@0.2.1",
+    "serverName": "io-github-ArkTechNWA-zsh-tool",
     "status": "tools_found",
     "toolCount": 10,
     "tools": [
@@ -3302,18 +3045,29 @@
       "zsh_poll",
       "zsh_send",
       "zsh_tasks"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alex-feel%2Fmcp-context-server/versions/0.2.0",
     "name": "io.github.alex-feel/mcp-context-server@0.2.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
+    "serverName": "io-github-alex-feel-mcp-context-server",
+    "status": "tools_found",
+    "toolCount": 6,
+    "tools": [
+      "delete_context",
+      "get_context_by_ids",
+      "get_statistics",
+      "list_threads",
+      "search_context",
+      "store_context"
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/3.0.1",
     "name": "io.github.egoughnour/massive-context-mcp@3.0.1",
+    "serverName": "io-github-egoughnour-massive-context-mcp",
     "status": "tools_found",
     "toolCount": 17,
     "tools": [
@@ -3334,42 +3088,34 @@
       "rlm_sub_query",
       "rlm_sub_query_batch",
       "rlm_system_check"
-    ]
+    ],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcode-firewall-mcp/versions/0.7.0",
     "name": "io.github.egoughnour/code-firewall-mcp@0.7.0",
-    "status": "no_tools",
-    "toolCount": 0,
-    "tools": []
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/2.0.6",
-    "name": "io.github.egoughnour/massive-context-mcp@2.0.6",
+    "serverName": "io-github-egoughnour-code-firewall-mcp",
     "status": "tools_found",
-    "toolCount": 16,
+    "toolCount": 11,
     "tools": [
-      "rlm_auto_analyze",
-      "rlm_chunk_context",
-      "rlm_exec",
-      "rlm_filter_context",
-      "rlm_get_chunk",
-      "rlm_get_results",
-      "rlm_inspect_context",
-      "rlm_list_contexts",
-      "rlm_load_context",
-      "rlm_ollama_status",
-      "rlm_setup_ollama",
-      "rlm_setup_ollama_direct",
-      "rlm_store_result",
-      "rlm_sub_query",
-      "rlm_sub_query_batch",
-      "rlm_system_check"
-    ]
+      "firewall_blacklist",
+      "firewall_check",
+      "firewall_check_code",
+      "firewall_list_patterns",
+      "firewall_ollama_status",
+      "firewall_record_delta",
+      "firewall_remove_pattern",
+      "firewall_setup_ollama",
+      "firewall_setup_ollama_direct",
+      "firewall_status",
+      "firewall_system_check"
+    ],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcowork-history/versions/4.0.3",
     "name": "io.github.egoughnour/cowork-history@4.0.3",
+    "serverName": "io-github-egoughnour-cowork-history",
     "status": "tools_found",
     "toolCount": 10,
     "tools": [
@@ -3383,144 +3129,102 @@
       "history_setup_ollama",
       "history_setup_ollama_direct",
       "history_system_check"
-    ]
+    ],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ChengJiale150%2Fjupyter-mcp-server/versions/1.1.0",
     "name": "io.github.ChengJiale150/jupyter-mcp-server@1.1.0",
+    "serverName": "io-github-ChengJiale150-jupyter-mcp-server",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": true
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Defenter-AI%2Fdefenter-proxy/versions/0.0.95",
     "name": "io.github.Defenter-AI/defenter-proxy@0.0.95",
-    "status": "no_tools",
+    "serverName": "io-github-Defenter-AI-defenter-proxy",
+    "status": "skipped",
+    "skipReason": "Defenter Proxy is a security proxy service that likely requires authentication/API keys to connect to the Defenter AI platform. No environment variables are documented in the registry entry, but the service description ('Real-time semantic security for AI coding agents') implies it needs to communicate with Defenter AI's cloud infrastructure, which would require credentials we cannot provide.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gattjoe%2FACMS/versions/0.0.7",
     "name": "io.github.gattjoe/ACMS@0.0.7",
-    "status": "profile_failed",
-    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "serverName": "io-github-gattjoe-ACMS",
+    "status": "skipped",
+    "skipReason": "Apple Container MCP Server requires macOS with Apple's container CLI tool installed on the host. It cannot run inside a Docker container as it needs direct access to Apple's virtualization framework.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.leshchenko1979%2Ffast-mcp-telegram/versions/0.4.5",
     "name": "io.github.leshchenko1979/fast-mcp-telegram@0.4.5",
-    "status": "tools_found",
-    "toolCount": 9,
-    "tools": [
-      "edit_message",
-      "get_contact_details",
-      "invoke_mtproto",
-      "read_messages",
-      "search_contacts",
-      "search_messages_globally",
-      "search_messages_in_chat",
-      "send_message",
-      "send_message_to_phone"
-    ]
+    "serverName": "io-github-leshchenko1979-fast-mcp-telegram",
+    "status": "skipped",
+    "skipReason": "Requires Telegram API credentials (API_ID and API_HASH) from https://my.telegram.org/apps which are user-specific and cannot be generated locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augmnt%2Faugments-mcp-server/versions/1.0.1",
     "name": "io.github.augmnt/augments-mcp-server@1.0.1",
-    "status": "no_tools",
+    "serverName": "io-github-augmnt-augments-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires YOUR_API_KEY (secret, required) - this is a paid/cloud API key that cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ScrapeGraphAI%2Fscrapegraph-mcp/versions/1.0.0",
     "name": "io.github.ScrapeGraphAI/scrapegraph-mcp@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-ScrapeGraphAI-scrapegraph-mcp",
+    "status": "skipped",
+    "skipReason": "Requires SGAI_API_KEY (ScapeGraph API key) which is a paid/cloud SaaS API key that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.universalamateur%2Freclaim-mcp-server/versions/0.9.1",
     "name": "io.github.universalamateur/reclaim-mcp-server@0.9.1",
-    "status": "tools_found",
-    "toolCount": 40,
-    "tools": [
-      "add_time_to_task",
-      "convert_event_to_habit",
-      "create_habit",
-      "create_task",
-      "delete_habit",
-      "delete_task",
-      "disable_habit",
-      "enable_habit",
-      "get_event",
-      "get_focus_insights",
-      "get_focus_settings",
-      "get_habit",
-      "get_task",
-      "get_user_analytics",
-      "health_check",
-      "list_completed_tasks",
-      "list_events",
-      "list_habits",
-      "list_personal_events",
-      "list_tasks",
-      "lock_focus_block",
-      "lock_habit_instance",
-      "mark_habit_done",
-      "mark_task_complete",
-      "move_event",
-      "prioritize_task",
-      "reschedule_focus_block",
-      "restart_task",
-      "set_event_rsvp",
-      "skip_habit",
-      "start_habit",
-      "start_task",
-      "stop_habit",
-      "stop_task",
-      "unlock_focus_block",
-      "unlock_habit_instance",
-      "update_focus_settings",
-      "update_habit",
-      "update_task",
-      "verify_connection"
-    ]
+    "serverName": "io-github-universalamateur-reclaim-mcp-server",
+    "status": "skipped",
+    "skipReason": "Requires a Reclaim.ai API key to interact with the Reclaim.ai cloud service. This is a paid/cloud SaaS API that cannot be replicated locally.",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MervinPraison%2Fpraisonai/versions/2.3.42",
     "name": "io.github.MervinPraison/praisonai@2.3.42",
-    "status": "failed",
-    "error": "MCP error -32001: Request timed out",
+    "serverName": "io-github-MervinPraison-praisonai",
+    "status": "skipped",
+    "skipReason": "PraisonAI is an AI Agents framework that requires LLM API keys (e.g., OPENAI_API_KEY) to function. Without a valid paid API key, the server cannot operate.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/com.stackhawk%2Fstackhawk/versions/1.1.1",
     "name": "com.stackhawk/stackhawk@1.1.1",
-    "status": "tools_found",
-    "toolCount": 16,
-    "tools": [
-      "check_repository_attack_surface",
-      "check_repository_sensitive_data",
-      "create_stackhawk_config",
-      "generate_security_dashboard",
-      "get_app_findings_for_triage",
-      "get_organization_info",
-      "get_sensitive_data_summary",
-      "get_stackhawk_scan_instructions",
-      "get_stackhawk_schema",
-      "list_application_repository_connections",
-      "list_applications",
-      "run_stackhawk_scan",
-      "search_vulnerabilities",
-      "setup_stackhawk_for_project",
-      "validate_field_exists",
-      "validate_stackhawk_config"
-    ]
+    "serverName": "com-stackhawk-stackhawk",
+    "status": "skipped",
+    "skipReason": "Requires STACKHAWK_API_KEY (a paid SaaS API key for StackHawk's security scanning platform) which cannot be provided in a test environment",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nickzren%2Fopentargets/versions/0.1.0",
     "name": "io.github.nickzren/opentargets@0.1.0",
+    "serverName": "io-github-nickzren-opentargets",
     "status": "tools_found",
     "toolCount": 45,
     "tools": [
@@ -3569,18 +3273,22 @@
       "search_entities",
       "search_facets",
       "search_suggestions"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Ansvar-Systems%2Fsecurity-controls/versions/0.3.4",
     "name": "io.github.Ansvar-Systems/security-controls@0.3.4",
+    "serverName": "io-github-Ansvar-Systems-security-controls",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KevinRabun%2FFedRAMP20xMCP/versions/1.1.0",
     "name": "io.github.KevinRabun/FedRAMP20xMCP@1.1.0",
+    "serverName": "io-github-KevinRabun-FedRAMP20xMCP",
     "status": "tools_found",
     "toolCount": 48,
     "tools": [
@@ -3632,32 +3340,43 @@
       "search_requirements",
       "validate_architecture",
       "validate_fedramp_config"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.religa%2Fmulti-mcp/versions/0.1.1",
     "name": "io.github.religa/multi-mcp@0.1.1",
-    "status": "no_tools",
+    "serverName": "io-github-religa-multi-mcp",
+    "status": "skipped",
+    "skipReason": "Requires at least one AI provider API key (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY) - all are paid/cloud SaaS services that cannot be provided locally",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nigue3025%2Ftw-cwa-weather-mcp/versions/1.0.0",
     "name": "io.github.nigue3025/tw-cwa-weather-mcp@1.0.0",
-    "status": "no_tools",
+    "serverName": "io-github-nigue3025-tw-cwa-weather-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a Taiwan Central Weather Administration (CWA) API key from opendata.cwa.gov.tw, which requires free registration that cannot be automated",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cdnsteve%2Fsugar/versions/3.4.2",
     "name": "io.github.cdnsteve/sugar@3.4.2",
-    "status": "no_tools",
+    "serverName": "io-github-cdnsteve-sugar",
+    "status": "skipped",
+    "skipReason": "Requires ANTHROPIC_API_KEY (paid API key) and GITHUB_TOKEN (authentication token) which cannot be provided in a test environment",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tm42%2Fmnemograph/versions/0.4.0",
     "name": "io.github.tm42/mnemograph@0.4.0",
+    "serverName": "io-github-tm42-mnemograph",
     "status": "tools_found",
     "toolCount": 34,
     "tools": [
@@ -3695,139 +3414,128 @@
       "session_start",
       "set_relation_importance",
       "suggest_relations"
-    ]
-  },
-  {
-    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.0.6",
-    "name": "io.github.domdomegg/time-mcp-pypi@1.0.6",
-    "status": "tools_found",
-    "toolCount": 1,
-    "tools": [
-      "get_current_utc_time"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.1.1",
     "name": "io.github.domdomegg/time-mcp-pypi@1.1.1",
+    "serverName": "io-github-domdomegg-time-mcp-pypi",
     "status": "tools_found",
     "toolCount": 1,
     "tools": [
       "get_current_utc_time"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.saucelabs-sample-test-frameworks%2Fsauce-api-mcp/versions/1.0.0",
     "name": "io.github.saucelabs-sample-test-frameworks/sauce-api-mcp@1.0.0",
-    "status": "tools_found",
-    "toolCount": 30,
-    "tools": [
-      "get_account_info",
-      "get_build",
-      "get_build_for_job",
-      "get_current_jobs_for_tunnel",
-      "get_devices_status",
-      "get_job_details",
-      "get_log_json_file",
-      "get_my_active_team",
-      "get_network_har_file",
-      "get_private_devices",
-      "get_real_device_jobs",
-      "get_recent_jobs",
-      "get_service_account",
-      "get_specific_device",
-      "get_specific_real_device_job",
-      "get_specific_real_device_job_asset",
-      "get_storage_groups",
-      "get_storage_groups_settings",
-      "get_team",
-      "get_test_assets",
-      "get_tunnel_information",
-      "get_tunnel_version_downloads",
-      "get_tunnels_for_user",
-      "get_user",
-      "list_team_members",
-      "lookup_builds",
-      "lookup_jobs_in_build",
-      "lookup_service_accounts",
-      "lookup_teams",
-      "lookup_users"
-    ]
+    "serverName": "io-github-saucelabs-sample-test-frameworks-sauce-api-mcp",
+    "status": "skipped",
+    "skipReason": "Requires SAUCE_USERNAME and SAUCE_ACCESS_KEY credentials for the Sauce Labs SaaS platform, which cannot be provided locally",
+    "toolCount": 0,
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanstranger%2Favm-mcp-server/versions/0.1.5",
     "name": "io.github.stefanstranger/avm-mcp-server@0.1.5",
+    "serverName": "io-github-stefanstranger-avm-mcp-server",
     "status": "tools_found",
     "toolCount": 2,
     "tools": [
       "list_avm_modules",
       "scrape_avm_module_details"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sharebook-kr%2Fpykrx-mcp/versions/0.1.3",
     "name": "io.github.sharebook-kr/pykrx-mcp@0.1.3",
+    "serverName": "io-github-sharebook-kr-pykrx-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MusaddiqueHussainLabs%2Fmhlabs_mcp_tools/versions/2.0.0",
     "name": "io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools@2.0.0",
+    "serverName": "io-github-MusaddiqueHussainLabs-mhlabs_mcp_tools",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gauravfs-14%2Flit-mcp/versions/0.1.9",
     "name": "io.github.gauravfs-14/lit-mcp@0.1.9",
+    "serverName": "io-github-gauravfs-14-lit-mcp",
     "status": "tools_found",
     "toolCount": 2,
     "tools": [
       "arxiv_search",
       "dblp_search"
-    ]
+    ],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.michael-denyer%2Fhot-memory-mcp/versions/0.5.10",
     "name": "io.github.michael-denyer/hot-memory-mcp@0.5.10",
+    "serverName": "io-github-michael-denyer-hot-memory-mcp",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.habedi%2Fomni-lpr/versions/0.3.2",
     "name": "io.github.habedi/omni-lpr@0.3.2",
+    "serverName": "io-github-habedi-omni-lpr",
     "status": "profile_failed",
-    "error": "failed to resolve registry: failed to convert registry server: no OCI or PyPI packages found\n",
+    "error": "failed to resolve registry: failed to convert registry server: incompatible server: no compatible packages for io.github.habedi/omni-lpr\n",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tdnupe3%2Fcoinrailz/versions/1.0.1",
     "name": "io.github.tdnupe3/coinrailz@1.0.1",
-    "status": "no_tools",
+    "serverName": "io-github-tdnupe3-coinrailz",
+    "status": "skipped",
+    "skipReason": "Requires COINRAILZ_API_KEY (a paid/SaaS API key) for authenticated access to crypto micropayment services. This is a secret environment variable that cannot be provided in a test environment.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vishalsachdev%2Fcanvas-mcp/versions/1.0.6",
     "name": "io.github.vishalsachdev/canvas-mcp@1.0.6",
-    "status": "no_tools",
+    "serverName": "io-github-vishalsachdev-canvas-mcp",
+    "status": "skipped",
+    "skipReason": "Requires Canvas LMS API credentials (CANVAS_API_TOKEN and CANVAS_BASE_URL) to connect to a Canvas LMS instance, which is a paid/institutional SaaS platform",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ggozad%2Fhaiku-rag/versions/0.16.0",
     "name": "io.github.ggozad/haiku-rag@0.16.0",
+    "serverName": "io-github-ggozad-haiku-rag",
     "status": "no_tools",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   },
   {
     "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pedro-rivas%2Fandroid-puppeteer-mcp/versions/1.0.1",
     "name": "io.github.pedro-rivas/android-puppeteer-mcp@1.0.1",
-    "status": "no_tools",
+    "serverName": "io-github-pedro-rivas-android-puppeteer-mcp",
+    "status": "skipped",
+    "skipReason": "Requires a physical or emulated Android device connected via ADB. The server automates Android UI interactions, screenshots, and device control, which cannot be provided by a simple backing service container.",
     "toolCount": 0,
-    "tools": []
+    "tools": [],
+    "hasServices": false
   }
 ]

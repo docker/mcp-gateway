@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PagerDuty%2Fpagerduty-mcp/versions/0.2.1",
+  "serverName": "io-github-PagerDuty-pagerduty-mcp",
+  "registryName": "io.github.PagerDuty/pagerduty-mcp",
+  "version": "0.2.1",
+  "canTest": false,
+  "skipReason": "Requires PAGERDUTY_USER_API_KEY which is a paid SaaS API token obtained from a PagerDuty account",
+  "config": {},
+  "services": []
+}

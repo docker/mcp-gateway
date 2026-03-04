@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/com.stackhawk%2Fstackhawk/versions/1.1.1",
+  "serverName": "com-stackhawk-stackhawk",
+  "registryName": "com.stackhawk/stackhawk",
+  "version": "1.1.1",
+  "canTest": false,
+  "skipReason": "Requires STACKHAWK_API_KEY (a paid SaaS API key for StackHawk's security scanning platform) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

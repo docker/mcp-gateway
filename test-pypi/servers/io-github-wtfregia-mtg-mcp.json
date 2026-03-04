@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wtfregia%2Fmtg-mcp/versions/0.1.3",
+  "serverName": "io-github-wtfregia-mtg-mcp",
+  "registryName": "io.github.wtfregia/mtg-mcp",
+  "version": "0.1.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

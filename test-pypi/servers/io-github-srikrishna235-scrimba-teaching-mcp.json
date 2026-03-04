@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.srikrishna235%2Fscrimba-teaching-mcp/versions/3.0.2",
+  "serverName": "io-github-srikrishna235-scrimba-teaching-mcp",
+  "registryName": "io.github.srikrishna235/scrimba-teaching-mcp",
+  "version": "3.0.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

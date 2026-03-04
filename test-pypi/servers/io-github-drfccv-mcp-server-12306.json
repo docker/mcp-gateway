@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drfccv%2Fmcp-server-12306/versions/0.2.6",
+  "serverName": "io-github-drfccv-mcp-server-12306",
+  "registryName": "io.github.drfccv/mcp-server-12306",
+  "version": "0.2.6",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

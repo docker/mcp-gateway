@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-validate/versions/0.3.0",
+  "serverName": "io-github-antnewman-pm-validate",
+  "registryName": "io.github.antnewman/pm-validate",
+  "version": "0.3.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

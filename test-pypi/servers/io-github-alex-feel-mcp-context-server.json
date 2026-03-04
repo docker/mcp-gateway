@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alex-feel%2Fmcp-context-server/versions/0.2.0",
+  "serverName": "io-github-alex-feel-mcp-context-server",
+  "registryName": "io.github.alex-feel/mcp-context-server",
+  "version": "0.2.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

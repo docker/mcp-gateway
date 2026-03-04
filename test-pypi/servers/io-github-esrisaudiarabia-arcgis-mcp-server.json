@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.esrisaudiarabia%2Farcgis-mcp-server/versions/1.1.4",
+  "serverName": "io-github-esrisaudiarabia-arcgis-mcp-server",
+  "registryName": "io.github.esrisaudiarabia/arcgis-mcp-server",
+  "version": "1.1.4",
+  "canTest": false,
+  "skipReason": "Requires ArcGIS Portal credentials (ARCGIS_URL, ARCGIS_USERNAME, ARCGIS_PASSWORD) for a cloud/enterprise ArcGIS service that cannot be provisioned locally",
+  "config": {},
+  "services": []
+}

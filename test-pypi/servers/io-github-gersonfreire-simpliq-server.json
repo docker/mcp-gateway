@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gersonfreire%2Fsimpliq-server/versions/0.1.1",
+  "serverName": "io-github-gersonfreire-simpliq-server",
+  "registryName": "io.github.gersonfreire/simpliq-server",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Server connects LLMs to SQL databases via semantic mapping and likely requires database connection configuration and semantic mapping setup. Unable to verify exact required environment variables from repository. Without knowing the specific config env vars (database URL, mapping config), the server cannot be reliably tested.",
+  "config": {},
+  "services": []
+}

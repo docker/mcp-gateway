@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.religa%2Fmulti-mcp/versions/0.1.1",
+  "serverName": "io-github-religa-multi-mcp",
+  "registryName": "io.github.religa/multi-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires at least one AI provider API key (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY) - all are paid/cloud SaaS services that cannot be provided locally",
+  "config": {},
+  "services": []
+}

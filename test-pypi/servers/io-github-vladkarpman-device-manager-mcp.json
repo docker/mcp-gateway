@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fdevice-manager-mcp/versions/1.0.7",
+  "serverName": "io-github-vladkarpman-device-manager-mcp",
+  "registryName": "io.github.vladkarpman/device-manager-mcp",
+  "version": "1.0.7",
+  "canTest": false,
+  "skipReason": "Requires a physical Android device connected via ADB and scrcpy installed on the host. Cannot be tested in a purely containerized environment.",
+  "config": {},
+  "services": []
+}

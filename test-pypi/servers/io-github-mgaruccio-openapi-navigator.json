@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgaruccio%2Fopenapi-navigator/versions/0.5.1",
+  "serverName": "io-github-mgaruccio-openapi-navigator",
+  "registryName": "io.github.mgaruccio/openapi-navigator",
+  "version": "0.5.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

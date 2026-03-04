@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cafferychen777%2Fchatspatial/versions/1.0.3",
+  "serverName": "io-github-cafferychen777-chatspatial",
+  "registryName": "io.github.cafferychen777/chatspatial",
+  "version": "1.0.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

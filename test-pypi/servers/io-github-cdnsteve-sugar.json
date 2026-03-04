@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cdnsteve%2Fsugar/versions/3.4.2",
+  "serverName": "io-github-cdnsteve-sugar",
+  "registryName": "io.github.cdnsteve/sugar",
+  "version": "3.4.2",
+  "canTest": false,
+  "skipReason": "Requires ANTHROPIC_API_KEY (paid API key) and GITHUB_TOKEN (authentication token) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,25 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fpgtuner_mcp/versions/0.5.2",
+  "serverName": "io-github-isdaniel-pgtuner_mcp",
+  "registryName": "io.github.isdaniel/pgtuner_mcp",
+  "version": "0.5.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "PG_DSN": "postgresql://postgres:postgres@host.docker.internal:5432/postgres"
+  },
+  "services": [
+    {
+      "name": "postgres",
+      "image": "postgres:16",
+      "ports": [
+        "5432:5432"
+      ],
+      "env": {
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "postgres",
+        "POSTGRES_DB": "postgres"
+      }
+    }
+  ]
+}

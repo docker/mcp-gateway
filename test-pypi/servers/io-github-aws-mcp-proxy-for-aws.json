@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aws%2Fmcp-proxy-for-aws/versions/1.0.0-preview.0",
+  "serverName": "io-github-aws-mcp-proxy-for-aws",
+  "registryName": "io.github.aws/mcp-proxy-for-aws",
+  "version": "1.0.0-preview.0",
+  "canTest": false,
+  "skipReason": "AWS MCP Server requires valid AWS credentials and connects to AWS cloud API endpoint (https://aws-mcp.us-east-1.api.aws/mcp). Cannot test without AWS account credentials.",
+  "config": {},
+  "services": []
+}

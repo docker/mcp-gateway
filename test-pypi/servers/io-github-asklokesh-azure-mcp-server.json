@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fazure-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-azure-mcp-server",
+  "registryName": "io.github.asklokesh/azure-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires Azure cloud credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID) for Azure API integration. These are paid/cloud service credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

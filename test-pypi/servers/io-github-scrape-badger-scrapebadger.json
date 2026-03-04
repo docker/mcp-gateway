@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.scrape-badger%2Fscrapebadger/versions/0.1.1",
+  "serverName": "io-github-scrape-badger-scrapebadger",
+  "registryName": "io.github.scrape-badger/scrapebadger",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires SCRAPEBADGER_API_KEY, a paid/cloud API key from scrapebadger.com that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

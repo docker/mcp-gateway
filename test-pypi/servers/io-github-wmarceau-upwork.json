@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fupwork/versions/1.0.1",
+  "serverName": "io-github-wmarceau-upwork",
+  "registryName": "io.github.wmarceau/upwork",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires Upwork API credentials (UPWORK_CLIENT_ID, UPWORK_CLIENT_SECRET) from the Upwork developer portal, which is a paid/cloud SaaS API that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

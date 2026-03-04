@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.beycom%2Fonetool-mcp/versions/1.0.0rc2",
+  "serverName": "io-github-beycom-onetool-mcp",
+  "registryName": "io.github.beycom/onetool-mcp",
+  "version": "1.0.0rc2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

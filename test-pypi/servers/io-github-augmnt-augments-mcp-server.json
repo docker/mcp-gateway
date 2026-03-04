@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augmnt%2Faugments-mcp-server/versions/1.0.1",
+  "serverName": "io-github-augmnt-augments-mcp-server",
+  "registryName": "io.github.augmnt/augments-mcp-server",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires YOUR_API_KEY (secret, required) - this is a paid/cloud API key that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

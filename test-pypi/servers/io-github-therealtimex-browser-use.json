@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev5",
+  "serverName": "io-github-therealtimex-browser-use",
+  "registryName": "io.github.therealtimex/browser-use",
+  "version": "0.7.10.dev5",
+  "canTest": false,
+  "skipReason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.roddutra%2Fagent-mcp-gateway/versions/0.2.5",
+  "serverName": "io-github-roddutra-agent-mcp-gateway",
+  "registryName": "io.github.roddutra/agent-mcp-gateway",
+  "version": "0.2.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "GATEWAY_DEBUG": "true"
+  },
+  "services": []
+}

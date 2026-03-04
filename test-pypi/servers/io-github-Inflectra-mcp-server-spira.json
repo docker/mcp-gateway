@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Inflectra%2Fmcp-server-spira/versions/1.1.1",
+  "serverName": "io-github-Inflectra-mcp-server-spira",
+  "registryName": "io.github.Inflectra/mcp-server-spira",
+  "version": "1.1.1",
+  "canTest": false,
+  "skipReason": "Requires Inflectra Spira SaaS credentials (INFLECTRA_SPIRA_BASE_URL, INFLECTRA_SPIRA_USERNAME, INFLECTRA_SPIRA_API_KEY) which are paid/cloud service credentials that cannot be provided locally",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnzfitch%2Fpyghidra-lite/versions/0.1.1",
+  "serverName": "io-github-johnzfitch-pyghidra-lite",
+  "registryName": "io.github.johnzfitch/pyghidra-lite",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires GHIDRA_INSTALL_DIR pointing to a local Ghidra installation. Ghidra is a large (~1GB) reverse engineering tool from the NSA that must be downloaded and installed separately, and there is no standard lightweight Docker image available to provide it as a backing service.",
+  "config": {},
+  "services": []
+}

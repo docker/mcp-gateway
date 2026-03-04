@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alondmnt%2Fjoplin-mcp/versions/0.5.0",
+  "serverName": "io-github-alondmnt-joplin-mcp",
+  "registryName": "io.github.alondmnt/joplin-mcp",
+  "version": "0.5.0",
+  "canTest": false,
+  "skipReason": "Requires JOPLIN_TOKEN (a Web Clipper authentication token from a running Joplin desktop application). Joplin is a desktop note-taking app that must be running locally with its Web Clipper service enabled to generate this token. There is no official Joplin server Docker image that can be used as a backing service.",
+  "config": {},
+  "services": []
+}

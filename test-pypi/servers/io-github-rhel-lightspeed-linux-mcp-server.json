@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.rhel-lightspeed%2Flinux-mcp-server/versions/1.2.1",
+  "serverName": "io-github-rhel-lightspeed-linux-mcp-server",
+  "registryName": "io.github.rhel-lightspeed/linux-mcp-server",
+  "version": "1.2.1",
+  "canTest": false,
+  "skipReason": "Server requires SSH connections to Linux hosts (LINUX_MCP_USER is required). It is a remote system administration tool that needs actual SSH targets to connect to, which cannot be provided by local backing services alone.",
+  "config": {},
+  "services": []
+}

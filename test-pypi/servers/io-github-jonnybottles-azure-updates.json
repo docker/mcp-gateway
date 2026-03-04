@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fazure-updates/versions/0.1.1",
+  "serverName": "io-github-jonnybottles-azure-updates",
+  "registryName": "io.github.jonnybottles/azure-updates",
+  "version": "0.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

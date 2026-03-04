@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/com.allstacks%2Fallstacks-mcp/versions/0.1.0",
+  "serverName": "com-allstacks-allstacks-mcp",
+  "registryName": "com.allstacks/allstacks-mcp",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Allstacks MCP server requires access to the Allstacks API, which is a paid SaaS engineering intelligence platform. No API key or credentials can be provided for testing.",
+  "config": {},
+  "services": []
+}

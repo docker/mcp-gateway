@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Wolfe-Jam%2Fgemini-faf-mcp/versions/1.0.2",
+  "serverName": "io-github-Wolfe-Jam-gemini-faf-mcp",
+  "registryName": "io.github.Wolfe-Jam/gemini-faf-mcp",
+  "version": "1.0.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

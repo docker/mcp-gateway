@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.james116blue%2Fjournald-mcp-server/versions/0.1.0",
+  "serverName": "io-github-james116blue-journald-mcp-server",
+  "registryName": "io.github.james116blue/journald-mcp-server",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

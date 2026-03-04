@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PiotrAleksander%2Fopen-notebook/versions/0.1.1",
+  "serverName": "io-github-PiotrAleksander-open-notebook",
+  "registryName": "io.github.PiotrAleksander/open-notebook",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires a running Open Notebook instance. Open Notebook is a self-hosted application with its own complex setup (requires Neo4j, Ollama, etc.) that cannot be trivially started as a single backing service container.",
+  "config": {},
+  "services": []
+}

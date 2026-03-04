@@ -1,0 +1,42 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.dragonejt%2Ficeberg-mcp-server/versions/0.1.21",
+  "serverName": "io-github-dragonejt-iceberg-mcp-server",
+  "registryName": "io.github.dragonejt/iceberg-mcp-server",
+  "version": "0.1.21",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "PYICEBERG_CATALOG__DEFAULT__TYPE": "rest",
+    "PYICEBERG_CATALOG__DEFAULT__URI": "http://host.docker.internal:8181"
+  },
+  "services": [
+    {
+      "name": "iceberg-rest",
+      "image": "tabulario/iceberg-rest:latest",
+      "ports": [
+        "8181:8181"
+      ],
+      "env": {
+        "CATALOG_WAREHOUSE": "s3://warehouse",
+        "CATALOG_IO__IMPL": "org.apache.iceberg.aws.s3.S3FileIO",
+        "AWS_ACCESS_KEY_ID": "admin",
+        "AWS_SECRET_ACCESS_KEY": "password",
+        "AWS_REGION": "us-east-1",
+        "CATALOG_S3_ENDPOINT": "http://minio:9000",
+        "CATALOG_S3_PATH__STYLE__ACCESS": "true"
+      }
+    },
+    {
+      "name": "minio",
+      "image": "minio/minio:latest",
+      "ports": [
+        "9000:9000",
+        "9001:9001"
+      ],
+      "env": {
+        "MINIO_ROOT_USER": "admin",
+        "MINIO_ROOT_PASSWORD": "password"
+      }
+    }
+  ]
+}

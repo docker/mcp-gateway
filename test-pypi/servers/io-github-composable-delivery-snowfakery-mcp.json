@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.composable-delivery%2Fsnowfakery-mcp/versions/0.0.4",
+  "serverName": "io-github-composable-delivery-snowfakery-mcp",
+  "registryName": "io.github.composable-delivery/snowfakery-mcp",
+  "version": "0.0.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

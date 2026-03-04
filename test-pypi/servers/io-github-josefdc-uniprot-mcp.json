@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.josefdc%2Funiprot-mcp/versions/0.1.0",
+  "serverName": "io-github-josefdc-uniprot-mcp",
+  "registryName": "io.github.josefdc/uniprot-mcp",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

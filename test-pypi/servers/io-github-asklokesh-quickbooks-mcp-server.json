@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fquickbooks-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-quickbooks-mcp-server",
+  "registryName": "io.github.asklokesh/quickbooks-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires QUICKBOOKS_API_KEY which is a paid/cloud SaaS API key for QuickBooks that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

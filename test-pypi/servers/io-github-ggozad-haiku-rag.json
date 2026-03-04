@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ggozad%2Fhaiku-rag/versions/0.16.0",
+  "serverName": "io-github-ggozad-haiku-rag",
+  "registryName": "io.github.ggozad/haiku-rag",
+  "version": "0.16.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

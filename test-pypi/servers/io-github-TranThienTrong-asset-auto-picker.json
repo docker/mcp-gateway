@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.TranThienTrong%2Fasset-auto-picker/versions/1.2.0",
+  "serverName": "io-github-TranThienTrong-asset-auto-picker",
+  "registryName": "io.github.TranThienTrong/asset-auto-picker",
+  "version": "1.2.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

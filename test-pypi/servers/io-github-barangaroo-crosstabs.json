@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs/versions/1.0.1",
+  "serverName": "io-github-barangaroo-crosstabs",
+  "registryName": "io.github.barangaroo/crosstabs",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

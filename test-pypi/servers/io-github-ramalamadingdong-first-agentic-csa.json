@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ramalamadingdong%2Ffirst-agentic-csa/versions/0.3.8",
+  "serverName": "io-github-ramalamadingdong-first-agentic-csa",
+  "registryName": "io.github.ramalamadingdong/first-agentic-csa",
+  "version": "0.3.8",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

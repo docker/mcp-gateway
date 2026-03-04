@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tmonk%2Fmcp-stata/versions/1.0.3",
+  "serverName": "io-github-tmonk-mcp-stata",
+  "registryName": "io.github.tmonk/mcp-stata",
+  "version": "1.0.3",
+  "canTest": false,
+  "skipReason": "Requires a licensed installation of Stata (commercial statistical software). Stata is proprietary and cannot be provided as a backing service.",
+  "config": {},
+  "services": []
+}

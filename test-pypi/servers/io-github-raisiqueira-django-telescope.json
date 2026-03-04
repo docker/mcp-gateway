@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.raisiqueira%2Fdjango-telescope/versions/0.1.2",
+  "serverName": "io-github-raisiqueira-django-telescope",
+  "registryName": "io.github.raisiqueira/django-telescope",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "Requires DJANGO_SETTINGS_MODULE pointing to a valid Django project's settings module. Cannot function without an actual Django application configured with django-telescope installed.",
+  "config": {},
+  "services": []
+}

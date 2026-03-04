@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp-document-converter/versions/0.1.2",
+  "serverName": "io-github-xt765-mcp-document-converter",
+  "registryName": "io.github.xt765/mcp-document-converter",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

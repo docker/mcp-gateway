@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-converter/versions/1.0.0",
+  "serverName": "io-github-huoshuiai42-huoshui-file-converter",
+  "registryName": "io.github.huoshuiai42/huoshui-file-converter",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "HUOSHUI_WORKING_DIR": "/tmp"
+  },
+  "services": []
+}

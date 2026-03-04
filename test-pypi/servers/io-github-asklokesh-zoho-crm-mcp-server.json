@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-zoho-crm-mcp-server",
+  "registryName": "io.github.asklokesh/zoho-crm-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Failed to fetch registry: Failed to fetch https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-m",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.OtherVibes%2Fmcp-as-a-judge/versions/0.3.20",
+  "serverName": "io-github-OtherVibes-mcp-as-a-judge",
+  "registryName": "io.github.OtherVibes/mcp-as-a-judge",
+  "version": "0.3.20",
+  "canTest": false,
+  "skipReason": "mcp-as-a-judge requires an LLM API key (e.g., OpenAI, Anthropic) to perform its evaluation functionality. It acts as a behavioral judge that calls LLMs to evaluate code, which requires a paid API key that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

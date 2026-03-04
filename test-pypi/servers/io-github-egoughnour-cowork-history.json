@@ -1,0 +1,22 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcowork-history/versions/4.0.3",
+  "serverName": "io-github-egoughnour-cowork-history",
+  "registryName": "io.github.egoughnour/cowork-history",
+  "version": "4.0.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "OLLAMA_URL": "http://host.docker.internal:11434",
+    "EMBEDDING_MODEL": "nomic-embed-text"
+  },
+  "services": [
+    {
+      "name": "ollama",
+      "image": "ollama/ollama:latest",
+      "ports": [
+        "11434:11434"
+      ],
+      "env": {}
+    }
+  ]
+}

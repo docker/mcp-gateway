@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matbanik%2Fpomera/versions/1.3.7",
+  "serverName": "io-github-matbanik-pomera",
+  "registryName": "io.github.matbanik/pomera",
+  "version": "1.3.7",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

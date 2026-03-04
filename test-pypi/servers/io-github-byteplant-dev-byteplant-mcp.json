@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.byteplant-dev%2Fbyteplant-mcp/versions/1.0.0.post2",
+  "serverName": "io-github-byteplant-dev-byteplant-mcp",
+  "registryName": "io.github.byteplant-dev/byteplant-mcp",
+  "version": "1.0.0.post2",
+  "canTest": false,
+  "skipReason": "All environment variables (EV_TOKEN, AV_TOKEN, PV_TOKEN) are secret API tokens for Byteplant's paid Email, Phone, and Address Validation SaaS services. No local backing services can substitute for these.",
+  "config": {},
+  "services": []
+}

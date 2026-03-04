@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Francher-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-rancher-mcp-server",
+  "registryName": "io.github.asklokesh/rancher-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires RANCHER_API_KEY (a paid/cloud SaaS API key for Rancher) which cannot be provided in a local test environment",
+  "config": {},
+  "services": []
+}

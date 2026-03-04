@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.leshchenko1979%2Ffast-mcp-telegram/versions/0.4.5",
+  "serverName": "io-github-leshchenko1979-fast-mcp-telegram",
+  "registryName": "io.github.leshchenko1979/fast-mcp-telegram",
+  "version": "0.4.5",
+  "canTest": false,
+  "skipReason": "Requires Telegram API credentials (API_ID and API_HASH) from https://my.telegram.org/apps which are user-specific and cannot be generated locally",
+  "config": {},
+  "services": []
+}

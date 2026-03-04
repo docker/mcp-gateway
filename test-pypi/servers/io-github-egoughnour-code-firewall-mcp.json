@@ -1,0 +1,24 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcode-firewall-mcp/versions/0.7.0",
+  "serverName": "io-github-egoughnour-code-firewall-mcp",
+  "registryName": "io.github.egoughnour/code-firewall-mcp",
+  "version": "0.7.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "FIREWALL_DATA_DIR": "/tmp/firewall-data",
+    "OLLAMA_URL": "http://host.docker.internal:11434",
+    "EMBEDDING_MODEL": "nomic-embed-text",
+    "SIMILARITY_THRESHOLD": "0.85"
+  },
+  "services": [
+    {
+      "name": "ollama",
+      "image": "ollama/ollama:latest",
+      "ports": [
+        "11434:11434"
+      ],
+      "env": {}
+    }
+  ]
+}

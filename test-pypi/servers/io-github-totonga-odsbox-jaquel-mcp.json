@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.totonga%2Fodsbox-jaquel-mcp/versions/0.3.5",
+  "serverName": "io-github-totonga-odsbox-jaquel-mcp",
+  "registryName": "io.github.totonga/odsbox-jaquel-mcp",
+  "version": "0.3.5",
+  "canTest": false,
+  "skipReason": "Requires a running ASAM ODS server (proprietary automotive data standard) which cannot be easily provided as a local backing service. No standard Docker image exists for an ASAM ODS compatible server.",
+  "config": {},
+  "services": []
+}

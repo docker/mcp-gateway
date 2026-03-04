@@ -1,0 +1,1960 @@
+{
+  "generatedAt": "2026-02-26T18:23:43.558Z",
+  "totalUrls": 310,
+  "uniqueServers": 279,
+  "servers": [
+    {
+      "serverName": "io-github-neo4j-contrib-mcp-neo4j-memory",
+      "registryName": "io.github.neo4j-contrib/mcp-neo4j-memory",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-neo4j-contrib-mcp-neo4j-data-modeling",
+      "registryName": "io.github.neo4j-contrib/mcp-neo4j-data-modeling",
+      "version": "0.8.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-neo4j-contrib-mcp-neo4j-aura-manager",
+      "registryName": "io.github.neo4j-contrib/mcp-neo4j-aura-manager",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-aura-manager/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-neo4j-contrib-mcp-neo4j-cypher",
+      "registryName": "io.github.neo4j-contrib/mcp-neo4j-cypher",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-crypto-ninja-github-mcp-server",
+      "registryName": "io.github.crypto-ninja/github-mcp-server",
+      "version": "2.5.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.crypto-ninja%2Fgithub-mcp-server/versions/2.5.7",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-jztan-redmine-mcp-server",
+      "registryName": "io.github.jztan/redmine-mcp-server",
+      "version": "0.6.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fredmine-mcp-server/versions/0.6.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-jztan-pdf-mcp",
+      "registryName": "io.github.jztan/pdf-mcp",
+      "version": "1.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fpdf-mcp/versions/1.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Inflectra-mcp-server-spira",
+      "registryName": "io.github.Inflectra/mcp-server-spira",
+      "version": "1.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Inflectra%2Fmcp-server-spira/versions/1.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-NitishGourishetty-contextual-mcp-server",
+      "registryName": "io.github.NitishGourishetty/contextual-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NitishGourishetty%2Fcontextual-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-sidart10-runway-mcp-server",
+      "registryName": "io.github.sidart10/runway-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sidart10%2Frunway-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-nirholas-transaction-mcp-server",
+      "registryName": "io.github.nirholas/transaction-mcp-server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Ftransaction-mcp-server/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nirholas-keystore-mcp-server",
+      "registryName": "io.github.nirholas/keystore-mcp-server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fkeystore-mcp-server/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nirholas-signing-mcp-server",
+      "registryName": "io.github.nirholas/signing-mcp-server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fsigning-mcp-server/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nirholas-validation-mcp-server",
+      "registryName": "io.github.nirholas/validation-mcp-server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fvalidation-mcp-server/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nirholas-abi-to-mcp",
+      "registryName": "io.github.nirholas/abi-to-mcp",
+      "version": "0.1.0-1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0-1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-nirholas-ethereum-wallet-mcp",
+      "registryName": "io.github.nirholas/ethereum-wallet-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fethereum-wallet-mcp/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-vladkarpman-screen-buffer-mcp",
+      "registryName": "io.github.vladkarpman/screen-buffer-mcp",
+      "version": "2.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-vladkarpman-device-manager-mcp",
+      "registryName": "io.github.vladkarpman/device-manager-mcp",
+      "version": "1.0.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fdevice-manager-mcp/versions/1.0.7",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-major-porkbun",
+      "registryName": "io.github.major/porkbun",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fporkbun/versions/1.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-major-pcp",
+      "registryName": "io.github.major/pcp",
+      "version": "1.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ai-mcpower-mcpower-proxy",
+      "registryName": "io.github.ai-mcpower/mcpower-proxy",
+      "version": "0.0.87",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-mcpower%2Fmcpower-proxy/versions/0.0.87",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-cornelcroi-bookmark-lens",
+      "registryName": "io.github.cornelcroi/bookmark-lens",
+      "version": "0.0.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fbookmark-lens/versions/0.0.7",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-cornelcroi-context-lens",
+      "registryName": "io.github.cornelcroi/context-lens",
+      "version": "0.1.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fcontext-lens/versions/0.1.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-abhishekbhakat-airflow-mcp-server",
+      "registryName": "io.github.abhishekbhakat/airflow-mcp-server",
+      "version": "0.9.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhishekbhakat%2Fairflow-mcp-server/versions/0.9.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-gjeltep-app-store-connect-mcp",
+      "registryName": "io.github.gjeltep/app-store-connect-mcp",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gjeltep%2Fapp-store-connect-mcp/versions/0.3.0",
+      "canTest": false
+    },
+    {
+      "serverName": "ai-mcpcap-mcpcap",
+      "registryName": "ai.mcpcap/mcpcap",
+      "version": "0.6.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/ai.mcpcap%2Fmcpcap/versions/0.6.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-fkom13-gencodedoc",
+      "registryName": "io.github.fkom13/gencodedoc",
+      "version": "2.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.fkom13%2Fgencodedoc/versions/2.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-trickyfalcon-mcp-msdefenderkql",
+      "registryName": "io.github.trickyfalcon/mcp-msdefenderkql",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-msdefenderkql/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-trickyfalcon-mcp-defender",
+      "registryName": "io.github.trickyfalcon/mcp-defender",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-defender/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wtfregia-mtg-mcp",
+      "registryName": "io.github.wtfregia/mtg-mcp",
+      "version": "0.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wtfregia%2Fmtg-mcp/versions/0.1.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nowledge-co-server-json",
+      "registryName": "io.github.nowledge-co/server.json",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nowledge-co%2Fserver.json/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-IvanRublev-keyphrases-mcp",
+      "registryName": "io.github.IvanRublev/keyphrases-mcp",
+      "version": "0.0.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.IvanRublev%2Fkeyphrases-mcp/versions/0.0.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-esrisaudiarabia-arcgis-mcp-server",
+      "registryName": "io.github.esrisaudiarabia/arcgis-mcp-server",
+      "version": "1.1.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.esrisaudiarabia%2Farcgis-mcp-server/versions/1.1.4",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-JonasRackl-labmate-mcp",
+      "registryName": "io.github.JonasRackl/labmate-mcp",
+      "version": "7.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.JonasRackl%2Flabmate-mcp/versions/7.3.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-khglynn-spotify-bulk-actions-mcp",
+      "registryName": "io.github.khglynn/spotify-bulk-actions-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.khglynn%2Fspotify-bulk-actions-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-geored-lumino",
+      "registryName": "io.github.geored/lumino",
+      "version": "0.9.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.geored%2Flumino/versions/0.9.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ankitpal181-toon-parse-mcp",
+      "registryName": "io.github.ankitpal181/toon-parse-mcp",
+      "version": "1.0.1-beta",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ankitpal181%2Ftoon-parse-mcp/versions/1.0.1-beta",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ZohaibCodez-discrete-structures",
+      "registryName": "io.github.ZohaibCodez/discrete-structures",
+      "version": "0.1.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ZohaibCodez%2Fdiscrete-structures/versions/0.1.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-nk3750-jitapi",
+      "registryName": "io.github.nk3750/jitapi",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nk3750%2Fjitapi/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-agent-polis-impact-preview",
+      "registryName": "io.github.agent-polis/impact-preview",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agent-polis%2Fimpact-preview/versions/0.2.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ReGenNow-regennexus-mcp",
+      "registryName": "io.github.ReGenNow/regennexus-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ReGenNow%2Fregennexus-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-Skills03-scrimba-teaching",
+      "registryName": "io.github.Skills03/scrimba-teaching",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Skills03%2Fscrimba-teaching/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-king-of-the-grackles-reddit-research-mcp",
+      "registryName": "io.github.king-of-the-grackles/reddit-research-mcp",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.king-of-the-grackles%2Freddit-research-mcp/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-iworkist-btcmcp",
+      "registryName": "io.github.iworkist/btcmcp",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.iworkist%2Fbtcmcp/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-signnow-sn-mcp-server",
+      "registryName": "io.github.signnow/sn-mcp-server",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-mcp-server/versions/0.3.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-signnow-sn-api-helper-mcp",
+      "registryName": "io.github.signnow/sn-api-helper-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-api-helper-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "com-kekwanu-syncline-mcp-server-python",
+      "registryName": "com.kekwanu/syncline-mcp-server-python",
+      "version": "1.0.35",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.35",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-akougkas-zulipchat",
+      "registryName": "io.github.akougkas/zulipchat",
+      "version": "0.4.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.akougkas%2Fzulipchat/versions/0.4.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-manoharanRajesh-python-version",
+      "registryName": "io.github.manoharanRajesh/python-version",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manoharanRajesh%2Fpython-version/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-vemonet-openroute-mcp",
+      "registryName": "io.github.vemonet/openroute-mcp",
+      "version": "0.0.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vemonet%2Fopenroute-mcp/versions/0.0.4",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-luongnv89-mitre-mcp",
+      "registryName": "io.github.luongnv89/mitre-mcp",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.luongnv89%2Fmitre-mcp/versions/0.3.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-yarnabrina-mcp-learning",
+      "registryName": "io.github.yarnabrina/mcp-learning",
+      "version": "0.2.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yarnabrina%2Fmcp-learning/versions/0.2.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-byteplant-dev-byteplant-mcp",
+      "registryName": "io.github.byteplant-dev/byteplant-mcp",
+      "version": "1.0.0.post2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.byteplant-dev%2Fbyteplant-mcp/versions/1.0.0.post2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-cyntrisec-cyntrisec",
+      "registryName": "io.github.cyntrisec/cyntrisec",
+      "version": "0.1.10",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyntrisec%2Fcyntrisec/versions/0.1.10",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-CursorTouch-Windows-MCP",
+      "registryName": "io.github.CursorTouch/Windows-MCP",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CursorTouch%2FWindows-MCP/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-abhichandra21-promptheus",
+      "registryName": "io.github.abhichandra21/promptheus",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.abhichandra21%2Fpromptheus/versions/0.3.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-henilcalagiya-google-sheets-mcp",
+      "registryName": "io.github.henilcalagiya/google-sheets-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fgoogle-sheets-mcp/versions/0.1.6",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-henilcalagiya-mcp-apple-notes",
+      "registryName": "io.github.henilcalagiya/mcp-apple-notes",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.henilcalagiya%2Fmcp-apple-notes/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-PyJudge-pdf4vllm",
+      "registryName": "io.github.PyJudge/pdf4vllm",
+      "version": "1.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PyJudge%2Fpdf4vllm/versions/1.0.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-cr7258-elasticsearch-mcp-server",
+      "registryName": "io.github.cr7258/elasticsearch-mcp-server",
+      "version": "2.0.14",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cr7258%2Felasticsearch-mcp-server/versions/2.0.14",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-sellisd-mcp-units",
+      "registryName": "io.github.sellisd/mcp-units",
+      "version": "0.3.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sellisd%2Fmcp-units/versions/0.3.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-svnscha-mcp-windbg",
+      "registryName": "io.github.svnscha/mcp-windbg",
+      "version": "0.2.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.svnscha%2Fmcp-windbg/versions/0.2.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-simplemindedbot-mnemex",
+      "registryName": "io.github.simplemindedbot/mnemex",
+      "version": "0.5.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.simplemindedbot%2Fmnemex/versions/0.5.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-winedarksea-AutoTS",
+      "registryName": "io.github.winedarksea/AutoTS",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.winedarksea%2FAutoTS/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-4R9UN-mcp-kql-server",
+      "registryName": "io.github.4R9UN/mcp-kql-server",
+      "version": "2.0.8",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4R9UN%2Fmcp-kql-server/versions/2.0.8",
+      "canTest": false
+    },
+    {
+      "serverName": "io-slingdata-sling-cli",
+      "registryName": "io.slingdata/sling-cli",
+      "version": "1.4.23",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.slingdata%2Fsling-cli/versions/1.4.23",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-aws-mcp-proxy-for-aws",
+      "registryName": "io.github.aws/mcp-proxy-for-aws",
+      "version": "1.0.0-preview.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aws%2Fmcp-proxy-for-aws/versions/1.0.0-preview.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-MR901-plots-mcp",
+      "registryName": "io.github.MR901/plots-mcp",
+      "version": "0.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fplots-mcp/versions/0.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-MR901-mcp-plots",
+      "registryName": "io.github.MR901/mcp-plots",
+      "version": "0.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MR901%2Fmcp-plots/versions/0.0.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-easytocloud-mac-letterhead",
+      "registryName": "io.github.easytocloud/mac-letterhead",
+      "version": "0.13.9",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.easytocloud%2Fmac-letterhead/versions/0.13.9",
+      "canTest": false
+    },
+    {
+      "serverName": "com-files-python-mcp",
+      "registryName": "com.files/python-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/com.files%2Fpython-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-lxchst-weather-server-python",
+      "registryName": "io.github.lxchst/weather-server-python",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lxchst%2Fweather-server-python/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ryanmat-logicmonitor",
+      "registryName": "io.github.ryanmat/logicmonitor",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ryanmat%2Flogicmonitor/versions/1.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-bunnyf-kicad-mcp-server",
+      "registryName": "io.github.bunnyf/kicad-mcp-server",
+      "version": "3.5.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bunnyf%2Fkicad-mcp-server/versions/3.5.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-redis-mcp-redis",
+      "registryName": "io.github.redis/mcp-redis",
+      "version": "0.4.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.redis%2Fmcp-redis/versions/0.4.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-stefanoamorelli-sec-edgar-mcp",
+      "registryName": "io.github.stefanoamorelli/sec-edgar-mcp",
+      "version": "1.0.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanoamorelli%2Fsec-edgar-mcp/versions/1.0.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-YimingYAN-fivetran-mcp",
+      "registryName": "io.github.YimingYAN/fivetran-mcp",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YimingYAN%2Ffivetran-mcp/versions/0.3.1",
+      "canTest": false
+    },
+    {
+      "serverName": "com-allstacks-allstacks-mcp",
+      "registryName": "com.allstacks/allstacks-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/com.allstacks%2Fallstacks-mcp/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-MauroDruwel-smartschool-mcp",
+      "registryName": "io.github.MauroDruwel/smartschool-mcp",
+      "version": "0.1.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MauroDruwel%2Fsmartschool-mcp/versions/0.1.4",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-joshmsimpson-exiftool",
+      "registryName": "io.github.joshmsimpson/exiftool",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.joshmsimpson%2Fexiftool/versions/0.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-alondmnt-joplin-mcp",
+      "registryName": "io.github.alondmnt/joplin-mcp",
+      "version": "0.5.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alondmnt%2Fjoplin-mcp/versions/0.5.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-matbanik-pomera",
+      "registryName": "io.github.matbanik/pomera",
+      "version": "1.3.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matbanik%2Fpomera/versions/1.3.7",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ramalamadingdong-first-agentic-csa",
+      "registryName": "io.github.ramalamadingdong/first-agentic-csa",
+      "version": "0.3.8",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ramalamadingdong%2Ffirst-agentic-csa/versions/0.3.8",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-johnzfitch-pyghidra-lite",
+      "registryName": "io.github.johnzfitch/pyghidra-lite",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnzfitch%2Fpyghidra-lite/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-barangaroo-crosstabs-mcp",
+      "registryName": "io.github.barangaroo/crosstabs-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs-mcp/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-barangaroo-crosstabs",
+      "registryName": "io.github.barangaroo/crosstabs",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.barangaroo%2Fcrosstabs/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-bethmaloney-rdl-mcp",
+      "registryName": "io.github.bethmaloney/rdl-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bethmaloney%2Frdl-mcp/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-MCPower-Security-mcpower-proxy",
+      "registryName": "io.github.MCPower-Security/mcpower-proxy",
+      "version": "0.0.90",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MCPower-Security%2Fmcpower-proxy/versions/0.0.90",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-elpadev-sample-mcp-server-python-package",
+      "registryName": "io.github.elpadev/sample-mcp-server-python-package",
+      "version": "0.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.elpadev%2Fsample-mcp-server-python-package/versions/0.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-cafferychen777-chatspatial",
+      "registryName": "io.github.cafferychen777/chatspatial",
+      "version": "1.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cafferychen777%2Fchatspatial/versions/1.0.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-matjmat-eulerian-marketing-platform-mcp",
+      "registryName": "io.github.matjmat/eulerian-marketing-platform-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matjmat%2Feulerian-marketing-platform-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-colabfit-colabfit-mcp",
+      "registryName": "io.github.colabfit/colabfit-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.colabfit%2Fcolabfit-mcp/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-bpamiri-u2-mcp",
+      "registryName": "io.github.bpamiri/u2-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bpamiri%2Fu2-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-mhcoen-mcp-relay",
+      "registryName": "io.github.mhcoen/mcp-relay",
+      "version": "1.2.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mhcoen%2Fmcp-relay/versions/1.2.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-surendranb-google-analytics-mcp",
+      "registryName": "io.github.surendranb/google-analytics-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.surendranb%2Fgoogle-analytics-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-jonnybottles-azure-updates",
+      "registryName": "io.github.jonnybottles/azure-updates",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fazure-updates/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-jonnybottles-m365-roadmap",
+      "registryName": "io.github.jonnybottles/m365-roadmap",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fm365-roadmap/versions/0.2.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-augee99-mcp-weather",
+      "registryName": "io.github.augee99/mcp-weather",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augee99%2Fmcp-weather/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-galaxyproject-galaxy-mcp",
+      "registryName": "io.github.galaxyproject/galaxy-mcp",
+      "version": "1.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.galaxyproject%2Fgalaxy-mcp/versions/1.3.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-YinTokey-mcp_hackernews",
+      "registryName": "io.github.YinTokey/mcp_hackernews",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YinTokey%2Fmcp_hackernews/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-stepbot-stockfish-mcp",
+      "registryName": "io.github.stepbot/stockfish-mcp",
+      "version": "v1.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stepbot%2Fstockfish-mcp/versions/v1.0.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-NeerajG03-vector-memory",
+      "registryName": "io.github.NeerajG03/vector-memory",
+      "version": "0.2.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NeerajG03%2Fvector-memory/versions/0.2.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-KittyCAD-zoo-mcp",
+      "registryName": "io.github.KittyCAD/zoo-mcp",
+      "version": "0.9.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KittyCAD%2Fzoo-mcp/versions/0.9.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-TranThienTrong-asset-auto-picker",
+      "registryName": "io.github.TranThienTrong/asset-auto-picker",
+      "version": "1.2.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.TranThienTrong%2Fasset-auto-picker/versions/1.2.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-guanqun-yang-mcp-server-r-counter",
+      "registryName": "io.github.guanqun-yang/mcp-server-r-counter",
+      "version": "0.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.guanqun-yang%2Fmcp-server-r-counter/versions/0.0.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-marlenezw-publish-mcp-server",
+      "registryName": "io.github.marlenezw/publish-mcp-server",
+      "version": "0.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marlenezw%2Fpublish-mcp-server/versions/0.1.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-atarkowska-fastmcp-pdftools",
+      "registryName": "io.github.atarkowska/fastmcp-pdftools",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-pdftools/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-atarkowska-fastmcp-sqltools",
+      "registryName": "io.github.atarkowska/fastmcp-sqltools",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-sqltools/versions/0.3.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-andylbrummer-neural-mcp",
+      "registryName": "io.github.andylbrummer/neural-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fneural-mcp/versions/0.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-andylbrummer-math-mcp",
+      "registryName": "io.github.andylbrummer/math-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmath-mcp/versions/0.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-andylbrummer-molecular-mcp",
+      "registryName": "io.github.andylbrummer/molecular-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-andylbrummer-quantum-mcp",
+      "registryName": "io.github.andylbrummer/quantum-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fquantum-mcp/versions/0.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-qwe4559999-scopus-mcp",
+      "registryName": "io.github.qwe4559999/scopus-mcp",
+      "version": "0.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.qwe4559999%2Fscopus-mcp/versions/0.1.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-totonga-odsbox-jaquel-mcp",
+      "registryName": "io.github.totonga/odsbox-jaquel-mcp",
+      "version": "0.3.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.totonga%2Fodsbox-jaquel-mcp/versions/0.3.5",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-james116blue-journald-mcp-server",
+      "registryName": "io.github.james116blue/journald-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.james116blue%2Fjournald-mcp-server/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-basicmachines-co-basic-memory",
+      "registryName": "io.github.basicmachines-co/basic-memory",
+      "version": "0.17.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.basicmachines-co%2Fbasic-memory/versions/0.17.7",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-wedsamuel1230-electronic-mcp-server",
+      "registryName": "io.github.wedsamuel1230/electronic-mcp-server",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wedsamuel1230%2Felectronic-mcp-server/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-josefdc-uniprot-mcp",
+      "registryName": "io.github.josefdc/uniprot-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.josefdc%2Funiprot-mcp/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Snowflake-Labs-mcp",
+      "registryName": "io.github.Snowflake-Labs/mcp",
+      "version": "1.3.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Snowflake-Labs%2Fmcp/versions/1.3.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-taylorleese-mcp-toolz",
+      "registryName": "io.github.taylorleese/mcp-toolz",
+      "version": "0.3.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorleese%2Fmcp-toolz/versions/0.3.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-yugui923-db-connect-mcp",
+      "registryName": "io.github.yugui923/db-connect-mcp",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yugui923%2Fdb-connect-mcp/versions/0.3.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-AdonaiVera-fiftyone-mcp-server",
+      "registryName": "io.github.AdonaiVera/fiftyone-mcp-server",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.AdonaiVera%2Ffiftyone-mcp-server/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-4rgon4ut-sutra",
+      "registryName": "io.github.4rgon4ut/sutra",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.4rgon4ut%2Fsutra/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Anarkitty1-semantic-frame",
+      "registryName": "io.github.Anarkitty1/semantic-frame",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Anarkitty1%2Fsemantic-frame/versions/0.2.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-roddutra-agent-mcp-gateway",
+      "registryName": "io.github.roddutra/agent-mcp-gateway",
+      "version": "0.2.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.roddutra%2Fagent-mcp-gateway/versions/0.2.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ai-debugger-inc-aidb",
+      "registryName": "io.github.ai-debugger-inc/aidb",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-debugger-inc%2Faidb/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-vulnersCom-vulners-mcp",
+      "registryName": "io.github.vulnersCom/vulners-mcp",
+      "version": "1.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vulnersCom%2Fvulners-mcp/versions/1.0.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-rhel-lightspeed-linux-mcp-server",
+      "registryName": "io.github.rhel-lightspeed/linux-mcp-server",
+      "version": "1.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.rhel-lightspeed%2Flinux-mcp-server/versions/1.2.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-zzstoatzz-tangled-mcp",
+      "registryName": "io.github.zzstoatzz/tangled-mcp",
+      "version": "0.0.10",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zzstoatzz%2Ftangled-mcp/versions/0.0.10",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-SamMorrowDrums-remarkable",
+      "registryName": "io.github.SamMorrowDrums/remarkable",
+      "version": "0.6.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SamMorrowDrums%2Fremarkable/versions/0.6.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-scrape-badger-scrapebadger",
+      "registryName": "io.github.scrape-badger/scrapebadger",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.scrape-badger%2Fscrapebadger/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-KuudoAI-amazon_ads_mcp",
+      "registryName": "io.github.KuudoAI/amazon_ads_mcp",
+      "version": "0.2.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KuudoAI%2Famazon_ads_mcp/versions/0.2.6",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-PagerDuty-pagerduty-mcp",
+      "registryName": "io.github.PagerDuty/pagerduty-mcp",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PagerDuty%2Fpagerduty-mcp/versions/0.2.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-tspicer-amazon_ads_mcp",
+      "registryName": "io.github.tspicer/amazon_ads_mcp",
+      "version": "0.2.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tspicer%2Famazon_ads_mcp/versions/0.2.4",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-Memphora-memphora",
+      "registryName": "io.github.Memphora/memphora",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Memphora%2Fmemphora/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-dragonejt-iceberg-mcp-server",
+      "registryName": "io.github.dragonejt/iceberg-mcp-server",
+      "version": "0.1.21",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.dragonejt%2Ficeberg-mcp-server/versions/0.1.21",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-standardbeagle-mcp-debug",
+      "registryName": "io.github.standardbeagle/mcp-debug",
+      "version": "1.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fmcp-debug/versions/1.1.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-standardbeagle-devtool-mcp",
+      "registryName": "io.github.standardbeagle/devtool-mcp",
+      "version": "0.3.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.standardbeagle%2Fdevtool-mcp/versions/0.3.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Murugarajr-ohm-mcp",
+      "registryName": "io.github.Murugarajr/ohm-mcp",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Murugarajr%2Fohm-mcp/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-OtherVibes-mcp-as-a-judge",
+      "registryName": "io.github.OtherVibes/mcp-as-a-judge",
+      "version": "0.3.20",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.OtherVibes%2Fmcp-as-a-judge/versions/0.3.20",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-context-foundry-context-foundry",
+      "registryName": "io.github.context-foundry/context-foundry",
+      "version": "2.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.context-foundry%2Fcontext-foundry/versions/2.2.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-motherduckdb-mcp-server-motherduck",
+      "registryName": "io.github.motherduckdb/mcp-server-motherduck",
+      "version": "0.7.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.motherduckdb%2Fmcp-server-motherduck/versions/0.7.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-clarenceh-expenselm-mcp-server",
+      "registryName": "io.github.clarenceh/expenselm-mcp-server",
+      "version": "0.2.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.clarenceh%2Fexpenselm-mcp-server/versions/0.2.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-SnowLeopard-AI-bigquery-mcp",
+      "registryName": "io.github.SnowLeopard-AI/bigquery-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SnowLeopard-AI%2Fbigquery-mcp/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-eghuzefa-engineer-your-data",
+      "registryName": "io.github.eghuzefa/engineer-your-data",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.eghuzefa%2Fengineer-your-data/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-robotmcp-ros-mcp-server",
+      "registryName": "io.github.robotmcp/ros-mcp-server",
+      "version": "2.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.robotmcp%2Fros-mcp-server/versions/2.2.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-palewire-datawrapper-mcp",
+      "registryName": "io.github.palewire/datawrapper-mcp",
+      "version": "0.0.19",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.palewire%2Fdatawrapper-mcp/versions/0.0.19",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-beycom-onetool-mcp",
+      "registryName": "io.github.beycom/onetool-mcp",
+      "version": "1.0.0rc2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.beycom%2Fonetool-mcp/versions/1.0.0rc2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-appwrite-mcp-for-api",
+      "registryName": "io.github.appwrite/mcp-for-api",
+      "version": "0.2.8",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.appwrite%2Fmcp-for-api/versions/0.2.8",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-Epochal-dev-open-notebook",
+      "registryName": "io.github.Epochal-dev/open-notebook",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Epochal-dev%2Fopen-notebook/versions/0.3.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-futuresearch-everyrow-mcp",
+      "registryName": "io.github.futuresearch/everyrow-mcp",
+      "version": "0.1.9",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.futuresearch%2Feveryrow-mcp/versions/0.1.9",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-xcollantes-jira-mcp",
+      "registryName": "io.github.xcollantes/jira-mcp",
+      "version": "0.2.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xcollantes%2Fjira-mcp/versions/0.2.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-nonatofabio-local-faiss-mcp",
+      "registryName": "io.github.nonatofabio/local-faiss-mcp",
+      "version": "0.2.0-rc.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nonatofabio%2Flocal-faiss-mcp/versions/0.2.0-rc.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-srikrishna235-scrimba-teaching-mcp",
+      "registryName": "io.github.srikrishna235/scrimba-teaching-mcp",
+      "version": "3.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.srikrishna235%2Fscrimba-teaching-mcp/versions/3.0.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-aikts-yandex-tracker-mcp",
+      "registryName": "io.github.aikts/yandex-tracker-mcp",
+      "version": "0.5.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aikts%2Fyandex-tracker-mcp/versions/0.5.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-xt765-mcp_documents_reader",
+      "registryName": "io.github.xt765/mcp_documents_reader",
+      "version": "1.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-xt765-mcp-document-converter",
+      "registryName": "io.github.xt765/mcp-document-converter",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp-document-converter/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-vandewilly-dice-roller",
+      "registryName": "io.github.vandewilly/dice-roller",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vandewilly%2Fdice-roller/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-214140846-skillhub-mcp",
+      "registryName": "io.github.214140846/skillhub-mcp",
+      "version": "1.0.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.214140846%2Fskillhub-mcp/versions/1.0.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-asklokesh-powerbi-mcp-server",
+      "registryName": "io.github.asklokesh/powerbi-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fpowerbi-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-servicenow-mcp-server",
+      "registryName": "io.github.asklokesh/servicenow-mcp-server",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fservicenow-mcp-server/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-chanty-mcp-server",
+      "registryName": "io.github.asklokesh/chanty-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fchanty-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-tableau-mcp-server",
+      "registryName": "io.github.asklokesh/tableau-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ftableau-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-azure-mcp-server",
+      "registryName": "io.github.asklokesh/azure-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fazure-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-rundeck-mcp-server",
+      "registryName": "io.github.asklokesh/rundeck-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Frundeck-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-zoho-crm-mcp-server",
+      "registryName": "io.github.asklokesh/zoho-crm-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-xero-mcp-server",
+      "registryName": "io.github.asklokesh/xero-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fxero-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-hootsuite-mcp-server",
+      "registryName": "io.github.asklokesh/hootsuite-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fhootsuite-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-quickbooks-mcp-server",
+      "registryName": "io.github.asklokesh/quickbooks-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fquickbooks-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-harness-mcp-server",
+      "registryName": "io.github.asklokesh/harness-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fharness-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-mailchimp-mcp-server",
+      "registryName": "io.github.asklokesh/mailchimp-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fmailchimp-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-argocd-mcp-server",
+      "registryName": "io.github.asklokesh/argocd-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fargocd-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-freshbooks-mcp-server",
+      "registryName": "io.github.asklokesh/freshbooks-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ffreshbooks-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-uipath-mcp-server",
+      "registryName": "io.github.asklokesh/uipath-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fuipath-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-asklokesh-rancher-mcp-server",
+      "registryName": "io.github.asklokesh/rancher-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Francher-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-lars20070-mathematica-mcp",
+      "registryName": "io.github.lars20070/mathematica-mcp",
+      "version": "0.1.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lars20070%2Fmathematica-mcp/versions/0.1.6",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-cyberpapiii-imessage-max",
+      "registryName": "io.github.cyberpapiii/imessage-max",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyberpapiii%2Fimessage-max/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-jackfioru92-aruba-email",
+      "registryName": "io.github.jackfioru92/aruba-email",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jackfioru92%2Faruba-email/versions/0.2.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-silversurfer562-memdocs",
+      "registryName": "io.github.silversurfer562/memdocs",
+      "version": "2.1.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.silversurfer562%2Fmemdocs/versions/2.1.4",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-zloeber-terraform-ingest",
+      "registryName": "io.github.zloeber/terraform-ingest",
+      "version": "0.1.21",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zloeber%2Fterraform-ingest/versions/0.1.21",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-pree-dew-mcp-bookmark",
+      "registryName": "io.github.pree-dew/mcp-bookmark",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pree-dew%2Fmcp-bookmark/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-bharath-krishna-mcp-test",
+      "registryName": "io.github.bharath-krishna/mcp-test",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bharath-krishna%2Fmcp-test/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Wolfe-Jam-gemini-faf-mcp",
+      "registryName": "io.github.Wolfe-Jam/gemini-faf-mcp",
+      "version": "1.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Wolfe-Jam%2Fgemini-faf-mcp/versions/1.0.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-aringad-fattureincloud-mcp",
+      "registryName": "io.github.aringad/fattureincloud-mcp",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aringad%2Ffattureincloud-mcp/versions/1.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-stevenvo-slack-mcp-server",
+      "registryName": "io.github.stevenvo/slack-mcp-server",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stevenvo%2Fslack-mcp-server/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-detailobsessed-unblu",
+      "registryName": "io.github.detailobsessed/unblu",
+      "version": "0.4.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.detailobsessed%2Funblu/versions/0.4.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ariroffe72-zmanim-mcp-server",
+      "registryName": "io.github.ariroffe72/zmanim-mcp-server",
+      "version": "0.2.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ariroffe72%2Fzmanim-mcp-server/versions/0.2.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-therealtimex-browser-use",
+      "registryName": "io.github.therealtimex/browser-use",
+      "version": "0.7.10.dev5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fbrowser-use/versions/0.7.10.dev5",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-therealtimex-un-datacommons-mcp",
+      "registryName": "io.github.therealtimex/un-datacommons-mcp",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fun-datacommons-mcp/versions/1.0.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-blueskylineassets-far-mcp-server",
+      "registryName": "io.github.blueskylineassets/far-mcp-server",
+      "version": "1.0.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-CodeLogicIncEngineering-codelogic-mcp-server",
+      "registryName": "io.github.CodeLogicIncEngineering/codelogic-mcp-server",
+      "version": "1.0.11",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CodeLogicIncEngineering%2Fcodelogic-mcp-server/versions/1.0.11",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-KazKozDev-search",
+      "registryName": "io.github.KazKozDev/search",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KazKozDev%2Fsearch/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-mickymultani-crypto-bytes",
+      "registryName": "io.github.mickymultani/crypto-bytes",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mickymultani%2Fcrypto-bytes/versions/0.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-oogunbiyi21-stats-compass",
+      "registryName": "io.github.oogunbiyi21/stats-compass",
+      "version": "0.2.9",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.oogunbiyi21%2Fstats-compass/versions/0.2.9",
+      "canTest": true
+    },
+    {
+      "serverName": "io-oxylabs-oxylabs-mcp",
+      "registryName": "io.oxylabs/oxylabs-mcp",
+      "version": "0.7.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.oxylabs%2Foxylabs-mcp/versions/0.7.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-drfccv-mcp-server-12306",
+      "registryName": "io.github.drfccv/mcp-server-12306",
+      "version": "0.2.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drfccv%2Fmcp-server-12306/versions/0.2.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Dewars30-fulcrum",
+      "registryName": "io.github.Dewars30/fulcrum",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Dewars30%2Ffulcrum/versions/1.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "aws-api-us-east-1-eks-mcp-server",
+      "registryName": "aws.api.us-east-1.eks-mcp/server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.eks-mcp%2Fserver/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-gersonfreire-simpliq-server",
+      "registryName": "io.github.gersonfreire/simpliq-server",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gersonfreire%2Fsimpliq-server/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-zhongweili-nanobanana-mcp-server",
+      "registryName": "io.github.zhongweili/nanobanana-mcp-server",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zhongweili%2Fnanobanana-mcp-server/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-isdaniel-pgtuner_mcp",
+      "registryName": "io.github.isdaniel/pgtuner_mcp",
+      "version": "0.5.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fpgtuner_mcp/versions/0.5.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-isdaniel-mcp_weather_server",
+      "registryName": "io.github.isdaniel/mcp_weather_server",
+      "version": "0.6.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fmcp_weather_server/versions/0.6.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-raisiqueira-django-telescope",
+      "registryName": "io.github.raisiqueira/django-telescope",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.raisiqueira%2Fdjango-telescope/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ubaumann-mkdocs-mcp",
+      "registryName": "io.github.ubaumann/mkdocs-mcp",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ubaumann%2Fmkdocs-mcp/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-huoshuiai42-huoshui-pdf-converter",
+      "registryName": "io.github.huoshuiai42/huoshui-pdf-converter",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-converter/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-huoshuiai42-huoshui-file-converter",
+      "registryName": "io.github.huoshuiai42/huoshui-file-converter",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-converter/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-huoshuiai42-huoshui-fetch",
+      "registryName": "io.github.huoshuiai42/huoshui-fetch",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-fetch/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-huoshuiai42-huoshui-file-search",
+      "registryName": "io.github.huoshuiai42/huoshui-file-search",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-file-search/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-huoshuiai42-huoshui-pdf-translator",
+      "registryName": "io.github.huoshuiai42/huoshui-pdf-translator",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-translator/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-marshally-mcp-refactoring",
+      "registryName": "io.github.marshally/mcp-refactoring",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marshally%2Fmcp-refactoring/versions/0.1.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-BarhamAgha1-bridge-mcp",
+      "registryName": "io.github.BarhamAgha1/bridge-mcp",
+      "version": "1.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.BarhamAgha1%2Fbridge-mcp/versions/1.1.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-johnmci-ClaudeSmalltalk",
+      "registryName": "io.github.johnmci/ClaudeSmalltalk",
+      "version": "1.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnmci%2FClaudeSmalltalk/versions/1.2.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-mgaruccio-openapi-navigator",
+      "registryName": "io.github.mgaruccio/openapi-navigator",
+      "version": "0.5.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgaruccio%2Fopenapi-navigator/versions/0.5.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-drivenrajat-f1",
+      "registryName": "io.github.drivenrajat/f1",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drivenrajat%2Ff1/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-PrefectHQ-prefect-mcp-server",
+      "registryName": "io.github.PrefectHQ/prefect-mcp-server",
+      "version": "0.0.1-beta.9",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PrefectHQ%2Fprefect-mcp-server/versions/0.0.1-beta.9",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-CogitatorTech-omni-nli",
+      "registryName": "io.github.CogitatorTech/omni-nli",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CogitatorTech%2Fomni-nli/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-zcsabbagh-knowledge-graph-mcp",
+      "registryName": "io.github.zcsabbagh/knowledge-graph-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zcsabbagh%2Fknowledge-graph-mcp/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-agenthotspot-agenthotspot-mcp",
+      "registryName": "io.github.agenthotspot/agenthotspot-mcp",
+      "version": "1.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agenthotspot%2Fagenthotspot-mcp/versions/1.0.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-zwldarren-akshare-one-mcp",
+      "registryName": "io.github.zwldarren/akshare-one-mcp",
+      "version": "0.3.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zwldarren%2Fakshare-one-mcp/versions/0.3.6",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-composable-delivery-snowfakery-mcp",
+      "registryName": "io.github.composable-delivery/snowfakery-mcp",
+      "version": "0.0.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.composable-delivery%2Fsnowfakery-mcp/versions/0.0.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-gradion-ai-ipybox",
+      "registryName": "io.github.gradion-ai/ipybox",
+      "version": "0.6.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gradion-ai%2Fipybox/versions/0.6.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-PCfVW-mcp-arangodb-async",
+      "registryName": "io.github.PCfVW/mcp-arangodb-async",
+      "version": "0.5.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PCfVW%2Fmcp-arangodb-async/versions/0.5.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-antnewman-pm-data",
+      "registryName": "io.github.antnewman/pm-data",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-data/versions/0.3.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-antnewman-pm-analyse",
+      "registryName": "io.github.antnewman/pm-analyse",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-analyse/versions/0.3.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-antnewman-pm-validate",
+      "registryName": "io.github.antnewman/pm-validate",
+      "version": "0.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-validate/versions/0.3.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-burningion-video-editing-mcp",
+      "registryName": "io.github.burningion/video-editing-mcp",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.burningion%2Fvideo-editing-mcp/versions/1.0.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-verygoodplugins-streamdeck-mcp",
+      "registryName": "io.github.verygoodplugins/streamdeck-mcp",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Fstreamdeck-mcp/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-verygoodplugins-robinhood-mcp",
+      "registryName": "io.github.verygoodplugins/robinhood-mcp",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Frobinhood-mcp/versions/0.1.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-tedfytw1209-mcp-server-EVEfleet",
+      "registryName": "io.github.tedfytw1209/mcp-server-EVEfleet",
+      "version": "1.0.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tedfytw1209%2Fmcp-server-EVEfleet/versions/1.0.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-PiotrAleksander-open-notebook",
+      "registryName": "io.github.PiotrAleksander/open-notebook",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PiotrAleksander%2Fopen-notebook/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-manusa-podman-mcp-server",
+      "registryName": "io.github.manusa/podman-mcp-server",
+      "version": "0.0.14",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manusa%2Fpodman-mcp-server/versions/0.0.14",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-HzaCode-onecite",
+      "registryName": "io.github.HzaCode/onecite",
+      "version": "0.0.11",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.HzaCode%2Fonecite/versions/0.0.11",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-mgwalkerjr95-texas-grocery",
+      "registryName": "io.github.mgwalkerjr95/texas-grocery",
+      "version": "0.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mgwalkerjr95%2Ftexas-grocery/versions/0.1.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-DiaaAj-a-mem-mcp",
+      "registryName": "io.github.DiaaAj/a-mem-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.DiaaAj%2Fa-mem-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-hvac-quotes",
+      "registryName": "io.github.wmarceau/hvac-quotes",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fhvac-quotes/versions/1.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-wmarceau-upwork",
+      "registryName": "io.github.wmarceau/upwork",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fupwork/versions/1.0.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-fitness-influencer",
+      "registryName": "io.github.wmarceau/fitness-influencer",
+      "version": "1.3.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.3.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-apollo",
+      "registryName": "io.github.wmarceau/apollo",
+      "version": "1.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-youtube-creator",
+      "registryName": "io.github.wmarceau/youtube-creator",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fyoutube-creator/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-rideshare-comparison",
+      "registryName": "io.github.wmarceau/rideshare-comparison",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Frideshare-comparison/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-wmarceau-md-to-pdf",
+      "registryName": "io.github.wmarceau/md-to-pdf",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-wmarceau-amazon-seller",
+      "registryName": "io.github.wmarceau/amazon-seller",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Famazon-seller/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-Fato07-log-analyzer-mcp",
+      "registryName": "io.github.Fato07/log-analyzer-mcp",
+      "version": "0.4.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Fato07%2Flog-analyzer-mcp/versions/0.4.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-xorrkaz-cml-mcp",
+      "registryName": "io.github.xorrkaz/cml-mcp",
+      "version": "0.24.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xorrkaz%2Fcml-mcp/versions/0.24.0",
+      "canTest": false
+    },
+    {
+      "serverName": "com-opsmill-infrahub-mcp",
+      "registryName": "com.opsmill/infrahub-mcp",
+      "version": "0.1.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/com.opsmill%2Finfrahub-mcp/versions/0.1.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-tmonk-mcp-stata",
+      "registryName": "io.github.tmonk/mcp-stata",
+      "version": "1.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tmonk%2Fmcp-stata/versions/1.0.3",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ArkTechNWA-zsh-tool",
+      "registryName": "io.github.ArkTechNWA/zsh-tool",
+      "version": "0.2.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ArkTechNWA%2Fzsh-tool/versions/0.2.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-alex-feel-mcp-context-server",
+      "registryName": "io.github.alex-feel/mcp-context-server",
+      "version": "0.2.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.alex-feel%2Fmcp-context-server/versions/0.2.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-egoughnour-massive-context-mcp",
+      "registryName": "io.github.egoughnour/massive-context-mcp",
+      "version": "3.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/3.0.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-egoughnour-code-firewall-mcp",
+      "registryName": "io.github.egoughnour/code-firewall-mcp",
+      "version": "0.7.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcode-firewall-mcp/versions/0.7.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-egoughnour-cowork-history",
+      "registryName": "io.github.egoughnour/cowork-history",
+      "version": "4.0.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fcowork-history/versions/4.0.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-ChengJiale150-jupyter-mcp-server",
+      "registryName": "io.github.ChengJiale150/jupyter-mcp-server",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ChengJiale150%2Fjupyter-mcp-server/versions/1.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Defenter-AI-defenter-proxy",
+      "registryName": "io.github.Defenter-AI/defenter-proxy",
+      "version": "0.0.95",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Defenter-AI%2Fdefenter-proxy/versions/0.0.95",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-gattjoe-ACMS",
+      "registryName": "io.github.gattjoe/ACMS",
+      "version": "0.0.7",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gattjoe%2FACMS/versions/0.0.7",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-leshchenko1979-fast-mcp-telegram",
+      "registryName": "io.github.leshchenko1979/fast-mcp-telegram",
+      "version": "0.4.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.leshchenko1979%2Ffast-mcp-telegram/versions/0.4.5",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-augmnt-augments-mcp-server",
+      "registryName": "io.github.augmnt/augments-mcp-server",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augmnt%2Faugments-mcp-server/versions/1.0.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ScrapeGraphAI-scrapegraph-mcp",
+      "registryName": "io.github.ScrapeGraphAI/scrapegraph-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ScrapeGraphAI%2Fscrapegraph-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-universalamateur-reclaim-mcp-server",
+      "registryName": "io.github.universalamateur/reclaim-mcp-server",
+      "version": "0.9.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.universalamateur%2Freclaim-mcp-server/versions/0.9.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-MervinPraison-praisonai",
+      "registryName": "io.github.MervinPraison/praisonai",
+      "version": "2.3.42",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MervinPraison%2Fpraisonai/versions/2.3.42",
+      "canTest": false
+    },
+    {
+      "serverName": "com-stackhawk-stackhawk",
+      "registryName": "com.stackhawk/stackhawk",
+      "version": "1.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/com.stackhawk%2Fstackhawk/versions/1.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-nickzren-opentargets",
+      "registryName": "io.github.nickzren/opentargets",
+      "version": "0.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nickzren%2Fopentargets/versions/0.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-Ansvar-Systems-security-controls",
+      "registryName": "io.github.Ansvar-Systems/security-controls",
+      "version": "0.3.4",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Ansvar-Systems%2Fsecurity-controls/versions/0.3.4",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-KevinRabun-FedRAMP20xMCP",
+      "registryName": "io.github.KevinRabun/FedRAMP20xMCP",
+      "version": "1.1.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KevinRabun%2FFedRAMP20xMCP/versions/1.1.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-religa-multi-mcp",
+      "registryName": "io.github.religa/multi-mcp",
+      "version": "0.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.religa%2Fmulti-mcp/versions/0.1.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-nigue3025-tw-cwa-weather-mcp",
+      "registryName": "io.github.nigue3025/tw-cwa-weather-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nigue3025%2Ftw-cwa-weather-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-cdnsteve-sugar",
+      "registryName": "io.github.cdnsteve/sugar",
+      "version": "3.4.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cdnsteve%2Fsugar/versions/3.4.2",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-tm42-mnemograph",
+      "registryName": "io.github.tm42/mnemograph",
+      "version": "0.4.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tm42%2Fmnemograph/versions/0.4.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-domdomegg-time-mcp-pypi",
+      "registryName": "io.github.domdomegg/time-mcp-pypi",
+      "version": "1.1.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.domdomegg%2Ftime-mcp-pypi/versions/1.1.1",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-saucelabs-sample-test-frameworks-sauce-api-mcp",
+      "registryName": "io.github.saucelabs-sample-test-frameworks/sauce-api-mcp",
+      "version": "1.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.saucelabs-sample-test-frameworks%2Fsauce-api-mcp/versions/1.0.0",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-stefanstranger-avm-mcp-server",
+      "registryName": "io.github.stefanstranger/avm-mcp-server",
+      "version": "0.1.5",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanstranger%2Favm-mcp-server/versions/0.1.5",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-sharebook-kr-pykrx-mcp",
+      "registryName": "io.github.sharebook-kr/pykrx-mcp",
+      "version": "0.1.3",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sharebook-kr%2Fpykrx-mcp/versions/0.1.3",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-MusaddiqueHussainLabs-mhlabs_mcp_tools",
+      "registryName": "io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools",
+      "version": "2.0.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MusaddiqueHussainLabs%2Fmhlabs_mcp_tools/versions/2.0.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-gauravfs-14-lit-mcp",
+      "registryName": "io.github.gauravfs-14/lit-mcp",
+      "version": "0.1.9",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gauravfs-14%2Flit-mcp/versions/0.1.9",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-michael-denyer-hot-memory-mcp",
+      "registryName": "io.github.michael-denyer/hot-memory-mcp",
+      "version": "0.5.10",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.michael-denyer%2Fhot-memory-mcp/versions/0.5.10",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-habedi-omni-lpr",
+      "registryName": "io.github.habedi/omni-lpr",
+      "version": "0.3.2",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.habedi%2Fomni-lpr/versions/0.3.2",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-tdnupe3-coinrailz",
+      "registryName": "io.github.tdnupe3/coinrailz",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.tdnupe3%2Fcoinrailz/versions/1.0.1",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-vishalsachdev-canvas-mcp",
+      "registryName": "io.github.vishalsachdev/canvas-mcp",
+      "version": "1.0.6",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vishalsachdev%2Fcanvas-mcp/versions/1.0.6",
+      "canTest": false
+    },
+    {
+      "serverName": "io-github-ggozad-haiku-rag",
+      "registryName": "io.github.ggozad/haiku-rag",
+      "version": "0.16.0",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ggozad%2Fhaiku-rag/versions/0.16.0",
+      "canTest": true
+    },
+    {
+      "serverName": "io-github-pedro-rivas-android-puppeteer-mcp",
+      "registryName": "io.github.pedro-rivas/android-puppeteer-mcp",
+      "version": "1.0.1",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pedro-rivas%2Fandroid-puppeteer-mcp/versions/1.0.1",
+      "canTest": false
+    }
+  ]
+}

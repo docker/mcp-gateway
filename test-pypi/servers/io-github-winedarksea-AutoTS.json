@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.winedarksea%2FAutoTS/versions/1.0.1",
+  "serverName": "io-github-winedarksea-AutoTS",
+  "registryName": "io.github.winedarksea/AutoTS",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

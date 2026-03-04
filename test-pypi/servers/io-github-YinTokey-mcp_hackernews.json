@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YinTokey%2Fmcp_hackernews/versions/0.1.1",
+  "serverName": "io-github-YinTokey-mcp_hackernews",
+  "registryName": "io.github.YinTokey/mcp_hackernews",
+  "version": "0.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

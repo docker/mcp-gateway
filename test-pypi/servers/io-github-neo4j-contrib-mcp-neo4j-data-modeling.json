@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-data-modeling/versions/0.8.2",
+  "serverName": "io-github-neo4j-contrib-mcp-neo4j-data-modeling",
+  "registryName": "io.github.neo4j-contrib/mcp-neo4j-data-modeling",
+  "version": "0.8.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "NEO4J_NAMESPACE": "neo4j"
+  },
+  "services": []
+}

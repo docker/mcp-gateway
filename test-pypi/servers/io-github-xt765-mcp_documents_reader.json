@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.xt765%2Fmcp_documents_reader/versions/1.0.3",
+  "serverName": "io-github-xt765-mcp_documents_reader",
+  "registryName": "io.github.xt765/mcp_documents_reader",
+  "version": "1.0.3",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

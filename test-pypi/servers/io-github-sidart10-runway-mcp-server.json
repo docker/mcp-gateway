@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sidart10%2Frunway-mcp-server/versions/0.1.0",
+  "serverName": "io-github-sidart10-runway-mcp-server",
+  "registryName": "io.github.sidart10/runway-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires RUNWAY_API_KEY (paid API key from dev.runwayml.com) which is a secret cloud/SaaS credential that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

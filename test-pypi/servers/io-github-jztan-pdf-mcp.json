@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jztan%2Fpdf-mcp/versions/1.1.1",
+  "serverName": "io-github-jztan-pdf-mcp",
+  "registryName": "io.github.jztan/pdf-mcp",
+  "version": "1.1.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

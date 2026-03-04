@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.augee99%2Fmcp-weather/versions/1.0.0",
+  "serverName": "io-github-augee99-mcp-weather",
+  "registryName": "io.github.augee99/mcp-weather",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

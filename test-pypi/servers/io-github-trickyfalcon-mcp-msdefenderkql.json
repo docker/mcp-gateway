@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-msdefenderkql/versions/1.0.0",
+  "serverName": "io-github-trickyfalcon-mcp-msdefenderkql",
+  "registryName": "io.github.trickyfalcon/mcp-msdefenderkql",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires Microsoft Defender API credentials (Azure AD tenant ID, client ID, client secret) to authenticate and execute KQL queries against Microsoft Defender Advanced Hunting. These are paid/cloud SaaS credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

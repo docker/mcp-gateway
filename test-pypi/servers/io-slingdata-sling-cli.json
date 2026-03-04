@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.slingdata%2Fsling-cli/versions/1.4.23",
+  "serverName": "io-slingdata-sling-cli",
+  "registryName": "io.slingdata/sling-cli",
+  "version": "1.4.23",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

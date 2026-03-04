@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bunnyf%2Fkicad-mcp-server/versions/3.5.0",
+  "serverName": "io-github-bunnyf-kicad-mcp-server",
+  "registryName": "io.github.bunnyf/kicad-mcp-server",
+  "version": "3.5.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

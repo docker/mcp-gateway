@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.therealtimex%2Fun-datacommons-mcp/versions/1.0.1",
+  "serverName": "io-github-therealtimex-un-datacommons-mcp",
+  "registryName": "io.github.therealtimex/un-datacommons-mcp",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires DC_API_KEY (Data Commons API key from apikeys.datacommons.org) which is a paid/external API key we cannot provide",
+  "config": {},
+  "services": []
+}

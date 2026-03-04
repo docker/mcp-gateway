@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gradion-ai%2Fipybox/versions/0.6.3",
+  "serverName": "io-github-gradion-ai-ipybox",
+  "registryName": "io.github.gradion-ai/ipybox",
+  "version": "0.6.3",
+  "canTest": false,
+  "skipReason": "Requires Docker daemon/socket access to create sandboxed execution containers; not available from within the MCP gateway container",
+  "config": {},
+  "services": []
+}

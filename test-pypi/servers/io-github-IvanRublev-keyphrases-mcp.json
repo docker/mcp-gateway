@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.IvanRublev%2Fkeyphrases-mcp/versions/0.0.4",
+  "serverName": "io-github-IvanRublev-keyphrases-mcp",
+  "registryName": "io.github.IvanRublev/keyphrases-mcp",
+  "version": "0.0.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

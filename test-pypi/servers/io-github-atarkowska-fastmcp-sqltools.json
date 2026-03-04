@@ -1,0 +1,11 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.atarkowska%2Ffastmcp-sqltools/versions/0.3.0",
+  "serverName": "io-github-atarkowska-fastmcp-sqltools",
+  "registryName": "io.github.atarkowska/fastmcp-sqltools",
+  "version": "0.3.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": [],
+  "analysisError": "spawnSync /bin/sh ETIMEDOUT"
+}

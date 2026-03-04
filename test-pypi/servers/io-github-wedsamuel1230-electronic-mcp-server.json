@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wedsamuel1230%2Felectronic-mcp-server/versions/1.0.1",
+  "serverName": "io-github-wedsamuel1230-electronic-mcp-server",
+  "registryName": "io.github.wedsamuel1230/electronic-mcp-server",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Murugarajr%2Fohm-mcp/versions/1.0.1",
+  "serverName": "io-github-Murugarajr-ohm-mcp",
+  "registryName": "io.github.Murugarajr/ohm-mcp",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

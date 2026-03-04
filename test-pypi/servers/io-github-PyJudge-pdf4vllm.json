@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PyJudge%2Fpdf4vllm/versions/1.0.2",
+  "serverName": "io-github-PyJudge-pdf4vllm",
+  "registryName": "io.github.PyJudge/pdf4vllm",
+  "version": "1.0.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

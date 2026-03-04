@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-mcp-server/versions/0.3.1",
+  "serverName": "io-github-signnow-sn-mcp-server",
+  "registryName": "io.github.signnow/sn-mcp-server",
+  "version": "0.3.1",
+  "canTest": false,
+  "skipReason": "SignNow MCP Server requires SignNow API credentials (API key, OAuth token, or client ID/secret) to connect to the SignNow eSignature SaaS platform. These are paid/cloud service credentials that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

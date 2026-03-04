@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fcontext-lens/versions/0.1.5",
+  "serverName": "io-github-cornelcroi-context-lens",
+  "registryName": "io.github.cornelcroi/context-lens",
+  "version": "0.1.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

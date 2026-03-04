@@ -1,0 +1,507 @@
+[
+  {
+    "name": "aws.api.us-east-1.eks-mcp/server@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires valid AWS credentials and access to the Amazon EKS MCP cloud service endpoint (https://eks-mcp.us-east-1.api.aws/mcp). This is a SaaS/cloud API that cannot be replicated locally."
+  },
+  {
+    "name": "com.allstacks/allstacks-mcp@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Allstacks MCP server requires access to the Allstacks API, which is a paid SaaS engineering intelligence platform. No API key or credentials can be provided for testing."
+  },
+  {
+    "name": "com.files/python-mcp@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires FILES_COM_API_KEY, a paid/cloud SaaS API key for Files.com that cannot be provided locally"
+  },
+  {
+    "name": "com.kekwanu/syncline-mcp-server-python@1.0.35",
+    "category": "api_key_required",
+    "skip_reason": "Requires SYNCLINE_API_KEY from https://syncline.run/developer (paid/cloud SaaS API key that cannot be provided locally)"
+  },
+  {
+    "name": "com.opsmill/infrahub-mcp@0.1.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires INFRAHUB_API_TOKEN (secret) for authentication with an Infrahub instance, which is a commercial/self-hosted infrastructure management platform that cannot be trivially spun up as a local backing service"
+  },
+  {
+    "name": "io.github.Defenter-AI/defenter-proxy@0.0.95",
+    "category": "api_key_required",
+    "skip_reason": "Defenter Proxy is a security proxy service that likely requires authentication/API keys to connect to the Defenter AI platform. No environment variables are documented in the registry entry, but the service description ('Real-time semantic security for AI coding agents') implies it needs to communicate with Defenter AI's cloud infrastructure, which would require credentials we cannot provide."
+  },
+  {
+    "name": "io.github.Dewars30/fulcrum@1.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Fulcrum gRPC API endpoint and tenant ID. Fulcrum is a SaaS/cloud governance platform with no publicly available local server image to run as a backing service."
+  },
+  {
+    "name": "io.github.DiaaAj/a-mem-mcp@0.1.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires OPENAI_API_KEY (secret, paid API key) with no local-only LLM backend that works out of the box without additional setup"
+  },
+  {
+    "name": "io.github.Inflectra/mcp-server-spira@1.1.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires Inflectra Spira SaaS credentials (INFLECTRA_SPIRA_BASE_URL, INFLECTRA_SPIRA_USERNAME, INFLECTRA_SPIRA_API_KEY) which are paid/cloud service credentials that cannot be provided locally"
+  },
+  {
+    "name": "io.github.KittyCAD/zoo-mcp@0.9.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires ZOO_TOKEN (Zoo API key) which is a paid/cloud SaaS credential obtained from https://zoo.dev/account/developer"
+  },
+  {
+    "name": "io.github.KuudoAI/amazon_ads_mcp@0.2.6",
+    "category": "api_key_required",
+    "skip_reason": "Requires Amazon Ads API credentials (client ID, client secret, refresh token) or Openbridge API credentials, which are paid/cloud SaaS services that cannot be provisioned locally."
+  },
+  {
+    "name": "io.github.MCPower-Security/mcpower-proxy@0.0.90",
+    "category": "api_key_required",
+    "skip_reason": "MCPower Security Proxy requires wrapping another MCP server and likely needs an API key or account with the MCPower Security service for monitoring and policy enforcement. It acts as a proxy layer, not a standalone MCP server with its own tools."
+  },
+  {
+    "name": "io.github.MauroDruwel/smartschool-mcp@0.1.4",
+    "category": "api_key_required",
+    "skip_reason": "Smartschool MCP server requires authentication credentials (Smartschool platform URL, username, and password) to connect to a Smartschool instance, which is a paid/institutional SaaS platform. Cannot test without valid Smartschool account credentials."
+  },
+  {
+    "name": "io.github.MervinPraison/praisonai@2.3.42",
+    "category": "api_key_required",
+    "skip_reason": "PraisonAI is an AI Agents framework that requires LLM API keys (e.g., OPENAI_API_KEY) to function. Without a valid paid API key, the server cannot operate."
+  },
+  {
+    "name": "io.github.NeerajG03/vector-memory@0.2.0",
+    "category": "api_key_required",
+    "skip_reason": "Likely requires an OpenAI API key (or similar embedding service API key) for generating semantic vector embeddings"
+  },
+  {
+    "name": "io.github.NitishGourishetty/contextual-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Contextual AI API key (API_KEY) which is a paid/cloud SaaS credential that cannot be provided locally"
+  },
+  {
+    "name": "io.github.PrefectHQ/prefect-mcp-server@0.0.1-beta.9",
+    "category": "api_key_required",
+    "skip_reason": "Prefect MCP server requires a connection to a Prefect server or Prefect Cloud instance. Prefect Cloud requires an API key (PREFECT_API_KEY) and API URL (PREFECT_API_URL) which are paid/cloud services. While a local Prefect server could theoretically be run, the prefect-mcp package likely requires specific Prefect server APIs and configuration that make reliable automated testing impractical without a properly initialized Prefect instance with workflows and deployments."
+  },
+  {
+    "name": "io.github.ScrapeGraphAI/scrapegraph-mcp@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires SGAI_API_KEY (ScapeGraph API key) which is a paid/cloud SaaS API key that cannot be provided locally"
+  },
+  {
+    "name": "io.github.SnowLeopard-AI/bigquery-mcp@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires Google Cloud credentials and a BigQuery project to access. The server connects to Google BigQuery, which is a paid cloud/SaaS service requiring GCP authentication (service account key or OAuth) that cannot be provided in a local test environment."
+  },
+  {
+    "name": "io.github.Snowflake-Labs/mcp@1.3.3",
+    "category": "api_key_required",
+    "skip_reason": "Snowflake MCP server requires a Snowflake cloud account with credentials (SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD). Snowflake is a paid SaaS platform that cannot be emulated with local backing services."
+  },
+  {
+    "name": "io.github.abhichandra21/promptheus@0.3.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires at least one LLM provider API key (Google Gemini, Anthropic, OpenAI, Groq, Qwen, or GLM) - all are paid/cloud SaaS secrets that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.abhishekbhakat/airflow-mcp-server@0.9.0",
+    "category": "api_key_required",
+    "skip_reason": "AUTH_TOKEN is a required secret (JWT token) that must be dynamically obtained from a running Airflow instance. Even with a local Airflow backing service, the JWT token cannot be statically pre-configured and requires an authentication flow against the running instance to generate."
+  },
+  {
+    "name": "io.github.ai-mcpower/mcpower-proxy@0.0.87",
+    "category": "api_key_required",
+    "skip_reason": "MCPower Security Proxy wraps other MCP servers with monitoring and policy enforcement. It requires configuration of a downstream MCP server to proxy, and likely needs an API key or account for the MCPower security platform. Cannot test in isolation without these dependencies."
+  },
+  {
+    "name": "io.github.aikts/yandex-tracker-mcp@0.5.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Yandex Tracker API token/OAuth token to authenticate with the Yandex Tracker cloud service. This is a paid/cloud SaaS API that cannot be replicated locally."
+  },
+  {
+    "name": "io.github.akougkas/zulipchat@0.4.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Zulip API key (ZULIP_API_KEY marked as secret) and access to a Zulip server instance. Zulip is a SaaS/self-hosted service requiring valid credentials that cannot be provisioned automatically for testing."
+  },
+  {
+    "name": "io.github.appwrite/mcp-for-api@0.2.8",
+    "category": "api_key_required",
+    "skip_reason": "Requires an Appwrite API key and project ID generated from a running Appwrite instance. While Appwrite is self-hostable, it requires a complex multi-service stack (MariaDB, Redis, Appwrite core, etc.) and the API key must be created interactively through the Appwrite console."
+  },
+  {
+    "name": "io.github.aringad/fattureincloud-mcp@1.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires FIC_ACCESS_TOKEN (Fatture in Cloud API access token), which is a paid/cloud SaaS API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/argocd-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires ARGOCD_API_KEY (secret, paid/self-hosted ArgoCD instance) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/azure-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires Azure cloud credentials (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID) for Azure API integration. These are paid/cloud service credentials that cannot be provided locally."
+  },
+  {
+    "name": "io.github.asklokesh/chanty-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires CHANTY_API_KEY (a paid/cloud SaaS API key) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/freshbooks-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires FRESHBOOKS_API_KEY which is a paid/cloud SaaS API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/harness-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires HARNESS_API_KEY (a paid/cloud SaaS API key for Harness CI/CD platform) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/hootsuite-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires HOOTSUITE_API_KEY which is a paid/cloud SaaS API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/mailchimp-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires MAILCHIMP_API_KEY which is a paid/SaaS API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/powerbi-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires POWERBI_API_KEY which is a paid/cloud SaaS API key for Microsoft Power BI that cannot be provided locally"
+  },
+  {
+    "name": "io.github.asklokesh/quickbooks-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires QUICKBOOKS_API_KEY which is a paid/cloud SaaS API key for QuickBooks that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/rancher-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires RANCHER_API_KEY (a paid/cloud SaaS API key for Rancher) which cannot be provided in a local test environment"
+  },
+  {
+    "name": "io.github.asklokesh/rundeck-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires RUNDECK_API_KEY (a secret API key) for Rundeck API integration. Rundeck is a self-hosted or SaaS service that requires authentication, and the API key cannot be generated automatically for testing."
+  },
+  {
+    "name": "io.github.asklokesh/servicenow-mcp-server@0.1.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires SERVICENOW_API_KEY (a paid/cloud SaaS API key for ServiceNow) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/tableau-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires TABLEAU_API_KEY (a paid/cloud SaaS API key for Tableau) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/uipath-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires UIPATH_API_KEY (secret, paid/cloud SaaS API key) for UiPath API integration that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.asklokesh/xero-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires XERO_API_KEY which is a paid/cloud SaaS API key for the Xero accounting platform that cannot be provided locally"
+  },
+  {
+    "name": "io.github.augmnt/augments-mcp-server@1.0.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires YOUR_API_KEY (secret, required) - this is a paid/cloud API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.aws/mcp-proxy-for-aws@1.0.0-preview.0",
+    "category": "api_key_required",
+    "skip_reason": "AWS MCP Server requires valid AWS credentials and connects to AWS cloud API endpoint (https://aws-mcp.us-east-1.api.aws/mcp). Cannot test without AWS account credentials."
+  },
+  {
+    "name": "io.github.burningion/video-editing-mcp@1.0.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires VJ_API_KEY (Video Jungle API key) which is a paid/cloud SaaS credential obtained from https://www.video-jungle.com/user/settings"
+  },
+  {
+    "name": "io.github.byteplant-dev/byteplant-mcp@1.0.0.post2",
+    "category": "api_key_required",
+    "skip_reason": "All environment variables (EV_TOKEN, AV_TOKEN, PV_TOKEN) are secret API tokens for Byteplant's paid Email, Phone, and Address Validation SaaS services. No local backing services can substitute for these."
+  },
+  {
+    "name": "io.github.cdnsteve/sugar@3.4.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires ANTHROPIC_API_KEY (paid API key) and GITHUB_TOKEN (authentication token) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.context-foundry/context-foundry@2.2.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires ANTHROPIC_API_KEY (paid SaaS API key) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.crypto-ninja/github-mcp-server@2.5.7",
+    "category": "api_key_required",
+    "skip_reason": "Requires a GitHub personal access token (GITHUB_TOKEN) to interact with the GitHub API. This is a cloud/SaaS API key that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.cyntrisec/cyntrisec@0.1.10",
+    "category": "api_key_required",
+    "skip_reason": "Requires AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) or a configured AWS_PROFILE to authenticate with AWS for security analysis. These are cloud/SaaS credentials that cannot be provided locally."
+  },
+  {
+    "name": "io.github.esrisaudiarabia/arcgis-mcp-server@1.1.4",
+    "category": "api_key_required",
+    "skip_reason": "Requires ArcGIS Portal credentials (ARCGIS_URL, ARCGIS_USERNAME, ARCGIS_PASSWORD) for a cloud/enterprise ArcGIS service that cannot be provisioned locally"
+  },
+  {
+    "name": "io.github.futuresearch/everyrow-mcp@0.1.9",
+    "category": "api_key_required",
+    "skip_reason": "Requires EVERYROW_API_KEY, a paid/cloud API key from https://everyrow.io/api-key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.gjeltep/app-store-connect-mcp@0.3.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires Apple App Store Connect API credentials (APP_STORE_KEY_ID, APP_STORE_ISSUER_ID, and a .p8 private key file) which are paid/proprietary credentials that cannot be provisioned locally"
+  },
+  {
+    "name": "io.github.major/porkbun@1.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires PORKBUN_API_KEY and PORKBUN_SECRET_KEY which are paid/cloud API credentials for the Porkbun DNS service that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.manoharanRajesh/python-version@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires YOUR_API_KEY (secret, required) - appears to be a paid/external API key that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.matjmat/eulerian-marketing-platform-mcp@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires EMP_API_TOKEN (a secret API key for the Eulerian Marketing Platform SaaS service) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.neo4j-contrib/mcp-neo4j-aura-manager@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires NEO4J_AURA_CLIENT_ID and NEO4J_AURA_CLIENT_SECRET which are paid/cloud API credentials for Neo4j Aura cloud service that cannot be provided locally"
+  },
+  {
+    "name": "io.github.nigue3025/tw-cwa-weather-mcp@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Taiwan Central Weather Administration (CWA) API key from opendata.cwa.gov.tw, which requires free registration that cannot be automated"
+  },
+  {
+    "name": "io.github.nirholas/abi-to-mcp@0.1.0-1",
+    "category": "api_key_required",
+    "skip_reason": "Requires ETHERSCAN_API_KEY (paid/free-tier API key from Etherscan) and WEB3_PROVIDER_URL (Ethereum JSON-RPC endpoint, typically from a paid provider like Infura/Alchemy). These are external SaaS credentials that cannot be provided locally."
+  },
+  {
+    "name": "io.github.nk3750/jitapi@0.1.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.nowledge-co/server.json@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Nowledge Mem is a cloud/SaaS memory service that requires Nowledge API credentials to authenticate. No environment variables are specified in the registry entry, but the service cannot function without valid Nowledge account authentication."
+  },
+  {
+    "name": "io.github.religa/multi-mcp@0.1.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires at least one AI provider API key (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY) - all are paid/cloud SaaS services that cannot be provided locally"
+  },
+  {
+    "name": "io.github.ryanmat/logicmonitor@1.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires LM_BEARER_TOKEN (LogicMonitor API Bearer token) and LM_PORTAL (LogicMonitor portal hostname) which are paid/cloud SaaS credentials that cannot be provided locally."
+  },
+  {
+    "name": "io.github.signnow/sn-mcp-server@0.3.1",
+    "category": "api_key_required",
+    "skip_reason": "SignNow MCP Server requires SignNow API credentials (API key, OAuth token, or client ID/secret) to connect to the SignNow eSignature SaaS platform. These are paid/cloud service credentials that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.silversurfer562/memdocs@2.1.4",
+    "category": "api_key_required",
+    "skip_reason": "Requires ANTHROPIC_API_KEY (marked as required and secret) for Claude AI operations (summarization, analysis). This is a paid SaaS API key that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.stevenvo/slack-mcp-server@0.1.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires Slack OAuth tokens (SLACK_USER_TOKEN or SLACK_BOT_TOKEN) which are secret API credentials from a Slack workspace that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.surendranb/google-analytics-mcp@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires YOUR_API_KEY (Google Analytics API key) which is a secret/paid API credential that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.tdnupe3/coinrailz@1.0.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires COINRAILZ_API_KEY (a paid/SaaS API key) for authenticated access to crypto micropayment services. This is a secret environment variable that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.tedfytw1209/mcp-server-EVEfleet@1.0.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires YOUR_API_KEY (secret) for EVE Online API access - this is a paid/cloud API key we cannot provide"
+  },
+  {
+    "name": "io.github.therealtimex/browser-use@0.7.10.dev5",
+    "category": "api_key_required",
+    "skip_reason": "Requires OPENAI_API_KEY (paid SaaS API key) which cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.therealtimex/un-datacommons-mcp@1.0.1",
+    "category": "api_key_required",
+    "skip_reason": "Requires DC_API_KEY (Data Commons API key from apikeys.datacommons.org) which is a paid/external API key we cannot provide"
+  },
+  {
+    "name": "io.github.tspicer/amazon_ads_mcp@0.2.4",
+    "category": "api_key_required",
+    "skip_reason": "Requires Amazon Ads API credentials (client ID, client secret, refresh token) or Openbridge API credentials, which are paid/cloud SaaS services that cannot be provided locally."
+  },
+  {
+    "name": "io.github.vishalsachdev/canvas-mcp@1.0.6",
+    "category": "api_key_required",
+    "skip_reason": "Requires Canvas LMS API credentials (CANVAS_API_TOKEN and CANVAS_BASE_URL) to connect to a Canvas LMS instance, which is a paid/institutional SaaS platform"
+  },
+  {
+    "name": "io.github.vulnersCom/vulners-mcp@1.0.3",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Vulners.com API key to access the vulnerability database API. This is an external SaaS service with no local substitute."
+  },
+  {
+    "name": "io.github.wmarceau/amazon-seller@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires Amazon SP-API credentials (AMAZON_REFRESH_TOKEN, AMAZON_LWA_APP_ID, AMAZON_LWA_CLIENT_SECRET) which are paid/cloud API keys that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.github.wmarceau/fitness-influencer@1.3.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires XAI_API_KEY (paid xAI/Grok API) and GOOGLE_CREDENTIALS_PATH (Google OAuth credentials) which are external paid/cloud services that cannot be provided locally."
+  },
+  {
+    "name": "io.github.xcollantes/jira-mcp@0.2.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires JIRA_API_TOKEN (secret) to authenticate with a Jira cloud/server instance. This is a paid/cloud SaaS credential that cannot be provided in a local test environment."
+  },
+  {
+    "name": "io.github.xorrkaz/cml-mcp@0.24.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires a Cisco Modeling Labs (CML) server instance with valid credentials (CML_URL, CML_USERNAME, CML_PASSWORD). CML is a paid Cisco product/service that cannot be substituted with a local backing service."
+  },
+  {
+    "name": "io.github.zhongweili/nanobanana-mcp-server@1.0.0",
+    "category": "api_key_required",
+    "skip_reason": "Requires GEMINI_API_KEY (Google Gemini API key) which is a paid/cloud API secret that cannot be provided in a test environment"
+  },
+  {
+    "name": "io.oxylabs/oxylabs-mcp@0.7.2",
+    "category": "api_key_required",
+    "skip_reason": "Requires Oxylabs API credentials (OXYLABS_USERNAME, OXYLABS_PASSWORD, or OXYLABS_AI_STUDIO_API_KEY) which are paid SaaS service secrets that cannot be provided in a test environment."
+  },
+  {
+    "name": "io.github.CursorTouch/Windows-MCP@1.0.0",
+    "category": "hardware_required",
+    "skip_reason": "This MCP server is designed for Windows OS computer-use (controlling Windows desktop, mouse, keyboard). It requires a Windows environment to function and cannot work in a Docker container on macOS."
+  },
+  {
+    "name": "io.github.ReGenNow/regennexus-mcp@0.1.1",
+    "category": "hardware_required",
+    "skip_reason": "Server controls physical hardware (GPIO, robotics, sensors, cameras). Requires actual hardware devices connected to function meaningfully. Cannot test in a containerized environment without physical IoT hardware."
+  },
+  {
+    "name": "io.github.cyberpapiii/imessage-max@0.1.1",
+    "category": "hardware_required",
+    "skip_reason": "Requires macOS iMessage/Messages.app access and the local chat.db SQLite database, which is not available inside a Docker container"
+  },
+  {
+    "name": "io.github.easytocloud/mac-letterhead@0.13.9",
+    "category": "hardware_required",
+    "skip_reason": "This server is a macOS-specific professional letterhead PDF generator that requires macOS system features and local file system access for letterhead templates and PDF generation. It cannot run meaningfully in a Docker container."
+  },
+  {
+    "name": "io.github.gattjoe/ACMS@0.0.7",
+    "category": "hardware_required",
+    "skip_reason": "Apple Container MCP Server requires macOS with Apple's container CLI tool installed on the host. It cannot run inside a Docker container as it needs direct access to Apple's virtualization framework."
+  },
+  {
+    "name": "io.github.huoshuiai42/huoshui-file-search@1.0.0",
+    "category": "hardware_required",
+    "skip_reason": "This MCP server provides macOS Spotlight file search capabilities, which requires access to the macOS Spotlight index (mdfind). This cannot work inside a Docker container as Spotlight is a macOS-specific system service not available in Linux containers."
+  },
+  {
+    "name": "io.github.pedro-rivas/android-puppeteer-mcp@1.0.1",
+    "category": "hardware_required",
+    "skip_reason": "Requires a physical or emulated Android device connected via ADB. The server automates Android UI interactions, screenshots, and device control, which cannot be provided by a simple backing service container."
+  },
+  {
+    "name": "io.github.svnscha/mcp-windbg@0.2.3",
+    "category": "hardware_required",
+    "skip_reason": "Requires Windows with WinDBG/CDB installed for crash dump analysis. Cannot run in a Linux/macOS Docker container."
+  },
+  {
+    "name": "io.github.verygoodplugins/streamdeck-mcp@0.1.2",
+    "category": "hardware_required",
+    "skip_reason": "Requires a physical Elgato Stream Deck device connected to the host. The MCP server controls Stream Deck hardware (set buttons, manage pages, wire actions) which cannot be emulated with backing services."
+  },
+  {
+    "name": "io.github.vladkarpman/device-manager-mcp@1.0.7",
+    "category": "hardware_required",
+    "skip_reason": "Requires a physical Android device connected via ADB and scrcpy installed on the host. Cannot be tested in a purely containerized environment."
+  },
+  {
+    "name": "io.github.vladkarpman/screen-buffer-mcp@2.1.0",
+    "category": "hardware_required",
+    "skip_reason": "Requires a physical Android device connected via ADB and scrcpy running locally to capture screen frames. Cannot be tested with only local backing services."
+  },
+  {
+    "name": "io.github.AdonaiVera/fiftyone-mcp-server@0.1.2",
+    "category": "other",
+    "skip_reason": "FiftyOne MCP server requires a running FiftyOne application/service with MongoDB backend and dataset storage. FiftyOne is a complex computer vision platform that cannot be trivially spun up as a backing service in a test environment."
+  },
+  {
+    "name": "io.github.BarhamAgha1/bridge-mcp@1.1.3",
+    "category": "other",
+    "skip_reason": "This server requires a Windows desktop environment to automate apps and inputs. It cannot run in a headless Docker container."
+  },
+  {
+    "name": "io.github.asklokesh/zoho-crm-mcp-server@0.1.0",
+    "category": "other",
+    "skip_reason": "Failed to fetch registry: Failed to fetch https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fzoho-crm-m"
+  },
+  {
+    "name": "io.github.geored/lumino@0.9.2",
+    "category": "other",
+    "skip_reason": "Requires a running Kubernetes/OpenShift cluster with KUBECONFIG access. Cannot provision a real K8s cluster as a backing service in a simple Docker test environment."
+  },
+  {
+    "name": "io.github.gersonfreire/simpliq-server@0.1.1",
+    "category": "other",
+    "skip_reason": "Server connects LLMs to SQL databases via semantic mapping and likely requires database connection configuration and semantic mapping setup. Unable to verify exact required environment variables from repository. Without knowing the specific config env vars (database URL, mapping config), the server cannot be reliably tested."
+  },
+  {
+    "name": "io.github.gradion-ai/ipybox@0.6.3",
+    "category": "other",
+    "skip_reason": "Requires Docker daemon/socket access to create sandboxed execution containers; not available from within the MCP gateway container"
+  },
+  {
+    "name": "io.github.johnzfitch/pyghidra-lite@0.1.1",
+    "category": "other",
+    "skip_reason": "Requires GHIDRA_INSTALL_DIR pointing to a local Ghidra installation. Ghidra is a large (~1GB) reverse engineering tool from the NSA that must be downloaded and installed separately, and there is no standard lightweight Docker image available to provide it as a backing service."
+  },
+  {
+    "name": "io.github.lars20070/mathematica-mcp@0.1.6",
+    "category": "other",
+    "skip_reason": "Requires WolframScript/Mathematica to be installed, which is a paid commercial product requiring a license"
+  },
+  {
+    "name": "io.github.raisiqueira/django-telescope@0.1.2",
+    "category": "other",
+    "skip_reason": "Requires DJANGO_SETTINGS_MODULE pointing to a valid Django project's settings module. Cannot function without an actual Django application configured with django-telescope installed."
+  },
+  {
+    "name": "io.github.robotmcp/ros-mcp-server@2.2.1",
+    "category": "other",
+    "skip_reason": "Requires a running ROS (Robot Operating System) environment with roscore/ros2 daemon, which cannot be provided as a simple backing service"
+  }
+]

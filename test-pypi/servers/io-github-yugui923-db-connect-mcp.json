@@ -1,0 +1,25 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yugui923%2Fdb-connect-mcp/versions/0.3.1",
+  "serverName": "io-github-yugui923-db-connect-mcp",
+  "registryName": "io.github.yugui923/db-connect-mcp",
+  "version": "0.3.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "DATABASE_URL": "postgresql+asyncpg://testuser:testpass@host.docker.internal:5432/testdb"
+  },
+  "services": [
+    {
+      "name": "postgres",
+      "image": "postgres:16",
+      "ports": [
+        "5432:5432"
+      ],
+      "env": {
+        "POSTGRES_USER": "testuser",
+        "POSTGRES_PASSWORD": "testpass",
+        "POSTGRES_DB": "testdb"
+      }
+    }
+  ]
+}

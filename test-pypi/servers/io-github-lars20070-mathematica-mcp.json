@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.lars20070%2Fmathematica-mcp/versions/0.1.6",
+  "serverName": "io-github-lars20070-mathematica-mcp",
+  "registryName": "io.github.lars20070/mathematica-mcp",
+  "version": "0.1.6",
+  "canTest": false,
+  "skipReason": "Requires WolframScript/Mathematica to be installed, which is a paid commercial product requiring a license",
+  "config": {},
+  "services": []
+}

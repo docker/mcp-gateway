@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zzstoatzz%2Ftangled-mcp/versions/0.0.10",
+  "serverName": "io-github-zzstoatzz-tangled-mcp",
+  "registryName": "io.github.zzstoatzz/tangled-mcp",
+  "version": "0.0.10",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

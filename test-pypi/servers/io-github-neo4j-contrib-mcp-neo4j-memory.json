@@ -1,0 +1,27 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/1.0.0",
+  "serverName": "io-github-neo4j-contrib-mcp-neo4j-memory",
+  "registryName": "io.github.neo4j-contrib/mcp-neo4j-memory",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "NEO4J_URI": "bolt://host.docker.internal:7687",
+    "NEO4J_USERNAME": "neo4j",
+    "NEO4J_PASSWORD": "testpassword123",
+    "NEO4J_DATABASE": "neo4j"
+  },
+  "services": [
+    {
+      "name": "neo4j",
+      "image": "neo4j:5",
+      "ports": [
+        "7687:7687",
+        "7474:7474"
+      ],
+      "env": {
+        "NEO4J_AUTH": "neo4j/testpassword123"
+      }
+    }
+  ]
+}

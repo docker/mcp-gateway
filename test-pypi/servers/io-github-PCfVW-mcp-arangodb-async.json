@@ -1,0 +1,26 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PCfVW%2Fmcp-arangodb-async/versions/0.5.4",
+  "serverName": "io-github-PCfVW-mcp-arangodb-async",
+  "registryName": "io.github.PCfVW/mcp-arangodb-async",
+  "version": "0.5.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "ARANGO_URL": "http://host.docker.internal:8529",
+    "ARANGO_DB": "_system",
+    "ARANGO_USERNAME": "root",
+    "ARANGO_PASSWORD": "testpassword"
+  },
+  "services": [
+    {
+      "name": "arangodb",
+      "image": "arangodb:3.12",
+      "ports": [
+        "8529:8529"
+      ],
+      "env": {
+        "ARANGO_ROOT_PASSWORD": "testpassword"
+      }
+    }
+  ]
+}

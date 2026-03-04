@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manusa%2Fpodman-mcp-server/versions/0.0.14",
+  "serverName": "io-github-manusa-podman-mcp-server",
+  "registryName": "io.github.manusa/podman-mcp-server",
+  "version": "0.0.14",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

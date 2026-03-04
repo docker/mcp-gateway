@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fbookmark-lens/versions/0.0.7",
+  "serverName": "io-github-cornelcroi-bookmark-lens",
+  "registryName": "io.github.cornelcroi/bookmark-lens",
+  "version": "0.0.7",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

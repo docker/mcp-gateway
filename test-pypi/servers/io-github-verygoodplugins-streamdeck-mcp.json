@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.verygoodplugins%2Fstreamdeck-mcp/versions/0.1.2",
+  "serverName": "io-github-verygoodplugins-streamdeck-mcp",
+  "registryName": "io.github.verygoodplugins/streamdeck-mcp",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "Requires a physical Elgato Stream Deck device connected to the host. The MCP server controls Stream Deck hardware (set buttons, manage pages, wire actions) which cannot be emulated with backing services.",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,24 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
+  "serverName": "io-github-major-pcp",
+  "registryName": "io.github.major/pcp",
+  "version": "1.3.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "PCP_HOST": "host.docker.internal",
+    "PCP_PORT": "44322",
+    "PCP_TARGET_HOST": "host.docker.internal"
+  },
+  "services": [
+    {
+      "name": "pcp",
+      "image": "performancecopilot/pcp:latest",
+      "ports": [
+        "44322:44322",
+        "44321:44321"
+      ],
+      "env": {}
+    }
+  ]
+}

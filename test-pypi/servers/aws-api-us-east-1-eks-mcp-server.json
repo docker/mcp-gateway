@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/aws.api.us-east-1.eks-mcp%2Fserver/versions/1.0.0",
+  "serverName": "aws-api-us-east-1-eks-mcp-server",
+  "registryName": "aws.api.us-east-1.eks-mcp/server",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires valid AWS credentials and access to the Amazon EKS MCP cloud service endpoint (https://eks-mcp.us-east-1.api.aws/mcp). This is a SaaS/cloud API that cannot be replicated locally.",
+  "config": {},
+  "services": []
+}

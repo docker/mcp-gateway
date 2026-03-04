@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fethereum-wallet-mcp/versions/1.0.0",
+  "serverName": "io-github-nirholas-ethereum-wallet-mcp",
+  "registryName": "io.github.nirholas/ethereum-wallet-mcp",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

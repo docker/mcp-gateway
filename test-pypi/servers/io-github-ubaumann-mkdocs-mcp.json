@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ubaumann%2Fmkdocs-mcp/versions/0.1.2",
+  "serverName": "io-github-ubaumann-mkdocs-mcp",
+  "registryName": "io.github.ubaumann/mkdocs-mcp",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "MKDOCS_PROJECT_PATH": "/work"
+  },
+  "services": []
+}

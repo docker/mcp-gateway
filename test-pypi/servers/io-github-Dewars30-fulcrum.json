@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Dewars30%2Ffulcrum/versions/1.1.0",
+  "serverName": "io-github-Dewars30-fulcrum",
+  "registryName": "io.github.Dewars30/fulcrum",
+  "version": "1.1.0",
+  "canTest": false,
+  "skipReason": "Requires a Fulcrum gRPC API endpoint and tenant ID. Fulcrum is a SaaS/cloud governance platform with no publicly available local server image to run as a backing service.",
+  "config": {},
+  "services": []
+}

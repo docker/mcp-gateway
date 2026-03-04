@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Anarkitty1%2Fsemantic-frame/versions/0.2.1",
+  "serverName": "io-github-Anarkitty1-semantic-frame",
+  "registryName": "io.github.Anarkitty1/semantic-frame",
+  "version": "0.2.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

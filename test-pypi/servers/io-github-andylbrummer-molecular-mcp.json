@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.andylbrummer%2Fmolecular-mcp/versions/0.1.6",
+  "serverName": "io-github-andylbrummer-molecular-mcp",
+  "registryName": "io.github.andylbrummer/molecular-mcp",
+  "version": "0.1.6",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

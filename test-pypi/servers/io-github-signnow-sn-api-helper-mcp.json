@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.signnow%2Fsn-api-helper-mcp/versions/0.1.1",
+  "serverName": "io-github-signnow-sn-api-helper-mcp",
+  "registryName": "io.github.signnow/sn-api-helper-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "SignNow is a cloud/SaaS e-signature platform requiring API credentials (API key, client ID, client secret, OAuth tokens) that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

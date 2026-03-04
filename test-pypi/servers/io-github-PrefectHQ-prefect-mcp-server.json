@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PrefectHQ%2Fprefect-mcp-server/versions/0.0.1-beta.9",
+  "serverName": "io-github-PrefectHQ-prefect-mcp-server",
+  "registryName": "io.github.PrefectHQ/prefect-mcp-server",
+  "version": "0.0.1-beta.9",
+  "canTest": false,
+  "skipReason": "Prefect MCP server requires a connection to a Prefect server or Prefect Cloud instance. Prefect Cloud requires an API key (PREFECT_API_KEY) and API URL (PREFECT_API_URL) which are paid/cloud services. While a local Prefect server could theoretically be run, the prefect-mcp package likely requires specific Prefect server APIs and configuration that make reliable automated testing impractical without a properly initialized Prefect instance with workflows and deployments.",
+  "config": {},
+  "services": []
+}

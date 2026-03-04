@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.habedi%2Fomni-lpr/versions/0.3.2",
+  "serverName": "io-github-habedi-omni-lpr",
+  "registryName": "io.github.habedi/omni-lpr",
+  "version": "0.3.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

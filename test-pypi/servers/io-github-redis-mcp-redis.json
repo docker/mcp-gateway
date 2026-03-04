@@ -1,0 +1,21 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.redis%2Fmcp-redis/versions/0.4.0",
+  "serverName": "io-github-redis-mcp-redis",
+  "registryName": "io.github.redis/mcp-redis",
+  "version": "0.4.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "REDIS_URL": "redis://host.docker.internal:6379"
+  },
+  "services": [
+    {
+      "name": "redis",
+      "image": "redis:7",
+      "ports": [
+        "6379:6379"
+      ],
+      "env": {}
+    }
+  ]
+}

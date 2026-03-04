@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-data/versions/0.3.0",
+  "serverName": "io-github-antnewman-pm-data",
+  "registryName": "io.github.antnewman/pm-data",
+  "version": "0.3.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

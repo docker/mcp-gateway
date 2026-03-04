@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fxero-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-xero-mcp-server",
+  "registryName": "io.github.asklokesh/xero-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires XERO_API_KEY which is a paid/cloud SaaS API key for the Xero accounting platform that cannot be provided locally",
+  "config": {},
+  "services": []
+}

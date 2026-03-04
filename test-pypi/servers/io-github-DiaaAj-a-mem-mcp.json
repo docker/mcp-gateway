@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.DiaaAj%2Fa-mem-mcp/versions/0.1.1",
+  "serverName": "io-github-DiaaAj-a-mem-mcp",
+  "registryName": "io.github.DiaaAj/a-mem-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires OPENAI_API_KEY (secret, paid API key) with no local-only LLM backend that works out of the box without additional setup",
+  "config": {},
+  "services": []
+}

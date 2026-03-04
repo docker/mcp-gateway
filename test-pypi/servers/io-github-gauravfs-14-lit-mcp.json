@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.gauravfs-14%2Flit-mcp/versions/0.1.9",
+  "serverName": "io-github-gauravfs-14-lit-mcp",
+  "registryName": "io.github.gauravfs-14/lit-mcp",
+  "version": "0.1.9",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

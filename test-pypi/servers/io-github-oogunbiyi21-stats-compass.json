@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.oogunbiyi21%2Fstats-compass/versions/0.2.9",
+  "serverName": "io-github-oogunbiyi21-stats-compass",
+  "registryName": "io.github.oogunbiyi21/stats-compass",
+  "version": "0.2.9",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

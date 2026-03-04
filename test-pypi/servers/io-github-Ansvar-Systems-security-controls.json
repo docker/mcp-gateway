@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Ansvar-Systems%2Fsecurity-controls/versions/0.3.4",
+  "serverName": "io-github-Ansvar-Systems-security-controls",
+  "registryName": "io.github.Ansvar-Systems/security-controls",
+  "version": "0.3.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

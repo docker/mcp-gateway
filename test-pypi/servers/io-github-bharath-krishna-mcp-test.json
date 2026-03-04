@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bharath-krishna%2Fmcp-test/versions/0.1.0",
+  "serverName": "io-github-bharath-krishna-mcp-test",
+  "registryName": "io.github.bharath-krishna/mcp-test",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

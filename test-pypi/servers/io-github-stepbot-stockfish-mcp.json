@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stepbot%2Fstockfish-mcp/versions/v1.0.2",
+  "serverName": "io-github-stepbot-stockfish-mcp",
+  "registryName": "io.github.stepbot/stockfish-mcp",
+  "version": "v1.0.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

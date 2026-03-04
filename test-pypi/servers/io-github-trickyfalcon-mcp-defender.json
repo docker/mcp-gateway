@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.trickyfalcon%2Fmcp-defender/versions/0.1.0",
+  "serverName": "io-github-trickyfalcon-mcp-defender",
+  "registryName": "io.github.trickyfalcon/mcp-defender",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires Microsoft Defender / Azure AD credentials (TENANT_ID, CLIENT_ID, CLIENT_SECRET) to authenticate against Microsoft Defender Advanced Hunting API. These are paid/cloud SaaS credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

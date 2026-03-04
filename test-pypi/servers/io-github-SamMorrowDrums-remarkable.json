@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SamMorrowDrums%2Fremarkable/versions/0.6.0",
+  "serverName": "io-github-SamMorrowDrums-remarkable",
+  "registryName": "io.github.SamMorrowDrums/remarkable",
+  "version": "0.6.0",
+  "canTest": false,
+  "skipReason": "Requires REMARKABLE_TOKEN - a secret authentication token for the reMarkable Cloud API obtained by registering at https://my.remarkable.com/device/browser/connect. This is a paid/cloud SaaS credential that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

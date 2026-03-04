@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zhongweili%2Fnanobanana-mcp-server/versions/1.0.0",
+  "serverName": "io-github-zhongweili-nanobanana-mcp-server",
+  "registryName": "io.github.zhongweili/nanobanana-mcp-server",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires GEMINI_API_KEY (Google Gemini API key) which is a paid/cloud API secret that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

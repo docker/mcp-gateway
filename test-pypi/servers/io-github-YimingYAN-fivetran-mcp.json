@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YimingYAN%2Ffivetran-mcp/versions/0.3.1",
+  "serverName": "io-github-YimingYAN-fivetran-mcp",
+  "registryName": "io.github.YimingYAN/fivetran-mcp",
+  "version": "0.3.1",
+  "canTest": false,
+  "skipReason": "Requires FIVETRAN_API_KEY and FIVETRAN_API_SECRET which are paid/cloud SaaS API credentials for the Fivetran data pipeline service that cannot be provided locally",
+  "config": {},
+  "services": []
+}

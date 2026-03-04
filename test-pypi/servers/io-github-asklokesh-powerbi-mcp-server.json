@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fpowerbi-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-powerbi-mcp-server",
+  "registryName": "io.github.asklokesh/powerbi-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires POWERBI_API_KEY which is a paid/cloud SaaS API key for Microsoft Power BI that cannot be provided locally",
+  "config": {},
+  "services": []
+}

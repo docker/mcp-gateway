@@ -1,0 +1,22 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.egoughnour%2Fmassive-context-mcp/versions/3.0.1",
+  "serverName": "io-github-egoughnour-massive-context-mcp",
+  "registryName": "io.github.egoughnour/massive-context-mcp",
+  "version": "3.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "RLM_DATA_DIR": "/tmp/massive-context-data",
+    "OLLAMA_URL": "http://host.docker.internal:11434"
+  },
+  "services": [
+    {
+      "name": "ollama",
+      "image": "ollama/ollama:latest",
+      "ports": [
+        "11434:11434"
+      ],
+      "env": {}
+    }
+  ]
+}

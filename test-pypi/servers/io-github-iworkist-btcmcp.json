@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.iworkist%2Fbtcmcp/versions/0.1.2",
+  "serverName": "io-github-iworkist-btcmcp",
+  "registryName": "io.github.iworkist/btcmcp",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Frideshare-comparison/versions/1.0.0",
+  "serverName": "io-github-wmarceau-rideshare-comparison",
+  "registryName": "io.github.wmarceau/rideshare-comparison",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires RIDESHARE_API_KEY for a paid/external rideshare comparison service that cannot be provisioned locally",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.khglynn%2Fspotify-bulk-actions-mcp/versions/0.1.1",
+  "serverName": "io-github-khglynn-spotify-bulk-actions-mcp",
+  "registryName": "io.github.khglynn/spotify-bulk-actions-mcp",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET from developer.spotify.com (paid/cloud SaaS API credentials that cannot be provided locally)",
+  "config": {},
+  "services": []
+}

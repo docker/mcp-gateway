@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vulnersCom%2Fvulners-mcp/versions/1.0.3",
+  "serverName": "io-github-vulnersCom-vulners-mcp",
+  "registryName": "io.github.vulnersCom/vulners-mcp",
+  "version": "1.0.3",
+  "canTest": false,
+  "skipReason": "Requires a Vulners.com API key to access the vulnerability database API. This is an external SaaS service with no local substitute.",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ArkTechNWA%2Fzsh-tool/versions/0.2.1",
+  "serverName": "io-github-ArkTechNWA-zsh-tool",
+  "registryName": "io.github.ArkTechNWA/zsh-tool",
+  "version": "0.2.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "ALAN_DB_PATH": "/tmp/alan.db"
+  },
+  "services": []
+}

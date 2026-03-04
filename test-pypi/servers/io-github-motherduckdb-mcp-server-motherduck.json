@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.motherduckdb%2Fmcp-server-motherduck/versions/0.7.1",
+  "serverName": "io-github-motherduckdb-mcp-server-motherduck",
+  "registryName": "io.github.motherduckdb/mcp-server-motherduck",
+  "version": "0.7.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "--db-path": ":memory:"
+  },
+  "services": []
+}

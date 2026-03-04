@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MusaddiqueHussainLabs%2Fmhlabs_mcp_tools/versions/2.0.0",
+  "serverName": "io-github-MusaddiqueHussainLabs-mhlabs_mcp_tools",
+  "registryName": "io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools",
+  "version": "2.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

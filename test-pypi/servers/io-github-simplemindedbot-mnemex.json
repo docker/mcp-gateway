@@ -1,0 +1,15 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.simplemindedbot%2Fmnemex/versions/0.5.2",
+  "serverName": "io-github-simplemindedbot-mnemex",
+  "registryName": "io.github.simplemindedbot/mnemex",
+  "version": "0.5.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "MNEMEX_STORAGE_PATH": "/tmp/mnemex/jsonl",
+    "LTM_VAULT_PATH": "/tmp/mnemex/vault",
+    "MNEMEX_DECAY_MODEL": "power_law",
+    "MNEMEX_PL_HALFLIFE_DAYS": "3.0"
+  },
+  "services": []
+}

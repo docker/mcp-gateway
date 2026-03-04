@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fabi-to-mcp/versions/0.1.0-1",
+  "serverName": "io-github-nirholas-abi-to-mcp",
+  "registryName": "io.github.nirholas/abi-to-mcp",
+  "version": "0.1.0-1",
+  "canTest": false,
+  "skipReason": "Requires ETHERSCAN_API_KEY (paid/free-tier API key from Etherscan) and WEB3_PROVIDER_URL (Ethereum JSON-RPC endpoint, typically from a paid provider like Infura/Alchemy). These are external SaaS credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

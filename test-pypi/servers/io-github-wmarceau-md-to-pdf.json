@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
+  "serverName": "io-github-wmarceau-md-to-pdf",
+  "registryName": "io.github.wmarceau/md-to-pdf",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

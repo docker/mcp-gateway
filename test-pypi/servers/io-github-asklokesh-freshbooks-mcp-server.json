@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Ffreshbooks-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-freshbooks-mcp-server",
+  "registryName": "io.github.asklokesh/freshbooks-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires FRESHBOOKS_API_KEY which is a paid/cloud SaaS API key that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

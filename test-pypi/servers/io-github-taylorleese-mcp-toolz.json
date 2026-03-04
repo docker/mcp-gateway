@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorleese%2Fmcp-toolz/versions/0.3.2",
+  "serverName": "io-github-taylorleese-mcp-toolz",
+  "registryName": "io.github.taylorleese/mcp-toolz",
+  "version": "0.3.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

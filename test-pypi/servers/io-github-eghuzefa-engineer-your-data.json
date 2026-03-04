@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.eghuzefa%2Fengineer-your-data/versions/0.1.0",
+  "serverName": "io-github-eghuzefa-engineer-your-data",
+  "registryName": "io.github.eghuzefa/engineer-your-data",
+  "version": "0.1.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

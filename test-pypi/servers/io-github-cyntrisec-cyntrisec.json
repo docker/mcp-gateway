@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cyntrisec%2Fcyntrisec/versions/0.1.10",
+  "serverName": "io-github-cyntrisec-cyntrisec",
+  "registryName": "io.github.cyntrisec/cyntrisec",
+  "version": "0.1.10",
+  "canTest": false,
+  "skipReason": "Requires AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) or a configured AWS_PROFILE to authenticate with AWS for security analysis. These are cloud/SaaS credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

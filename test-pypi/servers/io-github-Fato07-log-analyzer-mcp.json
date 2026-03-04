@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Fato07%2Flog-analyzer-mcp/versions/0.4.2",
+  "serverName": "io-github-Fato07-log-analyzer-mcp",
+  "registryName": "io.github.Fato07/log-analyzer-mcp",
+  "version": "0.4.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

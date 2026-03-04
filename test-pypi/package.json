@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare-servers": "node prepare-servers.mjs",
+    "test": "node test-servers.mjs",
+    "test:full": "node prepare-servers.mjs && node test-servers.mjs"
   },
   "keywords": [],
   "author": "",

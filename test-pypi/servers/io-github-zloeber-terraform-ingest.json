@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zloeber%2Fterraform-ingest/versions/0.1.21",
+  "serverName": "io-github-zloeber-terraform-ingest",
+  "registryName": "io.github.zloeber/terraform-ingest",
+  "version": "0.1.21",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

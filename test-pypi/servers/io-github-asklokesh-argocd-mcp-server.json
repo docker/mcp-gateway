@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fargocd-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-argocd-mcp-server",
+  "registryName": "io.github.asklokesh/argocd-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires ARGOCD_API_KEY (secret, paid/self-hosted ArgoCD instance) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mhcoen%2Fmcp-relay/versions/1.2.4",
+  "serverName": "io-github-mhcoen-mcp-relay",
+  "registryName": "io.github.mhcoen/mcp-relay",
+  "version": "1.2.4",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

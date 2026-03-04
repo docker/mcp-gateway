@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nigue3025%2Ftw-cwa-weather-mcp/versions/1.0.0",
+  "serverName": "io-github-nigue3025-tw-cwa-weather-mcp",
+  "registryName": "io.github.nigue3025/tw-cwa-weather-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires a Taiwan Central Weather Administration (CWA) API key from opendata.cwa.gov.tw, which requires free registration that cannot be automated",
+  "config": {},
+  "services": []
+}

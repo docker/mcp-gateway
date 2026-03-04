@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/ai.mcpcap%2Fmcpcap/versions/0.6.0",
+  "serverName": "ai-mcpcap-mcpcap",
+  "registryName": "ai.mcpcap/mcpcap",
+  "version": "0.6.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

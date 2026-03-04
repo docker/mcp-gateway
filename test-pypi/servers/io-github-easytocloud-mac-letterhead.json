@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.easytocloud%2Fmac-letterhead/versions/0.13.9",
+  "serverName": "io-github-easytocloud-mac-letterhead",
+  "registryName": "io.github.easytocloud/mac-letterhead",
+  "version": "0.13.9",
+  "canTest": false,
+  "skipReason": "This server is a macOS-specific professional letterhead PDF generator that requires macOS system features and local file system access for letterhead templates and PDF generation. It cannot run meaningfully in a Docker container.",
+  "config": {},
+  "services": []
+}

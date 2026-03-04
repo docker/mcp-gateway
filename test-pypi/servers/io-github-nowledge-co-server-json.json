@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nowledge-co%2Fserver.json/versions/1.0.0",
+  "serverName": "io-github-nowledge-co-server-json",
+  "registryName": "io.github.nowledge-co/server.json",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Nowledge Mem is a cloud/SaaS memory service that requires Nowledge API credentials to authenticate. No environment variables are specified in the registry entry, but the service cannot function without valid Nowledge account authentication.",
+  "config": {},
+  "services": []
+}

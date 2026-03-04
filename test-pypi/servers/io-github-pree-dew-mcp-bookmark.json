@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.pree-dew%2Fmcp-bookmark/versions/0.1.1",
+  "serverName": "io-github-pree-dew-mcp-bookmark",
+  "registryName": "io.github.pree-dew/mcp-bookmark",
+  "version": "0.1.1",
+  "canTest": false,
+  "skipReason": "Requires OPENAI_API_KEY (secret, paid SaaS API key) which cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

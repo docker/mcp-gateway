@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zwldarren%2Fakshare-one-mcp/versions/0.3.6",
+  "serverName": "io-github-zwldarren-akshare-one-mcp",
+  "registryName": "io.github.zwldarren/akshare-one-mcp",
+  "version": "0.3.6",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

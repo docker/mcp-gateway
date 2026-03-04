@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.king-of-the-grackles%2Freddit-research-mcp/versions/1.0.1",
+  "serverName": "io-github-king-of-the-grackles-reddit-research-mcp",
+  "registryName": "io.github.king-of-the-grackles/reddit-research-mcp",
+  "version": "1.0.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

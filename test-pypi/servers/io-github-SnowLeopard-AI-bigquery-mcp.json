@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.SnowLeopard-AI%2Fbigquery-mcp/versions/0.1.0",
+  "serverName": "io-github-SnowLeopard-AI-bigquery-mcp",
+  "registryName": "io.github.SnowLeopard-AI/bigquery-mcp",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires Google Cloud credentials and a BigQuery project to access. The server connects to Google BigQuery, which is a paid cloud/SaaS service requiring GCP authentication (service account key or OAuth) that cannot be provided in a local test environment.",
+  "config": {},
+  "services": []
+}

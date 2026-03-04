@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marshally%2Fmcp-refactoring/versions/0.1.2",
+  "serverName": "io-github-marshally-mcp-refactoring",
+  "registryName": "io.github.marshally/mcp-refactoring",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

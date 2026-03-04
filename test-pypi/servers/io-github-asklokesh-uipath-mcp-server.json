@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fuipath-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-uipath-mcp-server",
+  "registryName": "io.github.asklokesh/uipath-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires UIPATH_API_KEY (secret, paid/cloud SaaS API key) for UiPath API integration that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

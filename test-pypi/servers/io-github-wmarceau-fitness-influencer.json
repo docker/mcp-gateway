@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Ffitness-influencer/versions/1.3.0",
+  "serverName": "io-github-wmarceau-fitness-influencer",
+  "registryName": "io.github.wmarceau/fitness-influencer",
+  "version": "1.3.0",
+  "canTest": false,
+  "skipReason": "Requires XAI_API_KEY (paid xAI/Grok API) and GOOGLE_CREDENTIALS_PATH (Google OAuth credentials) which are external paid/cloud services that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/com.files%2Fpython-mcp/versions/1.0.0",
+  "serverName": "com-files-python-mcp",
+  "registryName": "com.files/python-mcp",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires FILES_COM_API_KEY, a paid/cloud SaaS API key for Files.com that cannot be provided locally",
+  "config": {},
+  "services": []
+}

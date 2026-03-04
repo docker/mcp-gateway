@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Epochal-dev%2Fopen-notebook/versions/0.3.0",
+  "serverName": "io-github-Epochal-dev-open-notebook",
+  "registryName": "io.github.Epochal-dev/open-notebook",
+  "version": "0.3.0",
+  "canTest": false,
+  "skipReason": "Requires a running Open Notebook instance (complex self-hosted application with its own dependencies like Neo4j). No simple single-container Docker image available to use as a backing service.",
+  "config": {},
+  "services": []
+}

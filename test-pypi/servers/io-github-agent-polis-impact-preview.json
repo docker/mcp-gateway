@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agent-polis%2Fimpact-preview/versions/0.2.1",
+  "serverName": "io-github-agent-polis-impact-preview",
+  "registryName": "io.github.agent-polis/impact-preview",
+  "version": "0.2.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

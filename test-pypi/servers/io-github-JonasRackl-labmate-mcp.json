@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.JonasRackl%2Flabmate-mcp/versions/7.3.1",
+  "serverName": "io-github-JonasRackl-labmate-mcp",
+  "registryName": "io.github.JonasRackl/labmate-mcp",
+  "version": "7.3.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

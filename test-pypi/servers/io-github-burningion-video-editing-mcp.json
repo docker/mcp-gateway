@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.burningion%2Fvideo-editing-mcp/versions/1.0.1",
+  "serverName": "io-github-burningion-video-editing-mcp",
+  "registryName": "io.github.burningion/video-editing-mcp",
+  "version": "1.0.1",
+  "canTest": false,
+  "skipReason": "Requires VJ_API_KEY (Video Jungle API key) which is a paid/cloud SaaS credential obtained from https://www.video-jungle.com/user/settings",
+  "config": {},
+  "services": []
+}

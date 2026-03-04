@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CursorTouch%2FWindows-MCP/versions/1.0.0",
+  "serverName": "io-github-CursorTouch-Windows-MCP",
+  "registryName": "io.github.CursorTouch/Windows-MCP",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "This MCP server is designed for Windows OS computer-use (controlling Windows desktop, mouse, keyboard). It requires a Windows environment to function and cannot work in a Docker container on macOS.",
+  "config": {},
+  "services": []
+}

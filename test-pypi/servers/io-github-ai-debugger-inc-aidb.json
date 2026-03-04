@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-debugger-inc%2Faidb/versions/0.1.2",
+  "serverName": "io-github-ai-debugger-inc-aidb",
+  "registryName": "io.github.ai-debugger-inc/aidb",
+  "version": "0.1.2",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

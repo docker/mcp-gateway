@@ -1,0 +1,1299 @@
+[
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-memory/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-memory@1.0.0",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-memory",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.neo4j-contrib%2Fmcp-neo4j-cypher/versions/1.0.0",
+    "name": "io.github.neo4j-contrib/mcp-neo4j-cypher@1.0.0",
+    "serverName": "io-github-neo4j-contrib-mcp-neo4j-cypher",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Ftransaction-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/transaction-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-transaction-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fkeystore-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/keystore-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-keystore-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fsigning-mcp-server/versions/1.0.0",
+    "name": "io.github.nirholas/signing-mcp-server@1.0.0",
+    "serverName": "io-github-nirholas-signing-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.nirholas%2Fethereum-wallet-mcp/versions/1.0.0",
+    "name": "io.github.nirholas/ethereum-wallet-mcp@1.0.0",
+    "serverName": "io-github-nirholas-ethereum-wallet-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.major%2Fpcp/versions/1.3.1",
+    "name": "io.github.major/pcp@1.3.1",
+    "serverName": "io-github-major-pcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cornelcroi%2Fbookmark-lens/versions/0.0.7",
+    "name": "io.github.cornelcroi/bookmark-lens@0.0.7",
+    "serverName": "io-github-cornelcroi-bookmark-lens",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/ai.mcpcap%2Fmcpcap/versions/0.6.0",
+    "name": "ai.mcpcap/mcpcap@0.6.0",
+    "serverName": "ai-mcpcap-mcpcap",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.fkom13%2Fgencodedoc/versions/2.0.0",
+    "name": "io.github.fkom13/gencodedoc@2.0.0",
+    "serverName": "io-github-fkom13-gencodedoc",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.IvanRublev%2Fkeyphrases-mcp/versions/0.0.4",
+    "name": "io.github.IvanRublev/keyphrases-mcp@0.0.4",
+    "serverName": "io-github-IvanRublev-keyphrases-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ankitpal181%2Ftoon-parse-mcp/versions/1.0.1-beta",
+    "name": "io.github.ankitpal181/toon-parse-mcp@1.0.1-beta",
+    "serverName": "io-github-ankitpal181-toon-parse-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agent-polis%2Fimpact-preview/versions/0.2.1",
+    "name": "io.github.agent-polis/impact-preview@0.2.1",
+    "serverName": "io-github-agent-polis-impact-preview",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Skills03%2Fscrimba-teaching/versions/1.0.1",
+    "name": "io.github.Skills03/scrimba-teaching@1.0.1",
+    "serverName": "io-github-Skills03-scrimba-teaching",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.king-of-the-grackles%2Freddit-research-mcp/versions/1.0.1",
+    "name": "io.github.king-of-the-grackles/reddit-research-mcp@1.0.1",
+    "serverName": "io-github-king-of-the-grackles-reddit-research-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.iworkist%2Fbtcmcp/versions/0.1.2",
+    "name": "io.github.iworkist/btcmcp@0.1.2",
+    "serverName": "io-github-iworkist-btcmcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.PyJudge%2Fpdf4vllm/versions/1.0.2",
+    "name": "io.github.PyJudge/pdf4vllm@1.0.2",
+    "serverName": "io-github-PyJudge-pdf4vllm",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cr7258%2Felasticsearch-mcp-server/versions/2.0.14",
+    "name": "io.github.cr7258/elasticsearch-mcp-server@2.0.14",
+    "serverName": "io-github-cr7258-elasticsearch-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.slingdata%2Fsling-cli/versions/1.4.23",
+    "name": "io.slingdata/sling-cli@1.4.23",
+    "serverName": "io-slingdata-sling-cli",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanoamorelli%2Fsec-edgar-mcp/versions/1.0.5",
+    "name": "io.github.stefanoamorelli/sec-edgar-mcp@1.0.5",
+    "serverName": "io-github-stefanoamorelli-sec-edgar-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.joshmsimpson%2Fexiftool/versions/0.1.6",
+    "name": "io.github.joshmsimpson/exiftool@0.1.6",
+    "serverName": "io-github-joshmsimpson-exiftool",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.matbanik%2Fpomera/versions/1.3.7",
+    "name": "io.github.matbanik/pomera@1.3.7",
+    "serverName": "io-github-matbanik-pomera",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.bethmaloney%2Frdl-mcp/versions/0.1.0",
+    "name": "io.github.bethmaloney/rdl-mcp@0.1.0",
+    "serverName": "io-github-bethmaloney-rdl-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.elpadev%2Fsample-mcp-server-python-package/versions/0.0.1",
+    "name": "io.github.elpadev/sample-mcp-server-python-package@0.0.1",
+    "serverName": "io-github-elpadev-sample-mcp-server-python-package",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.cafferychen777%2Fchatspatial/versions/1.0.3",
+    "name": "io.github.cafferychen777/chatspatial@1.0.3",
+    "serverName": "io-github-cafferychen777-chatspatial",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.colabfit%2Fcolabfit-mcp/versions/1.0.0",
+    "name": "io.github.colabfit/colabfit-mcp@1.0.0",
+    "serverName": "io-github-colabfit-colabfit-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.YinTokey%2Fmcp_hackernews/versions/0.1.1",
+    "name": "io.github.YinTokey/mcp_hackernews@0.1.1",
+    "serverName": "io-github-YinTokey-mcp_hackernews",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stepbot%2Fstockfish-mcp/versions/v1.0.2",
+    "name": "io.github.stepbot/stockfish-mcp@v1.0.2",
+    "serverName": "io-github-stepbot-stockfish-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.TranThienTrong%2Fasset-auto-picker/versions/1.2.0",
+    "name": "io.github.TranThienTrong/asset-auto-picker@1.2.0",
+    "serverName": "io-github-TranThienTrong-asset-auto-picker",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.marlenezw%2Fpublish-mcp-server/versions/0.1.3",
+    "name": "io.github.marlenezw/publish-mcp-server@0.1.3",
+    "serverName": "io-github-marlenezw-publish-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 2,
+    "prompts": [
+      "mcp-discover",
+      "publish_mcp_server_prompt"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.james116blue%2Fjournald-mcp-server/versions/0.1.0",
+    "name": "io.github.james116blue/journald-mcp-server@0.1.0",
+    "serverName": "io-github-james116blue-journald-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.basicmachines-co%2Fbasic-memory/versions/0.17.7",
+    "name": "io.github.basicmachines-co/basic-memory@0.17.7",
+    "serverName": "io-github-basicmachines-co-basic-memory",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wedsamuel1230%2Felectronic-mcp-server/versions/1.0.1",
+    "name": "io.github.wedsamuel1230/electronic-mcp-server@1.0.1",
+    "serverName": "io-github-wedsamuel1230-electronic-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorleese%2Fmcp-toolz/versions/0.3.2",
+    "name": "io.github.taylorleese/mcp-toolz@0.3.2",
+    "serverName": "io-github-taylorleese-mcp-toolz",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.yugui923%2Fdb-connect-mcp/versions/0.3.1",
+    "name": "io.github.yugui923/db-connect-mcp@0.3.1",
+    "serverName": "io-github-yugui923-db-connect-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Anarkitty1%2Fsemantic-frame/versions/0.2.1",
+    "name": "io.github.Anarkitty1/semantic-frame@0.2.1",
+    "serverName": "io-github-Anarkitty1-semantic-frame",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.roddutra%2Fagent-mcp-gateway/versions/0.2.5",
+    "name": "io.github.roddutra/agent-mcp-gateway@0.2.5",
+    "serverName": "io-github-roddutra-agent-mcp-gateway",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-debugger-inc%2Faidb/versions/0.1.2",
+    "name": "io.github.ai-debugger-inc/aidb@0.1.2",
+    "serverName": "io-github-ai-debugger-inc-aidb",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zzstoatzz%2Ftangled-mcp/versions/0.0.10",
+    "name": "io.github.zzstoatzz/tangled-mcp@0.0.10",
+    "serverName": "io-github-zzstoatzz-tangled-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.dragonejt%2Ficeberg-mcp-server/versions/0.1.21",
+    "name": "io.github.dragonejt/iceberg-mcp-server@0.1.21",
+    "serverName": "io-github-dragonejt-iceberg-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Murugarajr%2Fohm-mcp/versions/1.0.1",
+    "name": "io.github.Murugarajr/ohm-mcp@1.0.1",
+    "serverName": "io-github-Murugarajr-ohm-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.motherduckdb%2Fmcp-server-motherduck/versions/0.7.1",
+    "name": "io.github.motherduckdb/mcp-server-motherduck@0.7.1",
+    "serverName": "io-github-motherduckdb-mcp-server-motherduck",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.eghuzefa%2Fengineer-your-data/versions/0.1.0",
+    "name": "io.github.eghuzefa/engineer-your-data@0.1.0",
+    "serverName": "io-github-eghuzefa-engineer-your-data",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.beycom%2Fonetool-mcp/versions/1.0.0rc2",
+    "name": "io.github.beycom/onetool-mcp@1.0.0rc2",
+    "serverName": "io-github-beycom-onetool-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.srikrishna235%2Fscrimba-teaching-mcp/versions/3.0.2",
+    "name": "io.github.srikrishna235/scrimba-teaching-mcp@3.0.2",
+    "serverName": "io-github-srikrishna235-scrimba-teaching-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.214140846%2Fskillhub-mcp/versions/1.0.5",
+    "name": "io.github.214140846/skillhub-mcp@1.0.5",
+    "serverName": "io-github-214140846-skillhub-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.zloeber%2Fterraform-ingest/versions/0.1.21",
+    "name": "io.github.zloeber/terraform-ingest@0.1.21",
+    "serverName": "io-github-zloeber-terraform-ingest",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Wolfe-Jam%2Fgemini-faf-mcp/versions/1.0.2",
+    "name": "io.github.Wolfe-Jam/gemini-faf-mcp@1.0.2",
+    "serverName": "io-github-Wolfe-Jam-gemini-faf-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.5",
+    "name": "io.github.blueskylineassets/far-mcp-server@1.0.5",
+    "serverName": "io-github-blueskylineassets-far-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KazKozDev%2Fsearch/versions/0.1.1",
+    "name": "io.github.KazKozDev/search@0.1.1",
+    "serverName": "io-github-KazKozDev-search",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.mickymultani%2Fcrypto-bytes/versions/0.1.1",
+    "name": "io.github.mickymultani/crypto-bytes@0.1.1",
+    "serverName": "io-github-mickymultani-crypto-bytes",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.oogunbiyi21%2Fstats-compass/versions/0.2.9",
+    "name": "io.github.oogunbiyi21/stats-compass@0.2.9",
+    "serverName": "io-github-oogunbiyi21-stats-compass",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.drfccv%2Fmcp-server-12306/versions/0.2.6",
+    "name": "io.github.drfccv/mcp-server-12306@0.2.6",
+    "serverName": "io-github-drfccv-mcp-server-12306",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fpgtuner_mcp/versions/0.5.2",
+    "name": "io.github.isdaniel/pgtuner_mcp@0.5.2",
+    "serverName": "io-github-isdaniel-pgtuner_mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fmcp_weather_server/versions/0.6.1",
+    "name": "io.github.isdaniel/mcp_weather_server@0.6.1",
+    "serverName": "io-github-isdaniel-mcp_weather_server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ubaumann%2Fmkdocs-mcp/versions/0.1.2",
+    "name": "io.github.ubaumann/mkdocs-mcp@0.1.2",
+    "serverName": "io-github-ubaumann-mkdocs-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.huoshuiai42%2Fhuoshui-pdf-converter/versions/1.0.0",
+    "name": "io.github.huoshuiai42/huoshui-pdf-converter@1.0.0",
+    "serverName": "io-github-huoshuiai42-huoshui-pdf-converter",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.johnmci%2FClaudeSmalltalk/versions/1.2.1",
+    "name": "io.github.johnmci/ClaudeSmalltalk@1.2.1",
+    "serverName": "io-github-johnmci-ClaudeSmalltalk",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.agenthotspot%2Fagenthotspot-mcp/versions/1.0.2",
+    "name": "io.github.agenthotspot/agenthotspot-mcp@1.0.2",
+    "serverName": "io-github-agenthotspot-agenthotspot-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.composable-delivery%2Fsnowfakery-mcp/versions/0.0.4",
+    "name": "io.github.composable-delivery/snowfakery-mcp@0.0.4",
+    "serverName": "io-github-composable-delivery-snowfakery-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-data/versions/0.3.0",
+    "name": "io.github.antnewman/pm-data@0.3.0",
+    "serverName": "io-github-antnewman-pm-data",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-analyse/versions/0.3.0",
+    "name": "io.github.antnewman/pm-analyse@0.3.0",
+    "serverName": "io-github-antnewman-pm-analyse",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.antnewman%2Fpm-validate/versions/0.3.0",
+    "name": "io.github.antnewman/pm-validate@0.3.0",
+    "serverName": "io-github-antnewman-pm-validate",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.manusa%2Fpodman-mcp-server/versions/0.0.14",
+    "name": "io.github.manusa/podman-mcp-server@0.0.14",
+    "serverName": "io-github-manusa-podman-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.HzaCode%2Fonecite/versions/0.0.11",
+    "name": "io.github.HzaCode/onecite@0.0.11",
+    "serverName": "io-github-HzaCode-onecite",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fmd-to-pdf/versions/1.0.1",
+    "name": "io.github.wmarceau/md-to-pdf@1.0.1",
+    "serverName": "io-github-wmarceau-md-to-pdf",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ChengJiale150%2Fjupyter-mcp-server/versions/1.1.0",
+    "name": "io.github.ChengJiale150/jupyter-mcp-server@1.1.0",
+    "serverName": "io-github-ChengJiale150-jupyter-mcp-server",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Ansvar-Systems%2Fsecurity-controls/versions/0.3.4",
+    "name": "io.github.Ansvar-Systems/security-controls@0.3.4",
+    "serverName": "io-github-Ansvar-Systems-security-controls",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.sharebook-kr%2Fpykrx-mcp/versions/0.1.3",
+    "name": "io.github.sharebook-kr/pykrx-mcp@0.1.3",
+    "serverName": "io-github-sharebook-kr-pykrx-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.MusaddiqueHussainLabs%2Fmhlabs_mcp_tools/versions/2.0.0",
+    "name": "io.github.MusaddiqueHussainLabs/mhlabs_mcp_tools@2.0.0",
+    "serverName": "io-github-MusaddiqueHussainLabs-mhlabs_mcp_tools",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.michael-denyer%2Fhot-memory-mcp/versions/0.5.10",
+    "name": "io.github.michael-denyer/hot-memory-mcp@0.5.10",
+    "serverName": "io-github-michael-denyer-hot-memory-mcp",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  },
+  {
+    "serverUrl": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ggozad%2Fhaiku-rag/versions/0.16.0",
+    "name": "io.github.ggozad/haiku-rag@0.16.0",
+    "serverName": "io-github-ggozad-haiku-rag",
+    "status": "success",
+    "toolCount": 0,
+    "tools": [],
+    "resourceCount": 0,
+    "resources": [],
+    "promptCount": 1,
+    "prompts": [
+      "mcp-discover"
+    ],
+    "hasResources": false,
+    "hasPrompts": true,
+    "hasTools": false,
+    "errors": {}
+  }
+]

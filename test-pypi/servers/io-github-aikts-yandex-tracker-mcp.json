@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aikts%2Fyandex-tracker-mcp/versions/0.5.0",
+  "serverName": "io-github-aikts-yandex-tracker-mcp",
+  "registryName": "io.github.aikts/yandex-tracker-mcp",
+  "version": "0.5.0",
+  "canTest": false,
+  "skipReason": "Requires a Yandex Tracker API token/OAuth token to authenticate with the Yandex Tracker cloud service. This is a paid/cloud SaaS API that cannot be replicated locally.",
+  "config": {},
+  "services": []
+}

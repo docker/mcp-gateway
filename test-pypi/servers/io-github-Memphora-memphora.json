@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Memphora%2Fmemphora/versions/0.1.2",
+  "serverName": "io-github-Memphora-memphora",
+  "registryName": "io.github.Memphora/memphora",
+  "version": "0.1.2",
+  "canTest": false,
+  "skipReason": "Requires MEMPHORA_API_KEY, a paid/cloud API key from memphora.ai/dashboard that cannot be provided locally",
+  "config": {},
+  "services": []
+}

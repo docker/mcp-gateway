@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vladkarpman%2Fscreen-buffer-mcp/versions/2.1.0",
+  "serverName": "io-github-vladkarpman-screen-buffer-mcp",
+  "registryName": "io.github.vladkarpman/screen-buffer-mcp",
+  "version": "2.1.0",
+  "canTest": false,
+  "skipReason": "Requires a physical Android device connected via ADB and scrcpy running locally to capture screen frames. Cannot be tested with only local backing services.",
+  "config": {},
+  "services": []
+}

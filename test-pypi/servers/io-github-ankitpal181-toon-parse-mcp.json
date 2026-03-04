@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ankitpal181%2Ftoon-parse-mcp/versions/1.0.1-beta",
+  "serverName": "io-github-ankitpal181-toon-parse-mcp",
+  "registryName": "io.github.ankitpal181/toon-parse-mcp",
+  "version": "1.0.1-beta",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

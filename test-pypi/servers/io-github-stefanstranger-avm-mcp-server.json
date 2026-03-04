@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanstranger%2Favm-mcp-server/versions/0.1.5",
+  "serverName": "io-github-stefanstranger-avm-mcp-server",
+  "registryName": "io.github.stefanstranger/avm-mcp-server",
+  "version": "0.1.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

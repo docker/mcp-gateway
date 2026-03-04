@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.ai-mcpower%2Fmcpower-proxy/versions/0.0.87",
+  "serverName": "io-github-ai-mcpower-mcpower-proxy",
+  "registryName": "io.github.ai-mcpower/mcpower-proxy",
+  "version": "0.0.87",
+  "canTest": false,
+  "skipReason": "MCPower Security Proxy wraps other MCP servers with monitoring and policy enforcement. It requires configuration of a downstream MCP server to proxy, and likely needs an API key or account for the MCPower security platform. Cannot test in isolation without these dependencies.",
+  "config": {},
+  "services": []
+}

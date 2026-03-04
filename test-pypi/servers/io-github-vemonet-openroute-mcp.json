@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.vemonet%2Fopenroute-mcp/versions/0.0.4",
+  "serverName": "io-github-vemonet-openroute-mcp",
+  "registryName": "io.github.vemonet/openroute-mcp",
+  "version": "0.0.4",
+  "canTest": false,
+  "skipReason": "Requires OPENROUTESERVICE_API_KEY (a secret API key for the OpenRouteService cloud API at api.openrouteservice.org). This is a paid/free-tier SaaS API key that cannot be provisioned locally.",
+  "config": {},
+  "services": []
+}

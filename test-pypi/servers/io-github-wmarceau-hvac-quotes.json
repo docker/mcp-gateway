@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fhvac-quotes/versions/1.0.0",
+  "serverName": "io-github-wmarceau-hvac-quotes",
+  "registryName": "io.github.wmarceau/hvac-quotes",
+  "version": "1.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "HVAC_MOCK_EMAIL": "true"
+  },
+  "services": []
+}

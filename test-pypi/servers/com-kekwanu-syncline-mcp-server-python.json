@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/com.kekwanu%2Fsyncline-mcp-server-python/versions/1.0.35",
+  "serverName": "com-kekwanu-syncline-mcp-server-python",
+  "registryName": "com.kekwanu/syncline-mcp-server-python",
+  "version": "1.0.35",
+  "canTest": false,
+  "skipReason": "Requires SYNCLINE_API_KEY from https://syncline.run/developer (paid/cloud SaaS API key that cannot be provided locally)",
+  "config": {},
+  "services": []
+}

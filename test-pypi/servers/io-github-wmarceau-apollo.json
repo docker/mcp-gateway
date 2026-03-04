@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fapollo/versions/1.1.1",
+  "serverName": "io-github-wmarceau-apollo",
+  "registryName": "io.github.wmarceau/apollo",
+  "version": "1.1.1",
+  "canTest": false,
+  "skipReason": "Requires APOLLO_API_KEY - a paid/cloud API key from Apollo.io (https://app.apollo.io/settings/integrations) that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

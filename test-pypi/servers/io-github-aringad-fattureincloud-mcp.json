@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.aringad%2Ffattureincloud-mcp/versions/1.1.0",
+  "serverName": "io-github-aringad-fattureincloud-mcp",
+  "registryName": "io.github.aringad/fattureincloud-mcp",
+  "version": "1.1.0",
+  "canTest": false,
+  "skipReason": "Requires FIC_ACCESS_TOKEN (Fatture in Cloud API access token), which is a paid/cloud SaaS API key that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

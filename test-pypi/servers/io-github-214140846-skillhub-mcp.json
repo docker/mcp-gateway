@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.214140846%2Fskillhub-mcp/versions/1.0.5",
+  "serverName": "io-github-214140846-skillhub-mcp",
+  "registryName": "io.github.214140846/skillhub-mcp",
+  "version": "1.0.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

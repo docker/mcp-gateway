@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.KuudoAI%2Famazon_ads_mcp/versions/0.2.6",
+  "serverName": "io-github-KuudoAI-amazon_ads_mcp",
+  "registryName": "io.github.KuudoAI/amazon_ads_mcp",
+  "version": "0.2.6",
+  "canTest": false,
+  "skipReason": "Requires Amazon Ads API credentials (client ID, client secret, refresh token) or Openbridge API credentials, which are paid/cloud SaaS services that cannot be provisioned locally.",
+  "config": {},
+  "services": []
+}

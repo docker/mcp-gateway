@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.HzaCode%2Fonecite/versions/0.0.11",
+  "serverName": "io-github-HzaCode-onecite",
+  "registryName": "io.github.HzaCode/onecite",
+  "version": "0.0.11",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

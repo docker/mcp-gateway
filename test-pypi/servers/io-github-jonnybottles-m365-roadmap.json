@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jonnybottles%2Fm365-roadmap/versions/0.2.1",
+  "serverName": "io-github-jonnybottles-m365-roadmap",
+  "registryName": "io.github.jonnybottles/m365-roadmap",
+  "version": "0.2.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

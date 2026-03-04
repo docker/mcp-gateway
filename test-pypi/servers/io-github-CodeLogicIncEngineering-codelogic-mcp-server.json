@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.CodeLogicIncEngineering%2Fcodelogic-mcp-server/versions/1.0.11",
+  "serverName": "io-github-CodeLogicIncEngineering-codelogic-mcp-server",
+  "registryName": "io.github.CodeLogicIncEngineering/codelogic-mcp-server",
+  "version": "1.0.11",
+  "canTest": false,
+  "skipReason": "Requires CodeLogic SaaS platform credentials (CODELOGIC_SERVER_HOST, CODELOGIC_USERNAME, CODELOGIC_PASSWORD, CODELOGIC_WORKSPACE_NAME) which are paid/cloud service credentials that cannot be provided locally.",
+  "config": {},
+  "services": []
+}

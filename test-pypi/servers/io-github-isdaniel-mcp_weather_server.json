@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.isdaniel%2Fmcp_weather_server/versions/0.6.1",
+  "serverName": "io-github-isdaniel-mcp_weather_server",
+  "registryName": "io.github.isdaniel/mcp_weather_server",
+  "version": "0.6.1",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

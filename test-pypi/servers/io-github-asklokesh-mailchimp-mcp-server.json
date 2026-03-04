@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.asklokesh%2Fmailchimp-mcp-server/versions/0.1.0",
+  "serverName": "io-github-asklokesh-mailchimp-mcp-server",
+  "registryName": "io.github.asklokesh/mailchimp-mcp-server",
+  "version": "0.1.0",
+  "canTest": false,
+  "skipReason": "Requires MAILCHIMP_API_KEY which is a paid/SaaS API key that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

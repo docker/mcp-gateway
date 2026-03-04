@@ -1,0 +1,21 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.NeerajG03%2Fvector-memory/versions/0.2.0",
+  "serverName": "io-github-NeerajG03-vector-memory",
+  "registryName": "io.github.NeerajG03/vector-memory",
+  "version": "0.2.0",
+  "canTest": false,
+  "skipReason": "Likely requires an OpenAI API key (or similar embedding service API key) for generating semantic vector embeddings",
+  "config": {
+    "REDIS_URL": "redis://host.docker.internal:6379"
+  },
+  "services": [
+    {
+      "name": "redis-stack",
+      "image": "redis/redis-stack-server:latest",
+      "ports": [
+        "6379:6379"
+      ],
+      "env": {}
+    }
+  ]
+}

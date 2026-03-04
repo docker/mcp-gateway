@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.wmarceau%2Fyoutube-creator/versions/1.0.0",
+  "serverName": "io-github-wmarceau-youtube-creator",
+  "registryName": "io.github.wmarceau/youtube-creator",
+  "version": "1.0.0",
+  "canTest": false,
+  "skipReason": "Requires Google Cloud OAuth client secrets (YOUTUBE_CREDENTIALS_PATH) for YouTube API access, which is a cloud/SaaS credential that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

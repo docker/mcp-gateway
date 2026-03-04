@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.jackfioru92%2Faruba-email/versions/0.2.1",
+  "serverName": "io-github-jackfioru92-aruba-email",
+  "registryName": "io.github.jackfioru92/aruba-email",
+  "version": "0.2.1",
+  "canTest": false,
+  "skipReason": "Requires Aruba email credentials (EMAIL_USER and EMAIL_PASSWORD) to connect to Aruba's IMAP/SMTP/CalDAV services. These are paid/cloud service credentials that cannot be provided in a test environment.",
+  "config": {},
+  "services": []
+}

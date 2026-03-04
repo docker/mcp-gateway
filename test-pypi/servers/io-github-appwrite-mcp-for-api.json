@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.appwrite%2Fmcp-for-api/versions/0.2.8",
+  "serverName": "io-github-appwrite-mcp-for-api",
+  "registryName": "io.github.appwrite/mcp-for-api",
+  "version": "0.2.8",
+  "canTest": false,
+  "skipReason": "Requires an Appwrite API key and project ID generated from a running Appwrite instance. While Appwrite is self-hostable, it requires a complex multi-service stack (MariaDB, Redis, Appwrite core, etc.) and the API key must be created interactively through the Appwrite console.",
+  "config": {},
+  "services": []
+}

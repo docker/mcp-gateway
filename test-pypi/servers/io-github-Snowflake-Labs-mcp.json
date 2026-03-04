@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.Snowflake-Labs%2Fmcp/versions/1.3.3",
+  "serverName": "io-github-Snowflake-Labs-mcp",
+  "registryName": "io.github.Snowflake-Labs/mcp",
+  "version": "1.3.3",
+  "canTest": false,
+  "skipReason": "Snowflake MCP server requires a Snowflake cloud account with credentials (SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD). Snowflake is a paid SaaS platform that cannot be emulated with local backing services.",
+  "config": {},
+  "services": []
+}

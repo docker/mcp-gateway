@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.blueskylineassets%2Ffar-mcp-server/versions/1.0.5",
+  "serverName": "io-github-blueskylineassets-far-mcp-server",
+  "registryName": "io.github.blueskylineassets/far-mcp-server",
+  "version": "1.0.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

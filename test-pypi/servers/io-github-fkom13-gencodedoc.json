@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.fkom13%2Fgencodedoc/versions/2.0.0",
+  "serverName": "io-github-fkom13-gencodedoc",
+  "registryName": "io.github.fkom13/gencodedoc",
+  "version": "2.0.0",
+  "canTest": true,
+  "skipReason": "",
+  "config": {},
+  "services": []
+}

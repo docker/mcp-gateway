@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.universalamateur%2Freclaim-mcp-server/versions/0.9.1",
+  "serverName": "io-github-universalamateur-reclaim-mcp-server",
+  "registryName": "io.github.universalamateur/reclaim-mcp-server",
+  "version": "0.9.1",
+  "canTest": false,
+  "skipReason": "Requires a Reclaim.ai API key to interact with the Reclaim.ai cloud service. This is a paid/cloud SaaS API that cannot be replicated locally.",
+  "config": {},
+  "services": []
+}

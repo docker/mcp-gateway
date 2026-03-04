@@ -479,7 +479,7 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 				server.Type = "server"
 				server.LongLived = true
 				source = TransformSourcePyPI
-				server.AllowHosts = []string{"pypi.org:443", "pypi.python.org:443", "*.pypi.org:443", "*.python.org:443"}
+				server.AllowHosts = []string{"pypi.org:443", "pypi.python.org:443", "*.pypi.org:443", "*.python.org:443", "host.docker.internal:7687", "host.docker.internal:8811", "host.docker.internal:8080", "host.docker.internal:8888", "host.docker.internal:9200", "host.docker.internal:8181", "host.docker.internal:11434", "host.docker.internal:5432", "host.docker.internal:3000", "host.docker.internal:6379", "host.docker.internal:7687", "host.docker.internal:8529", "host.docker.internal:6379", "host.docker.internal:5432"}
 				// server.DisableNetwork = true
 			}
 		default:

@@ -1,0 +1,12 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.stefanoamorelli%2Fsec-edgar-mcp/versions/1.0.5",
+  "serverName": "io-github-stefanoamorelli-sec-edgar-mcp",
+  "registryName": "io.github.stefanoamorelli/sec-edgar-mcp",
+  "version": "1.0.5",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "SEC_EDGAR_USER_AGENT": "TestCompany test@example.com"
+  },
+  "services": []
+}

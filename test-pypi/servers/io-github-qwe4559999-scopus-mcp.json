@@ -1,0 +1,10 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.qwe4559999%2Fscopus-mcp/versions/0.1.3",
+  "serverName": "io-github-qwe4559999-scopus-mcp",
+  "registryName": "io.github.qwe4559999/scopus-mcp",
+  "version": "0.1.3",
+  "canTest": false,
+  "skipReason": "Requires SCOPUS_API_KEY (Elsevier Scopus API key), which is a paid/cloud API credential that cannot be provided in a test environment",
+  "config": {},
+  "services": []
+}

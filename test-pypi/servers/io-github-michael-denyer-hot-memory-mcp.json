@@ -1,0 +1,13 @@
+{
+  "url": "https://registry.modelcontextprotocol.io/v0/servers/io.github.michael-denyer%2Fhot-memory-mcp/versions/0.5.10",
+  "serverName": "io-github-michael-denyer-hot-memory-mcp",
+  "registryName": "io.github.michael-denyer/hot-memory-mcp",
+  "version": "0.5.10",
+  "canTest": true,
+  "skipReason": "",
+  "config": {
+    "MEMORY_MCP_DB_PATH": "/tmp/memory.db",
+    "MEMORY_MCP_EMBEDDING_MODEL": "all-MiniLM-L6-v2"
+  },
+  "services": []
+}
