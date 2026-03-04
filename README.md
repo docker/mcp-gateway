@@ -144,17 +144,17 @@ docker mcp profile server remove dev-tools github slack
 #### Configure servers in a profile
 
 ```bash
-# Set configuration values
-docker mcp profile config <profile-id> --set key=value
+# Set configuration values (<server-name>.<config-key>=<value>)
+docker mcp profile config <profile-id> --set github.timeout=30
 
-# Get configuration values
-docker mcp profile config <profile-id> --get key
+# Get configuration values (<server-name>.<config-key>)
+docker mcp profile config <profile-id> --get github.timeout
 
 # Get all configuration
 docker mcp profile config <profile-id> --get-all
 
-# Delete configuration values
-docker mcp profile config <profile-id> --del key
+# Delete configuration values (<server-name>.<config-key>)
+docker mcp profile config <profile-id> --del github.timeout
 ```
 
 #### Manage tool allowlists in a profile
