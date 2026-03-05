@@ -211,7 +211,12 @@ func removeCatalogNextCommand() *cobra.Command {
 		Use:     "remove <oci-reference>",
 		Aliases: []string{"rm"},
 		Short:   "Remove a catalog",
-		Args:    cobra.ExactArgs(1),
+		Example: `  # Remove the community registry catalog
+  docker mcp catalog remove ` + catalognext.CommunityRegistryCatalogRef + `
+
+  # Remove a custom catalog
+  docker mcp catalog remove myorg/my-catalog:latest`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {
@@ -240,8 +245,19 @@ func pushCatalogNextCommand() *cobra.Command {
 func pullCatalogNextCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "pull <oci-reference>",
-		Short: "Pull a catalog from an OCI registry",
-		Args:  cobra.ExactArgs(1),
+		Short: "Pull and import an MCP server catalog from an OCI registry",
+		Long: `Pull and import an MCP server catalog from an OCI registry.
+
+Available Catalogs:
+  Community Registry:  ` + catalognext.CommunityRegistryCatalogRef + `
+
+  ⚠️  Community Registry servers are not vetted by Docker`,
+		Example: `  # Pull the community MCP server catalog
+  docker mcp catalog pull ` + catalognext.CommunityRegistryCatalogRef + `
+
+  # Pull a custom catalog
+  docker mcp catalog pull myorg/my-catalog:latest`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dao, err := db.New()
 			if err != nil {

@@ -48,6 +48,9 @@ const (
 	SourcePrefixRegistry      = "registry:"
 )
 
+// CommunityRegistryCatalogRef is the OCI reference for the community MCP server catalog.
+const CommunityRegistryCatalogRef = "mcp/community-registry:latest"
+
 type Server struct {
 	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
 	Tools []string              `yaml:"tools,omitempty" json:"tools,omitempty"`

@@ -3,6 +3,8 @@ package catalognext
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -28,8 +30,17 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 
 	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
+	if isCommunityRegistry(catalog.Source) {
+		fmt.Fprintf(os.Stderr, "\n⚠️  Community Registry servers are not vetted by Docker.\n")
+	}
+
 	success = true
 	return nil
+}
+
+// isCommunityRegistry checks if the catalog source indicates it came from the community registry.
+func isCommunityRegistry(source string) bool {
+	return strings.HasPrefix(source, SourcePrefixRegistry) || strings.Contains(source, "community-registry")
 }
 
 func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) (*db.Catalog, error) {
