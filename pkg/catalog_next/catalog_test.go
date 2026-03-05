@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/name"
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/stretchr/testify/assert"
@@ -891,5 +892,17 @@ func TestPullOptionEvaluatorEvaluate(t *testing.T) {
 			result := evaluator.Evaluate(tt.dbCatalog)
 			assert.Equal(t, tt.shouldPull, result)
 		})
+	}
+}
+
+func TestCommunityRegistryCatalogRefMatchesNormalizedOCI(t *testing.T) {
+	// Verify that CommunityRegistryCatalogRef matches the normalized form
+	// produced by oci.FullNameWithoutDigest for both tagged and untagged inputs.
+	inputs := []string{"mcp/community-registry", "mcp/community-registry:latest"}
+	for _, input := range inputs {
+		ref, err := name.ParseReference(input)
+		require.NoError(t, err)
+		assert.Equal(t, CommunityRegistryCatalogRef, oci.FullNameWithoutDigest(ref),
+			"CommunityRegistryCatalogRef should match normalized form of %q", input)
 	}
 }
