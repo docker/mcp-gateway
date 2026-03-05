@@ -39,8 +39,18 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 }
 
 // isCommunityRegistry checks if the catalog source indicates it came from the community registry.
+// It matches catalogs created via the registry API (source prefix "registry:") or pulled from the
+// known community registry OCI reference (mcp/community-registry).
 func isCommunityRegistry(source string) bool {
-	return strings.HasPrefix(source, SourcePrefixRegistry) || strings.Contains(source, "community-registry")
+	if strings.HasPrefix(source, SourcePrefixRegistry) {
+		return true
+	}
+	// Parse the known community registry ref to get its normalized form for exact comparison.
+	ref, err := name.ParseReference(CommunityRegistryCatalogRef)
+	if err != nil {
+		return false
+	}
+	return source == SourcePrefixOCI+oci.FullName(ref)
 }
 
 func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string) (*db.Catalog, error) {
