@@ -44,7 +44,7 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 	catalogArtifact, err := oci.ReadArtifact[CatalogArtifact](refStr, MCPCatalogArtifactType)
 	if err != nil {
 		if isNotFoundError(err) {
-			return nil, fmt.Errorf("catalog not found: %s", oci.FullNameWithoutDigest(ref))
+			return nil, fmt.Errorf("catalog not found: %s", refStr)
 		}
 		return nil, fmt.Errorf("failed to read OCI catalog: %w", err)
 	}
