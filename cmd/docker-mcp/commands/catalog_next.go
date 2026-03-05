@@ -251,7 +251,7 @@ func pullCatalogNextCommand() *cobra.Command {
 Available Catalogs:
   Community Registry:  ` + catalognext.CommunityRegistryCatalogRef + `
 
-  ⚠️  Community Registry servers are not vetted by Docker`,
+  ⚠️ Community Registry servers are not vetted by Docker`,
 		Example: `  # Pull the community MCP server catalog
   docker mcp catalog pull ` + catalognext.CommunityRegistryCatalogRef + `
 

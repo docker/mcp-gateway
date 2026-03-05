@@ -30,7 +30,7 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	fmt.Printf("Catalog %s pulled\n", catalog.Ref)
 
 	if catalog.Ref == CommunityRegistryCatalogRef {
-		fmt.Fprintf(os.Stderr, "\n⚠️  Community Registry servers are not vetted by Docker.\n")
+		fmt.Fprintf(os.Stderr, "\n⚠️ Community Registry servers are not vetted by Docker.\n")
 	}
 
 	success = true
