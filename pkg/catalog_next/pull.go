@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -38,14 +37,8 @@ func Pull(ctx context.Context, dao db.DAO, ociService oci.Service, refStr string
 	return nil
 }
 
-// isCommunityRegistry checks if the catalog source indicates it came from the community registry.
-// It matches catalogs created via the registry API (source prefix "registry:") or pulled from the
-// known community registry OCI reference (mcp/community-registry).
+// isCommunityRegistry checks if the catalog source matches the known community registry OCI reference.
 func isCommunityRegistry(source string) bool {
-	if strings.HasPrefix(source, SourcePrefixRegistry) {
-		return true
-	}
-	// Parse the known community registry ref to get its normalized form for exact comparison.
 	ref, err := name.ParseReference(CommunityRegistryCatalogRef)
 	if err != nil {
 		return false
