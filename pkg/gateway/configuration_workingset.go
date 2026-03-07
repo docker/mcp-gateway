@@ -137,6 +137,15 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		// }
 	}
 
+	// CE mode: supplement with OAuth tokens from credential helper.
+	if ceSecrets := readCEModeOAuthSecrets(ctx, servers, serverNames); len(ceSecrets) > 0 {
+		for k, v := range ceSecrets {
+			if _, exists := flattenedSecrets[k]; !exists {
+				flattenedSecrets[k] = v
+			}
+		}
+	}
+
 	log.Log("- Configuration read in", time.Since(start))
 
 	return Configuration{

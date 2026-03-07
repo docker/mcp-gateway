@@ -581,6 +581,20 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 	}
 
+	// CE mode: supplement with OAuth tokens from credential helper.
+	// Docker Desktop's secret mechanisms (jcat, se://) aren't available in CE mode,
+	// but OAuth tokens are stored in the credential helper by `docker mcp oauth authorize`.
+	if ceSecrets := readCEModeOAuthSecrets(ctx, servers, serverNames); len(ceSecrets) > 0 {
+		if secrets == nil {
+			secrets = make(map[string]string)
+		}
+		for k, v := range ceSecrets {
+			if _, exists := secrets[k]; !exists {
+				secrets[k] = v
+			}
+		}
+	}
+
 	log.Log("- Configuration read in", time.Since(start))
 	return Configuration{
 		serverNames:               serverNames,
