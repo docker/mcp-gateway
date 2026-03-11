@@ -66,6 +66,10 @@ type Server struct {
 	// ServerTypeRemote only
 	Endpoint string `yaml:"endpoint,omitempty" json:"endpoint,omitempty" validate:"required_if=Type remote"`
 
+	// CatalogSource is the catalog reference that this server was sourced from.
+	// Empty if the server was added directly (not from a catalog).
+	CatalogSource string `yaml:"catalog_source,omitempty" json:"catalog_source,omitempty"`
+
 	// Optional snapshot of the server schema
 	Snapshot *ServerSnapshot `yaml:"snapshot,omitempty" json:"snapshot,omitempty"`
 }
@@ -97,10 +101,11 @@ func NewFromDb(dbSet *db.WorkingSet) WorkingSet {
 	servers := make([]Server, len(dbSet.Servers))
 	for i, server := range dbSet.Servers {
 		servers[i] = Server{
-			Type:    ServerType(server.Type),
-			Config:  server.Config,
-			Secrets: server.Secrets,
-			Tools:   server.Tools,
+			Type:          ServerType(server.Type),
+			Config:        server.Config,
+			Secrets:       server.Secrets,
+			Tools:         server.Tools,
+			CatalogSource: server.CatalogSource,
 		}
 		if server.Type == "registry" {
 			servers[i].Source = server.Source
@@ -141,10 +146,11 @@ func (workingSet WorkingSet) ToDb() db.WorkingSet {
 	dbServers := make(db.ServerList, len(workingSet.Servers))
 	for i, server := range workingSet.Servers {
 		dbServers[i] = db.Server{
-			Type:    string(server.Type),
-			Config:  server.Config,
-			Secrets: server.Secrets,
-			Tools:   server.Tools,
+			Type:          string(server.Type),
+			Config:        server.Config,
+			Secrets:       server.Secrets,
+			Tools:         server.Tools,
+			CatalogSource: server.CatalogSource,
 		}
 		if server.Type == ServerTypeRegistry {
 			dbServers[i].Source = server.Source
@@ -770,12 +776,13 @@ func mapCatalogServersToWorkingSetServers(dbServers []db.CatalogServer, secrets 
 	servers := make([]Server, len(dbServers))
 	for i, server := range dbServers {
 		servers[i] = Server{
-			Type:     ServerType(server.ServerType),
-			Tools:    ToolList(server.Tools),
-			Config:   map[string]any{},
-			Source:   server.Source,
-			Image:    server.Image,
-			Endpoint: server.Endpoint,
+			Type:          ServerType(server.ServerType),
+			Tools:         ToolList(server.Tools),
+			Config:        map[string]any{},
+			Source:        server.Source,
+			Image:         server.Image,
+			Endpoint:      server.Endpoint,
+			CatalogSource: server.CatalogRef,
 			Snapshot: &ServerSnapshot{
 				Server: server.Snapshot.Server,
 			},
