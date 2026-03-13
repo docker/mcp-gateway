@@ -6,15 +6,11 @@ plink: docker_mcp.yaml
 cname:
     - docker mcp tools call
     - docker mcp tools count
-    - docker mcp tools disable
-    - docker mcp tools enable
     - docker mcp tools inspect
     - docker mcp tools ls
 clink:
     - docker_mcp_tools_call.yaml
     - docker_mcp_tools_count.yaml
-    - docker_mcp_tools_disable.yaml
-    - docker_mcp_tools_enable.yaml
     - docker_mcp_tools_inspect.yaml
     - docker_mcp_tools_ls.yaml
 options:

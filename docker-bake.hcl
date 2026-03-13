@@ -13,6 +13,10 @@ variable "DOCS_FORMATS" {
   default = "md,yaml"
 }
 
+variable "DOCS_FEATURES" {
+  default = "profiles"
+}
+
 group default {
   targets = [
     "all",
@@ -97,7 +101,8 @@ target mcp-gateway-dind {
 target "validate-docs" {
   inherits = ["_common"]
   args = {
-    DOCS_FORMATS = DOCS_FORMATS
+    DOCS_FORMATS   = DOCS_FORMATS
+    DOCS_FEATURES  = DOCS_FEATURES
   }
   target = "docs-validate"
   output = ["type=cacheonly"]
@@ -106,7 +111,8 @@ target "validate-docs" {
 target "update-docs" {
   inherits = ["_common"]
   args = {
-    DOCS_FORMATS = DOCS_FORMATS
+    DOCS_FORMATS   = DOCS_FORMATS
+    DOCS_FEATURES  = DOCS_FEATURES
   }
   target = "docs-update"
   output = ["./docs/generator/reference"]
