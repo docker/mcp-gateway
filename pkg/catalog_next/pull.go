@@ -2,11 +2,13 @@ package catalognext
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -46,6 +48,9 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 
 	catalogArtifact, err := oci.ReadArtifact[CatalogArtifact](refStr, MCPCatalogArtifactType)
 	if err != nil {
+		if isNotFoundError(err) {
+			return nil, fmt.Errorf("catalog not found: %s", refStr)
+		}
 		return nil, fmt.Errorf("failed to read OCI catalog: %w", err)
 	}
 
@@ -92,4 +97,19 @@ func pullCatalog(ctx context.Context, dao db.DAO, ociService oci.Service, refStr
 	}
 
 	return &dbCatalog, nil
+}
+
+// isNotFoundError checks if the error is an OCI registry "not found" response
+// (MANIFEST_UNKNOWN or NAME_UNKNOWN).
+func isNotFoundError(err error) bool {
+	var transportErr *transport.Error
+	if !errors.As(err, &transportErr) {
+		return false
+	}
+	for _, diagnostic := range transportErr.Errors {
+		if diagnostic.Code == transport.ManifestUnknownErrorCode || diagnostic.Code == transport.NameUnknownErrorCode {
+			return true
+		}
+	}
+	return false
 }
