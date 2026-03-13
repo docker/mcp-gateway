@@ -275,11 +275,13 @@ func TestAddServersFromCatalog(t *testing.T) {
 				assert.Equal(t, "catalog-server-1", servers[0].Snapshot.Server.Name)
 				assert.Equal(t, []string{"tool1", "tool2"}, servers[0].Tools)
 				assert.Equal(t, "default", servers[0].Secrets)
+				assert.Equal(t, "test/catalog:latest", servers[0].CatalogRef)
 				assert.Equal(t, "image", servers[1].Type)
 				assert.Equal(t, "catalog-image-2:latest", servers[1].Image)
 				assert.Equal(t, "catalog-server-2", servers[1].Snapshot.Server.Name)
 				assert.Equal(t, []string{"tool1"}, servers[1].Tools)
 				assert.Equal(t, "default", servers[1].Secrets)
+				assert.Equal(t, "test/catalog:latest", servers[1].CatalogRef)
 			},
 		},
 		{
@@ -306,12 +308,14 @@ func TestAddServersFromCatalog(t *testing.T) {
 				assert.Equal(t, "ais-fleet", servers[0].Snapshot.Server.Name)
 				assert.Len(t, servers[0].Tools, 1)
 				assert.Equal(t, "default", servers[0].Secrets)
+				assert.Equal(t, "test/catalog:latest", servers[0].CatalogRef)
 
 				assert.Equal(t, "remote", servers[1].Type)
 				assert.Equal(t, "https://mcp.aisfleet-2.com/sse", servers[1].Endpoint)
 				assert.Equal(t, "ais-fleet-2", servers[1].Snapshot.Server.Name)
 				assert.Len(t, servers[1].Tools, 1)
 				assert.Equal(t, "default", servers[1].Secrets)
+				assert.Equal(t, "test/catalog:latest", servers[1].CatalogRef)
 			},
 		},
 		{

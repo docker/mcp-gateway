@@ -565,6 +565,71 @@ func TestShowWithInvalidYQExpression(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to evaluate YQ expression")
 }
 
+func TestShowWithCatalogRef(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	err := dao.CreateWorkingSet(ctx, db.WorkingSet{
+		ID:   "test-set",
+		Name: "Test Working Set",
+		Servers: db.ServerList{
+			{
+				Type:       "image",
+				Image:      "mcp/slack@sha256:abc123",
+				CatalogRef: "docker.io/mcp/docker-mcp-catalog:latest",
+				Snapshot: &db.ServerSnapshot{
+					Server: catalog.Server{
+						Name:  "slack",
+						Type:  "server",
+						Image: "mcp/slack@sha256:abc123",
+						Title: "Slack",
+					},
+				},
+			},
+			{
+				Type:  "image",
+				Image: "docker/test:latest",
+			},
+		},
+		Secrets: db.SecretMap{
+			"default": {Provider: "docker-desktop-store"},
+		},
+	})
+	require.NoError(t, err)
+
+	t.Run("JSON includes catalog_ref", func(t *testing.T) {
+		output := captureStdout(func() {
+			err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
+			require.NoError(t, err)
+		})
+
+		var workingSet WorkingSet
+		err = json.Unmarshal([]byte(output), &workingSet)
+		require.NoError(t, err)
+
+		assert.Len(t, workingSet.Servers, 2)
+		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogRef)
+		assert.Empty(t, workingSet.Servers[1].CatalogRef)
+
+		// Verify catalog_ref appears in raw JSON for server with source
+		assert.Contains(t, output, `"catalog_ref"`)
+	})
+
+	t.Run("YAML includes catalog_ref", func(t *testing.T) {
+		output := captureStdout(func() {
+			err := Show(ctx, dao, "test-set", OutputFormatYAML, false, "")
+			require.NoError(t, err)
+		})
+
+		var workingSet WorkingSet
+		err = yaml.Unmarshal([]byte(output), &workingSet)
+		require.NoError(t, err)
+
+		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogRef)
+		assert.Empty(t, workingSet.Servers[1].CatalogRef)
+	})
+}
+
 func TestShowWithClientsFlag(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
