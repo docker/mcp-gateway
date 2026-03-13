@@ -39,8 +39,8 @@ type Server struct {
 	Image    string         `json:"image,omitempty"`
 	Endpoint string         `json:"endpoint,omitempty"`
 
-	// CatalogSource is the catalog reference that this server was sourced from.
-	CatalogSource string `json:"catalog_source,omitempty"`
+	// CatalogRef is the catalog reference that this server was sourced from.
+	CatalogRef string `json:"catalog_ref,omitempty"`
 
 	// Optional snapshot of the server schema
 	Snapshot *ServerSnapshot `json:"snapshot,omitempty"`

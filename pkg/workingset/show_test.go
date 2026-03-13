@@ -565,7 +565,7 @@ func TestShowWithInvalidYQExpression(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to evaluate YQ expression")
 }
 
-func TestShowWithCatalogSource(t *testing.T) {
+func TestShowWithCatalogRef(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
@@ -574,9 +574,9 @@ func TestShowWithCatalogSource(t *testing.T) {
 		Name: "Test Working Set",
 		Servers: db.ServerList{
 			{
-				Type:          "image",
-				Image:         "mcp/slack@sha256:abc123",
-				CatalogSource: "docker.io/mcp/docker-mcp-catalog:latest",
+				Type:       "image",
+				Image:      "mcp/slack@sha256:abc123",
+				CatalogRef: "docker.io/mcp/docker-mcp-catalog:latest",
 				Snapshot: &db.ServerSnapshot{
 					Server: catalog.Server{
 						Name:  "slack",
@@ -597,7 +597,7 @@ func TestShowWithCatalogSource(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("JSON includes catalog_source", func(t *testing.T) {
+	t.Run("JSON includes catalog_ref", func(t *testing.T) {
 		output := captureStdout(func() {
 			err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 			require.NoError(t, err)
@@ -608,14 +608,14 @@ func TestShowWithCatalogSource(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Len(t, workingSet.Servers, 2)
-		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogSource)
-		assert.Empty(t, workingSet.Servers[1].CatalogSource)
+		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogRef)
+		assert.Empty(t, workingSet.Servers[1].CatalogRef)
 
-		// Verify catalog_source appears in raw JSON for server with source
-		assert.Contains(t, output, `"catalog_source"`)
+		// Verify catalog_ref appears in raw JSON for server with source
+		assert.Contains(t, output, `"catalog_ref"`)
 	})
 
-	t.Run("YAML includes catalog_source", func(t *testing.T) {
+	t.Run("YAML includes catalog_ref", func(t *testing.T) {
 		output := captureStdout(func() {
 			err := Show(ctx, dao, "test-set", OutputFormatYAML, false, "")
 			require.NoError(t, err)
@@ -625,8 +625,8 @@ func TestShowWithCatalogSource(t *testing.T) {
 		err = yaml.Unmarshal([]byte(output), &workingSet)
 		require.NoError(t, err)
 
-		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogSource)
-		assert.Empty(t, workingSet.Servers[1].CatalogSource)
+		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogRef)
+		assert.Empty(t, workingSet.Servers[1].CatalogRef)
 	})
 }
 
