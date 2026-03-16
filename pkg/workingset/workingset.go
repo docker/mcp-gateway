@@ -68,7 +68,7 @@ type Server struct {
 
 	// CatalogRef is the catalog reference that this server was sourced from.
 	// Empty if the server was added directly (not from a catalog).
-	CatalogRef string `yaml:"catalog_ref,omitempty" json:"catalog_ref,omitempty"`
+	CatalogRef string `yaml:"catalog_ref,omitempty" json:"catalogRef,omitempty"`
 
 	// Optional snapshot of the server schema
 	Snapshot *ServerSnapshot `yaml:"snapshot,omitempty" json:"snapshot,omitempty"`
