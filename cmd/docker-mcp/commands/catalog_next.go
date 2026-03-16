@@ -40,6 +40,7 @@ func createCatalogNextCommand() *cobra.Command {
 		FromLegacyCatalog     string
 		FromCommunityRegistry string
 		Servers               []string
+		Exclude               []string
 		IncludePyPI           bool
 	}
 
@@ -91,13 +92,17 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 				return fmt.Errorf("--include-pypi can only be used when creating a catalog from a community registry")
 			}
 
+			if len(opts.Exclude) > 0 && opts.FromCommunityRegistry == "" {
+				return fmt.Errorf("--exclude can only be used when creating a catalog from a community registry")
+			}
+
 			dao, err := db.New()
 			if err != nil {
 				return err
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title, opts.IncludePyPI)
+			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title, opts.IncludePyPI, opts.Exclude)
 		},
 	}
 
@@ -108,6 +113,7 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 	flags.StringVar(&opts.FromCommunityRegistry, "from-community-registry", "", "Community registry hostname to fetch servers from (e.g. registry.modelcontextprotocol.io)")
 	flags.StringVar(&opts.Title, "title", "", "Title of the catalog")
 
+	flags.StringArrayVar(&opts.Exclude, "exclude", []string{}, "Server name to exclude from the catalog (can be specified multiple times, only valid with --from-community-registry)")
 	flags.BoolVar(&opts.IncludePyPI, "include-pypi", false, "Include PyPI servers when creating a catalog from a community registry")
 	cmd.Flags().MarkHidden("include-pypi") //nolint:errcheck
 
