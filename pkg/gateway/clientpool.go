@@ -328,6 +328,11 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 
 	// Secrets
 	for _, s := range serverConfig.Spec.Secrets {
+		// Skip secrets without an env field - they are OAuth infrastructure
+		// (e.g., client_secret) and are not injected into containers.
+		if s.Env == "" {
+			continue
+		}
 		args = append(args, "-e", s.Env)
 
 		secretValue, ok := serverConfig.Secrets[s.Name]
