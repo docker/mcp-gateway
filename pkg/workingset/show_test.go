@@ -597,7 +597,7 @@ func TestShowWithCatalogRef(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	t.Run("JSON includes catalog_ref", func(t *testing.T) {
+	t.Run("JSON includes catalogRef", func(t *testing.T) {
 		output := captureStdout(func() {
 			err := Show(ctx, dao, "test-set", OutputFormatJSON, false, "")
 			require.NoError(t, err)
@@ -611,8 +611,8 @@ func TestShowWithCatalogRef(t *testing.T) {
 		assert.Equal(t, "docker.io/mcp/docker-mcp-catalog:latest", workingSet.Servers[0].CatalogRef)
 		assert.Empty(t, workingSet.Servers[1].CatalogRef)
 
-		// Verify catalog_ref appears in raw JSON for server with source
-		assert.Contains(t, output, `"catalog_ref"`)
+		// Verify catalogRef appears in raw JSON for server with source
+		assert.Contains(t, output, `"catalogRef"`)
 	})
 
 	t.Run("YAML includes catalog_ref", func(t *testing.T) {
