@@ -52,7 +52,7 @@ const (
 const CommunityRegistryCatalogRef = "mcp/community-registry:latest"
 
 type Server struct {
-	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
+	Type  workingset.ServerType `yaml:"type" json:"type" validate:"required,oneof=registry image remote poci"`
 	Tools []string              `yaml:"tools,omitempty" json:"tools,omitempty"`
 	// Policy describes the policy decision for this server.
 	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
@@ -85,6 +85,7 @@ func NewFromDb(dbCatalog *db.Catalog) CatalogWithDigest {
 		if server.ServerType == "remote" {
 			servers[i].Endpoint = server.Endpoint
 		}
+		// poci servers don't need image/endpoint/source — tools contain inline container specs
 		if server.Snapshot != nil {
 			servers[i].Snapshot = &workingset.ServerSnapshot{
 				Server: server.Snapshot.Server,

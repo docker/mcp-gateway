@@ -253,6 +253,8 @@ func printServersHuman(catalogRef, catalogTitle string, catalogPolicy *policy.De
 			fmt.Printf("    Source: %s\n", server.Source)
 		case workingset.ServerTypeRemote:
 			fmt.Printf("    Endpoint: %s\n", server.Endpoint)
+		case workingset.ServerTypePoci:
+			// poci servers have no top-level image/endpoint; tools define containers inline
 		}
 		if showPolicy {
 			fmt.Printf("    Policy: %s\n", policycli.StatusMessage(server.Policy))

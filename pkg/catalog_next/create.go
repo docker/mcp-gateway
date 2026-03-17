@@ -168,6 +168,15 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 			}
 			s.Snapshot.Server.Name = name
 			servers = append(servers, s)
+		} else if server.Type == "poci" {
+			s := Server{
+				Type: workingset.ServerTypePoci,
+				Snapshot: &workingset.ServerSnapshot{
+					Server: server,
+				},
+			}
+			s.Snapshot.Server.Name = name
+			servers = append(servers, s)
 		}
 	}
 

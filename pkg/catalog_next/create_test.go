@@ -405,6 +405,97 @@ registry:
 	assert.Equal(t, "Another test server", catalog.Servers[1].Snapshot.Server.Description)
 }
 
+func TestCreateFromLegacyCatalogWithPociServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// Create a temporary legacy catalog file with server, remote, and poci types
+	tempDir := t.TempDir()
+	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+
+	legacyCatalogYAML := `name: test-catalog
+registry:
+  my-server:
+    title: "My Server"
+    type: "server"
+    image: "docker/test-server:latest"
+    description: "A regular server"
+  my-remote:
+    title: "My Remote"
+    type: "remote"
+    description: "A remote server"
+    remote:
+      url: "https://remote.example.com/mcp"
+  curl:
+    title: "Curl"
+    type: "poci"
+    description: "Standard curl tool."
+    tools:
+      - name: curl
+        description: "Run a curl command."
+        container:
+          image: "alpine/curl"
+          command:
+            - "{{args|into}}"
+  ffmpeg:
+    title: "FFmpeg"
+    type: "poci"
+    description: "Use ffmpeg to process video files."
+    tools:
+      - name: ffmpeg
+        description: "run the ffmpeg command"
+        container:
+          image: "linuxserver/ffmpeg:version-7.1-cli"
+          command:
+            - "{{args|into}}"
+`
+
+	err := os.WriteFile(catalogFile, []byte(legacyCatalogYAML), 0o644)
+	require.NoError(t, err)
+
+	// Create catalog from legacy catalog
+	output := captureStdout(t, func() {
+		err := Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "test/poci-test:latest", []string{}, "", catalogFile, "", "Poci Test Catalog", false)
+		require.NoError(t, err)
+	})
+
+	assert.Contains(t, output, "Catalog test/poci-test:latest created")
+
+	// Verify the catalog was created
+	catalogs, err := dao.ListCatalogs(ctx)
+	require.NoError(t, err)
+	assert.Len(t, catalogs, 1)
+
+	catalog := NewFromDb(&catalogs[0])
+	assert.Equal(t, "Poci Test Catalog", catalog.Title)
+	assert.Len(t, catalog.Servers, 4)
+
+	// Verify all server types are present (order may vary due to map iteration)
+	serversByName := map[string]Server{}
+	for _, s := range catalog.Servers {
+		serversByName[s.Snapshot.Server.Name] = s
+	}
+
+	// Verify poci servers
+	curlServer := serversByName["curl"]
+	assert.Equal(t, workingset.ServerTypePoci, curlServer.Type)
+	assert.Equal(t, "Curl", curlServer.Snapshot.Server.Title)
+	assert.Equal(t, "Standard curl tool.", curlServer.Snapshot.Server.Description)
+	assert.Empty(t, curlServer.Image)
+
+	ffmpegServer := serversByName["ffmpeg"]
+	assert.Equal(t, workingset.ServerTypePoci, ffmpegServer.Type)
+	assert.Equal(t, "FFmpeg", ffmpegServer.Snapshot.Server.Title)
+	assert.Empty(t, ffmpegServer.Image)
+
+	// Verify other types still work
+	remoteServer := serversByName["my-remote"]
+	assert.Equal(t, workingset.ServerTypeRemote, remoteServer.Type)
+
+	imageServer := serversByName["my-server"]
+	assert.Equal(t, workingset.ServerTypeImage, imageServer.Type)
+}
+
 func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

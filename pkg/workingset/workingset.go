@@ -46,11 +46,12 @@ const (
 	ServerTypeRegistry ServerType = "registry"
 	ServerTypeImage    ServerType = "image"
 	ServerTypeRemote   ServerType = "remote"
+	ServerTypePoci     ServerType = "poci"
 )
 
 // Server represents a server configuration in a working set
 type Server struct {
-	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image remote"`
+	Type    ServerType     `yaml:"type" json:"type" validate:"required,oneof=registry image remote poci"`
 	Config  map[string]any `yaml:"config,omitempty" json:"config,omitempty"`
 	Secrets string         `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Tools   ToolList       `yaml:"tools,omitempty" json:"tools"` // See IsZero() below
@@ -527,6 +528,12 @@ func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 			serversResolved[i] = Server{
 				Type:     ServerTypeImage,
 				Image:    server.Image,
+				Secrets:  "default",
+				Snapshot: &ServerSnapshot{Server: server},
+			}
+		} else if server.Type == "poci" && server.Image == "" {
+			serversResolved[i] = Server{
+				Type:     ServerTypePoci,
 				Secrets:  "default",
 				Snapshot: &ServerSnapshot{Server: server},
 			}
