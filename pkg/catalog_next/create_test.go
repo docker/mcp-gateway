@@ -1090,6 +1090,102 @@ func TestCreateFromCommunityRegistryWithExclusions(t *testing.T) {
 	assert.Equal(t, "https://example.com/mcp", cat.Servers[1].Endpoint)
 }
 
+func TestCreateFromCommunityRegistryWithMultipleExclusions(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	ociServer := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Name:        "io.example/oci-server",
+			Description: "An OCI server",
+			Version:     "1.0.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/server:1.0.0",
+					Transport:    model.Transport{Type: "stdio"},
+				},
+			},
+		},
+	}
+	blockedServer1 := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Name:        "io.example/blocked-one",
+			Description: "First blocked server",
+			Version:     "1.0.0",
+			Packages: []model.Package{
+				{
+					RegistryType: "oci",
+					Identifier:   "ghcr.io/example/blocked1:1.0.0",
+					Transport:    model.Transport{Type: "stdio"},
+				},
+			},
+		},
+	}
+	blockedServer2 := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Name:        "io.example/blocked-two",
+			Description: "Second blocked server",
+			Version:     "1.0.0",
+			Remotes: []model.Transport{
+				{
+					Type: "sse",
+					URL:  "https://example.com/blocked2",
+				},
+			},
+		},
+	}
+	remoteServer := v0.ServerResponse{
+		Server: v0.ServerJSON{
+			Name:        "io.example/remote-server",
+			Description: "A remote server",
+			Version:     "2.0.0",
+			Remotes: []model.Transport{
+				{
+					Type: "sse",
+					URL:  "https://example.com/mcp",
+				},
+			},
+		},
+	}
+
+	mockClient := mocks.NewMockRegistryAPIClient(
+		mocks.WithListServersResponse([]v0.ServerResponse{ociServer, blockedServer1, blockedServer2, remoteServer}),
+	)
+
+	// Exclude two servers and include a non-existent name (should be a no-op)
+	excludeList := []string{"io.example/blocked-one", "io.example/blocked-two", "io.example/does-not-exist"}
+
+	output := captureStdout(t, func() {
+		err := Create(ctx, dao, mockClient, getMockOciService(), "test/multi-exclude:latest", []string{}, "", "", "registry.modelcontextprotocol.io", "MCP Community Registry", false, excludeList)
+		require.NoError(t, err)
+	})
+	assert.Contains(t, output, "Catalog test/multi-exclude:latest created")
+
+	catalogs, err := dao.ListCatalogs(ctx)
+	require.NoError(t, err)
+	require.Len(t, catalogs, 1)
+
+	cat := NewFromDb(&catalogs[0])
+	// Should have 2 servers (OCI + remote), both blocked servers excluded
+	require.Len(t, cat.Servers, 2)
+
+	// Verify neither blocked server is present
+	for _, s := range cat.Servers {
+		assert.NotEqual(t, "ghcr.io/example/blocked1:1.0.0", s.Image, "blocked-one should not appear")
+		if s.Endpoint != "" {
+			assert.NotEqual(t, "https://example.com/blocked2", s.Endpoint, "blocked-two should not appear")
+		}
+	}
+
+	// Verify the non-blocked servers are present
+	assert.Equal(t, workingset.ServerTypeImage, cat.Servers[0].Type)
+	assert.Equal(t, "ghcr.io/example/server:1.0.0", cat.Servers[0].Image)
+
+	assert.Equal(t, workingset.ServerTypeRemote, cat.Servers[1].Type)
+	assert.Equal(t, "https://example.com/mcp", cat.Servers[1].Endpoint)
+}
+
 func TestCreateFromCommunityRegistryError(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
