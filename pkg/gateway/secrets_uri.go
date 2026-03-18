@@ -5,6 +5,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // ServerSecretConfig contains the secret definitions and OAuth config for a server.
@@ -33,7 +34,22 @@ func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[str
 	secretNameToURI := make(map[string]string)
 
 	// availableSecrets maps secret IDs to their values (used to check existence)
-	allSecrets, _ := secret.GetSecrets(ctx)
+	allSecrets, err := secret.GetSecrets(ctx)
+	if err != nil {
+		log.Logf("Warning: Failed to fetch secrets from secrets engine: %v", err)
+		// Fallback: generate se:// URIs for all declared secrets without checking existence.
+		// Docker Desktop resolves se:// URIs at container runtime via named pipes,
+		// which works even when the secrets engine Unix socket is unreachable
+		// (e.g. MSIX-sandboxed clients on Windows cannot follow AF_UNIX reparse points).
+		for _, cfg := range configs {
+			for _, s := range cfg.Secrets {
+				secretID := secret.GetDefaultSecretKey(s.Name)
+				secretName := cfg.Namespace + s.Name
+				secretNameToURI[secretName] = "se://" + secretID
+			}
+		}
+		return secretNameToURI
+	}
 	availableSecrets := make(map[string]string)
 	for _, envelope := range allSecrets {
 		availableSecrets[envelope.ID] = string(envelope.Value)
