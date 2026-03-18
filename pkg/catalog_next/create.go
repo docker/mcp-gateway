@@ -21,7 +21,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, communityRegistryRef string, title string, includePyPI bool) error {
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, communityRegistryRef string, title string, includePyPI bool, excludeServers []string) error {
 	telemetry.Init()
 	start := time.Now()
 	var success bool
@@ -49,7 +49,7 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
 	} else if communityRegistryRef != "" {
-		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, communityRegistryRef, includePyPI)
+		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, communityRegistryRef, includePyPI, excludeServers)
 		if err != nil {
 			return fmt.Errorf("failed to create catalog from community registry: %w", err)
 		}
@@ -209,7 +209,7 @@ type communityRegistryResult struct {
 	skippedByType  map[string]int
 }
 
-func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string, includePyPI bool) (Catalog, error) {
+func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string, includePyPI bool, excludeServers []string) (Catalog, error) {
 	baseURL := "https://" + registryRef
 	servers, err := registryClient.ListServers(ctx, baseURL, "")
 	if err != nil {
@@ -221,6 +221,11 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 	var ociCount, remoteCount, pypiCount int
 
 	for _, serverResp := range servers {
+		if slices.Contains(excludeServers, serverResp.Server.Name) {
+			skippedByType["excluded"]++
+			continue
+		}
+
 		catalogServer, transformSource, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.WithAllowPyPI(includePyPI), legacycatalog.WithPyPIResolver(legacycatalog.DefaultPyPIVersionResolver()))
 		if err != nil {
 			if !errors.Is(err, legacycatalog.ErrIncompatibleServer) {
