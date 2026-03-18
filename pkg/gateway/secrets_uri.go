@@ -11,85 +11,89 @@ import (
 // ServerSecretConfig contains the secret definitions and OAuth config for a server.
 type ServerSecretConfig struct {
 	Secrets   []catalog.Secret // Secret definitions from server catalog
-	OAuth     *catalog.OAuth   // OAuth config (if present, OAuth takes priority over PAT)
+	OAuth     *catalog.OAuth   // OAuth config (if present, OAuth takes priority over direct secret)
 	Namespace string           // Prefix for map keys (used by WorkingSet for namespacing)
 }
 
 // BuildSecretsURIs generates se:// URIs for secrets with OAuth priority handling.
 //
-// For servers WITH OAuth configured:
-//   - Check if OAuth token exists (docker/mcp/oauth/{provider})
-//   - If yes, use OAuth URI
-//   - If no, fall back to PAT URI (docker/mcp/{secret_name})
+// When the secrets engine is reachable, URIs are only generated for secrets that
+// actually exist in the store (OAuth token checked first, then direct secret).
 //
-// For servers WITHOUT OAuth:
-//   - Use PAT URI directly if secret exists
-//
-// Docker Desktop resolves se:// URIs at container runtime.
-// Remote servers fetch actual values via remote.go.
+// When the secrets engine is unreachable (e.g. MSIX-sandboxed clients on Windows
+// cannot follow AF_UNIX reparse points), URIs are generated for all declared secrets
+// since we cannot check existence. Docker Desktop resolves se:// URIs at container
+// runtime via named pipes, which are unaffected by MSIX restrictions.
 func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[string]string {
-	// secretNameToURI maps secret names to their se:// URIs
-	// Key: secret name (e.g., "github.token" or "default_github.token" with namespace)
-	// Value: se:// URI (e.g., "se://docker/mcp/github.token")
-	secretNameToURI := make(map[string]string)
-
-	// availableSecrets maps secret IDs to their values (used to check existence)
 	allSecrets, err := secret.GetSecrets(ctx)
 	if err != nil {
 		log.Logf("Warning: Failed to fetch secrets from secrets engine: %v", err)
-		// Fallback: generate se:// URIs for all declared secrets without checking existence.
-		// Docker Desktop resolves se:// URIs at container runtime via named pipes,
-		// which works even when the secrets engine Unix socket is unreachable
-		// (e.g. MSIX-sandboxed clients on Windows cannot follow AF_UNIX reparse points).
-		for _, cfg := range configs {
-			for _, s := range cfg.Secrets {
-				secretID := secret.GetDefaultSecretKey(s.Name)
-				secretName := cfg.Namespace + s.Name
-				secretNameToURI[secretName] = "se://" + secretID
-			}
-		}
-		return secretNameToURI
+		return buildFallbackURIs(configs)
 	}
+
 	availableSecrets := make(map[string]string)
 	for _, envelope := range allSecrets {
 		availableSecrets[envelope.ID] = string(envelope.Value)
 	}
+	return buildVerifiedURIs(configs, availableSecrets)
+}
+
+// buildFallbackURIs generates se:// URIs for all declared secrets without checking
+// existence. Used when the secrets engine is unreachable. OAuth URIs are preferred
+// when configured (matching the normal priority order).
+func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
+	secretNameToURI := make(map[string]string)
 
 	for _, cfg := range configs {
-		// Server has no OAuth configured - use secret directly
-		if cfg.OAuth == nil {
-			for _, s := range cfg.Secrets {
-				secretID := secret.GetDefaultSecretKey(s.Name)
-				if availableSecrets[secretID] != "" {
-					secretName := cfg.Namespace + s.Name
-					secretNameToURI[secretName] = "se://" + secretID
-				}
-			}
-			continue
-		}
+		secretToOAuthID := oauthMapping(cfg)
 
-		// Build mapping from secret name to OAuth storage key
-		secretToOAuthID := make(map[string]string)
-		for _, p := range cfg.OAuth.Providers {
-			secretToOAuthID[p.Secret] = secret.GetOAuthKey(p.Provider)
+		for _, s := range cfg.Secrets {
+			secretName := cfg.Namespace + s.Name
+			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
+				secretNameToURI[secretName] = "se://" + oauthSecretID
+			} else {
+				secretNameToURI[secretName] = "se://" + secret.GetDefaultSecretKey(s.Name)
+			}
 		}
+	}
+	return secretNameToURI
+}
+
+// buildVerifiedURIs generates se:// URIs only for secrets that exist in the store.
+// For servers with OAuth, checks OAuth token first, then falls back to direct secret.
+func buildVerifiedURIs(configs []ServerSecretConfig, availableSecrets map[string]string) map[string]string {
+	secretNameToURI := make(map[string]string)
+
+	for _, cfg := range configs {
+		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
 			secretName := cfg.Namespace + s.Name
 
-			// Try OAuth first
+			// Try OAuth token first
 			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
 				if availableSecrets[oauthSecretID] != "" {
 					secretNameToURI[secretName] = "se://" + oauthSecretID
 					continue
 				}
 			}
-			// Fall back to PAT if it exists
-			patSecretID := secret.GetDefaultSecretKey(s.Name)
-			if availableSecrets[patSecretID] != "" {
-				secretNameToURI[secretName] = "se://" + patSecretID
+			// Fall back to direct secret (API keys, tokens, etc.)
+			secretID := secret.GetDefaultSecretKey(s.Name)
+			if availableSecrets[secretID] != "" {
+				secretNameToURI[secretName] = "se://" + secretID
 			}
 		}
 	}
 	return secretNameToURI
+}
+
+// oauthMapping builds a map from secret name to OAuth storage key for a server config.
+func oauthMapping(cfg ServerSecretConfig) map[string]string {
+	m := make(map[string]string)
+	if cfg.OAuth != nil {
+		for _, p := range cfg.OAuth.Providers {
+			m[p.Secret] = secret.GetOAuthKey(p.Provider)
+		}
+	}
+	return m
 }
