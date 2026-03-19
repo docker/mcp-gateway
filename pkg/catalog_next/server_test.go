@@ -20,7 +20,8 @@ func TestInspectServer(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create a catalog with servers
+	// Create a catalog with servers whose snapshot catalog.Server has the
+	// image field set (matching real TransformToDocker output).
 	catalogObj := Catalog{
 		Ref: "test/catalog:latest",
 		CatalogArtifact: CatalogArtifact{
@@ -33,6 +34,7 @@ func TestInspectServer(t *testing.T) {
 						Server: catalog.Server{
 							Name:        "my-server",
 							Description: "My test server",
+							Image:       "docker/server1:v1",
 						},
 					},
 				},
@@ -43,6 +45,7 @@ func TestInspectServer(t *testing.T) {
 						Server: catalog.Server{
 							Name:        "another-server",
 							Description: "Another test server",
+							Image:       "docker/server2:v1",
 						},
 					},
 				},
@@ -66,8 +69,11 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		// With no ReadmeURL, a synthesized overview is built from metadata
-		assert.Contains(t, server.ReadmeContent, "My test server")
+		// With no ReadmeURL, a synthesized overview is built from metadata.
+		// The description is NOT duplicated (it's already in the UI header);
+		// instead we get connection info from the image field.
+		assert.Contains(t, server.ReadmeContent, "Runs in Docker container")
+		assert.Contains(t, server.ReadmeContent, "docker/server1:v1")
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
@@ -81,8 +87,7 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		// With no ReadmeURL, a synthesized overview is built from metadata
-		assert.Contains(t, server.ReadmeContent, "My test server")
+		assert.Contains(t, server.ReadmeContent, "Runs in Docker container")
 	})
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
@@ -95,8 +100,7 @@ func TestInspectServer(t *testing.T) {
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
-		// With no ReadmeURL, a synthesized overview is built from metadata
-		assert.Contains(t, server.ReadmeContent, "My test server")
+		assert.Contains(t, server.ReadmeContent, "Runs in Docker container")
 	})
 }
 
@@ -156,9 +160,9 @@ func TestInspectServerWithReadme(t *testing.T) {
 	assert.Equal(t, readmeContent, inspectResult.ReadmeContent)
 }
 
-func TestInspectServerReadmeFetchFailsFallsBackToDescription(t *testing.T) {
+func TestInspectServerReadmeFetchFailsFallsBackToSynthesized(t *testing.T) {
 	// When a ReadmeURL is set but the fetch fails (e.g. private repo, 404),
-	// the inspect should not fail. It should fall back to the description.
+	// the inspect should not fail. It should fall back to a synthesized overview.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}))
@@ -179,6 +183,7 @@ func TestInspectServerReadmeFetchFailsFallsBackToDescription(t *testing.T) {
 						Server: catalog.Server{
 							Name:        "my-server",
 							Description: "A community MCP server",
+							Image:       "docker/server1:v1",
 							ReadmeURL:   server.URL + "/nonexistent-readme.md",
 						},
 					},
@@ -201,11 +206,11 @@ func TestInspectServerReadmeFetchFailsFallsBackToDescription(t *testing.T) {
 	err = json.Unmarshal([]byte(output), &inspectResult)
 	require.NoError(t, err)
 	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
-	// The README fetch failed, so it should fall back to a synthesized overview
-	assert.Contains(t, inspectResult.ReadmeContent, "A community MCP server")
+	// The README fetch failed, so it should fall back to a synthesized overview.
+	assert.Contains(t, inspectResult.ReadmeContent, "Runs in Docker container")
 }
 
-func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
+func TestInspectServerNoReadmeURLUsesSynthesized(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
@@ -221,6 +226,7 @@ func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
 						Server: catalog.Server{
 							Name:        "community-server",
 							Description: "Short description for overview",
+							Image:       "docker/server1:v1",
 						},
 					},
 				},
@@ -242,8 +248,9 @@ func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
 	err = json.Unmarshal([]byte(output), &inspectResult)
 	require.NoError(t, err)
 	assert.Equal(t, "community-server", inspectResult.Snapshot.Server.Name)
-	// Synthesized overview includes the description
-	assert.Contains(t, inspectResult.ReadmeContent, "Short description for overview")
+	// Synthesized overview includes the image connection info, not the description
+	assert.Contains(t, inspectResult.ReadmeContent, "Runs in Docker container")
+	assert.NotContains(t, inspectResult.ReadmeContent, "Short description for overview")
 }
 
 func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
@@ -287,7 +294,8 @@ func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
 }
 
 func TestBuildSynthesizedOverview(t *testing.T) {
-	t.Run("description only", func(t *testing.T) {
+	t.Run("description only used as last resort", func(t *testing.T) {
+		// When there's nothing else to show, fall back to description
 		s := &catalog.Server{
 			Description: "A simple server",
 		}
@@ -295,9 +303,40 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		assert.Equal(t, "A simple server\n", result)
 	})
 
+	t.Run("description omitted when other content exists", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Should not appear",
+			Image:       "docker/my-server:latest",
+		}
+		result := buildSynthesizedOverview(s)
+		assert.NotContains(t, result, "Should not appear")
+		assert.Contains(t, result, "Runs in Docker container")
+		assert.Contains(t, result, "docker/my-server:latest")
+	})
+
+	t.Run("remote server connection info", func(t *testing.T) {
+		s := &catalog.Server{
+			Remote: catalog.Remote{
+				URL:       "https://api.example.com/mcp",
+				Transport: "streamable-http",
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "**Remote MCP server** (streamable-http)")
+		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
+	})
+
+	t.Run("docker container connection info", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "mcp/postgres:latest",
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "**Runs in Docker container** `mcp/postgres:latest`")
+	})
+
 	t.Run("with tools", func(t *testing.T) {
 		s := &catalog.Server{
-			Description: "Server with tools",
+			Image: "docker/server:v1",
 			Tools: []catalog.Tool{
 				{Name: "read_file", Description: "Read a file from disk"},
 				{Name: "write_file", Description: "Write a file to disk"},
@@ -305,30 +344,82 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 			},
 		}
 		result := buildSynthesizedOverview(s)
-		assert.Contains(t, result, "Server with tools")
 		assert.Contains(t, result, "## Tools")
 		assert.Contains(t, result, "| read_file | Read a file from disk |")
 		assert.Contains(t, result, "| write_file | Write a file to disk |")
 		assert.Contains(t, result, "| no_desc | - |")
 	})
 
-	t.Run("with secrets", func(t *testing.T) {
+	t.Run("with secrets shows env var name", func(t *testing.T) {
 		s := &catalog.Server{
-			Description: "Server with secrets",
+			Image: "docker/server:v1",
 			Secrets: []catalog.Secret{
-				{Name: "API_KEY"},
-				{Name: "API_SECRET"},
+				{Name: "my-server.api_key", Env: "API_KEY"},
+				{Name: "my-server.api_secret", Env: "API_SECRET"},
 			},
 		}
 		result := buildSynthesizedOverview(s)
 		assert.Contains(t, result, "## Authentication")
 		assert.Contains(t, result, "`API_KEY`")
 		assert.Contains(t, result, "`API_SECRET`")
+		// Should NOT show the fully qualified internal name
+		assert.NotContains(t, result, "my-server.api_key")
+	})
+
+	t.Run("with secrets falls back to name when env empty", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+			Secrets: []catalog.Secret{
+				{Name: "SOME_SECRET"},
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "`SOME_SECRET`")
+	})
+
+	t.Run("with config schema", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+			Config: []any{
+				map[string]any{
+					"name": "my-server",
+					"properties": map[string]any{
+						"api_url": map[string]any{
+							"type":        "string",
+							"description": "The API endpoint URL",
+						},
+						"timeout": map[string]any{
+							"type": "number",
+						},
+					},
+				},
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "## Configuration")
+		assert.Contains(t, result, "`api_url`: The API endpoint URL")
+		assert.Contains(t, result, "`timeout`")
+	})
+
+	t.Run("with metadata details", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+			Metadata: &catalog.Metadata{
+				Category: "Developer Tools",
+				License:  "MIT",
+				Tags:     []string{"git", "code", "productivity"},
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "## Details")
+		assert.Contains(t, result, "**Category:** Developer Tools")
+		assert.Contains(t, result, "**License:** MIT")
+		assert.Contains(t, result, "**Tags:** git, code, productivity")
 	})
 
 	t.Run("with registry link", func(t *testing.T) {
 		s := &catalog.Server{
-			Description: "Server with links",
+			Image: "docker/server:v1",
 			Metadata: &catalog.Metadata{
 				RegistryURL: "https://registry.modelcontextprotocol.io/servers/my-server",
 			},
@@ -338,16 +429,13 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		assert.Contains(t, result, "[MCP Registry](https://registry.modelcontextprotocol.io/servers/my-server)")
 	})
 
-	t.Run("with remote endpoint", func(t *testing.T) {
+	t.Run("with source repository link from ReadmeURL", func(t *testing.T) {
 		s := &catalog.Server{
-			Description: "Remote server",
-			Remote: catalog.Remote{
-				URL: "https://api.example.com/mcp",
-			},
+			Image:     "docker/server:v1",
+			ReadmeURL: "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
 		}
 		result := buildSynthesizedOverview(s)
-		assert.Contains(t, result, "## Links")
-		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
+		assert.Contains(t, result, "[Source Repository](https://github.com/owner/repo)")
 	})
 
 	t.Run("nil server", func(t *testing.T) {
@@ -361,32 +449,68 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	t.Run("full metadata", func(t *testing.T) {
+	t.Run("full metadata community server", func(t *testing.T) {
 		s := &catalog.Server{
-			Description: "Full-featured server",
-			Tools: []catalog.Tool{
-				{Name: "tool1", Description: "First tool"},
+			Description: "An MCP server for Notion",
+			ReadmeURL:   "https://raw.githubusercontent.com/smithery-ai/mcp-servers/HEAD/notion/README.md",
+			Remote: catalog.Remote{
+				URL:       "https://server.smithery.ai/@smithery/notion/mcp",
+				Transport: "streamable-http",
 			},
 			Secrets: []catalog.Secret{
-				{Name: "TOKEN"},
+				{Name: "ai-smithery-smithery-notion.smithery_api_key", Env: "SMITHERY_API_KEY"},
 			},
 			Metadata: &catalog.Metadata{
-				RegistryURL: "https://registry.example.com/server",
-			},
-			Remote: catalog.Remote{
-				URL: "https://api.example.com/mcp",
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/ai.smithery%2Fsmithery-notion/versions/1.0.0",
 			},
 		}
 		result := buildSynthesizedOverview(s)
-		assert.Contains(t, result, "Full-featured server")
-		assert.Contains(t, result, "## Tools")
-		assert.Contains(t, result, "| tool1 | First tool |")
-		assert.Contains(t, result, "## Authentication")
-		assert.Contains(t, result, "`TOKEN`")
-		assert.Contains(t, result, "## Links")
+		// Description should NOT be in the overview (avoids header duplication)
+		assert.NotContains(t, result, "An MCP server for Notion")
+		// Connection info
+		assert.Contains(t, result, "**Remote MCP server** (streamable-http)")
+		// Authentication uses env var names
+		assert.Contains(t, result, "`SMITHERY_API_KEY`")
+		assert.NotContains(t, result, "ai-smithery-smithery-notion.smithery_api_key")
+		// Links
 		assert.Contains(t, result, "[MCP Registry]")
-		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
+		assert.Contains(t, result, "Endpoint: `https://server.smithery.ai/@smithery/notion/mcp`")
+		assert.Contains(t, result, "[Source Repository](https://github.com/smithery-ai/mcp-servers)")
 	})
+}
+
+func TestSourceRepoFromReadmeURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "standard github readme URL",
+			input:    "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
+			expected: "https://github.com/owner/repo",
+		},
+		{
+			name:     "github readme URL with subfolder",
+			input:    "https://raw.githubusercontent.com/smithery-ai/mcp-servers/HEAD/notion/README.md",
+			expected: "https://github.com/smithery-ai/mcp-servers",
+		},
+		{
+			name:     "non-github URL returned as-is",
+			input:    "https://example.com/readme.md",
+			expected: "https://example.com/readme.md",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, sourceRepoFromReadmeURL(tt.input))
+		})
+	}
 }
 
 func TestInspectServerNotFound(t *testing.T) {

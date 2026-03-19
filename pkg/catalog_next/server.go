@@ -101,6 +101,10 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 // catalog metadata. This is used as a fallback when the server has no
 // fetchable README (common for community registry servers with private
 // repos or no repo at all).
+//
+// The server's description is intentionally omitted because the UI header
+// already displays it. It is only used as a last resort when no other
+// content can be synthesized at all.
 func buildSynthesizedOverview(s *catalog.Server) string {
 	if s == nil {
 		return ""
@@ -108,9 +112,15 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 
 	var b strings.Builder
 
-	if s.Description != "" {
-		b.WriteString(s.Description)
+	// Connection info
+	if s.Remote.URL != "" {
+		b.WriteString("**Remote MCP server**")
+		if s.Remote.Transport != "" {
+			b.WriteString(fmt.Sprintf(" (%s)", s.Remote.Transport))
+		}
 		b.WriteString("\n")
+	} else if s.Image != "" {
+		b.WriteString(fmt.Sprintf("**Runs in Docker container** `%s`\n", s.Image))
 	}
 
 	// Tools section
@@ -127,7 +137,18 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 		}
 	}
 
-	// Configuration section
+	// Configuration section -- show non-secret config schema properties
+	if len(s.Config) > 0 {
+		if items := extractConfigProperties(s.Config); len(items) > 0 {
+			b.WriteString("\n## Configuration\n\n")
+			for _, item := range items {
+				b.WriteString(item)
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	// Authentication section
 	if len(s.Secrets) > 0 || s.IsOAuthServer() {
 		b.WriteString("\n## Authentication\n\n")
 		if s.IsOAuthServer() {
@@ -136,7 +157,34 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 			}
 		}
 		for _, secret := range s.Secrets {
-			b.WriteString(fmt.Sprintf("- `%s`\n", secret.Name))
+			// Show the environment variable name (more useful than the
+			// fully-qualified internal secret key).
+			if secret.Env != "" {
+				b.WriteString(fmt.Sprintf("- `%s`\n", secret.Env))
+			} else {
+				b.WriteString(fmt.Sprintf("- `%s`\n", secret.Name))
+			}
+		}
+	}
+
+	// Metadata section
+	if s.Metadata != nil {
+		var metaItems []string
+		if s.Metadata.Category != "" {
+			metaItems = append(metaItems, fmt.Sprintf("- **Category:** %s", s.Metadata.Category))
+		}
+		if s.Metadata.License != "" {
+			metaItems = append(metaItems, fmt.Sprintf("- **License:** %s", s.Metadata.License))
+		}
+		if len(s.Metadata.Tags) > 0 {
+			metaItems = append(metaItems, fmt.Sprintf("- **Tags:** %s", strings.Join(s.Metadata.Tags, ", ")))
+		}
+		if len(metaItems) > 0 {
+			b.WriteString("\n## Details\n\n")
+			for _, item := range metaItems {
+				b.WriteString(item)
+				b.WriteString("\n")
+			}
 		}
 	}
 
@@ -148,6 +196,9 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 	if s.Remote.URL != "" {
 		links = append(links, fmt.Sprintf("- Endpoint: `%s`", s.Remote.URL))
 	}
+	if s.ReadmeURL != "" {
+		links = append(links, fmt.Sprintf("- [Source Repository](%s)", sourceRepoFromReadmeURL(s.ReadmeURL)))
+	}
 	if len(links) > 0 {
 		b.WriteString("\n## Links\n\n")
 		for _, link := range links {
@@ -156,7 +207,59 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 		}
 	}
 
+	// If we produced no structured content at all, fall back to the
+	// description so the overview is not completely blank.
+	if b.Len() == 0 && s.Description != "" {
+		return s.Description + "\n"
+	}
+
 	return b.String()
+}
+
+// extractConfigProperties pulls human-readable property descriptions from
+// the Config []any slice. Each element is expected to be a JSON-schema-like
+// map with a "properties" key.
+func extractConfigProperties(config []any) []string {
+	var items []string
+	for _, cfg := range config {
+		configMap, ok := cfg.(map[string]any)
+		if !ok {
+			continue
+		}
+		props, ok := configMap["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		for propName, propVal := range props {
+			propMap, ok := propVal.(map[string]any)
+			if !ok {
+				continue
+			}
+			desc, _ := propMap["description"].(string)
+			if desc != "" {
+				items = append(items, fmt.Sprintf("- `%s`: %s", propName, desc))
+			} else {
+				items = append(items, fmt.Sprintf("- `%s`", propName))
+			}
+		}
+	}
+	return items
+}
+
+// sourceRepoFromReadmeURL extracts a GitHub repository URL from a
+// raw.githubusercontent.com README URL. Returns the input unchanged
+// if it does not match the expected pattern.
+func sourceRepoFromReadmeURL(readmeURL string) string {
+	const prefix = "https://raw.githubusercontent.com/"
+	if !strings.HasPrefix(readmeURL, prefix) {
+		return readmeURL
+	}
+	rest := strings.TrimPrefix(readmeURL, prefix)
+	parts := strings.SplitN(rest, "/", 3) // owner/repo/...
+	if len(parts) < 2 {
+		return readmeURL
+	}
+	return fmt.Sprintf("https://github.com/%s/%s", parts[0], parts[1])
 }
 
 // ListServers lists servers in a catalog with optional filtering
