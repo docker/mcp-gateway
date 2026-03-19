@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -60,9 +61,18 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
 		readmeContent, err := fetch.Untrusted(ctx, server.Snapshot.Server.ReadmeURL)
 		if err != nil {
-			return fmt.Errorf("failed to fetch readme: %w", err)
+			// Log but don't fail: the URL may point to a private repo or
+			// a path that doesn't exist (e.g. community registry servers
+			// whose GitHub README URL was derived from the repository field).
+			fmt.Fprintf(os.Stderr, "Warning: failed to fetch readme for %s: %v\n", serverName, err)
+		} else {
+			inspectResult.ReadmeContent = string(readmeContent)
 		}
-		inspectResult.ReadmeContent = string(readmeContent)
+	}
+
+	// Fall back to the server description when no README content is available.
+	if inspectResult.ReadmeContent == "" && server.Snapshot != nil && server.Snapshot.Server.Description != "" {
+		inspectResult.ReadmeContent = server.Snapshot.Server.Description
 	}
 
 	var data []byte

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
 	"strings"
 
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
@@ -556,6 +558,13 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 		server.Icon = serverDetail.Icons[0].Src
 	}
 
+	// Derive README URL from GitHub repository when available
+	if serverDetail.Repository.URL != "" && serverDetail.Repository.Source == "github" {
+		if readmeURL := buildGitHubReadmeURL(serverDetail.Repository.URL, serverDetail.Repository.Subfolder); readmeURL != "" {
+			server.ReadmeURL = readmeURL
+		}
+	}
+
 	// Add registry URL metadata
 	if serverDetail.Name != "" && serverDetail.Version != "" {
 		server.Metadata = &Metadata{
@@ -564,4 +573,34 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 	}
 
 	return server, source, nil
+}
+
+// buildGitHubReadmeURL constructs a raw.githubusercontent.com URL to fetch
+// the README.md for a GitHub repository. If subfolder is non-empty, the
+// README is fetched from that subdirectory. Returns an empty string if the
+// URL is not a recognized GitHub repository URL.
+func buildGitHubReadmeURL(repoURL, subfolder string) string {
+	parsed, err := url.Parse(repoURL)
+	if err != nil {
+		return ""
+	}
+	if parsed.Host != "github.com" {
+		return ""
+	}
+
+	// Path is expected to be "/{owner}/{repo}" (possibly with trailing slash or .git)
+	trimmed := strings.TrimSuffix(strings.TrimSuffix(parsed.Path, "/"), ".git")
+	parts := strings.Split(strings.TrimPrefix(trimmed, "/"), "/")
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return ""
+	}
+	owner := parts[0]
+	repo := parts[1]
+
+	readmePath := "README.md"
+	if subfolder != "" {
+		readmePath = path.Join(subfolder, "README.md")
+	}
+
+	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/HEAD/%s", owner, repo, readmePath)
 }

@@ -66,7 +66,8 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		assert.Empty(t, server.ReadmeContent)
+		// With no ReadmeURL, the description is used as a fallback
+		assert.Equal(t, "My test server", server.ReadmeContent)
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
@@ -80,7 +81,8 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		assert.Empty(t, server.ReadmeContent)
+		// With no ReadmeURL, the description is used as a fallback
+		assert.Equal(t, "My test server", server.ReadmeContent)
 	})
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
@@ -93,7 +95,8 @@ func TestInspectServer(t *testing.T) {
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
-		assert.Empty(t, server.ReadmeContent)
+		// With no ReadmeURL, the description is used as a fallback
+		assert.Equal(t, "My test server", server.ReadmeContent)
 	})
 }
 
@@ -151,6 +154,135 @@ func TestInspectServerWithReadme(t *testing.T) {
 	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
 	assert.Equal(t, "docker/server1:v1", inspectResult.Image)
 	assert.Equal(t, readmeContent, inspectResult.ReadmeContent)
+}
+
+func TestInspectServerReadmeFetchFailsFallsBackToDescription(t *testing.T) {
+	// When a ReadmeURL is set but the fetch fails (e.g. private repo, 404),
+	// the inspect should not fail. It should fall back to the description.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(func() { server.Close() })
+
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "my-server",
+							Description: "A community MCP server",
+							ReadmeURL:   server.URL + "/nonexistent-readme.md",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
+	// The README fetch failed, so it should fall back to the description
+	assert.Equal(t, "A community MCP server", inspectResult.ReadmeContent)
+}
+
+func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name:        "community-server",
+							Description: "Short description for overview",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := InspectServer(ctx, dao, catalogObj.Ref, "community-server", workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "community-server", inspectResult.Snapshot.Server.Name)
+	assert.Equal(t, "Short description for overview", inspectResult.ReadmeContent)
+}
+
+func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	catalogObj := Catalog{
+		Ref: "test/catalog:latest",
+		CatalogArtifact: CatalogArtifact{
+			Title: "Test Catalog",
+			Servers: []Server{
+				{
+					Type:  workingset.ServerTypeImage,
+					Image: "docker/server1:v1",
+					Snapshot: &workingset.ServerSnapshot{
+						Server: catalog.Server{
+							Name: "bare-server",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	dbCat, err := catalogObj.ToDb()
+	require.NoError(t, err)
+	err = dao.UpsertCatalog(ctx, dbCat)
+	require.NoError(t, err)
+
+	output := captureStdout(t, func() {
+		err := InspectServer(ctx, dao, catalogObj.Ref, "bare-server", workingset.OutputFormatJSON)
+		require.NoError(t, err)
+	})
+
+	var inspectResult InspectResult
+	err = json.Unmarshal([]byte(output), &inspectResult)
+	require.NoError(t, err)
+	assert.Equal(t, "bare-server", inspectResult.Snapshot.Server.Name)
+	// No ReadmeURL and no Description means empty ReadmeContent
+	assert.Empty(t, inspectResult.ReadmeContent)
 }
 
 func TestInspectServerNotFound(t *testing.T) {
