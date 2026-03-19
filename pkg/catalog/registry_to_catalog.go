@@ -560,7 +560,7 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 
 	// Derive README URL from GitHub repository when available
 	if serverDetail.Repository.URL != "" && serverDetail.Repository.Source == "github" {
-		if readmeURL := buildGitHubReadmeURL(serverDetail.Repository.URL, serverDetail.Repository.Subfolder); readmeURL != "" {
+		if readmeURL := BuildGitHubReadmeURL(serverDetail.Repository.URL, serverDetail.Repository.Subfolder); readmeURL != "" {
 			server.ReadmeURL = readmeURL
 		}
 	}
@@ -575,11 +575,11 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 	return server, source, nil
 }
 
-// buildGitHubReadmeURL constructs a raw.githubusercontent.com URL to fetch
+// BuildGitHubReadmeURL constructs a raw.githubusercontent.com URL to fetch
 // the README.md for a GitHub repository. If subfolder is non-empty, the
 // README is fetched from that subdirectory. Returns an empty string if the
 // URL is not a recognized GitHub repository URL.
-func buildGitHubReadmeURL(repoURL, subfolder string) string {
+func BuildGitHubReadmeURL(repoURL, subfolder string) string {
 	parsed, err := url.Parse(repoURL)
 	if err != nil {
 		return ""

@@ -1279,9 +1279,9 @@ func TestBuildGitHubReadmeURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildGitHubReadmeURL(tt.repoURL, tt.subfolder)
+			got := BuildGitHubReadmeURL(tt.repoURL, tt.subfolder)
 			if got != tt.want {
-				t.Errorf("buildGitHubReadmeURL(%q, %q) = %q, want %q", tt.repoURL, tt.subfolder, got, tt.want)
+				t.Errorf("BuildGitHubReadmeURL(%q, %q) = %q, want %q", tt.repoURL, tt.subfolder, got, tt.want)
 			}
 		})
 	}

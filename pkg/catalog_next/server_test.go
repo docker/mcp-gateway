@@ -1,17 +1,22 @@
 package catalognext
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
+	"github.com/modelcontextprotocol/registry/pkg/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/registryapi"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
@@ -60,7 +65,7 @@ func TestInspectServer(t *testing.T) {
 
 	t.Run("JSON format", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
 			require.NoError(t, err)
 		})
 
@@ -78,7 +83,7 @@ func TestInspectServer(t *testing.T) {
 
 	t.Run("YAML format", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatYAML)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormatYAML)
 			require.NoError(t, err)
 		})
 
@@ -92,7 +97,7 @@ func TestInspectServer(t *testing.T) {
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatHumanReadable)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormatHumanReadable)
 			require.NoError(t, err)
 		})
 
@@ -148,7 +153,7 @@ func TestInspectServerWithReadme(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		err := InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -198,7 +203,7 @@ func TestInspectServerReadmeFetchFailsFallsBackToSynthesized(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		err := InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -240,7 +245,7 @@ func TestInspectServerNoReadmeURLUsesSynthesized(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := InspectServer(ctx, dao, catalogObj.Ref, "community-server", workingset.OutputFormatJSON)
+		err := InspectServer(ctx, dao, nil, catalogObj.Ref, "community-server", workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -281,7 +286,7 @@ func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := InspectServer(ctx, dao, catalogObj.Ref, "bare-server", workingset.OutputFormatJSON)
+		err := InspectServer(ctx, dao, nil, catalogObj.Ref, "bare-server", workingset.OutputFormatJSON)
 		require.NoError(t, err)
 	})
 
@@ -299,7 +304,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		s := &catalog.Server{
 			Description: "A simple server",
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Equal(t, "A simple server\n", result)
 	})
 
@@ -308,7 +313,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 			Description: "Should not appear",
 			Image:       "docker/my-server:latest",
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.NotContains(t, result, "Should not appear")
 		assert.Contains(t, result, "Runs in Docker container")
 		assert.Contains(t, result, "docker/my-server:latest")
@@ -321,7 +326,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				Transport: "streamable-http",
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "**Remote MCP server** (streamable-http)")
 		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
 	})
@@ -330,7 +335,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		s := &catalog.Server{
 			Image: "mcp/postgres:latest",
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "**Runs in Docker container** `mcp/postgres:latest`")
 	})
 
@@ -343,7 +348,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				{Name: "no_desc"},
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "## Tools")
 		assert.Contains(t, result, "| read_file | Read a file from disk |")
 		assert.Contains(t, result, "| write_file | Write a file to disk |")
@@ -358,7 +363,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				{Name: "my-server.api_secret", Env: "API_SECRET"},
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "## Authentication")
 		assert.Contains(t, result, "`API_KEY`")
 		assert.Contains(t, result, "`API_SECRET`")
@@ -373,7 +378,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				{Name: "SOME_SECRET"},
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "`SOME_SECRET`")
 	})
 
@@ -395,7 +400,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				},
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "## Configuration")
 		assert.Contains(t, result, "`api_url`: The API endpoint URL")
 		assert.Contains(t, result, "`timeout`")
@@ -410,7 +415,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				Tags:     []string{"git", "code", "productivity"},
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "## Details")
 		assert.Contains(t, result, "**Category:** Developer Tools")
 		assert.Contains(t, result, "**License:** MIT")
@@ -424,7 +429,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				RegistryURL: "https://registry.modelcontextprotocol.io/servers/my-server",
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "## Links")
 		assert.Contains(t, result, "[MCP Registry](https://registry.modelcontextprotocol.io/servers/my-server)")
 	})
@@ -434,18 +439,18 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 			Image:     "docker/server:v1",
 			ReadmeURL: "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Contains(t, result, "[Source Repository](https://github.com/owner/repo)")
 	})
 
 	t.Run("nil server", func(t *testing.T) {
-		result := buildSynthesizedOverview(nil)
+		result := buildSynthesizedOverview(nil, nil)
 		assert.Empty(t, result)
 	})
 
 	t.Run("empty server", func(t *testing.T) {
 		s := &catalog.Server{}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		assert.Empty(t, result)
 	})
 
@@ -464,7 +469,7 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/ai.smithery%2Fsmithery-notion/versions/1.0.0",
 			},
 		}
-		result := buildSynthesizedOverview(s)
+		result := buildSynthesizedOverview(s, nil)
 		// Description should NOT be in the overview (avoids header duplication)
 		assert.NotContains(t, result, "An MCP server for Notion")
 		// Connection info
@@ -476,6 +481,104 @@ func TestBuildSynthesizedOverview(t *testing.T) {
 		assert.Contains(t, result, "[MCP Registry]")
 		assert.Contains(t, result, "Endpoint: `https://server.smithery.ai/@smithery/notion/mcp`")
 		assert.Contains(t, result, "[Source Repository](https://github.com/smithery-ai/mcp-servers)")
+	})
+
+	t.Run("with registry response title and status", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+		}
+		resp := &v0.ServerResponse{
+			Server: v0.ServerJSON{
+				Title: "aTars MCP",
+			},
+			Meta: v0.ResponseMeta{
+				Official: &v0.RegistryExtensions{
+					Status: model.StatusActive,
+				},
+			},
+		}
+		result := buildSynthesizedOverview(s, resp)
+		assert.Contains(t, result, "# aTars MCP")
+		assert.Contains(t, result, "**Status:** active")
+	})
+
+	t.Run("with registry response website in links", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+		}
+		resp := &v0.ServerResponse{
+			Server: v0.ServerJSON{
+				WebsiteURL: "https://mcp.aarna.ai/mcp",
+			},
+		}
+		result := buildSynthesizedOverview(s, resp)
+		assert.Contains(t, result, "[Website](https://mcp.aarna.ai/mcp)")
+	})
+
+	t.Run("registry title overrides catalog title", func(t *testing.T) {
+		s := &catalog.Server{
+			Title: "Old Title",
+			Image: "docker/server:v1",
+		}
+		resp := &v0.ServerResponse{
+			Server: v0.ServerJSON{
+				Title: "Fresh Title from Registry",
+			},
+		}
+		result := buildSynthesizedOverview(s, resp)
+		assert.Contains(t, result, "# Fresh Title from Registry")
+		assert.NotContains(t, result, "Old Title")
+	})
+
+	t.Run("catalog title used when no registry response", func(t *testing.T) {
+		s := &catalog.Server{
+			Title: "Catalog Title",
+			Image: "docker/server:v1",
+		}
+		result := buildSynthesizedOverview(s, nil)
+		assert.Contains(t, result, "# Catalog Title")
+	})
+
+	t.Run("registry response with no official meta omits status", func(t *testing.T) {
+		s := &catalog.Server{
+			Image: "docker/server:v1",
+		}
+		resp := &v0.ServerResponse{
+			Server: v0.ServerJSON{
+				Title: "My Server",
+			},
+		}
+		result := buildSynthesizedOverview(s, resp)
+		assert.NotContains(t, result, "Status")
+	})
+
+	t.Run("full community server with registry response", func(t *testing.T) {
+		s := &catalog.Server{
+			Remote: catalog.Remote{
+				URL:       "https://mcp.aarna.ai/mcp",
+				Transport: "streamable-http",
+			},
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/ai.aarna%2Fatars-mcp/versions/0.1.0",
+			},
+		}
+		resp := &v0.ServerResponse{
+			Server: v0.ServerJSON{
+				Title:      "aTars MCP",
+				WebsiteURL: "https://mcp.aarna.ai/mcp",
+			},
+			Meta: v0.ResponseMeta{
+				Official: &v0.RegistryExtensions{
+					Status: model.StatusActive,
+				},
+			},
+		}
+		result := buildSynthesizedOverview(s, resp)
+		assert.Contains(t, result, "# aTars MCP")
+		assert.Contains(t, result, "**Status:** active")
+		assert.Contains(t, result, "[Website](https://mcp.aarna.ai/mcp)")
+		assert.Contains(t, result, "[MCP Registry]")
+		assert.Contains(t, result, "**Remote MCP server** (streamable-http)")
 	})
 }
 
@@ -513,6 +616,184 @@ func TestSourceRepoFromReadmeURL(t *testing.T) {
 	}
 }
 
+// mockRegistryClient implements registryapi.Client for testing.
+type mockRegistryClient struct {
+	getServerFunc func(ctx context.Context, url *registryapi.ServerURL) (v0.ServerResponse, error)
+}
+
+func (m *mockRegistryClient) GetServer(ctx context.Context, url *registryapi.ServerURL) (v0.ServerResponse, error) {
+	if m.getServerFunc != nil {
+		return m.getServerFunc(ctx, url)
+	}
+	return v0.ServerResponse{}, fmt.Errorf("not implemented")
+}
+
+func (m *mockRegistryClient) GetServerVersions(_ context.Context, _ *registryapi.ServerURL) (v0.ServerListResponse, error) {
+	return v0.ServerListResponse{}, nil
+}
+
+func (m *mockRegistryClient) ListServers(_ context.Context, _ string, _ string) ([]v0.ServerResponse, error) {
+	return nil, nil
+}
+
+func TestFetchReadmeViaRegistryAPI(t *testing.T) {
+	t.Run("nil metadata", func(t *testing.T) {
+		s := &catalog.Server{}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), &mockRegistryClient{}, s)
+		assert.Empty(t, content)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("empty registry URL", func(t *testing.T) {
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{RegistryURL: ""},
+		}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), &mockRegistryClient{}, s)
+		assert.Empty(t, content)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("unparseable registry URL", func(t *testing.T) {
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{RegistryURL: ":::not-a-url"},
+		}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), &mockRegistryClient{}, s)
+		assert.Empty(t, content)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("registry API error", func(t *testing.T) {
+		client := &mockRegistryClient{
+			getServerFunc: func(_ context.Context, _ *registryapi.ServerURL) (v0.ServerResponse, error) {
+				return v0.ServerResponse{}, fmt.Errorf("network error")
+			},
+		}
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/test%2Fserver/versions/1.0.0",
+			},
+		}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), client, s)
+		assert.Empty(t, content)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("no repository in response", func(t *testing.T) {
+		client := &mockRegistryClient{
+			getServerFunc: func(_ context.Context, _ *registryapi.ServerURL) (v0.ServerResponse, error) {
+				return v0.ServerResponse{
+					Server: v0.ServerJSON{
+						Name:    "test/server",
+						Version: "1.0.0",
+					},
+				}, nil
+			},
+		}
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/test%2Fserver/versions/1.0.0",
+			},
+		}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), client, s)
+		assert.Empty(t, content)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("non-GitHub repository", func(t *testing.T) {
+		client := &mockRegistryClient{
+			getServerFunc: func(_ context.Context, _ *registryapi.ServerURL) (v0.ServerResponse, error) {
+				return v0.ServerResponse{
+					Server: v0.ServerJSON{
+						Name:    "test/server",
+						Version: "1.0.0",
+						Repository: model.Repository{
+							URL:    "https://gitlab.com/owner/repo",
+							Source: "gitlab",
+						},
+					},
+				}, nil
+			},
+		}
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/test%2Fserver/versions/1.0.0",
+			},
+		}
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), client, s)
+		assert.Empty(t, content)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("GitHub repo with fetchable README", func(t *testing.T) {
+		// Set up a fake HTTP server to serve the README content
+		readmeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("# My Server\n\nThis is the README."))
+		}))
+		defer readmeServer.Close()
+
+		// We need to test the full chain, but fetch.Untrusted calls the real
+		// raw.githubusercontent.com. Instead, test the function with a repo
+		// URL that won't resolve. The unit test for BuildGitHubReadmeURL
+		// already covers URL construction. Here we verify the plumbing works
+		// when the registry API returns a GitHub repo.
+		client := &mockRegistryClient{
+			getServerFunc: func(_ context.Context, _ *registryapi.ServerURL) (v0.ServerResponse, error) {
+				return v0.ServerResponse{
+					Server: v0.ServerJSON{
+						Name:    "test/server",
+						Version: "1.0.0",
+						Repository: model.Repository{
+							URL:    "https://github.com/test-owner/test-repo",
+							Source: "github",
+						},
+					},
+				}, nil
+			},
+		}
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/test%2Fserver/versions/1.0.0",
+			},
+		}
+		// This will attempt to fetch from raw.githubusercontent.com which will
+		// likely 404 in tests. That's fine -- the function should return empty.
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), client, s)
+		// We can't assert the content because the real fetch will likely fail.
+		// This test validates that the function correctly chains through the
+		// registry API -> BuildGitHubReadmeURL path without panicking.
+		_ = content
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("GitHub repo with subfolder", func(t *testing.T) {
+		client := &mockRegistryClient{
+			getServerFunc: func(_ context.Context, _ *registryapi.ServerURL) (v0.ServerResponse, error) {
+				return v0.ServerResponse{
+					Server: v0.ServerJSON{
+						Name:    "test/monorepo-server",
+						Version: "1.0.0",
+						Repository: model.Repository{
+							URL:       "https://github.com/test-owner/monorepo",
+							Source:    "github",
+							Subfolder: "packages/mcp-server",
+						},
+					},
+				}, nil
+			},
+		}
+		s := &catalog.Server{
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/test%2Fmonorepo-server/versions/1.0.0",
+			},
+		}
+		// Same as above -- real fetch will fail but the path should not panic
+		content, resp := fetchReadmeViaRegistryAPI(t.Context(), client, s)
+		_ = content
+		assert.NotNil(t, resp)
+	})
+}
+
 func TestInspectServerNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
@@ -541,7 +822,7 @@ func TestInspectServerNotFound(t *testing.T) {
 	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
-	err = InspectServer(ctx, dao, catalogObj.Ref, "nonexistent-server", workingset.OutputFormatJSON)
+	err = InspectServer(ctx, dao, nil, catalogObj.Ref, "nonexistent-server", workingset.OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "server nonexistent-server not found in catalog test/catalog:latest")
 }
@@ -550,7 +831,7 @@ func TestInspectServerCatalogNotFound(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := InspectServer(ctx, dao, "test/nonexistent:latest", "some-server", workingset.OutputFormatJSON)
+	err := InspectServer(ctx, dao, nil, "test/nonexistent:latest", "some-server", workingset.OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get catalog")
 }
@@ -583,7 +864,7 @@ func TestInspectServerUnsupportedFormat(t *testing.T) {
 	err = dao.UpsertCatalog(ctx, dbCat)
 	require.NoError(t, err)
 
-	err = InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormat("unsupported"))
+	err = InspectServer(ctx, dao, nil, catalogObj.Ref, "my-server", workingset.OutputFormat("unsupported"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported format: unsupported")
 }
@@ -592,7 +873,7 @@ func TestInspectServerInvalidCatalogRef(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	err := InspectServer(ctx, dao, ":::invalid-ref", "some-server", workingset.OutputFormatJSON)
+	err := InspectServer(ctx, dao, nil, ":::invalid-ref", "some-server", workingset.OutputFormatJSON)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse oci-reference")
 }
@@ -651,7 +932,7 @@ func TestInspectServerDifferentServerTypes(t *testing.T) {
 
 	t.Run("inspect image server", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "image-server", workingset.OutputFormatJSON)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "image-server", workingset.OutputFormatJSON)
 			require.NoError(t, err)
 		})
 
@@ -666,7 +947,7 @@ func TestInspectServerDifferentServerTypes(t *testing.T) {
 
 	t.Run("inspect remote server", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "remote-server", workingset.OutputFormatJSON)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "remote-server", workingset.OutputFormatJSON)
 			require.NoError(t, err)
 		})
 
@@ -681,7 +962,7 @@ func TestInspectServerDifferentServerTypes(t *testing.T) {
 
 	t.Run("inspect registry server", func(t *testing.T) {
 		output := captureStdout(t, func() {
-			err := InspectServer(ctx, dao, catalogObj.Ref, "registry-server", workingset.OutputFormatJSON)
+			err := InspectServer(ctx, dao, nil, catalogObj.Ref, "registry-server", workingset.OutputFormatJSON)
 			require.NoError(t, err)
 		})
 

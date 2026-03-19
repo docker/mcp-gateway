@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-containerregistry/pkg/name"
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -31,7 +32,7 @@ type serverFilter struct {
 	value string
 }
 
-func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
+func InspectServer(ctx context.Context, dao db.DAO, registryClient registryapi.Client, catalogRef string, serverName string, format workingset.OutputFormat) error {
 	ref, err := name.ParseReference(catalogRef)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
@@ -71,10 +72,21 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 		}
 	}
 
+	// Try live registry API lookup to discover README URL when the snapshot
+	// has no baked-in ReadmeURL (common for older community catalogs).
+	var registryResp *v0.ServerResponse
+	if inspectResult.ReadmeContent == "" && registryClient != nil && server.Snapshot != nil {
+		content, resp := fetchReadmeViaRegistryAPI(ctx, registryClient, &server.Snapshot.Server)
+		if content != "" {
+			inspectResult.ReadmeContent = content
+		}
+		registryResp = resp
+	}
+
 	// When no README content is available, synthesize an overview from the
 	// server's metadata so the overview tab is not empty.
 	if inspectResult.ReadmeContent == "" && server.Snapshot != nil {
-		inspectResult.ReadmeContent = buildSynthesizedOverview(&server.Snapshot.Server)
+		inspectResult.ReadmeContent = buildSynthesizedOverview(&server.Snapshot.Server, registryResp)
 	}
 
 	var data []byte
@@ -102,15 +114,35 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 // fetchable README (common for community registry servers with private
 // repos or no repo at all).
 //
+// When a registry API response is available, its title, status, and
+// websiteUrl fields are included to enrich the overview.
+//
 // The server's description is intentionally omitted because the UI header
 // already displays it. It is only used as a last resort when no other
 // content can be synthesized at all.
-func buildSynthesizedOverview(s *catalog.Server) string {
+func buildSynthesizedOverview(s *catalog.Server, registryResp *v0.ServerResponse) string {
 	if s == nil {
 		return ""
 	}
 
 	var b strings.Builder
+
+	// Title -- prefer registry API response, fall back to catalog snapshot
+	title := s.Title
+	if registryResp != nil && registryResp.Server.Title != "" {
+		title = registryResp.Server.Title
+	}
+	if title != "" {
+		b.WriteString(fmt.Sprintf("# %s\n\n", title))
+	}
+
+	// Status from registry API metadata
+	if registryResp != nil && registryResp.Meta.Official != nil {
+		status := string(registryResp.Meta.Official.Status)
+		if status != "" {
+			b.WriteString(fmt.Sprintf("**Status:** %s\n\n", status))
+		}
+	}
 
 	// Connection info
 	if s.Remote.URL != "" {
@@ -190,6 +222,9 @@ func buildSynthesizedOverview(s *catalog.Server) string {
 
 	// Links section
 	var links []string
+	if registryResp != nil && registryResp.Server.WebsiteURL != "" {
+		links = append(links, fmt.Sprintf("- [Website](%s)", registryResp.Server.WebsiteURL))
+	}
 	if s.Metadata != nil && s.Metadata.RegistryURL != "" {
 		links = append(links, fmt.Sprintf("- [MCP Registry](%s)", s.Metadata.RegistryURL))
 	}
@@ -260,6 +295,45 @@ func sourceRepoFromReadmeURL(readmeURL string) string {
 		return readmeURL
 	}
 	return fmt.Sprintf("https://github.com/%s/%s", parts[0], parts[1])
+}
+
+// fetchReadmeViaRegistryAPI attempts to discover a README by calling the
+// community registry API using the server's Metadata.RegistryURL. It extracts
+// the repository info from the API response, derives a GitHub raw README URL,
+// and fetches the content. Returns the README content (empty on failure) and
+// the registry API response (nil if the API call itself failed). The response
+// is returned even when the README fetch fails so callers can use its metadata
+// (title, status, websiteUrl) for the synthesized overview.
+func fetchReadmeViaRegistryAPI(ctx context.Context, client registryapi.Client, s *catalog.Server) (string, *v0.ServerResponse) {
+	if s.Metadata == nil || s.Metadata.RegistryURL == "" {
+		return "", nil
+	}
+
+	serverURL, err := registryapi.ParseServerURL(s.Metadata.RegistryURL)
+	if err != nil {
+		return "", nil
+	}
+
+	resp, err := client.GetServer(ctx, serverURL)
+	if err != nil {
+		return "", nil
+	}
+
+	if resp.Server.Repository.URL == "" {
+		return "", &resp
+	}
+
+	readmeURL := catalog.BuildGitHubReadmeURL(resp.Server.Repository.URL, resp.Server.Repository.Subfolder)
+	if readmeURL == "" {
+		return "", &resp
+	}
+
+	content, err := fetch.Untrusted(ctx, readmeURL)
+	if err != nil {
+		return "", &resp
+	}
+
+	return string(content), &resp
 }
 
 // ListServers lists servers in a catalog with optional filtering
