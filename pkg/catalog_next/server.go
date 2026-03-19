@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-containerregistry/pkg/name"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/fetch"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -70,9 +71,10 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 		}
 	}
 
-	// Fall back to the server description when no README content is available.
-	if inspectResult.ReadmeContent == "" && server.Snapshot != nil && server.Snapshot.Server.Description != "" {
-		inspectResult.ReadmeContent = server.Snapshot.Server.Description
+	// When no README content is available, synthesize an overview from the
+	// server's metadata so the overview tab is not empty.
+	if inspectResult.ReadmeContent == "" && server.Snapshot != nil {
+		inspectResult.ReadmeContent = buildSynthesizedOverview(&server.Snapshot.Server)
 	}
 
 	var data []byte
@@ -93,6 +95,68 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	fmt.Println(string(data))
 
 	return nil
+}
+
+// buildSynthesizedOverview constructs a markdown overview from a server's
+// catalog metadata. This is used as a fallback when the server has no
+// fetchable README (common for community registry servers with private
+// repos or no repo at all).
+func buildSynthesizedOverview(s *catalog.Server) string {
+	if s == nil {
+		return ""
+	}
+
+	var b strings.Builder
+
+	if s.Description != "" {
+		b.WriteString(s.Description)
+		b.WriteString("\n")
+	}
+
+	// Tools section
+	if len(s.Tools) > 0 {
+		b.WriteString("\n## Tools\n\n")
+		b.WriteString("| Tool | Description |\n")
+		b.WriteString("|------|-------------|\n")
+		for _, tool := range s.Tools {
+			desc := tool.Description
+			if desc == "" {
+				desc = "-"
+			}
+			b.WriteString(fmt.Sprintf("| %s | %s |\n", tool.Name, desc))
+		}
+	}
+
+	// Configuration section
+	if len(s.Secrets) > 0 || s.IsOAuthServer() {
+		b.WriteString("\n## Authentication\n\n")
+		if s.IsOAuthServer() {
+			for _, provider := range s.OAuth.Providers {
+				b.WriteString(fmt.Sprintf("- OAuth provider: **%s**\n", provider.Provider))
+			}
+		}
+		for _, secret := range s.Secrets {
+			b.WriteString(fmt.Sprintf("- `%s`\n", secret.Name))
+		}
+	}
+
+	// Links section
+	var links []string
+	if s.Metadata != nil && s.Metadata.RegistryURL != "" {
+		links = append(links, fmt.Sprintf("- [MCP Registry](%s)", s.Metadata.RegistryURL))
+	}
+	if s.Remote.URL != "" {
+		links = append(links, fmt.Sprintf("- Endpoint: `%s`", s.Remote.URL))
+	}
+	if len(links) > 0 {
+		b.WriteString("\n## Links\n\n")
+		for _, link := range links {
+			b.WriteString(link)
+			b.WriteString("\n")
+		}
+	}
+
+	return b.String()
 }
 
 // ListServers lists servers in a catalog with optional filtering

@@ -66,8 +66,8 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		// With no ReadmeURL, the description is used as a fallback
-		assert.Equal(t, "My test server", server.ReadmeContent)
+		// With no ReadmeURL, a synthesized overview is built from metadata
+		assert.Contains(t, server.ReadmeContent, "My test server")
 	})
 
 	t.Run("YAML format", func(t *testing.T) {
@@ -81,8 +81,8 @@ func TestInspectServer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
 		assert.Equal(t, "docker/server1:v1", server.Image)
-		// With no ReadmeURL, the description is used as a fallback
-		assert.Equal(t, "My test server", server.ReadmeContent)
+		// With no ReadmeURL, a synthesized overview is built from metadata
+		assert.Contains(t, server.ReadmeContent, "My test server")
 	})
 
 	t.Run("HumanReadable format (uses YAML)", func(t *testing.T) {
@@ -95,8 +95,8 @@ func TestInspectServer(t *testing.T) {
 		err := yaml.Unmarshal([]byte(output), &server)
 		require.NoError(t, err)
 		assert.Equal(t, "my-server", server.Snapshot.Server.Name)
-		// With no ReadmeURL, the description is used as a fallback
-		assert.Equal(t, "My test server", server.ReadmeContent)
+		// With no ReadmeURL, a synthesized overview is built from metadata
+		assert.Contains(t, server.ReadmeContent, "My test server")
 	})
 }
 
@@ -201,8 +201,8 @@ func TestInspectServerReadmeFetchFailsFallsBackToDescription(t *testing.T) {
 	err = json.Unmarshal([]byte(output), &inspectResult)
 	require.NoError(t, err)
 	assert.Equal(t, "my-server", inspectResult.Snapshot.Server.Name)
-	// The README fetch failed, so it should fall back to the description
-	assert.Equal(t, "A community MCP server", inspectResult.ReadmeContent)
+	// The README fetch failed, so it should fall back to a synthesized overview
+	assert.Contains(t, inspectResult.ReadmeContent, "A community MCP server")
 }
 
 func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
@@ -242,7 +242,8 @@ func TestInspectServerNoReadmeURLUsesDescription(t *testing.T) {
 	err = json.Unmarshal([]byte(output), &inspectResult)
 	require.NoError(t, err)
 	assert.Equal(t, "community-server", inspectResult.Snapshot.Server.Name)
-	assert.Equal(t, "Short description for overview", inspectResult.ReadmeContent)
+	// Synthesized overview includes the description
+	assert.Contains(t, inspectResult.ReadmeContent, "Short description for overview")
 }
 
 func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
@@ -283,6 +284,109 @@ func TestInspectServerNoReadmeURLNoDescription(t *testing.T) {
 	assert.Equal(t, "bare-server", inspectResult.Snapshot.Server.Name)
 	// No ReadmeURL and no Description means empty ReadmeContent
 	assert.Empty(t, inspectResult.ReadmeContent)
+}
+
+func TestBuildSynthesizedOverview(t *testing.T) {
+	t.Run("description only", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "A simple server",
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Equal(t, "A simple server\n", result)
+	})
+
+	t.Run("with tools", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Server with tools",
+			Tools: []catalog.Tool{
+				{Name: "read_file", Description: "Read a file from disk"},
+				{Name: "write_file", Description: "Write a file to disk"},
+				{Name: "no_desc"},
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "Server with tools")
+		assert.Contains(t, result, "## Tools")
+		assert.Contains(t, result, "| read_file | Read a file from disk |")
+		assert.Contains(t, result, "| write_file | Write a file to disk |")
+		assert.Contains(t, result, "| no_desc | - |")
+	})
+
+	t.Run("with secrets", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Server with secrets",
+			Secrets: []catalog.Secret{
+				{Name: "API_KEY"},
+				{Name: "API_SECRET"},
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "## Authentication")
+		assert.Contains(t, result, "`API_KEY`")
+		assert.Contains(t, result, "`API_SECRET`")
+	})
+
+	t.Run("with registry link", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Server with links",
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.modelcontextprotocol.io/servers/my-server",
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "## Links")
+		assert.Contains(t, result, "[MCP Registry](https://registry.modelcontextprotocol.io/servers/my-server)")
+	})
+
+	t.Run("with remote endpoint", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Remote server",
+			Remote: catalog.Remote{
+				URL: "https://api.example.com/mcp",
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "## Links")
+		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
+	})
+
+	t.Run("nil server", func(t *testing.T) {
+		result := buildSynthesizedOverview(nil)
+		assert.Empty(t, result)
+	})
+
+	t.Run("empty server", func(t *testing.T) {
+		s := &catalog.Server{}
+		result := buildSynthesizedOverview(s)
+		assert.Empty(t, result)
+	})
+
+	t.Run("full metadata", func(t *testing.T) {
+		s := &catalog.Server{
+			Description: "Full-featured server",
+			Tools: []catalog.Tool{
+				{Name: "tool1", Description: "First tool"},
+			},
+			Secrets: []catalog.Secret{
+				{Name: "TOKEN"},
+			},
+			Metadata: &catalog.Metadata{
+				RegistryURL: "https://registry.example.com/server",
+			},
+			Remote: catalog.Remote{
+				URL: "https://api.example.com/mcp",
+			},
+		}
+		result := buildSynthesizedOverview(s)
+		assert.Contains(t, result, "Full-featured server")
+		assert.Contains(t, result, "## Tools")
+		assert.Contains(t, result, "| tool1 | First tool |")
+		assert.Contains(t, result, "## Authentication")
+		assert.Contains(t, result, "`TOKEN`")
+		assert.Contains(t, result, "## Links")
+		assert.Contains(t, result, "[MCP Registry]")
+		assert.Contains(t, result, "Endpoint: `https://api.example.com/mcp`")
+	})
 }
 
 func TestInspectServerNotFound(t *testing.T) {
