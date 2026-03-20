@@ -106,6 +106,15 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		}
 	}
 
+	// Log final headers (mask sensitive values)
+	for k, v := range headers {
+		if k == "Authorization" {
+			log.Logf("- Header: %s = Bearer ***", k)
+		} else {
+			log.Logf("- Header: %s = %s", k, v)
+		}
+	}
+
 	var mcpTransport mcp.Transport
 	var err error
 

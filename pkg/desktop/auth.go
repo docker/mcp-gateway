@@ -86,13 +86,15 @@ func (c *Tools) PostOAuthApp(ctx context.Context, app, scopes string, disableAut
 // DCR (Dynamic Client Registration) Methods
 
 type RegisterDCRRequest struct {
-	ClientID              string `json:"clientId"`
-	ProviderName          string `json:"providerName"`
-	ClientName            string `json:"clientName,omitempty"`
-	AuthorizationServer   string `json:"authorizationServer,omitempty"`
-	AuthorizationEndpoint string `json:"authorizationEndpoint,omitempty"`
-	TokenEndpoint         string `json:"tokenEndpoint,omitempty"`
-	ResourceURL           string `json:"resourceUrl,omitempty"`
+	ClientID              string   `json:"clientId"`
+	ClientSecret          string   `json:"clientSecret,omitempty"`
+	ProviderName          string   `json:"providerName"`
+	ClientName            string   `json:"clientName,omitempty"`
+	AuthorizationServer   string   `json:"authorizationServer,omitempty"`
+	AuthorizationEndpoint string   `json:"authorizationEndpoint,omitempty"`
+	TokenEndpoint         string   `json:"tokenEndpoint,omitempty"`
+	ResourceURL           string   `json:"resourceUrl,omitempty"`
+	Scopes                []string `json:"scopes,omitempty"`
 }
 
 type DCRClient struct {
