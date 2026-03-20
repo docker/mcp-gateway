@@ -13,9 +13,19 @@ import (
 	"github.com/docker/mcp-gateway/pkg/health"
 )
 
+// startStdioServer starts the MCP server using stdio transport.
+//
+// The stdio transport blocks while processing input/output, so it must be
+// started asynchronously to keep the gateway lifecycle consistent with
+// other transports (HTTP/SSE).
 func (g *Gateway) startStdioServer(ctx context.Context, _ io.Reader, _ io.Writer) error {
 	transport := &mcp.StdioTransport{}
-	return g.mcpServer.Run(ctx, transport)
+
+	go func() {
+		_ = g.mcpServer.Run(ctx, transport)
+	}()
+
+	return nil
 }
 
 func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
