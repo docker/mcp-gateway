@@ -1,20 +1,9 @@
 command: docker mcp tools enable
-short: enable one or more tools
-long: enable one or more tools
-usage: docker mcp tools enable [tool1] [tool2] ...
+short: Obsolete
+long: Obsolete
+usage: docker mcp tools enable
 pname: docker mcp tools
 plink: docker_mcp_tools.yaml
-options:
-    - option: server
-      value_type: string
-      description: |
-        Specify which server provides the tools (optional, will auto-discover if not provided)
-      deprecated: false
-      hidden: false
-      experimental: false
-      experimentalcli: false
-      kubernetes: false
-      swarm: false
 inherited_options:
     - option: format
       value_type: string
@@ -57,7 +46,7 @@ inherited_options:
       kubernetes: false
       swarm: false
 deprecated: false
-hidden: false
+hidden: true
 experimental: false
 experimentalcli: false
 kubernetes: false
