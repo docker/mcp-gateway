@@ -329,11 +329,19 @@ func fetchReadmeViaRegistryAPI(ctx context.Context, client registryapi.Client, s
 	}
 
 	content, err := fetch.Untrusted(ctx, readmeURL)
-	if err != nil {
-		return "", &resp
+	if err == nil {
+		return string(content), &resp
 	}
 
-	return string(content), &resp
+	// The raw.githubusercontent.com URL failed (commonly a 404 due to
+	// README filename casing: readme.md vs README.md, or the repo being
+	// private/deleted). Fall back to the GitHub API readme endpoint which
+	// auto-discovers the README regardless of filename or casing.
+	apiContent, apiErr := catalog.FetchGitHubReadmeViaAPI(ctx, resp.Server.Repository.URL, resp.Server.Repository.Subfolder)
+	if apiErr != nil {
+		return "", &resp
+	}
+	return apiContent, &resp
 }
 
 // ListServers lists servers in a catalog with optional filtering

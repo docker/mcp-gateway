@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 	"github.com/modelcontextprotocol/registry/pkg/model"
@@ -575,27 +578,30 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 	return server, source, nil
 }
 
+// parseGitHubOwnerRepo extracts the owner and repo from a GitHub repository URL.
+// Returns empty strings if the URL is not a recognized GitHub repository URL.
+func parseGitHubOwnerRepo(repoURL string) (owner, repo string) {
+	parsed, err := url.Parse(repoURL)
+	if err != nil || parsed.Host != "github.com" {
+		return "", ""
+	}
+	trimmed := strings.TrimSuffix(strings.TrimSuffix(parsed.Path, "/"), ".git")
+	parts := strings.Split(strings.TrimPrefix(trimmed, "/"), "/")
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return "", ""
+	}
+	return parts[0], parts[1]
+}
+
 // BuildGitHubReadmeURL constructs a raw.githubusercontent.com URL to fetch
 // the README.md for a GitHub repository. If subfolder is non-empty, the
 // README is fetched from that subdirectory. Returns an empty string if the
 // URL is not a recognized GitHub repository URL.
 func BuildGitHubReadmeURL(repoURL, subfolder string) string {
-	parsed, err := url.Parse(repoURL)
-	if err != nil {
+	owner, repo := parseGitHubOwnerRepo(repoURL)
+	if owner == "" {
 		return ""
 	}
-	if parsed.Host != "github.com" {
-		return ""
-	}
-
-	// Path is expected to be "/{owner}/{repo}" (possibly with trailing slash or .git)
-	trimmed := strings.TrimSuffix(strings.TrimSuffix(parsed.Path, "/"), ".git")
-	parts := strings.Split(strings.TrimPrefix(trimmed, "/"), "/")
-	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-		return ""
-	}
-	owner := parts[0]
-	repo := parts[1]
 
 	readmePath := "README.md"
 	if subfolder != "" {
@@ -603,4 +609,49 @@ func BuildGitHubReadmeURL(repoURL, subfolder string) string {
 	}
 
 	return fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/HEAD/%s", owner, repo, readmePath)
+}
+
+// FetchGitHubReadmeViaAPI uses the GitHub API readme endpoint to fetch README
+// content. Unlike BuildGitHubReadmeURL (which guesses "README.md"), the API
+// auto-discovers the README regardless of filename or casing (readme.md,
+// README.rst, Readme.md, etc.). Uses Accept: application/vnd.github.raw to
+// get raw content directly without base64 decoding.
+//
+// Rate limit: 60 requests/hour unauthenticated. This is acceptable because
+// inspect is called per-server from the UI, not in bulk.
+func FetchGitHubReadmeViaAPI(ctx context.Context, repoURL, subfolder string) (string, error) {
+	owner, repo := parseGitHubOwnerRepo(repoURL)
+	if owner == "" {
+		return "", fmt.Errorf("not a GitHub repository URL: %s", repoURL)
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, repo)
+	if subfolder != "" {
+		apiURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/readme/%s", owner, repo, subfolder)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+	// Request raw content directly so we don't need to base64-decode.
+	req.Header.Set("Accept", "application/vnd.github.raw+json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub API returned %s for %s/%s", resp.Status, owner, repo)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
 }
