@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -276,6 +277,59 @@ func parseConfig(t *testing.T, contentYAML string) map[string]any {
 	err := yaml.Unmarshal([]byte(contentYAML), &config)
 	require.NoError(t, err)
 	return config
+}
+
+func TestNormalizeArguments_MapStringAny(t *testing.T) {
+	input := map[string]any{"key": "value", "num": float64(42)}
+	result := normalizeArguments(input)
+	assert.Equal(t, input, result)
+}
+
+func TestNormalizeArguments_JSONRawMessage(t *testing.T) {
+	raw := json.RawMessage(`{"url":"https://example.com","count":3}`)
+	result := normalizeArguments(raw)
+	assert.Equal(t, "https://example.com", result["url"])
+	assert.Equal(t, float64(3), result["count"])
+}
+
+func TestNormalizeArguments_ByteSlice(t *testing.T) {
+	raw := []byte(`{"path":"/tmp/data","verbose":true}`)
+	result := normalizeArguments(raw)
+	assert.Equal(t, "/tmp/data", result["path"])
+	assert.Equal(t, true, result["verbose"])
+}
+
+func TestNormalizeArguments_Nil(t *testing.T) {
+	result := normalizeArguments(nil)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestNormalizeArguments_UnexpectedType(t *testing.T) {
+	result := normalizeArguments("unexpected string")
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestNormalizeArguments_InvalidJSON(t *testing.T) {
+	raw := json.RawMessage(`{not valid json}`)
+	result := normalizeArguments(raw)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestNormalizeArguments_InvalidByteSlice(t *testing.T) {
+	raw := []byte(`{not valid json}`)
+	result := normalizeArguments(raw)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestNormalizeArguments_EmptyJSONObject(t *testing.T) {
+	raw := json.RawMessage(`{}`)
+	result := normalizeArguments(raw)
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
 }
 
 func TestInvalidateOAuthClients_MatchesCommunityServer(t *testing.T) {
