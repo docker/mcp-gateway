@@ -360,30 +360,15 @@ func createWorkingSetID(ctx context.Context, name string, dao db.DAO) (string, e
 	cleaned := re.ReplaceAllString(name, "_")
 	baseName := strings.ToLower(cleaned)
 
-	existingSets, err := dao.FindWorkingSetsByIDPrefix(ctx, baseName)
-	if err != nil {
-		return "", fmt.Errorf("failed to find profiles by name prefix: %w", err)
+	_, err := dao.GetWorkingSet(ctx, baseName)
+	if err == nil {
+		return "", fmt.Errorf("a profile with id %q already exists", baseName)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", fmt.Errorf("failed to look for existing profile: %w", err)
 	}
 
-	if len(existingSets) == 0 {
-		return baseName, nil
-	}
-
-	takenIDs := make(map[string]bool)
-	for _, set := range existingSets {
-		takenIDs[set.ID] = true
-	}
-
-	// TODO(cody): there are better ways to do this, but this is a simple brute force for now
-	// Append a number to the base name
-	for i := 2; i <= 100; i++ {
-		newName := fmt.Sprintf("%s_%d", baseName, i)
-		if !takenIDs[newName] {
-			return newName, nil
-		}
-	}
-
-	return "", fmt.Errorf("failed to create profile id")
+	return baseName, nil
 }
 
 func ResolveServersFromString(ctx context.Context, registryClient registryapi.Client, ociService oci.Service, dao db.DAO, value string) ([]Server, error) {
