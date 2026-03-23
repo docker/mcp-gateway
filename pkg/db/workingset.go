@@ -11,7 +11,6 @@ import (
 
 type WorkingSetDAO interface {
 	GetWorkingSet(ctx context.Context, id string) (*WorkingSet, error)
-	FindWorkingSetsByIDPrefix(ctx context.Context, prefix string) ([]WorkingSet, error)
 	ListWorkingSets(ctx context.Context) ([]WorkingSet, error)
 	CreateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 	UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
@@ -143,17 +142,6 @@ func (d *dao) UpdateWorkingSet(ctx context.Context, workingSet WorkingSet) error
 		return err
 	}
 	return nil
-}
-
-func (d *dao) FindWorkingSetsByIDPrefix(ctx context.Context, prefix string) ([]WorkingSet, error) {
-	const query = `SELECT id, name, servers, secrets FROM working_set WHERE id LIKE $1`
-
-	var workingSets []WorkingSet
-	err := d.db.SelectContext(ctx, &workingSets, query, prefix+"%")
-	if err != nil {
-		return nil, err
-	}
-	return workingSets, nil
 }
 
 func (d *dao) ListWorkingSets(ctx context.Context) ([]WorkingSet, error) {
