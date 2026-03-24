@@ -22,6 +22,16 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: profile
+      shorthand: p
+      value_type: string
+      description: Profile to use for client connection.
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: quiet
       shorthand: q
       value_type: bool
