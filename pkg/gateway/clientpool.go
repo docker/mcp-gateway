@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -211,6 +212,36 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 	}
 }
 
+// normalizeArguments converts tool arguments from various representations
+// (json.RawMessage, []byte, map[string]any, nil) into a consistent
+// map[string]any for template evaluation. MCP transports may deliver
+// arguments in any of these forms depending on the caller.
+func normalizeArguments(args any) map[string]any {
+	switch v := args.(type) {
+	case map[string]any:
+		return v
+	case json.RawMessage:
+		var m map[string]any
+		if err := json.Unmarshal(v, &m); err != nil {
+			log.Logf("Warning: failed to decode tool arguments RawMessage: %v", err)
+			return make(map[string]any)
+		}
+		return m
+	case []byte:
+		var m map[string]any
+		if err := json.Unmarshal(v, &m); err != nil {
+			log.Logf("Warning: failed to decode tool arguments JSON: %v", err)
+			return make(map[string]any)
+		}
+		return m
+	case nil:
+		return make(map[string]any)
+	default:
+		log.Logf("Warning: unsupported tool arguments type: %T", args)
+		return make(map[string]any)
+	}
+}
+
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) (*mcp.CallToolResult, error) {
 	args := cp.baseArgs(tool.Name)
 
@@ -219,11 +250,7 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		args = append(args, "--network", network)
 	}
 
-	// Convert params.Arguments to map[string]any
-	arguments, ok := params.Arguments.(map[string]any)
-	if !ok {
-		arguments = make(map[string]any)
-	}
+	arguments := normalizeArguments(params.Arguments)
 
 	// Volumes
 	for _, mount := range eval.EvaluateList(tool.Container.Volumes, arguments) {

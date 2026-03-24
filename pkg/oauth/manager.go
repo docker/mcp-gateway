@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
+	"strings"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
@@ -23,13 +25,31 @@ type Manager struct {
 	redirectURI  string
 }
 
-// NewManager creates a new OAuth manager for CE mode
+// NewManager creates a new OAuth manager.
+// In CE mode, the redirect URI must point to the local gateway callback
+// instead of the SaaS endpoint (mcp.docker.com).
 func NewManager(credHelper credentials.Helper) *Manager {
+	redirectURI := DefaultRedirectURI
+
+	// CE mode requires a local redirect URI because the OAuth callback
+	// is handled by the local mcp-gateway process, not by Docker SaaS.
+	//
+	// Example:
+	//   http://localhost:5000/callback
+	if os.Getenv("DOCKER_MCP_USE_CE") == "true" {
+		if v := os.Getenv("DOCKER_MCP_OAUTH_REDIRECT_URI"); v != "" {
+			redirectURI = v
+		} else {
+			// Default CE callback used by the local OAuth proxy
+			redirectURI = "http://localhost:5000/callback"
+		}
+	}
+
 	return &Manager{
-		dcrManager:   dcr.NewManager(credHelper, DefaultRedirectURI),
+		dcrManager:   dcr.NewManager(credHelper, redirectURI),
 		tokenStore:   NewTokenStore(credHelper),
 		stateManager: NewStateManager(),
-		redirectURI:  DefaultRedirectURI,
+		redirectURI:  redirectURI,
 	}
 }
 
@@ -125,6 +145,16 @@ func (m *Manager) BuildAuthorizationURL(_ context.Context, serverName string, sc
 
 // ExchangeCode exchanges an authorization code for an access token
 func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) error {
+	// Strip the mcp-gateway:PORT: prefix if present.
+	// BuildAuthorizationURL formats state as "mcp-gateway:PORT:UUID" for proxy routing,
+	// but the StateManager only stores the base UUID.
+	if strings.HasPrefix(state, "mcp-gateway:") {
+		parts := strings.SplitN(state, ":", 3)
+		if len(parts) == 3 {
+			state = parts[2]
+		}
+	}
+
 	// Validate state and retrieve verifier
 	serverName, verifier, err := m.stateManager.Validate(state)
 	if err != nil {
@@ -182,4 +212,19 @@ func (m *Manager) RevokeToken(_ context.Context, serverName string) error {
 // DeleteDCRClient removes a DCR client registration
 func (m *Manager) DeleteDCRClient(serverName string) error {
 	return m.dcrManager.DeleteDCRClient(serverName)
+}
+
+// ListDCRClients returns all registered DCR clients
+func (m *Manager) ListDCRClients() (map[string]dcr.Client, error) {
+	return m.dcrManager.ListDCRClients()
+}
+
+// HasValidToken checks if a valid OAuth token exists for the given server
+func (m *Manager) HasValidToken(serverName string) bool {
+	dcrClient, err := m.dcrManager.GetDCRClient(serverName)
+	if err != nil {
+		return false
+	}
+	_, err = m.tokenStore.Retrieve(dcrClient)
+	return err == nil
 }
