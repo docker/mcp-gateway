@@ -902,6 +902,7 @@ func TestCreateWorkingSetID(t *testing.T) {
 		inputName   string
 		existingIDs []string
 		expectedID  string
+		expectError bool
 	}{
 		{
 			name:       "simple name",
@@ -919,16 +920,10 @@ func TestCreateWorkingSetID(t *testing.T) {
 			expectedID: "my_working_set_",
 		},
 		{
-			name:        "name with collision",
+			name:        "name with collision returns error",
 			inputName:   "test",
 			existingIDs: []string{"test"},
-			expectedID:  "test_2",
-		},
-		{
-			name:        "name with multiple collisions",
-			inputName:   "test",
-			existingIDs: []string{"test", "test_2", "test_3"},
-			expectedID:  "test_4",
+			expectError: true,
 		},
 	}
 
@@ -950,8 +945,12 @@ func TestCreateWorkingSetID(t *testing.T) {
 			}
 
 			id, err := createWorkingSetID(ctx, tt.inputName, dao)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedID, id)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedID, id)
+			}
 		})
 	}
 }
