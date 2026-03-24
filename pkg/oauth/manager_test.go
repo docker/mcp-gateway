@@ -238,6 +238,18 @@ func TestManager_SetRedirectURI(t *testing.T) {
 	assert.Equal(t, customURI, manager.redirectURI)
 }
 
+func TestNewManagerWithRedirectURI(t *testing.T) {
+	helper := newFakeCredentialHelper()
+	localhostURI := "http://localhost:5001/callback"
+
+	manager := NewManagerWithRedirectURI(helper, localhostURI)
+
+	assert.Equal(t, localhostURI, manager.redirectURI)
+	assert.NotNil(t, manager.dcrManager)
+	assert.NotNil(t, manager.tokenStore)
+	assert.NotNil(t, manager.stateManager)
+}
+
 func TestManager_EnsureDCRClient_AlreadyExists(t *testing.T) {
 	manager := setupTestManager(t)
 	serverName := "test-server"
