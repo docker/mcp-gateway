@@ -213,3 +213,18 @@ func (m *Manager) RevokeToken(_ context.Context, serverName string) error {
 func (m *Manager) DeleteDCRClient(serverName string) error {
 	return m.dcrManager.DeleteDCRClient(serverName)
 }
+
+// ListDCRClients returns all registered DCR clients
+func (m *Manager) ListDCRClients() (map[string]dcr.Client, error) {
+	return m.dcrManager.ListDCRClients()
+}
+
+// HasValidToken checks if a valid OAuth token exists for the given server
+func (m *Manager) HasValidToken(serverName string) bool {
+	dcrClient, err := m.dcrManager.GetDCRClient(serverName)
+	if err != nil {
+		return false
+	}
+	_, err = m.tokenStore.Retrieve(dcrClient)
+	return err == nil
+}

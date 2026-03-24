@@ -468,3 +468,37 @@ func TestManager_StateFormatWithPort(t *testing.T) {
 	assert.NotContains(t, baseState, "mcp-gateway")
 	assert.NotContains(t, baseState, ":")
 }
+
+func TestManager_ListDCRClients(t *testing.T) {
+	manager := setupTestManager(t)
+
+	t.Run("empty list", func(t *testing.T) {
+		clients, err := manager.ListDCRClients()
+		require.NoError(t, err)
+		assert.Empty(t, clients)
+	})
+
+	t.Run("returns registered clients", func(t *testing.T) {
+		setupTestDCRClient(t, manager, "server-a")
+		setupTestDCRClient(t, manager, "server-b")
+
+		clients, err := manager.ListDCRClients()
+		require.NoError(t, err)
+		assert.Len(t, clients, 2)
+		assert.Contains(t, clients, "server-a")
+		assert.Contains(t, clients, "server-b")
+	})
+}
+
+func TestManager_HasValidToken(t *testing.T) {
+	manager := setupTestManager(t)
+
+	t.Run("no DCR client returns false", func(t *testing.T) {
+		assert.False(t, manager.HasValidToken("nonexistent"))
+	})
+
+	t.Run("DCR client without token returns false", func(t *testing.T) {
+		setupTestDCRClient(t, manager, "no-token-server")
+		assert.False(t, manager.HasValidToken("no-token-server"))
+	})
+}
