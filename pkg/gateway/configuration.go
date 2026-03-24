@@ -581,6 +581,20 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		}
 	}
 
+	// CE mode: resolve OAuth tokens for container secret injection.
+	// In CE mode there is no se:// URI resolution, so tokens must be read from
+	// the credential helper and injected as raw env var values.
+	if ceSecrets := readCEModeOAuthSecrets(ctx, servers, serverNames); len(ceSecrets) > 0 {
+		if secrets == nil {
+			secrets = make(map[string]string)
+		}
+		for k, v := range ceSecrets {
+			if _, exists := secrets[k]; !exists {
+				secrets[k] = v
+			}
+		}
+	}
+
 	log.Log("- Configuration read in", time.Since(start))
 	return Configuration{
 		serverNames:               serverNames,
