@@ -76,7 +76,7 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName string, registry
 	}
 
 	var pullOptions image.PullOptions
-	if strings.HasPrefix(ref.Name(), "docker.io/") {
+	if strings.HasPrefix(ref.Name(), "docker.io/") || strings.HasPrefix(ref.Name(), "dhi.io/") {
 		pullOptions.RegistryAuth = registryAuthFn()
 	}
 
