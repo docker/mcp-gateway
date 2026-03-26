@@ -2,6 +2,8 @@ package docker
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -51,6 +53,25 @@ func (c *dockerClient) InspectImage(ctx context.Context, name string) (image.Ins
 	return c.apiClient().ImageInspect(ctx, name)
 }
 
+// getCredStoreAuth resolves registry credentials from the Docker CLI credential store.
+func (c *dockerClient) getCredStoreAuth(hostname string) string {
+	if c.cli == nil {
+		return ""
+	}
+	authConfig, err := c.cli.ConfigFile().GetAuthConfig(hostname)
+	if err != nil || authConfig.Username == "" {
+		return ""
+	}
+	buf, err := json.Marshal(map[string]string{
+		"username": authConfig.Username,
+		"password": authConfig.Password,
+	})
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(buf)
+}
+
 func (c *dockerClient) pullImage(ctx context.Context, imageName string, registryAuthFn func() string) error {
 	inspect, err := c.apiClient().ImageInspect(ctx, imageName)
 	if err != nil && !cerrdefs.IsNotFound(err) {
@@ -76,8 +97,10 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName string, registry
 	}
 
 	var pullOptions image.PullOptions
-	if strings.HasPrefix(ref.Name(), "docker.io/") || strings.HasPrefix(ref.Name(), "dhi.io/") {
+	if strings.HasPrefix(ref.Name(), "docker.io/") {
 		pullOptions.RegistryAuth = registryAuthFn()
+	} else {
+		pullOptions.RegistryAuth = c.getCredStoreAuth(reference.Domain(ref))
 	}
 
 	response, err := c.apiClient().ImagePull(ctx, imageName, pullOptions)
