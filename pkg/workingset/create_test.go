@@ -196,7 +196,7 @@ func TestCreateWithExistingId(t *testing.T) {
 	assert.Contains(t, err.Error(), "already exists")
 }
 
-func TestCreateGeneratesUniqueIds(t *testing.T) {
+func TestCreateErrorsOnDuplicateDerivedID(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
@@ -206,34 +206,12 @@ func TestCreateGeneratesUniqueIds(t *testing.T) {
 	}, []string{})
 	require.NoError(t, err)
 
-	// Create second with same name
+	// Create second with same name should fail
 	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
 		"docker://anotherimage:v1.0",
 	}, []string{})
-	require.NoError(t, err)
-
-	// Create third with same name
-	err = Create(ctx, dao, getMockRegistryClient(), getMockOciService(), "", "Test Set", []string{
-		"docker://anotherimage:v1.0",
-	}, []string{})
-	require.NoError(t, err)
-
-	// List all working sets
-	sets, err := dao.ListWorkingSets(ctx)
-	require.NoError(t, err)
-	assert.Len(t, sets, 3)
-
-	// Verify IDs are unique
-	ids := make(map[string]bool)
-	for _, set := range sets {
-		assert.False(t, ids[set.ID], "ID %s should be unique", set.ID)
-		ids[set.ID] = true
-	}
-
-	// Verify ID pattern
-	assert.Contains(t, ids, "test_set")
-	assert.Contains(t, ids, "test_set_2")
-	assert.Contains(t, ids, "test_set_3")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already exists")
 }
 
 func TestCreateWithInvalidServerFormat(t *testing.T) {
