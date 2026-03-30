@@ -11,6 +11,7 @@ import (
 
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/distribution/reference"
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types/image"
 	"golang.org/x/sync/errgroup"
 )
@@ -78,6 +79,14 @@ func (c *dockerClient) pullImage(ctx context.Context, imageName string, registry
 	var pullOptions image.PullOptions
 	if strings.HasPrefix(ref.Name(), "docker.io/") {
 		pullOptions.RegistryAuth = registryAuthFn()
+	} else if c.cli != nil {
+		// For non-Hub registries (e.g. dhi.io), resolve credentials from the
+		// Docker CLI credential store. This uses the same auth path as
+		// "docker pull" and works with any configured credential helper.
+		encodedAuth, err := command.RetrieveAuthTokenFromImage(c.cli.ConfigFile(), imageName)
+		if err == nil {
+			pullOptions.RegistryAuth = encodedAuth
+		}
 	}
 
 	response, err := c.apiClient().ImagePull(ctx, imageName, pullOptions)

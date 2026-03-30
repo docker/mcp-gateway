@@ -38,10 +38,12 @@ type Client interface {
 
 type dockerClient struct {
 	apiClient func() client.APIClient
+	cli       command.Cli
 }
 
 func NewClient(cli command.Cli) Client {
 	return &dockerClient{
+		cli: cli,
 		apiClient: sync.OnceValue(func() client.APIClient {
 			_ = cli.Apply(func(cli *command.DockerCli) error {
 				if mobyClient, ok := cli.Client().(*client.Client); ok {
