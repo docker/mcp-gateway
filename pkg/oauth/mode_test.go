@@ -113,7 +113,7 @@ func TestShouldUseGatewayOAuth_FeatureFlagName(t *testing.T) {
 		"should query the McpGatewayOAuth feature flag")
 }
 
-func TestDetermineOAuthMode(t *testing.T) {
+func TestDetermineMode(t *testing.T) {
 	// Test the internal function directly so we can control ceMode and the
 	// feature-flag checker.
 
@@ -132,31 +132,31 @@ func TestDetermineOAuthMode(t *testing.T) {
 		ceMode      bool
 		isCommunity bool
 		checkFlag   featureFlagChecker
-		expected    OAuthMode
+		expected    Mode
 	}{
-		// CE mode: always OAuthModeCE regardless of server type
+		// CE mode: always ModeCE regardless of server type
 		{
 			name:        "CE mode, catalog server",
 			ceMode:      true,
 			isCommunity: false,
 			checkFlag:   flagOff,
-			expected:    OAuthModeCE,
+			expected:    ModeCE,
 		},
 		{
 			name:        "CE mode, community server",
 			ceMode:      true,
 			isCommunity: true,
 			checkFlag:   flagOff,
-			expected:    OAuthModeCE,
+			expected:    ModeCE,
 		},
 
-		// Desktop + catalog server: always OAuthModeDesktop
+		// Desktop + catalog server: always ModeDesktop
 		{
 			name:        "Desktop, catalog server",
 			ceMode:      false,
 			isCommunity: false,
 			checkFlag:   flagOn,
-			expected:    OAuthModeDesktop,
+			expected:    ModeDesktop,
 		},
 
 		// Desktop + community server: depends on feature flag
@@ -165,70 +165,70 @@ func TestDetermineOAuthMode(t *testing.T) {
 			ceMode:      false,
 			isCommunity: true,
 			checkFlag:   flagOn,
-			expected:    OAuthModeCommunity,
+			expected:    ModeCommunity,
 		},
 		{
 			name:        "Desktop, community server, flag OFF",
 			ceMode:      false,
 			isCommunity: true,
 			checkFlag:   flagOff,
-			expected:    OAuthModeDesktop,
+			expected:    ModeDesktop,
 		},
 		{
 			name:        "Desktop, community server, flag error",
 			ceMode:      false,
 			isCommunity: true,
 			checkFlag:   flagErr,
-			expected:    OAuthModeDesktop,
+			expected:    ModeDesktop,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := determineOAuthMode(t.Context(), tt.ceMode, tt.isCommunity, tt.checkFlag)
+			got := determineMode(t.Context(), tt.ceMode, tt.isCommunity, tt.checkFlag)
 			assert.Equal(t, tt.expected, got)
 		})
 	}
 }
 
-func TestDetermineOAuthMode_CEModeIntegration(t *testing.T) {
+func TestDetermineMode_CEModeIntegration(t *testing.T) {
 	// Verify the public function wiring: when DOCKER_MCP_USE_CE=true,
-	// DetermineOAuthMode returns OAuthModeCE regardless of isCommunity.
+	// DetermineMode returns ModeCE regardless of isCommunity.
 	t.Setenv("DOCKER_MCP_USE_CE", "true")
 
-	assert.Equal(t, OAuthModeCE, DetermineOAuthMode(t.Context(), false),
-		"CE mode override should return OAuthModeCE for catalog servers")
-	assert.Equal(t, OAuthModeCE, DetermineOAuthMode(t.Context(), true),
-		"CE mode override should return OAuthModeCE for community servers")
+	assert.Equal(t, ModeCE, DetermineMode(t.Context(), false),
+		"CE mode override should return ModeCE for catalog servers")
+	assert.Equal(t, ModeCE, DetermineMode(t.Context(), true),
+		"CE mode override should return ModeCE for community servers")
 }
 
-func TestOAuthMode_ResolveMode(t *testing.T) {
+func TestMode_ResolveMode(t *testing.T) {
 	tests := []struct {
 		name     string
-		mode     OAuthMode
+		mode     Mode
 		ceMode   bool // controlled via env var
-		expected OAuthMode
+		expected Mode
 	}{
 		{
 			name:     "explicit Desktop stays Desktop",
-			mode:     OAuthModeDesktop,
-			expected: OAuthModeDesktop,
+			mode:     ModeDesktop,
+			expected: ModeDesktop,
 		},
 		{
 			name:     "explicit CE stays CE",
-			mode:     OAuthModeCE,
-			expected: OAuthModeCE,
+			mode:     ModeCE,
+			expected: ModeCE,
 		},
 		{
 			name:     "explicit Community stays Community",
-			mode:     OAuthModeCommunity,
-			expected: OAuthModeCommunity,
+			mode:     ModeCommunity,
+			expected: ModeCommunity,
 		},
 		{
 			name:     "Auto in CE mode resolves to CE",
-			mode:     OAuthModeAuto,
+			mode:     ModeAuto,
 			ceMode:   true,
-			expected: OAuthModeCE,
+			expected: ModeCE,
 		},
 	}
 

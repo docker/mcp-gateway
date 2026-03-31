@@ -23,7 +23,7 @@ import (
 // catalog), credential helper (CE), or docker pass (Desktop community).
 type CredentialHelper struct {
 	credentialHelper credentials.Helper
-	mode             OAuthMode
+	mode             Mode
 }
 
 // GetHelper returns the underlying credential helper
@@ -37,29 +37,29 @@ func (h *CredentialHelper) GetHelper() credentials.Helper {
 func NewOAuthCredentialHelper() *CredentialHelper {
 	return &CredentialHelper{
 		credentialHelper: newOAuthHelper(),
-		mode:             OAuthModeAuto,
+		mode:             ModeAuto,
 	}
 }
 
 // NewOAuthCredentialHelperWithMode creates a credential helper that uses the
 // specified storage mode. Use this when the caller knows whether the server
 // is Desktop-catalog, CE, or Desktop-community.
-func NewOAuthCredentialHelperWithMode(mode OAuthMode) *CredentialHelper {
+func NewOAuthCredentialHelperWithMode(mode Mode) *CredentialHelper {
 	return &CredentialHelper{
 		credentialHelper: newOAuthHelper(),
 		mode:             mode,
 	}
 }
 
-// resolveMode returns the effective OAuthMode. When mode is OAuthModeAuto, the
+// resolveMode returns the effective Mode. When mode is ModeAuto, the
 // runtime IsCEMode() check determines the backend (CE or Desktop). Explicit
 // modes are returned as-is.
-func (h *CredentialHelper) resolveMode() OAuthMode {
-	if h.mode == OAuthModeAuto {
+func (h *CredentialHelper) resolveMode() Mode {
+	if h.mode == ModeAuto {
 		if IsCEMode() {
-			return OAuthModeCE
+			return ModeCE
 		}
-		return OAuthModeDesktop
+		return ModeDesktop
 	}
 	return h.mode
 }
@@ -78,9 +78,9 @@ type TokenStatus struct {
 //   - Community: docker pass via Secrets Engine (base64-encoded JSON)
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
 	switch h.resolveMode() {
-	case OAuthModeCE:
+	case ModeCE:
 		return h.getOAuthTokenCE(serverName)
-	case OAuthModeCommunity:
+	case ModeCommunity:
 		return h.getOAuthTokenDockerPass(ctx, serverName)
 	default:
 		return h.getOAuthTokenDesktop(ctx, serverName)
@@ -154,9 +154,9 @@ func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName 
 // Routes to the appropriate storage backend based on the resolved mode.
 func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (bool, error) {
 	switch h.resolveMode() {
-	case OAuthModeCE:
+	case ModeCE:
 		return h.tokenExistsCE(serverName)
-	case OAuthModeCommunity:
+	case ModeCommunity:
 		return h.tokenExistsDockerPass(ctx, serverName)
 	default:
 		return h.tokenExistsDesktop(ctx, serverName)
@@ -198,9 +198,9 @@ func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverName st
 //   - Community: reads token JSON from docker pass via Secrets Engine, parses expiry
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
 	switch h.resolveMode() {
-	case OAuthModeCE:
+	case ModeCE:
 		return h.getTokenStatusCE(serverName)
-	case OAuthModeCommunity:
+	case ModeCommunity:
 		return h.getTokenStatusDockerPass(ctx, serverName)
 	default:
 		return h.getTokenStatusDesktop(ctx, serverName)

@@ -7,45 +7,45 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 )
 
-// OAuthMode determines which credential storage backend to use for a server.
-type OAuthMode int
+// Mode determines which credential storage backend to use for a server.
+type Mode int
 
 const (
-	// OAuthModeAuto auto-detects mode at runtime: IsCEMode() -> CE, else Desktop.
+	// ModeAuto auto-detects mode at runtime: IsCEMode() -> CE, else Desktop.
 	// Used for backward compatibility when callers have not yet been updated
 	// to pass an explicit mode.
-	OAuthModeAuto OAuthMode = iota
-	// OAuthModeDesktop reads/writes via Secrets Engine (Desktop catalog servers).
-	OAuthModeDesktop
-	// OAuthModeCE reads/writes via the system credential helper (CE standalone).
-	OAuthModeCE
-	// OAuthModeCommunity reads/writes via docker pass (Desktop community servers).
-	OAuthModeCommunity
+	ModeAuto Mode = iota
+	// ModeDesktop reads/writes via Secrets Engine (Desktop catalog servers).
+	ModeDesktop
+	// ModeCE reads/writes via the system credential helper (CE standalone).
+	ModeCE
+	// ModeCommunity reads/writes via docker pass (Desktop community servers).
+	ModeCommunity
 )
 
-// DetermineOAuthMode returns the credential storage mode for a server.
+// DetermineMode returns the credential storage mode for a server.
 //
-//   - CE mode (no Desktop): OAuthModeCE
-//   - Desktop + catalog server: OAuthModeDesktop
-//   - Desktop + community server + McpGatewayOAuth flag ON: OAuthModeCommunity
-//   - Desktop + community server + flag OFF/error: OAuthModeDesktop (fallback)
-func DetermineOAuthMode(ctx context.Context, isCommunity bool) OAuthMode {
-	return determineOAuthMode(ctx, IsCEMode(), isCommunity, desktop.CheckFeatureFlagIsEnabled)
+//   - CE mode (no Desktop): ModeCE
+//   - Desktop + catalog server: ModeDesktop
+//   - Desktop + community server + McpGatewayOAuth flag ON: ModeCommunity
+//   - Desktop + community server + flag OFF/error: ModeDesktop (fallback)
+func DetermineMode(ctx context.Context, isCommunity bool) Mode {
+	return determineMode(ctx, IsCEMode(), isCommunity, desktop.CheckFeatureFlagIsEnabled)
 }
 
-// determineOAuthMode is the testable core. ceMode is pre-resolved so tests
+// determineMode is the testable core. ceMode is pre-resolved so tests
 // don't need to mock env/OS detection or the Desktop backend socket.
-func determineOAuthMode(ctx context.Context, ceMode bool, isCommunity bool, checkFlag featureFlagChecker) OAuthMode {
+func determineMode(ctx context.Context, ceMode bool, isCommunity bool, checkFlag featureFlagChecker) Mode {
 	if ceMode {
-		return OAuthModeCE
+		return ModeCE
 	}
 	if isCommunity {
 		enabled, err := checkFlag(ctx, "McpGatewayOAuth")
 		if err == nil && enabled {
-			return OAuthModeCommunity
+			return ModeCommunity
 		}
 	}
-	return OAuthModeDesktop
+	return ModeDesktop
 }
 
 // IsCEMode returns true if running in Docker CE mode (standalone OAuth flows).

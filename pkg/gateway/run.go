@@ -367,13 +367,13 @@ func (g *Gateway) Run(ctx context.Context) error {
 			}
 
 			isCommunity := serverConfig.Spec.IsCommunity()
-			mode := oauth.DetermineOAuthMode(ctx, isCommunity)
+			mode := oauth.DetermineMode(ctx, isCommunity)
 
 			// Community mode requires docker pass. If unavailable, fall
 			// back to Desktop mode so the server is not left unmanaged.
-			if mode == oauth.OAuthModeCommunity && !hasDockerPass {
+			if mode == oauth.ModeCommunity && !hasDockerPass {
 				log.Logf("! docker pass unavailable -- falling back to Desktop OAuth for community server %s", serverName)
-				mode = oauth.OAuthModeDesktop
+				mode = oauth.ModeDesktop
 			}
 
 			credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
@@ -629,9 +629,9 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 
 // startProvider creates and starts an OAuth provider goroutine for a server.
 // The mode parameter controls which credential storage backend the provider
-// uses. Pass OAuthModeAuto when the caller does not know the server type
+// uses. Pass ModeAuto when the caller does not know the server type
 // (backward compat); the provider will fall back to runtime IsCEMode() detection.
-func (g *Gateway) startProvider(ctx context.Context, serverName string, mode oauth.OAuthMode) {
+func (g *Gateway) startProvider(ctx context.Context, serverName string, mode oauth.Mode) {
 	g.providersMu.Lock()
 	defer g.providersMu.Unlock()
 
@@ -705,10 +705,10 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 	case oauth.EventLoginSuccess:
 		// User just authorized via Desktop SSE - ensure provider exists.
 		// SSE events are only received in Desktop mode (the notification
-		// monitor is skipped in CE mode), so OAuthModeDesktop is correct.
+		// monitor is skipped in CE mode), so ModeDesktop is correct.
 		if !exists {
 			log.Logf("- Creating provider for %s after login", event.Provider)
-			g.startProvider(context.Background(), event.Provider, oauth.OAuthModeDesktop)
+			g.startProvider(context.Background(), event.Provider, oauth.ModeDesktop)
 		}
 
 		// Always send event to trigger reload (connects server and lists tools)

@@ -66,16 +66,16 @@ func (p *DCRProvider) GeneratePKCE() string {
 // This is used for background token refresh loops in the gateway.
 //
 // The mode field (cached at construction) determines behavior:
-//   - OAuthModeAuto: runtime IsCEMode() detection (backward compat)
-//   - OAuthModeDesktop: triggers refresh via GetOAuthApp Desktop API; SSE events
+//   - ModeAuto: runtime IsCEMode() detection (backward compat)
+//   - ModeDesktop: triggers refresh via GetOAuthApp Desktop API; SSE events
 //     interrupt the timer, trigger reload, and reset retry counters.
-//   - OAuthModeCE: refreshes tokens directly via oauth2 library using the
+//   - ModeCE: refreshes tokens directly via oauth2 library using the
 //     credential helper, then reloads.
-//   - OAuthModeCommunity: refreshes tokens directly via oauth2 library using
+//   - ModeCommunity: refreshes tokens directly via oauth2 library using
 //     docker pass for storage, then reloads.
 type Provider struct {
 	name              string
-	mode              OAuthMode
+	mode              Mode
 	lastRefreshExpiry time.Time
 	refreshRetryCount int
 	stopOnce          sync.Once
@@ -89,8 +89,8 @@ const maxRefreshRetries = 7 // Max attempts to refresh when expiry hasn't change
 
 // NewProvider creates a new OAuth provider for token refresh.
 // The mode parameter controls which credential storage backend is used.
-// Pass OAuthModeAuto to preserve the existing IsCEMode() runtime behavior.
-func NewProvider(name string, mode OAuthMode, reloadFn func(context.Context, string) error) *Provider {
+// Pass ModeAuto to preserve the existing IsCEMode() runtime behavior.
+func NewProvider(name string, mode Mode, reloadFn func(context.Context, string) error) *Provider {
 	return &Provider{
 		name:       name,
 		mode:       mode,
@@ -162,7 +162,7 @@ func (p *Provider) Run(ctx context.Context) {
 		// Trigger refresh if needed
 		if shouldTriggerRefresh {
 			switch p.resolveRefreshMode() {
-			case OAuthModeCE:
+			case ModeCE:
 				// CE mode: Refresh token directly, then reload server connection
 				go func() {
 					if err := p.refreshTokenCE(); err != nil {
@@ -173,7 +173,7 @@ func (p *Provider) Run(ctx context.Context) {
 						log.Logf("! Failed to reload %s after token refresh: %v", p.name, err)
 					}
 				}()
-			case OAuthModeCommunity:
+			case ModeCommunity:
 				// Community mode: Refresh token via oauth2, store in docker pass
 				go func() {
 					if err := p.refreshTokenCommunity(ctx); err != nil {
@@ -241,13 +241,13 @@ func (p *Provider) SendEvent(event Event) {
 }
 
 // resolveRefreshMode returns the effective mode for refresh branching.
-// When mode is OAuthModeAuto, falls back to the runtime IsCEMode() check.
-func (p *Provider) resolveRefreshMode() OAuthMode {
-	if p.mode == OAuthModeAuto {
+// When mode is ModeAuto, falls back to the runtime IsCEMode() check.
+func (p *Provider) resolveRefreshMode() Mode {
+	if p.mode == ModeAuto {
 		if IsCEMode() {
-			return OAuthModeCE
+			return ModeCE
 		}
-		return OAuthModeDesktop
+		return ModeDesktop
 	}
 	return p.mode
 }
