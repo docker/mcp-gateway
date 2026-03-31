@@ -355,23 +355,39 @@ func (g *Gateway) Run(ctx context.Context) error {
 		// Start OAuth provider for each OAuth server.
 		// Each provider runs in its own goroutine with dynamic timing based on token expiry.
 		log.Log("- Starting OAuth provider loops...")
-		credHelper := oauth.NewOAuthCredentialHelper()
+
+		// Pre-flight check: verify docker pass availability once for all
+		// community servers that may need it. Avoids repeated shell-outs.
+		hasDockerPass := desktop.CheckHasDockerPass(ctx) == nil
+
 		for _, serverName := range configuration.ServerNames() {
 			serverConfig, _, found := configuration.Find(serverName)
 			if !found || serverConfig == nil {
 				continue
 			}
 
+			isCommunity := serverConfig.Spec.IsCommunity()
+			mode := oauth.DetermineOAuthMode(ctx, isCommunity)
+
+			// Community mode requires docker pass. If unavailable, fall
+			// back to Desktop mode so the server is not left unmanaged.
+			if mode == oauth.OAuthModeCommunity && !hasDockerPass {
+				log.Logf("! docker pass unavailable -- falling back to Desktop OAuth for community server %s", serverName)
+				mode = oauth.OAuthModeDesktop
+			}
+
+			credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
+
 			if serverConfig.Spec.HasExplicitOAuthProviders() {
-				g.startProvider(ctx, serverName)
+				g.startProvider(ctx, serverName, mode)
 			} else if serverConfig.IsRemote() {
-				// Community servers: start provider if they have a stored OAuth token
+				// Community/remote servers: start provider if they have a stored OAuth token
 				// from dynamic discovery (DCR without explicit OAuth metadata)
 				if exists, err := credHelper.TokenExists(ctx, serverName); err != nil {
 					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
 				} else if exists {
-					log.Logf("- Starting OAuth provider for community server: %s", serverName)
-					g.startProvider(ctx, serverName)
+					log.Logf("- Starting OAuth provider for remote server: %s (mode=%d)", serverName, mode)
+					g.startProvider(ctx, serverName, mode)
 				}
 			}
 		}
@@ -611,8 +627,11 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 
 // OAuth Provider Management Methods
 
-// startProvider creates and starts an OAuth provider goroutine for a server
-func (g *Gateway) startProvider(ctx context.Context, serverName string) {
+// startProvider creates and starts an OAuth provider goroutine for a server.
+// The mode parameter controls which credential storage backend the provider
+// uses. Pass OAuthModeAuto when the caller does not know the server type
+// (backward compat); the provider will fall back to runtime IsCEMode() detection.
+func (g *Gateway) startProvider(ctx context.Context, serverName string, mode oauth.OAuthMode) {
 	g.providersMu.Lock()
 	defer g.providersMu.Unlock()
 
@@ -649,7 +668,7 @@ func (g *Gateway) startProvider(ctx context.Context, serverName string) {
 	}
 
 	// Create and start provider
-	provider := oauth.NewProvider(serverName, reloadFn)
+	provider := oauth.NewProvider(serverName, mode, reloadFn)
 	g.oauthProviders[serverName] = provider
 
 	// Wrapper goroutine handles cleanup after provider exits
@@ -684,10 +703,12 @@ func (g *Gateway) routeEventToProvider(event oauth.Event) {
 
 	switch event.Type {
 	case oauth.EventLoginSuccess:
-		// User just authorized - ensure provider exists
+		// User just authorized via Desktop SSE - ensure provider exists.
+		// SSE events are only received in Desktop mode (the notification
+		// monitor is skipped in CE mode), so OAuthModeDesktop is correct.
 		if !exists {
 			log.Logf("- Creating provider for %s after login", event.Provider)
-			g.startProvider(context.Background(), event.Provider)
+			g.startProvider(context.Background(), event.Provider, oauth.OAuthModeDesktop)
 		}
 
 		// Always send event to trigger reload (connects server and lists tools)

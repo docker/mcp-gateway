@@ -112,3 +112,134 @@ func TestShouldUseGatewayOAuth_FeatureFlagName(t *testing.T) {
 	assert.Equal(t, "McpGatewayOAuth", capturedName,
 		"should query the McpGatewayOAuth feature flag")
 }
+
+func TestDetermineOAuthMode(t *testing.T) {
+	// Test the internal function directly so we can control ceMode and the
+	// feature-flag checker.
+
+	flagOn := func(_ context.Context, _ string) (bool, error) {
+		return true, nil
+	}
+	flagOff := func(_ context.Context, _ string) (bool, error) {
+		return false, nil
+	}
+	flagErr := func(_ context.Context, _ string) (bool, error) {
+		return false, errors.New("Desktop not running")
+	}
+
+	tests := []struct {
+		name        string
+		ceMode      bool
+		isCommunity bool
+		checkFlag   featureFlagChecker
+		expected    OAuthMode
+	}{
+		// CE mode: always OAuthModeCE regardless of server type
+		{
+			name:        "CE mode, catalog server",
+			ceMode:      true,
+			isCommunity: false,
+			checkFlag:   flagOff,
+			expected:    OAuthModeCE,
+		},
+		{
+			name:        "CE mode, community server",
+			ceMode:      true,
+			isCommunity: true,
+			checkFlag:   flagOff,
+			expected:    OAuthModeCE,
+		},
+
+		// Desktop + catalog server: always OAuthModeDesktop
+		{
+			name:        "Desktop, catalog server",
+			ceMode:      false,
+			isCommunity: false,
+			checkFlag:   flagOn,
+			expected:    OAuthModeDesktop,
+		},
+
+		// Desktop + community server: depends on feature flag
+		{
+			name:        "Desktop, community server, flag ON",
+			ceMode:      false,
+			isCommunity: true,
+			checkFlag:   flagOn,
+			expected:    OAuthModeCommunity,
+		},
+		{
+			name:        "Desktop, community server, flag OFF",
+			ceMode:      false,
+			isCommunity: true,
+			checkFlag:   flagOff,
+			expected:    OAuthModeDesktop,
+		},
+		{
+			name:        "Desktop, community server, flag error",
+			ceMode:      false,
+			isCommunity: true,
+			checkFlag:   flagErr,
+			expected:    OAuthModeDesktop,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := determineOAuthMode(t.Context(), tt.ceMode, tt.isCommunity, tt.checkFlag)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestDetermineOAuthMode_CEModeIntegration(t *testing.T) {
+	// Verify the public function wiring: when DOCKER_MCP_USE_CE=true,
+	// DetermineOAuthMode returns OAuthModeCE regardless of isCommunity.
+	t.Setenv("DOCKER_MCP_USE_CE", "true")
+
+	assert.Equal(t, OAuthModeCE, DetermineOAuthMode(t.Context(), false),
+		"CE mode override should return OAuthModeCE for catalog servers")
+	assert.Equal(t, OAuthModeCE, DetermineOAuthMode(t.Context(), true),
+		"CE mode override should return OAuthModeCE for community servers")
+}
+
+func TestOAuthMode_ResolveMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		mode     OAuthMode
+		ceMode   bool // controlled via env var
+		expected OAuthMode
+	}{
+		{
+			name:     "explicit Desktop stays Desktop",
+			mode:     OAuthModeDesktop,
+			expected: OAuthModeDesktop,
+		},
+		{
+			name:     "explicit CE stays CE",
+			mode:     OAuthModeCE,
+			expected: OAuthModeCE,
+		},
+		{
+			name:     "explicit Community stays Community",
+			mode:     OAuthModeCommunity,
+			expected: OAuthModeCommunity,
+		},
+		{
+			name:     "Auto in CE mode resolves to CE",
+			mode:     OAuthModeAuto,
+			ceMode:   true,
+			expected: OAuthModeCE,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.ceMode {
+				t.Setenv("DOCKER_MCP_USE_CE", "true")
+			}
+			h := NewOAuthCredentialHelperWithMode(tt.mode)
+			got := h.resolveMode()
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}

@@ -93,3 +93,45 @@ func DeleteDefaultSecret(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// SetOAuthToken stores an OAuth token via docker pass at docker/mcp/oauth/{serverName}.
+// The value should be base64-encoded JSON of the full oauth2.Token.
+func SetOAuthToken(ctx context.Context, serverName string, value string) error {
+	c := cmd(ctx, "set", GetOAuthKey(serverName))
+	c.Stdin = strings.NewReader(value)
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not store OAuth token for %s: %s\n%s", serverName, bytes.TrimSpace(out), err)
+	}
+	return nil
+}
+
+// DeleteOAuthToken removes an OAuth token from docker pass.
+func DeleteOAuthToken(ctx context.Context, serverName string) error {
+	out, err := cmd(ctx, "rm", GetOAuthKey(serverName)).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not delete OAuth token for %s: %s\n%s", serverName, bytes.TrimSpace(out), err)
+	}
+	return nil
+}
+
+// SetDCRClient stores a DCR client config via docker pass at docker/mcp/oauth-dcr/{serverName}.
+// The value should be base64-encoded JSON of the DCR client.
+func SetDCRClient(ctx context.Context, serverName string, value string) error {
+	c := cmd(ctx, "set", GetDCRKey(serverName))
+	c.Stdin = strings.NewReader(value)
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not store DCR client for %s: %s\n%s", serverName, bytes.TrimSpace(out), err)
+	}
+	return nil
+}
+
+// DeleteDCRClient removes a DCR client config from docker pass.
+func DeleteDCRClient(ctx context.Context, serverName string) error {
+	out, err := cmd(ctx, "rm", GetDCRKey(serverName)).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not delete DCR client for %s: %s\n%s", serverName, bytes.TrimSpace(out), err)
+	}
+	return nil
+}
