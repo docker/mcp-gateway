@@ -24,11 +24,16 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 		if server.Snapshot == nil {
 			continue
 		}
-		if server.Snapshot.Server.HasExplicitOAuthProviders() {
+		if server.Snapshot.Server.HasExplicitOAuthProviders() || server.Snapshot.Server.HasPreRegisteredOAuth() {
 			serverName := server.Snapshot.Server.Name
-			providerName := server.Snapshot.Server.OAuth.Providers[0].Provider
+			provider := server.Snapshot.Server.OAuth.Providers[0]
 
-			if err := oauth.RegisterProviderWithSnapshot(ctx, serverName, providerName); err != nil {
+			// Read scopes from OAuth.Scopes (legacy) or from server_metadata.scopes_supported (RFC 8414)
+			scopes := server.Snapshot.Server.OAuth.Scopes
+			if len(scopes) == 0 && provider.ServerMetadata != nil {
+				scopes = provider.ServerMetadata.ScopesSupported
+			}
+			if err := oauth.RegisterProviderWithSnapshot(ctx, serverName, provider, scopes); err != nil {
 				log.Log(fmt.Sprintf("Warning: Failed to register OAuth provider for %s: %v", serverName, err))
 			}
 		} else if server.Snapshot.Server.Type == "remote" && server.Snapshot.Server.Remote.URL != "" {

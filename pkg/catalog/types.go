@@ -70,6 +70,18 @@ func (s *Server) HasExplicitOAuthProviders() bool {
 	return s.Type == "remote" && s.IsOAuthServer()
 }
 
+// HasPreRegisteredOAuth returns true if this server has pre-registered OAuth
+// client metadata embedded in the catalog, regardless of server type.
+// This supports local container servers that need OAuth tokens (e.g., Google Workspace)
+// where the admin pre-registers the OAuth client in the catalog.
+func (s *Server) HasPreRegisteredOAuth() bool {
+	if s.OAuth == nil || len(s.OAuth.Providers) == 0 {
+		return false
+	}
+	p := s.OAuth.Providers[0]
+	return p.Registration != nil && p.Registration.ClientID != ""
+}
+
 type Secret struct {
 	Name string `yaml:"name" json:"name"`
 	Env  string `yaml:"env" json:"env"`
@@ -95,6 +107,34 @@ type OAuthProvider struct {
 	Provider string `yaml:"provider" json:"provider"`
 	Secret   string `json:"secret,omitempty" yaml:"secret,omitempty"`
 	Env      string `json:"env,omitempty" yaml:"env,omitempty"`
+	// ServerMetadata holds OAuth authorization server metadata following RFC 8414 field naming.
+	// Omit if the server supports /.well-known/oauth-authorization-server discovery.
+	// Required for local servers or providers that don't publish metadata endpoints.
+	ServerMetadata *OAuthServerMetadata `json:"server_metadata,omitempty" yaml:"server_metadata,omitempty"`
+	// Registration holds out-of-band client credentials from manual OAuth app registration.
+	// Used when the provider does not support Dynamic Client Registration (DCR).
+	Registration *OAuthRegistration `json:"registration,omitempty" yaml:"registration,omitempty"`
+}
+
+// OAuthServerMetadata follows RFC 8414 (OAuth 2.0 Authorization Server Metadata) field naming.
+// https://datatracker.ietf.org/doc/html/rfc8414
+type OAuthServerMetadata struct {
+	Issuer                            string   `json:"issuer,omitempty" yaml:"issuer,omitempty"`
+	AuthorizationEndpoint             string   `json:"authorization_endpoint" yaml:"authorization_endpoint"`
+	TokenEndpoint                     string   `json:"token_endpoint" yaml:"token_endpoint"`
+	ScopesSupported                   []string `json:"scopes_supported,omitempty" yaml:"scopes_supported,omitempty"`
+	ResponseTypesSupported            []string `json:"response_types_supported,omitempty" yaml:"response_types_supported,omitempty"`
+	GrantTypesSupported               []string `json:"grant_types_supported,omitempty" yaml:"grant_types_supported,omitempty"`
+	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported,omitempty" yaml:"code_challenge_methods_supported,omitempty"`
+	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported,omitempty" yaml:"token_endpoint_auth_methods_supported,omitempty"`
+}
+
+// OAuthRegistration holds the client_id from an out-of-band OAuth app registration.
+// The client_secret is NOT included here -- it is provided by the user via the
+// Docker secrets store (e.g., docker mcp secret set {server}.client_secret).
+// This ensures secrets are never distributed in catalogs.
+type OAuthRegistration struct {
+	ClientID string `json:"client_id" yaml:"client_id"`
 }
 
 // POCI tools

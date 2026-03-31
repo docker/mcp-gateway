@@ -362,7 +362,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 				continue
 			}
 
-			if serverConfig.Spec.HasExplicitOAuthProviders() {
+			if serverConfig.Spec.HasExplicitOAuthProviders() || serverConfig.Spec.HasPreRegisteredOAuth() {
 				g.startProvider(ctx, serverName)
 			} else if serverConfig.IsRemote() {
 				// Community servers: start provider if they have a stored OAuth token

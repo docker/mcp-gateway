@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
+
+// clientSecretSuffix is the naming convention for OAuth client secrets in the secrets store.
+const clientSecretSuffix = ".client_secret"
 
 func Authorize(ctx context.Context, app string, scopes string) error {
 	// Check if running in CE mode
@@ -22,6 +27,25 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 // authorizeDesktopMode handles OAuth via Docker Desktop (existing behavior)
 func authorizeDesktopMode(ctx context.Context, app string, scopes string) error {
 	client := desktop.NewAuthClient()
+
+	// For pre-registered OAuth clients, re-register the DCR client with the latest
+	// client_secret from the Secrets Engine. The user may have set the secret after
+	// the server was added to the profile.
+	if dcrClient, err := client.GetDCRClient(ctx, app); err == nil && dcrClient.ClientID != "" {
+		clientSecretKey := secret.GetDefaultSecretKey(app + clientSecretSuffix)
+		if env, err := secret.GetSecret(ctx, clientSecretKey); err == nil && string(env.Value) != "" {
+			req := desktop.RegisterDCRRequest{
+				ProviderName:          dcrClient.ProviderName,
+				ClientID:              dcrClient.ClientID,
+				ClientSecret:          string(env.Value),
+				AuthorizationEndpoint: dcrClient.AuthorizationEndpoint,
+				TokenEndpoint:         dcrClient.TokenEndpoint,
+			}
+			if err := client.RegisterDCRClientPending(ctx, app, req); err != nil {
+				log.Logf("Warning: failed to update DCR client with client_secret: %v", err)
+			}
+		}
+	}
 
 	// Start OAuth flow - Docker Desktop handles DCR automatically if needed
 	authResponse, err := client.PostOAuthApp(ctx, app, scopes, false)

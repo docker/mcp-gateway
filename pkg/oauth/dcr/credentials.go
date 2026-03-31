@@ -24,6 +24,7 @@ type Client struct {
 	AuthorizationEndpoint string    `json:"authorizationEndpoint,omitempty"`
 	AuthorizationServer   string    `json:"authorizationServer,omitempty"`
 	ClientID              string    `json:"clientId,omitempty"`
+	ClientSecret          string    `json:"clientSecret,omitempty"` // For confidential clients
 	ClientName            string    `json:"clientName,omitempty"`
 	ProviderName          string    `json:"providerName"`
 	RegisteredAt          time.Time `json:"registeredAt"`
