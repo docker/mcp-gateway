@@ -18,9 +18,12 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
 
-// CredentialHelper provides secure access to OAuth tokens via credential helpers
+// CredentialHelper provides secure access to OAuth tokens via credential helpers.
+// The mode field controls which storage backend is used: Secrets Engine (Desktop
+// catalog), credential helper (CE), or docker pass (Desktop community).
 type CredentialHelper struct {
 	credentialHelper credentials.Helper
+	mode             Mode
 }
 
 // GetHelper returns the underlying credential helper
@@ -28,11 +31,37 @@ func (h *CredentialHelper) GetHelper() credentials.Helper {
 	return h.credentialHelper
 }
 
-// NewOAuthCredentialHelper creates a new OAuth credential helper
+// NewOAuthCredentialHelper creates a new OAuth credential helper with
+// auto-detected mode (preserves existing behavior for callers that have not
+// been updated to pass an explicit mode).
 func NewOAuthCredentialHelper() *CredentialHelper {
 	return &CredentialHelper{
 		credentialHelper: newOAuthHelper(),
+		mode:             ModeAuto,
 	}
+}
+
+// NewOAuthCredentialHelperWithMode creates a credential helper that uses the
+// specified storage mode. Use this when the caller knows whether the server
+// is Desktop-catalog, CE, or Desktop-community.
+func NewOAuthCredentialHelperWithMode(mode Mode) *CredentialHelper {
+	return &CredentialHelper{
+		credentialHelper: newOAuthHelper(),
+		mode:             mode,
+	}
+}
+
+// resolveMode returns the effective Mode. When mode is ModeAuto, the
+// runtime IsCEMode() check determines the backend (CE or Desktop). Explicit
+// modes are returned as-is.
+func (h *CredentialHelper) resolveMode() Mode {
+	if h.mode == ModeAuto {
+		if IsCEMode() {
+			return ModeCE
+		}
+		return ModeDesktop
+	}
+	return h.mode
 }
 
 // TokenStatus represents the validity status of an OAuth token
@@ -42,12 +71,20 @@ type TokenStatus struct {
 	NeedsRefresh bool
 }
 
-// GetOAuthToken retrieves an OAuth token for the specified server
+// GetOAuthToken retrieves an OAuth token for the specified server.
+// Routes to the appropriate storage backend based on the resolved mode:
+//   - CE: credential helper (base64-encoded JSON)
+//   - Desktop: Secrets Engine (raw access token)
+//   - Community: docker pass via Secrets Engine (base64-encoded JSON)
 func (h *CredentialHelper) GetOAuthToken(ctx context.Context, serverName string) (string, error) {
-	if IsCEMode() {
+	switch h.resolveMode() {
+	case ModeCE:
 		return h.getOAuthTokenCE(serverName)
+	case ModeCommunity:
+		return h.getOAuthTokenDockerPass(ctx, serverName)
+	default:
+		return h.getOAuthTokenDesktop(ctx, serverName)
 	}
-	return h.getOAuthTokenDesktop(ctx, serverName)
 }
 
 // getOAuthTokenCE retrieves OAuth token in CE mode using credential helper.
@@ -114,26 +151,35 @@ func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName 
 }
 
 // TokenExists checks if an OAuth token exists for the specified server.
-// This is the appropriate check for Desktop mode where Secrets Engine returns
-// raw tokens without validity or expiry metadata - we can only verify existence.
-// For CE mode, this also works but GetTokenStatus provides more detail.
+// Routes to the appropriate storage backend based on the resolved mode.
 func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (bool, error) {
-	if IsCEMode() {
-		// CE mode: check credential helper
-		dcrMgr := dcr.NewManager(h.credentialHelper, "")
-		client, err := dcrMgr.GetDCRClient(serverName)
-		if err != nil {
-			return false, nil // No DCR client = no token
-		}
-		credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
-		_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
-		if err != nil || tokenSecret == "" {
-			return false, nil
-		}
-		return true, nil
+	switch h.resolveMode() {
+	case ModeCE:
+		return h.tokenExistsCE(serverName)
+	case ModeCommunity:
+		return h.tokenExistsDockerPass(ctx, serverName)
+	default:
+		return h.tokenExistsDesktop(ctx, serverName)
 	}
+}
 
-	// Desktop mode: check Secrets Engine
+// tokenExistsCE checks if a token exists in the credential helper (CE mode).
+func (h *CredentialHelper) tokenExistsCE(serverName string) (bool, error) {
+	dcrMgr := dcr.NewManager(h.credentialHelper, "")
+	client, err := dcrMgr.GetDCRClient(serverName)
+	if err != nil {
+		return false, nil // No DCR client = no token
+	}
+	credentialKey := fmt.Sprintf("%s/%s", client.AuthorizationEndpoint, client.ProviderName)
+	_, tokenSecret, err := h.credentialHelper.Get(credentialKey)
+	if err != nil || tokenSecret == "" {
+		return false, nil
+	}
+	return true, nil
+}
+
+// tokenExistsDesktop checks if a token exists in the Secrets Engine (Desktop mode).
+func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverName string) (bool, error) {
 	oauthID := secret.GetOAuthKey(serverName)
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
@@ -146,14 +192,19 @@ func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (
 }
 
 // GetTokenStatus checks token validity and expiry for refresh scheduling.
-// Works in both CE and Desktop modes:
-// - CE mode: reads token JSON from credential helper and parses expiry
-// - Desktop mode: queries Secrets Engine and reads ExpiryAt from response metadata
+// Routes to the appropriate storage backend based on the resolved mode:
+//   - CE: reads token JSON from credential helper, parses expiry
+//   - Desktop: queries Secrets Engine, reads ExpiryAt from response metadata
+//   - Community: reads token JSON from docker pass via Secrets Engine, parses expiry
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
-	if IsCEMode() {
+	switch h.resolveMode() {
+	case ModeCE:
 		return h.getTokenStatusCE(serverName)
+	case ModeCommunity:
+		return h.getTokenStatusDockerPass(ctx, serverName)
+	default:
+		return h.getTokenStatusDesktop(ctx, serverName)
 	}
-	return h.getTokenStatusDesktop(ctx, serverName)
 }
 
 // getTokenStatusDesktop retrieves token status in Desktop mode using Secrets Engine metadata.

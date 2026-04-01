@@ -469,7 +469,7 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 
 		// Start provider (CE mode only - Desktop mode doesn't need polling)
 		if oauth.IsCEMode() {
-			g.startProvider(ctx, serverName)
+			g.startProvider(ctx, serverName, oauth.ModeCE)
 		}
 	}
 

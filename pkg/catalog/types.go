@@ -1,6 +1,10 @@
 package catalog
 
-import "github.com/docker/mcp-gateway/pkg/policy"
+import (
+	"slices"
+
+	"github.com/docker/mcp-gateway/pkg/policy"
+)
 
 type Catalog struct {
 	Servers map[string]Server
@@ -57,6 +61,16 @@ type Metadata struct {
 	// RegistryURL is the full URL to the server in the community MCP registry
 	// e.g., "https://registry.modelcontextprotocol.io/v0/servers/io.github.arm%2Farm-mcp/versions/1.0.2"
 	RegistryURL string `yaml:"registryUrl,omitempty" json:"registryUrl,omitempty"`
+}
+
+// IsCommunity returns true if this server was sourced from the community MCP
+// registry. Community servers are tagged with "community" in Metadata.Tags by
+// catalog_next/create.go when importing from the community registry.
+func (s *Server) IsCommunity() bool {
+	if s.Metadata == nil {
+		return false
+	}
+	return slices.Contains(s.Metadata.Tags, "community")
 }
 
 func (s *Server) IsOAuthServer() bool {

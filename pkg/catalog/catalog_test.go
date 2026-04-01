@@ -204,6 +204,46 @@ func setupTestCatalogs(t *testing.T, homeDir string) {
 	require.NoError(t, err)
 }
 
+func TestServer_IsCommunity(t *testing.T) {
+	tests := []struct {
+		name     string
+		server   Server
+		expected bool
+	}{
+		{
+			name:     "nil metadata",
+			server:   Server{},
+			expected: false,
+		},
+		{
+			name:     "empty tags",
+			server:   Server{Metadata: &Metadata{Tags: []string{}}},
+			expected: false,
+		},
+		{
+			name:     "has community tag",
+			server:   Server{Metadata: &Metadata{Tags: []string{"community"}}},
+			expected: true,
+		},
+		{
+			name:     "community among other tags",
+			server:   Server{Metadata: &Metadata{Tags: []string{"featured", "community", "ai"}}},
+			expected: true,
+		},
+		{
+			name:     "no community tag",
+			server:   Server{Metadata: &Metadata{Tags: []string{"featured", "official"}}},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.server.IsCommunity())
+		})
+	}
+}
+
 func setupOverlappingCatalogs(t *testing.T, homeDir string) {
 	t.Helper()
 
