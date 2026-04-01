@@ -121,11 +121,16 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	}
 
 	removedNames := make([]string, 0)
+	communityServers := make(map[string]bool)
 	filtered := make([]Server, 0, len(workingSet.Servers))
 	for _, server := range workingSet.Servers {
 		// TODO: Remove when Snapshot is required
 		if server.Snapshot != nil && namesToRemove[server.Snapshot.Server.Name] {
-			removedNames = append(removedNames, server.Snapshot.Server.Name)
+			name := server.Snapshot.Server.Name
+			removedNames = append(removedNames, name)
+			if server.Snapshot.Server.IsCommunity() {
+				communityServers[name] = true
+			}
 		} else {
 			filtered = append(filtered, server)
 		}
@@ -149,7 +154,7 @@ func RemoveServers(ctx context.Context, dao db.DAO, id string, serverNames []str
 	fmt.Printf("Removed %d server(s) from profile %s\n", len(removedNames), id)
 
 	// Clean up DCR entries for removed servers not in any other profile
-	cleanupDCREntriesFunc(ctx, dao, removedNames)
+	cleanupDCREntriesFunc(ctx, dao, removedNames, communityServers)
 
 	return nil
 }
@@ -169,11 +174,29 @@ type dcrClient interface {
 // CleanupOrphanedDCREntries removes DCR entries for servers that no longer
 // exist in any profile and are not authorized. This prevents stale OAuth
 // entries from accumulating.
-func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string) {
+//
+// communityServers maps server names to true when the server is a community
+// server. Servers where Gateway owns OAuth (CE mode, or Desktop + community
+// + McpGatewayOAuth flag ON) are skipped since their DCR entries are not
+// managed by Desktop.
+func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string, communityServers map[string]bool) {
 	if oauth.IsCEMode() {
 		return
 	}
-	doCleanupOrphanedDCREntries(ctx, dao, desktop.NewAuthClient(), serverNames)
+
+	// Filter out servers where Gateway owns OAuth — their DCR entries
+	// are not managed by Desktop, so there is nothing to clean up.
+	filtered := make([]string, 0, len(serverNames))
+	for _, name := range serverNames {
+		if !oauth.ShouldUseGatewayOAuth(ctx, communityServers[name]) {
+			filtered = append(filtered, name)
+		}
+	}
+	if len(filtered) == 0 {
+		return
+	}
+
+	doCleanupOrphanedDCREntries(ctx, dao, desktop.NewAuthClient(), filtered)
 }
 
 func doCleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, client dcrClient, serverNames []string) {

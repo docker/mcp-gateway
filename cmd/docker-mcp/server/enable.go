@@ -62,11 +62,12 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 
 			// DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.HasExplicitOAuthProviders() {
-				// In CE mode, skip lazy setup - DCR happens during oauth authorize
-				if pkgoauth.IsCEMode() {
+				isCommunity := server.IsCommunity()
+				if pkgoauth.ShouldUseGatewayOAuth(ctx, isCommunity) {
+					// Gateway owns OAuth (CE mode or community + flag ON)
 					fmt.Printf("OAuth server %s enabled. Run 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				} else {
-					// Desktop mode - register provider for lazy setup
+					// Desktop mode — register provider for lazy setup
 					if err := pkgoauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
 						fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 						fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
@@ -80,10 +81,13 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")
 				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
 			} else if mcpOAuthDcrEnabled && server.Type == "remote" && !server.IsOAuthServer() && server.Remote.URL != "" {
-				// Community server without oauth.providers — probe for OAuth
-				if pkgoauth.IsCEMode() {
+				// Remote server without oauth.providers — dynamic OAuth discovery
+				isCommunity := server.IsCommunity()
+				if pkgoauth.ShouldUseGatewayOAuth(ctx, isCommunity) {
+					// Gateway owns OAuth (CE mode or community + flag ON)
 					fmt.Printf("Remote server %s enabled. Run 'docker mcp oauth authorize %s' if authentication is required\n", serverName, serverName)
 				} else {
+					// Desktop mode — dynamic discovery
 					if err := pkgoauth.RegisterProviderForDynamicDiscovery(ctx, serverName, server.Remote.URL); err != nil {
 						fmt.Printf("Warning: Dynamic OAuth discovery failed for %s: %v\n", serverName, err)
 					}
