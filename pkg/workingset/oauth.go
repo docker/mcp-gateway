@@ -12,7 +12,7 @@ import (
 // Desktop registration functions. Tests can override these to avoid
 // requiring a running Docker Desktop backend.
 var (
-	registerWithSnapshotFunc       = oauth.RegisterProviderWithSnapshot
+	registerWithSnapshotFunc        = oauth.RegisterProviderWithSnapshot
 	registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
 )
 
