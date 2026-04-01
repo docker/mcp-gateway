@@ -231,7 +231,7 @@ func TestRemoveServersTriggersDCRCleanup(t *testing.T) {
 	// Track which server names are passed to the cleanup function
 	var cleanedUpNames []string
 	old := cleanupDCREntriesFunc
-	cleanupDCREntriesFunc = func(_ context.Context, _ db.DAO, names []string) {
+	cleanupDCREntriesFunc = func(_ context.Context, _ db.DAO, names []string, _ map[string]bool) {
 		cleanedUpNames = append(cleanedUpNames, names...)
 	}
 	defer func() { cleanupDCREntriesFunc = old }()

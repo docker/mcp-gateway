@@ -88,7 +88,7 @@ func TestCleanupOrphanedDCREntries_DeletesOrphanedAndRevoked(t *testing.T) {
 	mock := newMockDCRClient("server-a", "server-b")
 
 	// Remove server-b (not in any profile, not authorized) → should be deleted
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-b"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-b"}, nil)
 
 	assert.Equal(t, []string{"server-b"}, mock.deleted)
 	assert.True(t, mock.registered["server-a"], "server-a should not be deleted")
@@ -111,7 +111,7 @@ func TestCleanupOrphanedDCREntries_SkipsAuthorized(t *testing.T) {
 	mock := newMockDCRClient("server-a").withAuthorized("server-a")
 
 	// server-a is not in any profile but IS authorized → should NOT be deleted
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a"}, nil)
 
 	assert.Empty(t, mock.deleted)
 	assert.True(t, mock.registered["server-a"])
@@ -142,7 +142,7 @@ func TestCleanupOrphanedDCREntries_SkipsInUse(t *testing.T) {
 	mock := newMockDCRClient("server-a")
 
 	// server-a is still in profile-2, should NOT be deleted
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a"}, nil)
 
 	assert.Empty(t, mock.deleted)
 	assert.True(t, mock.registered["server-a"])
@@ -165,7 +165,7 @@ func TestCleanupOrphanedDCREntries_SkipsNoDCREntry(t *testing.T) {
 	mock := newMockDCRClient()
 
 	// server-x has no DCR entry → GetDCRClient returns error → skip delete
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-x"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-x"}, nil)
 
 	assert.Empty(t, mock.deleted)
 }
@@ -194,7 +194,7 @@ func TestCleanupOrphanedDCREntries_MultipleServers(t *testing.T) {
 	mock := newMockDCRClient("server-a", "server-b", "server-c").withAuthorized("server-c")
 
 	// Remove server-a (still in profile), server-b (revoked), server-c (authorized)
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a", "server-b", "server-c"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a", "server-b", "server-c"}, nil)
 
 	// Only server-b should be deleted (server-a in profile, server-c authorized)
 	assert.Equal(t, []string{"server-b"}, mock.deleted)
@@ -235,7 +235,7 @@ func TestCleanupOrphanedDCREntries_ServerInDifferentProfile(t *testing.T) {
 
 	// Cleanup after removing server-a and server-b from profile-1
 	// server-b is still in profile-2, so only server-a should be deleted
-	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a", "server-b"})
+	doCleanupOrphanedDCREntries(ctx, dao, mock, []string{"server-a", "server-b"}, nil)
 
 	assert.Equal(t, []string{"server-a"}, mock.deleted)
 	assert.True(t, mock.registered["server-b"])

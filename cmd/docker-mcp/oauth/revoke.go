@@ -38,7 +38,7 @@ func revokeDesktopMode(ctx context.Context, app string) error {
 	// remains visible in the OAuth UI for re-authorization.
 	dao, err := db.New()
 	if err == nil {
-		workingset.CleanupOrphanedDCREntries(ctx, dao, []string{app})
+		workingset.CleanupOrphanedDCREntries(ctx, dao, []string{app}, nil)
 	}
 
 	return nil
