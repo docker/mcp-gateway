@@ -183,10 +183,23 @@ func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []st
 	if oauth.IsCEMode() {
 		return
 	}
-	doCleanupOrphanedDCREntries(ctx, dao, desktop.NewAuthClient(), serverNames, communityServers)
+
+	// Filter out servers where Gateway owns OAuth — their DCR entries
+	// are not managed by Desktop, so there is nothing to clean up.
+	filtered := make([]string, 0, len(serverNames))
+	for _, name := range serverNames {
+		if !oauth.ShouldUseGatewayOAuth(ctx, communityServers[name]) {
+			filtered = append(filtered, name)
+		}
+	}
+	if len(filtered) == 0 {
+		return
+	}
+
+	doCleanupOrphanedDCREntries(ctx, dao, desktop.NewAuthClient(), filtered)
 }
 
-func doCleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, client dcrClient, serverNames []string, communityServers map[string]bool) {
+func doCleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, client dcrClient, serverNames []string) {
 	allSets, err := dao.ListWorkingSets(ctx)
 	if err != nil {
 		log.Logf("Warning: Failed to list profiles for DCR cleanup: %v", err)
@@ -204,11 +217,6 @@ func doCleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, client dcrClie
 	}
 
 	for _, name := range serverNames {
-		// Skip servers where Gateway owns OAuth — their DCR entries are
-		// not managed by Desktop, so there is nothing to clean up.
-		if oauth.ShouldUseGatewayOAuth(ctx, communityServers[name]) {
-			continue
-		}
 		if inUse[name] {
 			continue
 		}

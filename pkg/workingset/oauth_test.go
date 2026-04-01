@@ -10,8 +10,28 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
+// mockDesktopMode overrides the package-level function vars so the test
+// runs as if Docker Desktop is present. Call the returned cleanup func
+// (or use t.Cleanup) to restore the originals.
+func mockDesktopMode(t *testing.T) {
+	t.Helper()
+	oldCE := isCEModeFunc
+	oldSnapshot := registerWithSnapshotFunc
+	oldDiscovery := registerForDynamicDiscoveryFunc
+
+	isCEModeFunc = func() bool { return false }
+
+	t.Cleanup(func() {
+		isCEModeFunc = oldCE
+		registerWithSnapshotFunc = oldSnapshot
+		registerForDynamicDiscoveryFunc = oldDiscovery
+	})
+}
+
 func TestRegisterOAuthProvidersForServers_CEModeSkipsAll(t *testing.T) {
-	t.Setenv("DOCKER_MCP_USE_CE", "true")
+	oldCE := isCEModeFunc
+	isCEModeFunc = func() bool { return true }
+	t.Cleanup(func() { isCEModeFunc = oldCE })
 
 	// Track registration calls — none should happen in CE mode.
 	var snapshotCalls, discoveryCalls int
@@ -60,7 +80,7 @@ func TestRegisterOAuthProvidersForServers_CEModeSkipsAll(t *testing.T) {
 }
 
 func TestRegisterOAuthProvidersForServers_NilSnapshotSkipped(t *testing.T) {
-	t.Setenv("DOCKER_MCP_USE_CE", "false")
+	mockDesktopMode(t)
 
 	var snapshotCalls int
 	registerWithSnapshotFunc = func(_ context.Context, _, _ string) error {
@@ -70,10 +90,6 @@ func TestRegisterOAuthProvidersForServers_NilSnapshotSkipped(t *testing.T) {
 	registerForDynamicDiscoveryFunc = func(_ context.Context, _, _ string) error {
 		return nil
 	}
-	t.Cleanup(func() {
-		registerWithSnapshotFunc = oauth.RegisterProviderWithSnapshot
-		registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
-	})
 
 	servers := []Server{
 		{Type: ServerTypeRemote, Snapshot: nil},
@@ -85,7 +101,7 @@ func TestRegisterOAuthProvidersForServers_NilSnapshotSkipped(t *testing.T) {
 }
 
 func TestRegisterOAuthProvidersForServers_ExplicitOAuthRegistered(t *testing.T) {
-	t.Setenv("DOCKER_MCP_USE_CE", "false")
+	mockDesktopMode(t)
 
 	var registeredServers []string
 	registerWithSnapshotFunc = func(_ context.Context, serverName, _ string) error {
@@ -95,10 +111,6 @@ func TestRegisterOAuthProvidersForServers_ExplicitOAuthRegistered(t *testing.T) 
 	registerForDynamicDiscoveryFunc = func(_ context.Context, _, _ string) error {
 		return nil
 	}
-	t.Cleanup(func() {
-		registerWithSnapshotFunc = oauth.RegisterProviderWithSnapshot
-		registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
-	})
 
 	servers := []Server{
 		{
@@ -121,7 +133,7 @@ func TestRegisterOAuthProvidersForServers_ExplicitOAuthRegistered(t *testing.T) 
 }
 
 func TestRegisterOAuthProvidersForServers_DynamicDiscovery(t *testing.T) {
-	t.Setenv("DOCKER_MCP_USE_CE", "false")
+	mockDesktopMode(t)
 
 	var discoveredServers []string
 	registerWithSnapshotFunc = func(_ context.Context, _, _ string) error {
@@ -131,10 +143,6 @@ func TestRegisterOAuthProvidersForServers_DynamicDiscovery(t *testing.T) {
 		discoveredServers = append(discoveredServers, serverName)
 		return nil
 	}
-	t.Cleanup(func() {
-		registerWithSnapshotFunc = oauth.RegisterProviderWithSnapshot
-		registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
-	})
 
 	servers := []Server{
 		{
@@ -155,7 +163,7 @@ func TestRegisterOAuthProvidersForServers_DynamicDiscovery(t *testing.T) {
 }
 
 func TestRegisterOAuthProvidersForServers_NonRemoteSkipped(t *testing.T) {
-	t.Setenv("DOCKER_MCP_USE_CE", "false")
+	mockDesktopMode(t)
 
 	var snapshotCalls, discoveryCalls int
 	registerWithSnapshotFunc = func(_ context.Context, _, _ string) error {
@@ -166,10 +174,6 @@ func TestRegisterOAuthProvidersForServers_NonRemoteSkipped(t *testing.T) {
 		discoveryCalls++
 		return nil
 	}
-	t.Cleanup(func() {
-		registerWithSnapshotFunc = oauth.RegisterProviderWithSnapshot
-		registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
-	})
 
 	servers := []Server{
 		{

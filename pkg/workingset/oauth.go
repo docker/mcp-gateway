@@ -12,6 +12,7 @@ import (
 // Desktop registration functions. Tests can override these to avoid
 // requiring a running Docker Desktop backend.
 var (
+	isCEModeFunc                    = oauth.IsCEMode
 	registerWithSnapshotFunc        = oauth.RegisterProviderWithSnapshot
 	registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
 )
@@ -26,7 +27,7 @@ var (
 // happens during the authorize command instead.
 func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 	// CE mode: all OAuth is Gateway-owned, skip Desktop registration entirely.
-	if oauth.IsCEMode() {
+	if isCEModeFunc() {
 		return
 	}
 
