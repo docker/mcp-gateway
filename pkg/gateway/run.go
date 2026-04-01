@@ -386,7 +386,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 				if exists, err := credHelper.TokenExists(ctx, serverName); err != nil {
 					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
 				} else if exists {
-					log.Logf("- Starting OAuth provider for remote server: %s (mode=%d)", serverName, mode)
+					log.Logf("- Starting OAuth provider for remote server: %s (mode=%s)", serverName, mode)
 					g.startProvider(ctx, serverName, mode)
 				}
 			}

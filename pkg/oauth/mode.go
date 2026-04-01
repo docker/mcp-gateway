@@ -23,6 +23,20 @@ const (
 	ModeCommunity
 )
 
+// String returns a human-readable label for the mode.
+func (m Mode) String() string {
+	switch m {
+	case ModeDesktop:
+		return "Desktop"
+	case ModeCE:
+		return "CE"
+	case ModeCommunity:
+		return "Community"
+	default:
+		return "Auto"
+	}
+}
+
 // DetermineMode returns the credential storage mode for a server.
 //
 //   - CE mode (no Desktop): ModeCE
@@ -73,40 +87,12 @@ type featureFlagChecker func(ctx context.Context, featureName string) (bool, err
 
 // ShouldUseGatewayOAuth returns true when the Gateway should own the OAuth
 // lifecycle for a server (localhost callback, PKCE, token storage via
-// credential helper or docker pass).
-//
-// Decision logic:
-//   - CE mode (no Desktop): always true
-//   - Desktop + catalog server (isCommunity=false): false (Desktop owns OAuth)
-//   - Desktop + community server + McpGatewayOAuth flag ON: true
-//   - Desktop + community server + McpGatewayOAuth flag OFF or error: false
+// credential helper or docker pass). This is a convenience wrapper around
+// DetermineMode -- Gateway owns OAuth for every mode except ModeDesktop.
 //
 // IsCEMode() remains the global decision for the notification monitor
-// (pkg/gateway/run.go). This function is the per-server decision that later
-// tickets (MCPT-482 through MCPT-486) will wire into call sites.
+// (pkg/gateway/run.go). This function is the per-server decision used by
+// MCPT-483 through MCPT-486 call sites.
 func ShouldUseGatewayOAuth(ctx context.Context, isCommunity bool) bool {
-	return shouldUseGatewayOAuth(ctx, IsCEMode(), isCommunity, desktop.CheckFeatureFlagIsEnabled)
-}
-
-// shouldUseGatewayOAuth is the testable core. ceMode is pre-resolved so tests
-// don't need to mock env/OS detection or the Desktop backend socket.
-func shouldUseGatewayOAuth(ctx context.Context, ceMode bool, isCommunity bool, checkFlag featureFlagChecker) bool {
-	if ceMode {
-		return true
-	}
-
-	// Desktop mode: catalog servers continue to use Desktop OAuth.
-	if !isCommunity {
-		return false
-	}
-
-	// Desktop mode + community server: gate on the Unleash feature flag
-	// exposed by the Desktop backend. If the flag is not registered yet
-	// (MCPT-480 not deployed) or the backend is unreachable, treat as
-	// disabled -- callers fall back to Desktop OAuth.
-	enabled, err := checkFlag(ctx, "McpGatewayOAuth")
-	if err != nil {
-		return false
-	}
-	return enabled
+	return DetermineMode(ctx, isCommunity) != ModeDesktop
 }
