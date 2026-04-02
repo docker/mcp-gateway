@@ -307,8 +307,8 @@ func inspectServerCatalogNextCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			return catalognext.InspectServer(cmd.Context(), dao, args[0], args[1], workingset.OutputFormat(opts.Format))
+			registryClient := registryapi.NewClient()
+			return catalognext.InspectServer(cmd.Context(), dao, registryClient, args[0], args[1], workingset.OutputFormat(opts.Format))
 		},
 	}
 
