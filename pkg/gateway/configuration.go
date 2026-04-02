@@ -81,6 +81,126 @@ func (c *Configuration) DockerImages() []string {
 	return dockerImages
 }
 
+// configForEval builds the map passed to pkg/eval for env/volume/command templates.
+//
+// docker/mcp profile config stores flat keys per server (e.g. JIRA_BASE_URL,
+// GITHUB_PERSONAL_ACCESS_TOKEN). Upstream Find() wrapped the map under a single
+// top-level key (oci.CanonicalizeServerName(serverName)), so templates had to use
+// dotted paths like {{github-mcp-server.GITHUB_TOKEN}}. Flat {{KEY}} then resolved
+// empty and no -e was passed to docker run.
+//
+// VirtualAdepts (MCP Management): merge flat keys at the top level for {{KEY}}, and
+// keep the nested map under the canonical server name so {{serverName.key}} still works.
+//
+// flattenProfileConfigForEval: some toolkit paths persist JSON-schema-shaped blobs
+// ({ type, name, properties }) in server.Config; catalog env still uses {{KEY}}.
+func flattenProfileConfigForEval(per map[string]any) map[string]any {
+	if per == nil {
+		return nil
+	}
+	props, ok := per["properties"].(map[string]any)
+	if !ok {
+		return per
+	}
+	typ, _ := per["type"].(string)
+	if typ != "" && !strings.EqualFold(typ, "object") {
+		return per
+	}
+	out := make(map[string]any, len(props)+len(per))
+	for k, v := range props {
+		out[k] = v
+	}
+	for k, v := range per {
+		if k == "properties" || k == "type" || k == "name" || k == "description" {
+			continue
+		}
+		if _, exists := out[k]; !exists {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+// promoteNestedServerConfig merges per[canonical] (or per[serverName]) into the top level when
+// the Docker MCP CLI persisted config as { "github-mcp-server": { "GITHUB_TOKEN": "..." } }.
+// Catalog env templates from OCI metadata use dig("server.KEY", config) and need that inner map
+// at config["server"], not an extra wrapper.
+func promoteNestedServerConfig(per map[string]any, canonical, serverName string) map[string]any {
+	if per == nil {
+		return nil
+	}
+	for _, key := range []string{canonical, serverName} {
+		if key == "" {
+			continue
+		}
+		raw, ok := per[key]
+		if !ok {
+			continue
+		}
+		inner, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		out := make(map[string]any, len(per)+len(inner))
+		for k, v := range per {
+			if k == key {
+				continue
+			}
+			out[k] = v
+		}
+		for k, v := range inner {
+			if _, exists := out[k]; !exists {
+				out[k] = v
+			}
+		}
+		return out
+	}
+	return per
+}
+
+// aliasPrefixedConfigKeys copies keys "server.KEY" to "KEY" so {{KEY}} works when the profile
+// stored a single dotted key name instead of nesting.
+func aliasPrefixedConfigKeys(per map[string]any, canonical string) map[string]any {
+	if per == nil || canonical == "" {
+		return per
+	}
+	prefix := canonical + "."
+	out := make(map[string]any, len(per))
+	for k, v := range per {
+		out[k] = v
+	}
+	for k, v := range per {
+		suffix, ok := strings.CutPrefix(k, prefix)
+		if !ok || suffix == "" {
+			continue
+		}
+		if _, exists := out[suffix]; !exists {
+			out[suffix] = v
+		}
+	}
+	return out
+}
+
+func (c *Configuration) configForEval(serverName string) map[string]any {
+	canonical := oci.CanonicalizeServerName(serverName)
+	per := c.config[canonical]
+	if per == nil {
+		per = c.config[serverName]
+	}
+	per = flattenProfileConfigForEval(per)
+	per = promoteNestedServerConfig(per, canonical, serverName)
+	per = aliasPrefixedConfigKeys(per, canonical)
+	if per == nil {
+		return map[string]any{canonical: map[string]any{}}
+	}
+	out := make(map[string]any, len(per)+1)
+	for k, v := range per {
+		out[k] = v
+	}
+	out[canonical] = per
+	return out
+}
+
 func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[string]catalog.Tool, bool) {
 	serverName = strings.TrimSpace(serverName)
 
@@ -95,9 +215,7 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 		return &catalog.ServerConfig{
 			Name: serverName,
 			Spec: server,
-			Config: map[string]any{
-				oci.CanonicalizeServerName(serverName): c.config[oci.CanonicalizeServerName(serverName)],
-			},
+			Config: c.configForEval(serverName),
 			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
 		}, nil, true
 	}
