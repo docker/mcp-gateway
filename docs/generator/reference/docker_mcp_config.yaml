@@ -1,18 +1,11 @@
 command: docker mcp config
-short: Manage the configuration
-long: Manage the configuration
+short: Obsolete
+long: Obsolete
+usage: docker mcp config
 pname: docker mcp
 plink: docker_mcp.yaml
-cname:
-    - docker mcp config read
-    - docker mcp config reset
-    - docker mcp config write
-clink:
-    - docker_mcp_config_read.yaml
-    - docker_mcp_config_reset.yaml
-    - docker_mcp_config_write.yaml
 deprecated: false
-hidden: false
+hidden: true
 experimental: false
 experimentalcli: false
 kubernetes: false

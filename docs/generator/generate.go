@@ -19,8 +19,9 @@ import (
 const defaultSourcePath = "/reference/"
 
 type options struct {
-	source  string
-	formats []string
+	source   string
+	formats  []string
+	features []string
 }
 
 func gen(opts *options) error {
@@ -36,7 +37,7 @@ func gen(opts *options) error {
 		DisableAutoGenTag: true,
 	}
 
-	cmd.AddCommand(commands.Root(context.TODO(), "", dockerCLI, features.AllDisabled()))
+	cmd.AddCommand(commands.Root(context.TODO(), "", dockerCLI, features.WithEnabled(opts.features)))
 
 	c, err := clidocstool.New(clidocstool.Options{
 		Root:      cmd,
@@ -71,6 +72,7 @@ func run() error {
 	flags := pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
 	flags.StringVar(&opts.source, "source", defaultSourcePath, "Docs source folder")
 	flags.StringSliceVar(&opts.formats, "formats", []string{}, "Format (md, yaml)")
+	flags.StringSliceVar(&opts.features, "features", []string{}, "Features to enable (e.g. profiles)")
 	if err := flags.Parse(os.Args[1:]); err != nil {
 		return err
 	}
