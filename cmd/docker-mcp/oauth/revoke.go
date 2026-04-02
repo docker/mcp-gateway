@@ -4,22 +4,35 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
+// Revoke revokes OAuth access for a server, routing to the appropriate flow
+// based on the per-server mode (Desktop, CE, or Community).
 func Revoke(ctx context.Context, app string) error {
 	fmt.Printf("Revoking OAuth access for %s...\n", app)
 
-	// Check if CE mode
-	if pkgoauth.IsCEMode() {
-		return revokeCEMode(ctx, app)
+	isCommunity, err := lookupIsCommunity(ctx, app)
+	if err != nil {
+		// Server not in catalog -- fall back to legacy global routing.
+		if pkgoauth.IsCEMode() {
+			return revokeCEMode(ctx, app)
+		}
+		return revokeDesktopMode(ctx, app)
 	}
 
-	// Desktop mode - existing implementation
-	return revokeDesktopMode(ctx, app)
+	switch pkgoauth.DetermineMode(ctx, isCommunity) {
+	case pkgoauth.ModeCE:
+		return revokeCEMode(ctx, app)
+	case pkgoauth.ModeCommunity:
+		return revokeCommunityMode(ctx, app)
+	default: // ModeDesktop
+		return revokeDesktopMode(ctx, app)
+	}
 }
 
 // revokeDesktopMode handles revoke via Docker Desktop (existing behavior)
@@ -59,6 +72,25 @@ func revokeCEMode(ctx context.Context, app string) error {
 	// Delete DCR client (matches Desktop behavior)
 	if err := manager.DeleteDCRClient(app); err != nil {
 		return fmt.Errorf("failed to delete DCR client: %w", err)
+	}
+
+	fmt.Printf("OAuth access revoked for %s\n", app)
+	return nil
+}
+
+// revokeCommunityMode handles revoke for community servers in Desktop mode.
+// Deletes the OAuth token and DCR client from docker pass.
+func revokeCommunityMode(ctx context.Context, app string) error {
+	// Delete OAuth token from docker pass
+	if err := secret.DeleteOAuthToken(ctx, app); err != nil {
+		// Token might not exist, continue to DCR deletion
+		fmt.Printf("Note: %v\n", err)
+	}
+
+	// Delete DCR client from docker pass (soft failure -- entry may not exist
+	// if authorize was never completed or was already revoked)
+	if err := secret.DeleteDCRClient(ctx, app); err != nil {
+		fmt.Printf("Note: %v\n", err)
 	}
 
 	fmt.Printf("OAuth access revoked for %s\n", app)

@@ -18,6 +18,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
+	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
 )
@@ -433,10 +434,21 @@ func shortenURL(ctx context.Context, longURL string) (string, error) {
 	return response.Link, nil
 }
 
-// addRemoteOAuthServer handles the OAuth setup for a remote OAuth server
-// It registers the provider, starts it, and handles authorization through elicitation or direct URL
-// Returns the text message for the CallToolResult
+// getRemoteOAuthServerStatus handles the OAuth setup for a remote OAuth server.
+// It registers the provider, starts it, and handles authorization through
+// elicitation or direct URL. Routes per-server based on DetermineMode:
+//   - ModeDesktop: registers with Desktop API, uses PostOAuthApp
+//   - ModeCE: uses credential helper for DCR/tokens
+//   - ModeCommunity: uses docker pass for DCR/tokens
+//
+// Returns (authorized bool, message string).
 func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName string, req *mcp.CallToolRequest, shouldSendTools bool) (bool, string) {
+	// Determine per-server mode
+	serverConfig, _, found := g.configuration.Find(serverName)
+	isCommunity := found && serverConfig != nil && serverConfig.Spec.IsCommunity()
+	mode := oauth.DetermineMode(ctx, isCommunity)
+	useGatewayOAuth := oauth.ShouldUseGatewayOAuth(ctx, isCommunity)
+
 	// Check if provider already exists
 	g.providersMu.RLock()
 	_, providerExists := g.oauthProviders[serverName]
@@ -444,32 +456,37 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 
 	// Only register and start provider if it doesn't already exist
 	if !providerExists {
-		// Register DCR client with DD so user can authorize
-		if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
-			// Fallback: try dynamic discovery for community servers without oauth.providers
-			if serverConfig, _, found := g.configuration.Find(serverName); found && serverConfig.Spec.Remote.URL != "" {
-				if err := oauth.RegisterProviderForDynamicDiscovery(ctx, serverName, serverConfig.Spec.Remote.URL); err != nil {
-					log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
-				}
-			} else {
-				log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
-			}
-		}
+		if useGatewayOAuth {
+			// Gateway-owned OAuth (CE or Community mode)
+			g.registerGatewayOAuthDCR(ctx, serverName, mode)
 
-		// Verify DCR entry was created — dynamic discovery may have found no OAuth requirement.
-		// Distinguish "not found" (server doesn't need OAuth) from transient API errors.
-		authClient := desktop.NewAuthClient()
-		if _, err := authClient.GetDCRClient(ctx, serverName); err != nil {
-			if strings.Contains(err.Error(), "HTTP 404") {
+			// Verify DCR exists in the appropriate backend
+			if !g.gatewayDCRExists(ctx, serverName, mode) {
 				return true, "" // Server doesn't require OAuth
 			}
-			log.Logf("Warning: Failed to verify DCR entry for %s (may be transient): %v", serverName, err)
-			return true, "" // Fail open — avoid blocking the add flow on transient errors
-		}
 
-		// Start provider (CE mode only - Desktop mode doesn't need polling)
-		if oauth.IsCEMode() {
-			g.startProvider(ctx, serverName, oauth.ModeCE)
+			g.startProvider(ctx, serverName, mode)
+		} else {
+			// Desktop mode: register with Desktop API (existing behavior)
+			if err := oauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+				if found && serverConfig.Spec.Remote.URL != "" {
+					if err := oauth.RegisterProviderForDynamicDiscovery(ctx, serverName, serverConfig.Spec.Remote.URL); err != nil {
+						log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+					}
+				} else {
+					log.Logf("Warning: Failed to register OAuth provider for %s: %v", serverName, err)
+				}
+			}
+
+			// Verify DCR entry was created via Desktop API
+			authClient := desktop.NewAuthClient()
+			if _, err := authClient.GetDCRClient(ctx, serverName); err != nil {
+				if strings.Contains(err.Error(), "HTTP 404") {
+					return true, "" // Server doesn't require OAuth
+				}
+				log.Logf("Warning: Failed to verify DCR entry for %s (may be transient): %v", serverName, err)
+				return true, "" // Fail open
+			}
 		}
 	}
 
@@ -496,9 +513,15 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 			log.Logf("Warning: Failed to elicit authorization response for %s: %v", serverName, err)
 			return false, "Client rejected eliciation to authorize"
 		} else if elicitResult.Action == "accept" && elicitResult.Content != nil {
-			// Check if user authorized
 			if authorize, ok := elicitResult.Content["authorize"].(bool); ok && authorize {
-				// User agreed to authorize, call the OAuth authorize function
+				if useGatewayOAuth {
+					// Gateway-owned OAuth: direct the user to the CLI authorize command.
+					// The tool handler should not block waiting for browser auth completion.
+					return false, fmt.Sprintf(
+						"Successfully added server '%s'. To complete authorization, run:\n  docker mcp oauth authorize %s\n\nAfter authorizing, reconnect your agent to the MCP gateway.",
+						serverName, serverName)
+				}
+				// Desktop mode: trigger OAuth via Desktop API (existing behavior)
 				client := desktop.NewAuthClient()
 				authResponse, err := client.PostOAuthApp(ctx, serverName, "", false)
 				if err != nil {
@@ -518,10 +541,9 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 
 	// Check if user is already authorized by checking if token exists (only if provider exists)
 	if providerExists {
-		credHelper := oauth.NewOAuthCredentialHelper()
+		credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
 		exists, err := credHelper.TokenExists(ctx, serverName)
 		if err == nil && exists {
-			// User is already authorized, skip the OAuth URL generation
 			if shouldSendTools {
 				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
 			}
@@ -529,25 +551,28 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		}
 	}
 
-	// Client doesn't support elicitations, get the login link and include it in the response
+	// Client doesn't support elicitations -- provide authorize instructions
+	if useGatewayOAuth {
+		// Gateway-owned OAuth: direct to CLI command
+		return false, fmt.Sprintf(
+			"Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s\n  After authorizing, reconnect your agent to the MCP gateway.",
+			serverName, serverName)
+	}
+
+	// Desktop mode: get the login link via Desktop API (existing behavior)
 	client := desktop.NewAuthClient()
-	// Set context flag to enable disableAutoOpen parameter
 	ctxWithFlag := context.WithValue(ctx, contextkeys.OAuthInterceptorEnabledKey, true)
-	// disable auto-open
 	authResponse, err := client.PostOAuthApp(ctxWithFlag, serverName, "", true)
 	if err != nil {
 		log.Logf("Warning: Failed to get OAuth URL for %s: %v", serverName, err)
 		return false, "Unable to get OAuth URL"
 	} else if authResponse.BrowserURL != "" {
-		// Try to shorten the URL using Bitly
 		shortURL, err := shortenURL(ctx, authResponse.BrowserURL)
 		var displayLink string
 		if err != nil {
-			// If shortening fails, use the original URL
 			log.Logf("Warning: Failed to shorten URL for %s: %v", serverName, err)
 			displayLink = fmt.Sprintf("[Click here to authorize](%s)", authResponse.BrowserURL)
 		} else {
-			// Use the shortened URL in the markdown link
 			displayLink = fmt.Sprintf("[Click here to authorize](%s)", shortURL)
 		}
 
@@ -555,4 +580,58 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 	}
 
 	return false, fmt.Sprintf("Successfully added server '%s'. You will need to authorize this server with: docker mcp oauth authorize %s", serverName, serverName)
+}
+
+// registerGatewayOAuthDCR registers a DCR client for Gateway-owned OAuth modes
+// (CE or Community). For Community mode, stores in docker pass. For CE mode,
+// stores in the credential helper.
+func (g *Gateway) registerGatewayOAuthDCR(ctx context.Context, serverName string, mode oauth.Mode) {
+	switch mode {
+	case oauth.ModeCommunity:
+		// Check docker pass availability
+		if err := desktop.CheckHasDockerPass(ctx); err != nil {
+			log.Logf("Warning: docker pass unavailable for community server %s: %v", serverName, err)
+			return
+		}
+
+		// Check if DCR client already exists in docker pass
+		if dcrClient, err := oauth.GetDCRClientFromDockerPass(ctx, serverName); err == nil && dcrClient.ClientID != "" {
+			return // Already registered
+		}
+
+		// Perform discovery and registration, save to docker pass
+		dcrClient, err := dcr.DiscoverAndRegister(ctx, serverName, "", oauth.DefaultRedirectURI)
+		if err != nil {
+			log.Logf("Warning: DCR registration failed for community server %s: %v", serverName, err)
+			return
+		}
+		if err := oauth.SaveDCRClientToDockerPass(ctx, serverName, dcrClient); err != nil {
+			log.Logf("Warning: Failed to save DCR client for %s: %v", serverName, err)
+		}
+
+	case oauth.ModeCE:
+		// CE mode: use credential helper via Manager
+		credHelper := oauth.NewReadWriteCredentialHelper()
+		manager := oauth.NewManager(credHelper)
+		if err := manager.EnsureDCRClient(ctx, serverName, ""); err != nil {
+			log.Logf("Warning: DCR registration failed for CE server %s: %v", serverName, err)
+		}
+	}
+}
+
+// gatewayDCRExists checks if a DCR client exists for Gateway-owned OAuth modes.
+// Returns false if the server doesn't require OAuth.
+func (g *Gateway) gatewayDCRExists(ctx context.Context, serverName string, mode oauth.Mode) bool {
+	switch mode {
+	case oauth.ModeCommunity:
+		dcrClient, err := oauth.GetDCRClientFromDockerPass(ctx, serverName)
+		return err == nil && dcrClient.ClientID != ""
+	case oauth.ModeCE:
+		credHelper := oauth.NewReadWriteCredentialHelper()
+		dcrMgr := dcr.NewManager(credHelper, "")
+		client, err := dcrMgr.GetDCRClient(serverName)
+		return err == nil && client.ClientID != ""
+	default:
+		return false
+	}
 }
