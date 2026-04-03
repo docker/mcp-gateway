@@ -92,13 +92,21 @@ func (c *Configuration) Find(serverName string) (*catalog.ServerConfig, *map[str
 
 	// Is it an MCP Server?
 	if server.Image != "" || server.SSEEndpoint != "" || server.Remote.URL != "" {
+		// Scope secrets to only the keys declared by this server so that a
+		// compromised or malicious server cannot access another server's secrets.
+		scopedSecrets := make(map[string]string, len(server.Secrets))
+		for _, s := range server.Secrets {
+			if v, ok := c.secrets[s.Name]; ok {
+				scopedSecrets[s.Name] = v
+			}
+		}
 		return &catalog.ServerConfig{
 			Name: serverName,
 			Spec: server,
 			Config: map[string]any{
 				oci.CanonicalizeServerName(serverName): c.config[oci.CanonicalizeServerName(serverName)],
 			},
-			Secrets: c.secrets, // TODO: we could keep just the secrets for this server
+			Secrets: scopedSecrets,
 		}, nil, true
 	}
 

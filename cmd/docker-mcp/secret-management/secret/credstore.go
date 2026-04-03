@@ -24,6 +24,16 @@ func cmd(ctx context.Context, args ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, "docker", append([]string{"pass"}, args...)...)
 }
 
+// ValidateSecretName returns an error if the name contains glob metacharacters
+// or path traversal sequences that could be injected into the pattern sent to
+// the Desktop secrets resolver (which treats the pattern field as a glob).
+func ValidateSecretName(name string) error {
+	if strings.ContainsAny(name, "*?[]{") {
+		return fmt.Errorf("secret name %q contains illegal glob metacharacter", name)
+	}
+	return nil
+}
+
 // GetDefaultSecretKey constructs the full namespaced ID for an MCP secret
 // using the default namespace (docker/mcp/).
 //
