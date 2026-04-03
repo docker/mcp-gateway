@@ -6,7 +6,7 @@ import (
 
 	oauthhelpers "github.com/docker/mcp-gateway-oauth-helpers"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 )
@@ -42,15 +42,14 @@ func RegisterProviderForLazySetup(ctx context.Context, serverName string) error 
 		return nil // Already registered
 	}
 
-	// Get server from catalog
-	catalogData, err := catalog.GetWithOptions(ctx, true, nil)
+	// Get server from OCI catalog database
+	dao, err := db.New()
 	if err != nil {
-		return fmt.Errorf("failed to get catalog: %w", err)
+		return fmt.Errorf("opening database: %w", err)
 	}
-
-	server, found := catalogData.Servers[serverName]
-	if !found {
-		return fmt.Errorf("server %s not found in catalog", serverName)
+	server, err := db.FindServerInCatalogs(ctx, dao, serverName)
+	if err != nil {
+		return err
 	}
 
 	// Verify this is a remote OAuth server (Type="remote" && OAuth providers exist)

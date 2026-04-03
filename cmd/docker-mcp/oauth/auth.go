@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
@@ -37,15 +37,15 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 	}
 }
 
-// lookupIsCommunity checks the catalog to determine if a server is a community server.
+// lookupIsCommunity checks the OCI catalog database to determine if a server is a community server.
 func lookupIsCommunity(ctx context.Context, serverName string) (bool, error) {
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	dao, err := db.New()
+	if err != nil {
+		return false, fmt.Errorf("opening database: %w", err)
+	}
+	server, err := db.FindServerInCatalogs(ctx, dao, serverName)
 	if err != nil {
 		return false, err
-	}
-	server, found := cat.Servers[serverName]
-	if !found {
-		return false, fmt.Errorf("server %s not found in catalog", serverName)
 	}
 	return server.IsCommunity(), nil
 }
