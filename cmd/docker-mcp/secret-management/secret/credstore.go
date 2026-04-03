@@ -97,7 +97,24 @@ func DeleteDefaultSecret(ctx context.Context, id string) error {
 // SetOAuthToken stores an OAuth token via docker pass at docker/mcp/oauth/{serverName}.
 // The value should be base64-encoded JSON of the full oauth2.Token.
 func SetOAuthToken(ctx context.Context, serverName string, value string) error {
-	c := cmd(ctx, "set", GetOAuthKey(serverName))
+	key := GetOAuthKey(serverName)
+
+	keys, err := List(ctx)
+	if err != nil {
+		return fmt.Errorf("could not check existing OAuth token for %s: %w", serverName, err)
+	}
+
+	// docker pass set is insert-only, so if the key already exists we need to remove it first.
+	for _, k := range keys {
+		if k == key {
+			if out, err := cmd(ctx, "rm", key).CombinedOutput(); err != nil {
+				return fmt.Errorf("could not remove existing OAuth token for %s: %s\n%s", serverName, bytes.TrimSpace(out), err)
+			}
+			break
+		}
+	}
+
+	c := cmd(ctx, "set", key)
 	c.Stdin = strings.NewReader(value)
 	out, err := c.CombinedOutput()
 	if err != nil {
