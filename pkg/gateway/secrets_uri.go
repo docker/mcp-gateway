@@ -48,6 +48,10 @@ func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
 		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
+			if err := secret.ValidateSecretName(s.Name); err != nil {
+				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
+				continue
+			}
 			secretName := cfg.Namespace + s.Name
 			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
 				secretNameToURI[secretName] = "se://" + oauthSecretID
@@ -68,6 +72,10 @@ func buildVerifiedURIs(configs []ServerSecretConfig, availableSecrets map[string
 		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
+			if err := secret.ValidateSecretName(s.Name); err != nil {
+				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
+				continue
+			}
 			secretName := cfg.Namespace + s.Name
 
 			// Try OAuth token first
