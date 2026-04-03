@@ -10,7 +10,7 @@ import (
 
 	oauth "github.com/docker/mcp-gateway-oauth-helpers"
 
-	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 
@@ -114,22 +114,19 @@ func (m *Manager) ListDCRClients() (map[string]Client, error) {
 	return m.credentials.ListClients()
 }
 
-// getServerURL retrieves the server URL from the catalog
+// getServerURL retrieves the server URL from the OCI catalog database.
 func getServerURL(ctx context.Context, serverName string) (string, error) {
-	cat, err := catalog.GetWithOptions(ctx, true, nil)
+	dao, err := db.New()
 	if err != nil {
-		return "", fmt.Errorf("failed to get catalog: %w", err)
+		return "", fmt.Errorf("opening database: %w", err)
 	}
-
-	server, found := cat.Servers[serverName]
-	if !found {
-		return "", fmt.Errorf("server %s not found in catalog", serverName)
+	server, err := db.FindServerInCatalogs(ctx, dao, serverName)
+	if err != nil {
+		return "", err
 	}
-
 	if server.Remote.URL == "" {
 		return "", fmt.Errorf("server %s is not a remote server or missing URL", serverName)
 	}
-
 	return server.Remote.URL, nil
 }
 
