@@ -15,7 +15,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
-	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/policy"
 	policycli "github.com/docker/mcp-gateway/pkg/policy/cli"
@@ -180,7 +179,7 @@ type dcrClient interface {
 // + McpGatewayOAuth flag ON) are skipped since their DCR entries are not
 // managed by Desktop.
 func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string, communityServers map[string]bool) {
-	if oauth.IsCEMode() {
+	if isCEModeFunc() {
 		return
 	}
 
@@ -188,7 +187,7 @@ func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []st
 	// are not managed by Desktop, so there is nothing to clean up.
 	filtered := make([]string, 0, len(serverNames))
 	for _, name := range serverNames {
-		if !oauth.ShouldUseGatewayOAuth(ctx, communityServers[name]) {
+		if !shouldUseGatewayOAuthFunc(ctx, communityServers[name]) {
 			filtered = append(filtered, name)
 		}
 	}

@@ -64,6 +64,24 @@ func (m *mockDCRClient) DeleteDCRClient(_ context.Context, app string) error {
 	return nil
 }
 
+// TestCleanupOrphanedDCREntries_CEModeReturnsEarly verifies that in CE mode,
+// CleanupOrphanedDCREntries returns immediately without calling doCleanupOrphanedDCREntries.
+// We verify this by passing nil dao: if cleanup is reached, it will panic.
+func TestCleanupOrphanedDCREntries_CEModeReturnsEarly(t *testing.T) {
+	oldCE := isCEModeFunc
+	isCEModeFunc = func() bool { return true }
+	t.Cleanup(func() { isCEModeFunc = oldCE })
+
+	// nil dao would panic if doCleanupOrphanedDCREntries is reached.
+	CleanupOrphanedDCREntries(
+		t.Context(),
+		nil,
+		[]string{"server-a", "server-b"},
+		map[string]bool{"server-a": true},
+	)
+	// No panic = CE mode early return works correctly.
+}
+
 func TestCleanupOrphanedDCREntries_DeletesOrphanedAndRevoked(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()

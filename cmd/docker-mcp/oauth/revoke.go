@@ -11,27 +11,34 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
+// Function pointers for testability (same pattern as pkg/workingset/oauth.go).
+var (
+	revokeCEModeFunc        = revokeCEMode
+	revokeDesktopModeFunc   = revokeDesktopMode
+	revokeCommunityModeFunc = revokeCommunityMode
+)
+
 // Revoke revokes OAuth access for a server, routing to the appropriate flow
 // based on the per-server mode (Desktop, CE, or Community).
 func Revoke(ctx context.Context, app string) error {
 	fmt.Printf("Revoking OAuth access for %s...\n", app)
 
-	isCommunity, err := lookupIsCommunity(ctx, app)
+	isCommunity, err := lookupIsCommunityFunc(ctx, app)
 	if err != nil {
 		// Server not in catalog -- fall back to legacy global routing.
-		if pkgoauth.IsCEMode() {
-			return revokeCEMode(ctx, app)
+		if isCEModeFunc() {
+			return revokeCEModeFunc(ctx, app)
 		}
-		return revokeDesktopMode(ctx, app)
+		return revokeDesktopModeFunc(ctx, app)
 	}
 
-	switch pkgoauth.DetermineMode(ctx, isCommunity) {
+	switch determineModeFunc(ctx, isCommunity) {
 	case pkgoauth.ModeCE:
-		return revokeCEMode(ctx, app)
+		return revokeCEModeFunc(ctx, app)
 	case pkgoauth.ModeCommunity:
-		return revokeCommunityMode(ctx, app)
+		return revokeCommunityModeFunc(ctx, app)
 	default: // ModeDesktop
-		return revokeDesktopMode(ctx, app)
+		return revokeDesktopModeFunc(ctx, app)
 	}
 }
 
