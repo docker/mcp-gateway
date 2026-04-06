@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // mockAuthorizeRouting overrides the function pointers so Authorize() does not
@@ -51,7 +52,7 @@ func TestAuthorize_CEMode_CatalogLookupFails(t *testing.T) {
 	}
 
 	err := Authorize(t.Context(), "unknown-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
 
@@ -66,7 +67,7 @@ func TestAuthorize_DesktopMode_CatalogLookupFails(t *testing.T) {
 	}
 
 	err := Authorize(t.Context(), "unknown-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -80,7 +81,7 @@ func TestAuthorize_CatalogServer_DesktopMode(t *testing.T) {
 	}
 
 	err := Authorize(t.Context(), "catalog-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -109,7 +110,7 @@ func TestAuthorize_CommunityServer_FlagOn(t *testing.T) {
 	// In non-CE mode without Desktop running, DetermineMode returns ModeDesktop
 	// for community servers (flag check errors out, falls back to Desktop).
 	err := Authorize(t.Context(), "community-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called,
 		"community server without Desktop reachable should fall back to Desktop mode")
 }
@@ -125,7 +126,7 @@ func TestAuthorize_CommunityServer_FlagOff(t *testing.T) {
 
 	// Flag OFF (or unreachable) → ModeDesktop
 	err := Authorize(t.Context(), "community-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -139,7 +140,7 @@ func TestAuthorize_CEMode_CommunityServer(t *testing.T) {
 	}
 
 	err := Authorize(t.Context(), "community-server", "")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ce", *called,
 		"CE mode should override community server routing")
 }

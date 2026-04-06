@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // mockRevokeRouting overrides the function pointers so Revoke() does not
@@ -51,7 +52,7 @@ func TestRevoke_CEMode_CatalogLookupFails(t *testing.T) {
 	}
 
 	err := Revoke(t.Context(), "unknown-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
 
@@ -66,7 +67,7 @@ func TestRevoke_DesktopMode_CatalogLookupFails(t *testing.T) {
 	}
 
 	err := Revoke(t.Context(), "unknown-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -80,7 +81,7 @@ func TestRevoke_CatalogServer_DesktopMode(t *testing.T) {
 	}
 
 	err := Revoke(t.Context(), "catalog-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -95,7 +96,7 @@ func TestRevoke_CommunityServer_FlagOff(t *testing.T) {
 
 	// Without Desktop running, flag check errors → ModeDesktop fallback
 	err := Revoke(t.Context(), "community-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
 
@@ -109,7 +110,7 @@ func TestRevoke_CEMode_CommunityServer(t *testing.T) {
 	}
 
 	err := Revoke(t.Context(), "community-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ce", *called,
 		"CE mode should override community server routing")
 }
@@ -124,7 +125,7 @@ func TestRevoke_CEMode_CatalogServer(t *testing.T) {
 	}
 
 	err := Revoke(t.Context(), "catalog-server")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "ce", *called,
 		"CE mode should route catalog servers through CE mode")
 }
