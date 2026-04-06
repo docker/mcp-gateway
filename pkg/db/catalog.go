@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
 type CatalogDAO interface {
@@ -37,6 +39,23 @@ type CatalogServer struct {
 	CatalogRef string   `db:"catalog_ref" json:"catalog_ref"`
 
 	Snapshot *ServerSnapshot `db:"snapshot" json:"snapshot"`
+}
+
+// FindServerInCatalogs searches all catalogs in the database for a server by name.
+// Returns the matching catalog.Server or an error if not found.
+func FindServerInCatalogs(ctx context.Context, dao DAO, serverName string) (catalog.Server, error) {
+	catalogs, err := dao.ListCatalogs(ctx)
+	if err != nil {
+		return catalog.Server{}, fmt.Errorf("listing catalogs: %w", err)
+	}
+	for _, cat := range catalogs {
+		for _, s := range cat.Servers {
+			if s.Snapshot != nil && s.Snapshot.Server.Name == serverName {
+				return s.Snapshot.Server, nil
+			}
+		}
+	}
+	return catalog.Server{}, fmt.Errorf("server %s not found in catalog", serverName)
 }
 
 func (tools ToolList) Value() (driver.Value, error) {
