@@ -12,6 +12,18 @@ func TestGetDefaultSecretKey(t *testing.T) {
 	assert.Equal(t, "docker/mcp/mykey", result)
 }
 
+func TestValidateSecretName(t *testing.T) {
+	valid := []string{"mykey", "postgres_password", "GITHUB_TOKEN", "some-key", "key.with.dots"}
+	for _, name := range valid {
+		require.NoError(t, ValidateSecretName(name), "expected %q to be valid", name)
+	}
+
+	invalid := []string{"**", "*", "docker/mcp/**", "key*", "key?", "key[0]", "key{a}"}
+	for _, name := range invalid {
+		assert.Error(t, ValidateSecretName(name), "expected %q to be invalid", name)
+	}
+}
+
 func TestParseArg(t *testing.T) {
 	// Test key=value parsing
 	secret, err := ParseArg("key=value", SetOpts{})

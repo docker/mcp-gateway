@@ -169,6 +169,10 @@ func (c *remoteMCPClient) AddRoots(roots []*mcp.Root) {
 }
 
 func getSecretValue(ctx context.Context, secretName string) string {
+	if err := secret.ValidateSecretName(secretName); err != nil {
+		log.Logf("Warning: skipping secret with invalid name %q: %v", secretName, err)
+		return ""
+	}
 	fullID := secret.GetDefaultSecretKey(secretName)
 	env, err := secret.GetSecret(ctx, fullID)
 	if err != nil {
