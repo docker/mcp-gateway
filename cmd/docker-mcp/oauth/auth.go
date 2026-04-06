@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -167,21 +168,9 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 		return fmt.Errorf("docker pass required for community server OAuth: %w", err)
 	}
 
-	// Step 1: Ensure DCR client is registered in docker pass
-	fmt.Printf("Checking DCR registration...\n")
-	dcrClient, err := pkgoauth.GetDCRClientFromDockerPass(ctx, serverName)
-	if err != nil || dcrClient.ClientID == "" {
-		// No DCR client in docker pass -- perform discovery and registration
-		dcrClient, err = dcr.DiscoverAndRegister(ctx, serverName, scopes, pkgoauth.DefaultRedirectURI)
-		if err != nil {
-			return fmt.Errorf("DCR registration failed: %w", err)
-		}
-		if err := pkgoauth.SaveDCRClientToDockerPass(ctx, serverName, dcrClient); err != nil {
-			return fmt.Errorf("failed to save DCR client: %w", err)
-		}
-	}
-
-	// Step 2: Create callback server
+	// Step 1: Create callback server first — we need its localhost URL for DCR
+	// registration. Community servers reject mcp.docker.com/oauth/callback and
+	// only accept localhost redirect URIs.
 	callbackServer, err := pkgoauth.NewCallbackServer()
 	if err != nil {
 		return fmt.Errorf("failed to create callback server: %w", err)
@@ -201,17 +190,33 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 		}
 	}()
 
+	callbackURL := callbackServer.URL() // http://localhost:{port}/callback
+
+	// Step 2: Ensure DCR client is registered in docker pass
+	fmt.Printf("Checking DCR registration...\n")
+	dcrClient, err := pkgoauth.GetDCRClientFromDockerPass(ctx, serverName)
+	if err != nil || dcrClient.ClientID == "" {
+		// No DCR client in docker pass — perform discovery and registration
+		// using the localhost callback URL so community servers accept it.
+		dcrClient, err = dcr.DiscoverAndRegister(ctx, serverName, scopes, callbackURL)
+		if err != nil {
+			return fmt.Errorf("DCR registration failed: %w", err)
+		}
+		if err := pkgoauth.SaveDCRClientToDockerPass(ctx, serverName, dcrClient); err != nil {
+			return fmt.Errorf("failed to save DCR client: %w", err)
+		}
+	}
+
 	// Step 3: Build authorization URL with PKCE
 	fmt.Printf("Generating authorization URL...\n")
 
-	provider := pkgoauth.NewDCRProvider(dcrClient, pkgoauth.DefaultRedirectURI)
+	provider := pkgoauth.NewDCRProvider(dcrClient, callbackURL)
 	verifier := provider.GeneratePKCE()
 
 	stateManager := pkgoauth.NewStateManager()
 	baseState := stateManager.Generate(serverName, verifier)
 
 	// Encode callback port in state for mcp-oauth proxy routing
-	callbackURL := callbackServer.URL()
 	parsedCallback, err := url.Parse(callbackURL)
 	if err != nil {
 		return fmt.Errorf("invalid callback URL: %w", err)
@@ -257,10 +262,14 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	}
 
 	// Validate the returned state to prevent CSRF attacks.
-	// The mcp-oauth proxy strips the "mcp-gateway:PORT:" prefix and passes
-	// the bare UUID to our localhost callback, so callbackState is the UUID
-	// that stateManager.Generate() returned.
-	validatedServer, validatedVerifier, err := stateManager.Validate(callbackState)
+	// When using the mcp.docker.com proxy (CE mode), the proxy strips the
+	// "mcp-gateway:PORT:" prefix. When redirecting directly to localhost
+	// (community mode), the full state comes through — strip the prefix here.
+	bareState := callbackState
+	if parts := strings.SplitN(callbackState, ":", 3); len(parts) == 3 && parts[0] == "mcp-gateway" {
+		bareState = parts[2]
+	}
+	validatedServer, validatedVerifier, err := stateManager.Validate(bareState)
 	if err != nil {
 		return fmt.Errorf("OAuth state validation failed: %w", err)
 	}
