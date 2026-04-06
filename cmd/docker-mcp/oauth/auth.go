@@ -14,26 +14,34 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
 
+// Function pointers for testability (same pattern as pkg/workingset/oauth.go).
+var (
+	lookupIsCommunityFunc      = lookupIsCommunity
+	authorizeCEModeFunc        = authorizeCEMode
+	authorizeDesktopModeFunc   = authorizeDesktopMode
+	authorizeCommunityModeFunc = authorizeCommunityMode
+)
+
 // Authorize performs OAuth authorization for a server, routing to the
 // appropriate flow based on the per-server mode (Desktop, CE, or Community).
 func Authorize(ctx context.Context, app string, scopes string) error {
-	isCommunity, err := lookupIsCommunity(ctx, app)
+	isCommunity, err := lookupIsCommunityFunc(ctx, app)
 	if err != nil {
 		// Server not in catalog -- fall back to legacy global routing
 		// so existing servers without catalog entries still work.
 		if pkgoauth.IsCEMode() {
-			return authorizeCEMode(ctx, app, scopes)
+			return authorizeCEModeFunc(ctx, app, scopes)
 		}
-		return authorizeDesktopMode(ctx, app, scopes)
+		return authorizeDesktopModeFunc(ctx, app, scopes)
 	}
 
 	switch pkgoauth.DetermineMode(ctx, isCommunity) {
 	case pkgoauth.ModeCE:
-		return authorizeCEMode(ctx, app, scopes)
+		return authorizeCEModeFunc(ctx, app, scopes)
 	case pkgoauth.ModeCommunity:
-		return authorizeCommunityMode(ctx, app, scopes)
+		return authorizeCommunityModeFunc(ctx, app, scopes)
 	default: // ModeDesktop
-		return authorizeDesktopMode(ctx, app, scopes)
+		return authorizeDesktopModeFunc(ctx, app, scopes)
 	}
 }
 

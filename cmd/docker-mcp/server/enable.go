@@ -15,6 +15,13 @@ import (
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
 
+// Function pointers for testability (same pattern as pkg/workingset/oauth.go).
+var (
+	shouldUseGatewayOAuthForEnableFunc    = pkgoauth.ShouldUseGatewayOAuth
+	registerProviderForLazySetupFunc      = pkgoauth.RegisterProviderForLazySetup
+	registerForDynamicDiscoveryEnableFunc = pkgoauth.RegisterProviderForDynamicDiscovery
+)
+
 func Disable(ctx context.Context, docker docker.Client, dockerCli command.Cli, serverNames []string, mcpOAuthDcrEnabled bool) error {
 	return update(ctx, docker, dockerCli, nil, serverNames, mcpOAuthDcrEnabled)
 }
@@ -63,12 +70,12 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 			// DCR flag enabled AND type="remote" AND oauth present
 			if mcpOAuthDcrEnabled && server.HasExplicitOAuthProviders() {
 				isCommunity := server.IsCommunity()
-				if pkgoauth.ShouldUseGatewayOAuth(ctx, isCommunity) {
+				if shouldUseGatewayOAuthForEnableFunc(ctx, isCommunity) {
 					// Gateway owns OAuth (CE mode or community + flag ON)
 					fmt.Printf("OAuth server %s enabled. Run 'docker mcp oauth authorize %s' to authenticate\n", serverName, serverName)
 				} else {
 					// Desktop mode — register provider for lazy setup
-					if err := pkgoauth.RegisterProviderForLazySetup(ctx, serverName); err != nil {
+					if err := registerProviderForLazySetupFunc(ctx, serverName); err != nil {
 						fmt.Printf("Warning: Failed to register OAuth provider for %s: %v\n", serverName, err)
 						fmt.Printf("   You can run 'docker mcp oauth authorize %s' later to set up authentication.\n", serverName)
 					} else {
@@ -83,12 +90,12 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 			} else if mcpOAuthDcrEnabled && server.Type == "remote" && !server.IsOAuthServer() && server.Remote.URL != "" {
 				// Remote server without oauth.providers — dynamic OAuth discovery
 				isCommunity := server.IsCommunity()
-				if pkgoauth.ShouldUseGatewayOAuth(ctx, isCommunity) {
+				if shouldUseGatewayOAuthForEnableFunc(ctx, isCommunity) {
 					// Gateway owns OAuth (CE mode or community + flag ON)
 					fmt.Printf("Remote server %s enabled. Run 'docker mcp oauth authorize %s' if authentication is required\n", serverName, serverName)
 				} else {
 					// Desktop mode — dynamic discovery
-					if err := pkgoauth.RegisterProviderForDynamicDiscovery(ctx, serverName, server.Remote.URL); err != nil {
+					if err := registerForDynamicDiscoveryEnableFunc(ctx, serverName, server.Remote.URL); err != nil {
 						fmt.Printf("Warning: Dynamic OAuth discovery failed for %s: %v\n", serverName, err)
 					}
 				}

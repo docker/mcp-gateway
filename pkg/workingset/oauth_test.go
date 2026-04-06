@@ -11,18 +11,24 @@ import (
 )
 
 // mockDesktopMode overrides the package-level function vars so the test
-// runs as if Docker Desktop is present. Call the returned cleanup func
-// (or use t.Cleanup) to restore the originals.
+// runs as if Docker Desktop is present and manages all OAuth (no Gateway
+// override). Call the returned cleanup func (or use t.Cleanup) to restore
+// the originals.
 func mockDesktopMode(t *testing.T) {
 	t.Helper()
 	oldCE := isCEModeFunc
+	oldGateway := shouldUseGatewayOAuthFunc
 	oldSnapshot := registerWithSnapshotFunc
 	oldDiscovery := registerForDynamicDiscoveryFunc
 
 	isCEModeFunc = func() bool { return false }
+	// Desktop manages all OAuth (no Gateway override). This makes tests
+	// deterministic regardless of the environment's feature flag state.
+	shouldUseGatewayOAuthFunc = func(_ context.Context, _ bool) bool { return false }
 
 	t.Cleanup(func() {
 		isCEModeFunc = oldCE
+		shouldUseGatewayOAuthFunc = oldGateway
 		registerWithSnapshotFunc = oldSnapshot
 		registerForDynamicDiscoveryFunc = oldDiscovery
 	})

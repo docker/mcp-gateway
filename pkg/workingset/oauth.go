@@ -13,6 +13,7 @@ import (
 // requiring a running Docker Desktop backend.
 var (
 	isCEModeFunc                    = oauth.IsCEMode
+	shouldUseGatewayOAuthFunc       = oauth.ShouldUseGatewayOAuth
 	registerWithSnapshotFunc        = oauth.RegisterProviderWithSnapshot
 	registerForDynamicDiscoveryFunc = oauth.RegisterProviderForDynamicDiscovery
 )
@@ -39,7 +40,7 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 		// Desktop mode: skip registration for community servers when the
 		// McpGatewayOAuth flag is ON — Gateway owns OAuth for those.
 		if server.Snapshot.Server.IsCommunity() {
-			if oauth.ShouldUseGatewayOAuth(ctx, true) {
+			if shouldUseGatewayOAuthFunc(ctx, true) {
 				continue
 			}
 		}
