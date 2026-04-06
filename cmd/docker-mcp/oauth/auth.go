@@ -17,6 +17,8 @@ import (
 // Function pointers for testability (same pattern as pkg/workingset/oauth.go).
 var (
 	lookupIsCommunityFunc      = lookupIsCommunity
+	isCEModeFunc               = pkgoauth.IsCEMode
+	determineModeFunc          = pkgoauth.DetermineMode
 	authorizeCEModeFunc        = authorizeCEMode
 	authorizeDesktopModeFunc   = authorizeDesktopMode
 	authorizeCommunityModeFunc = authorizeCommunityMode
@@ -29,13 +31,13 @@ func Authorize(ctx context.Context, app string, scopes string) error {
 	if err != nil {
 		// Server not in catalog -- fall back to legacy global routing
 		// so existing servers without catalog entries still work.
-		if pkgoauth.IsCEMode() {
+		if isCEModeFunc() {
 			return authorizeCEModeFunc(ctx, app, scopes)
 		}
 		return authorizeDesktopModeFunc(ctx, app, scopes)
 	}
 
-	switch pkgoauth.DetermineMode(ctx, isCommunity) {
+	switch determineModeFunc(ctx, isCommunity) {
 	case pkgoauth.ModeCE:
 		return authorizeCEModeFunc(ctx, app, scopes)
 	case pkgoauth.ModeCommunity:

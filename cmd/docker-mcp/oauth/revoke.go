@@ -26,13 +26,13 @@ func Revoke(ctx context.Context, app string) error {
 	isCommunity, err := lookupIsCommunityFunc(ctx, app)
 	if err != nil {
 		// Server not in catalog -- fall back to legacy global routing.
-		if pkgoauth.IsCEMode() {
+		if isCEModeFunc() {
 			return revokeCEModeFunc(ctx, app)
 		}
 		return revokeDesktopModeFunc(ctx, app)
 	}
 
-	switch pkgoauth.DetermineMode(ctx, isCommunity) {
+	switch determineModeFunc(ctx, isCommunity) {
 	case pkgoauth.ModeCE:
 		return revokeCEModeFunc(ctx, app)
 	case pkgoauth.ModeCommunity:
