@@ -96,7 +96,9 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	} else if c.config.Spec.Remote.URL != "" {
 		// Community servers may have OAuth tokens via dynamic discovery (DCR)
 		// without explicit OAuth metadata in the catalog. Try to get a stored token.
-		credHelper := oauth.NewOAuthCredentialHelper()
+		// Use per-server mode so community servers read from docker pass.
+		mode := oauth.DetermineMode(ctx, c.config.Spec.IsCommunity())
+		credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
 		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
 		if err == nil && token != "" {
 			if verbose {
