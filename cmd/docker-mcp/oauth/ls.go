@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 )
 
 func Ls(ctx context.Context, outputJSON bool) error {
@@ -17,6 +18,20 @@ func Ls(ctx context.Context, outputJSON bool) error {
 	apps, err := client.ListOAuthApps(ctx)
 	if err != nil {
 		return err
+	}
+
+	// For community servers where Gateway owns OAuth (flag ON), Desktop doesn't
+	// know about the token (it's in docker pass, not Desktop's OAuth store).
+	// Check docker pass for token existence and override the authorized status.
+	if pkgoauth.ShouldUseGatewayOAuth(ctx, true) {
+		credHelper := pkgoauth.NewOAuthCredentialHelperWithMode(pkgoauth.ModeCommunity)
+		for i, app := range apps {
+			if !app.Authorized {
+				if exists, _ := credHelper.TokenExists(ctx, app.App); exists {
+					apps[i].Authorized = true
+				}
+			}
+		}
 	}
 
 	if outputJSON {

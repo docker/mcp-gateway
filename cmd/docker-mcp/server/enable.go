@@ -88,16 +88,16 @@ func update(ctx context.Context, docker docker.Client, dockerCli command.Cli, ad
 				fmt.Printf("   To enable automatic OAuth setup, run: docker mcp feature enable mcp-oauth-dcr\n")
 				fmt.Printf("   Or set up OAuth manually using: docker mcp oauth authorize %s\n", serverName)
 			} else if mcpOAuthDcrEnabled && server.Type == "remote" && !server.IsOAuthServer() && server.Remote.URL != "" {
-				// Remote server without oauth.providers — dynamic OAuth discovery
+				// Remote server without oauth.providers — dynamic OAuth discovery.
+				// Always register with Desktop for OAuth tab visibility, even when
+				// Gateway owns the OAuth lifecycle (community + flag ON). The
+				// authorize/revoke flow is handled by Gateway via IPC delegation.
+				if err := registerForDynamicDiscoveryEnableFunc(ctx, serverName, server.Remote.URL); err != nil {
+					fmt.Printf("Warning: Dynamic OAuth discovery failed for %s: %v\n", serverName, err)
+				}
 				isCommunity := server.IsCommunity()
 				if shouldUseGatewayOAuthForEnableFunc(ctx, isCommunity) {
-					// Gateway owns OAuth (CE mode or community + flag ON)
-					fmt.Printf("Remote server %s enabled. Run 'docker mcp oauth authorize %s' if authentication is required\n", serverName, serverName)
-				} else {
-					// Desktop mode — dynamic discovery
-					if err := registerForDynamicDiscoveryEnableFunc(ctx, serverName, server.Remote.URL); err != nil {
-						fmt.Printf("Warning: Dynamic OAuth discovery failed for %s: %v\n", serverName, err)
-					}
+					fmt.Printf("Remote server %s enabled. OAuth handled by Gateway — use 'docker mcp oauth authorize %s' or authorize from Docker Desktop\n", serverName, serverName)
 				}
 			}
 		} else {
