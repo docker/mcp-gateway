@@ -140,3 +140,39 @@ func TestAuthorize_CEMode_CommunityServer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
+
+// TestAuthorizeCommunityMode_CleansDesktopEntries verifies that the real
+// authorizeCommunityMode function cleans stale Desktop Secrets Engine
+// entries before proceeding with the Gateway OAuth flow.
+func TestAuthorizeCommunityMode_CleansDesktopEntries(t *testing.T) {
+	// Save and restore all function pointers touched by this test.
+	oldDesktopCleanup := cleanStaleDesktopEntriesFunc
+	oldCheckPass := checkHasDockerPassFunc
+	oldNewCallback := newCallbackServerFunc
+	t.Cleanup(func() {
+		cleanStaleDesktopEntriesFunc = oldDesktopCleanup
+		checkHasDockerPassFunc = oldCheckPass
+		newCallbackServerFunc = oldNewCallback
+	})
+
+	// Mock docker pass check to succeed.
+	checkHasDockerPassFunc = func(_ context.Context) error { return nil }
+
+	// Mock callback server creation to fail — this stops execution right
+	// after cleanup runs, avoiding the need to mock DCR, PKCE, etc.
+	newCallbackServerFunc = func() (*pkgoauth.CallbackServer, error) {
+		return nil, fmt.Errorf("test: stop after cleanup")
+	}
+
+	var desktopCleanupCalled string
+	cleanStaleDesktopEntriesFunc = func(_ context.Context, app string) {
+		desktopCleanupCalled = app
+	}
+
+	// Call the real authorizeCommunityMode directly.
+	err := authorizeCommunityMode(t.Context(), "my-community-server", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create callback server")
+	assert.Equal(t, "my-community-server", desktopCleanupCalled,
+		"community authorize should clean stale Desktop entries before proceeding")
+}

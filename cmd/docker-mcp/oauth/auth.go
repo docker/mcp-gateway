@@ -23,6 +23,11 @@ var (
 	authorizeCEModeFunc        = authorizeCEMode
 	authorizeDesktopModeFunc   = authorizeDesktopMode
 	authorizeCommunityModeFunc = authorizeCommunityMode
+
+	// Internal deps used by authorizeCommunityMode — overridden in tests to
+	// avoid requiring docker pass or binding a localhost port.
+	checkHasDockerPassFunc = desktop.CheckHasDockerPass
+	newCallbackServerFunc  = pkgoauth.NewCallbackServer
 )
 
 // Authorize performs OAuth authorization for a server, routing to the
@@ -164,14 +169,22 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	fmt.Printf("Starting OAuth authorization for %s (community)...\n", serverName)
 
 	// Validate docker pass is available (required for community mode)
-	if err := desktop.CheckHasDockerPass(ctx); err != nil {
+	if err := checkHasDockerPassFunc(ctx); err != nil {
 		return fmt.Errorf("docker pass required for community server OAuth: %w", err)
 	}
+
+	// Clean any stale Desktop Secrets Engine entries for this server. If the
+	// server was previously authorized via Desktop OAuth (flag OFF), the
+	// docker-desktop-mcp-oauth plugin holds a token with a more specific
+	// pattern match (docker/mcp/oauth/**) than docker-pass (**), causing
+	// GetSecret to return the stale Desktop value instead of the fresh
+	// docker pass value written below.
+	cleanStaleDesktopEntriesFunc(ctx, serverName)
 
 	// Step 1: Create callback server first — we need its localhost URL for DCR
 	// registration. Community servers reject mcp.docker.com/oauth/callback and
 	// only accept localhost redirect URIs.
-	callbackServer, err := pkgoauth.NewCallbackServer()
+	callbackServer, err := newCallbackServerFunc()
 	if err != nil {
 		return fmt.Errorf("failed to create callback server: %w", err)
 	}

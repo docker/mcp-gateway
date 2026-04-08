@@ -16,6 +16,14 @@ var (
 	revokeCEModeFunc        = revokeCEMode
 	revokeDesktopModeFunc   = revokeDesktopMode
 	revokeCommunityModeFunc = revokeCommunityMode
+
+	// Internal deps used by mode handlers — overridden in tests to avoid
+	// requiring docker pass, Docker Desktop, or a real database.
+	deleteOAuthTokenFunc      = secret.DeleteOAuthToken
+	deleteDCRClientFunc       = secret.DeleteDCRClient
+	desktopDeleteOAuthAppFunc = func(ctx context.Context, app string) error {
+		return desktop.NewAuthClient().DeleteOAuthApp(ctx, app)
+	}
 )
 
 // Revoke revokes OAuth access for a server, routing to the appropriate flow
@@ -44,10 +52,14 @@ func Revoke(ctx context.Context, app string) error {
 
 // revokeDesktopMode handles revoke via Docker Desktop (existing behavior)
 func revokeDesktopMode(ctx context.Context, app string) error {
-	client := desktop.NewAuthClient()
+	// Best-effort cleanup of docker pass entries that may exist from a
+	// previous authorization with the McpGatewayOAuth flag ON. Run this
+	// before the Desktop API call so entries are cleaned even when the
+	// Desktop provider has no token for this server.
+	cleanStaleDockerPassEntriesFunc(ctx, app)
 
 	// Revoke tokens via Docker Desktop
-	if err := client.DeleteOAuthApp(ctx, app); err != nil {
+	if err := desktopDeleteOAuthAppFunc(ctx, app); err != nil {
 		return fmt.Errorf("failed to revoke OAuth access: %w", err)
 	}
 
@@ -86,19 +98,27 @@ func revokeCEMode(ctx context.Context, app string) error {
 }
 
 // revokeCommunityMode handles revoke for community servers in Desktop mode.
-// Deletes the OAuth token and DCR client from docker pass.
+// Deletes the OAuth token and DCR client from docker pass, and cleans up
+// any stale Desktop Secrets Engine entries left from prior Desktop OAuth
+// authorizations (when the McpGatewayOAuth flag was OFF).
 func revokeCommunityMode(ctx context.Context, app string) error {
 	// Delete OAuth token from docker pass
-	if err := secret.DeleteOAuthToken(ctx, app); err != nil {
+	if err := deleteOAuthTokenFunc(ctx, app); err != nil {
 		// Token might not exist, continue to DCR deletion
 		fmt.Printf("Note: %v\n", err)
 	}
 
 	// Delete DCR client from docker pass (soft failure -- entry may not exist
 	// if authorize was never completed or was already revoked)
-	if err := secret.DeleteDCRClient(ctx, app); err != nil {
+	if err := deleteDCRClientFunc(ctx, app); err != nil {
 		fmt.Printf("Note: %v\n", err)
 	}
+
+	// Best-effort cleanup of stale Desktop Secrets Engine entries. When the
+	// flag was previously OFF, Desktop may have stored oauth/dcr entries for
+	// this community server. Removing them prevents the Secrets Engine from
+	// returning stale Desktop-managed tokens that shadow docker pass entries.
+	cleanStaleDesktopEntriesFunc(ctx, app)
 
 	fmt.Printf("OAuth access revoked for %s\n", app)
 	return nil
