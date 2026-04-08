@@ -52,14 +52,15 @@ func Authorize(ctx context.Context, app string, scopes string, openBrowser bool)
 
 // openBrowserURL opens the given URL in the system's default browser.
 func openBrowserURL(rawURL string) {
+	ctx := context.Background()
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", rawURL)
+		cmd = exec.CommandContext(ctx, "open", rawURL)
 	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", rawURL)
+		cmd = exec.CommandContext(ctx, "cmd", "/c", "start", rawURL)
 	default: // linux and others
-		cmd = exec.Command("xdg-open", rawURL)
+		cmd = exec.CommandContext(ctx, "xdg-open", rawURL)
 	}
 	// Best-effort: ignore errors so a missing browser doesn't fail the auth flow.
 	_ = cmd.Start()
