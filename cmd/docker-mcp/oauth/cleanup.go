@@ -5,6 +5,7 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 // Function pointers for testability.
@@ -21,7 +22,9 @@ var (
 // (normal case for first-time authorizations or single-store workflows).
 func cleanStaleDesktopEntries(ctx context.Context, app string) {
 	client := desktop.NewAuthClient()
-	_ = client.DeleteOAuthApp(ctx, app)
+	if err := client.DeleteOAuthApp(ctx, app); err != nil {
+		log.Logf("Warning: failed to clean stale Desktop entry for %s: %v", app, err)
+	}
 }
 
 // cleanStaleDockerPassEntries removes OAuth token and DCR client entries
@@ -39,10 +42,14 @@ func cleanStaleDockerPassEntries(ctx context.Context, app string) {
 	dcrKey := secret.GetDCRKey(app)
 	for _, k := range keys {
 		if k == oauthKey {
-			_ = secret.DeleteOAuthToken(ctx, app)
+			if err := secret.DeleteOAuthToken(ctx, app); err != nil {
+				log.Logf("Warning: failed to clean stale docker pass OAuth token for %s: %v", app, err)
+			}
 		}
 		if k == dcrKey {
-			_ = secret.DeleteDCRClient(ctx, app)
+			if err := secret.DeleteDCRClient(ctx, app); err != nil {
+				log.Logf("Warning: failed to clean stale docker pass DCR client for %s: %v", app, err)
+			}
 		}
 	}
 }

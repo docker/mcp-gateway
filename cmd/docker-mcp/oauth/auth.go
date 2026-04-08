@@ -173,14 +173,6 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 		return fmt.Errorf("docker pass required for community server OAuth: %w", err)
 	}
 
-	// Clean any stale Desktop Secrets Engine entries for this server. If the
-	// server was previously authorized via Desktop OAuth (flag OFF), the
-	// docker-desktop-mcp-oauth plugin holds a token with a more specific
-	// pattern match (docker/mcp/oauth/**) than docker-pass (**), causing
-	// GetSecret to return the stale Desktop value instead of the fresh
-	// docker pass value written below.
-	cleanStaleDesktopEntriesFunc(ctx, serverName)
-
 	// Step 1: Create callback server first — we need its localhost URL for DCR
 	// registration. Community servers reject mcp.docker.com/oauth/callback and
 	// only accept localhost redirect URIs.
@@ -309,6 +301,15 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	if err := pkgoauth.SaveTokenToDockerPass(ctx, serverName, token); err != nil {
 		return fmt.Errorf("failed to store token: %w", err)
 	}
+
+	// Step 8: Clean stale Desktop Secrets Engine entries now that the fresh
+	// token is safely stored in docker pass. We defer this until after storage
+	// succeeds so that if the authorize flow fails at any earlier step, the
+	// user retains their existing Desktop authorization as a fallback.
+	// The docker-desktop-mcp-oauth plugin (pattern docker/mcp/oauth/**) has
+	// higher priority than docker-pass (**), so stale Desktop entries would
+	// shadow the fresh token if not removed.
+	cleanStaleDesktopEntriesFunc(ctx, serverName)
 
 	fmt.Printf("Authorization successful! Token stored securely.\n")
 	fmt.Printf("You can now use: docker mcp server start %s\n", serverName)

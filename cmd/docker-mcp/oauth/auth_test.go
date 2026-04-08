@@ -141,10 +141,13 @@ func TestAuthorize_CEMode_CommunityServer(t *testing.T) {
 	assert.Equal(t, "ce", *called)
 }
 
-// TestAuthorizeCommunityMode_CleansDesktopEntries verifies that the real
-// authorizeCommunityMode function cleans stale Desktop Secrets Engine
-// entries before proceeding with the Gateway OAuth flow.
-func TestAuthorizeCommunityMode_CleansDesktopEntries(t *testing.T) {
+// TestAuthorizeCommunityMode_NoCleanupOnFailure verifies that
+// authorizeCommunityMode does NOT clean stale Desktop entries when the
+// authorize flow fails before token storage. This ensures the user
+// retains their existing Desktop authorization as a fallback if the
+// community flow fails mid-way (port conflict, user closes browser, etc.).
+// Cleanup only runs after the fresh token is safely stored in docker pass.
+func TestAuthorizeCommunityMode_NoCleanupOnFailure(t *testing.T) {
 	// Save and restore all function pointers touched by this test.
 	oldDesktopCleanup := cleanStaleDesktopEntriesFunc
 	oldCheckPass := checkHasDockerPassFunc
@@ -158,21 +161,20 @@ func TestAuthorizeCommunityMode_CleansDesktopEntries(t *testing.T) {
 	// Mock docker pass check to succeed.
 	checkHasDockerPassFunc = func(_ context.Context) error { return nil }
 
-	// Mock callback server creation to fail — this stops execution right
-	// after cleanup runs, avoiding the need to mock DCR, PKCE, etc.
+	// Mock callback server creation to fail — simulates a mid-flow failure.
 	newCallbackServerFunc = func() (*pkgoauth.CallbackServer, error) {
-		return nil, fmt.Errorf("test: stop after cleanup")
+		return nil, fmt.Errorf("test: port conflict")
 	}
 
-	var desktopCleanupCalled string
-	cleanStaleDesktopEntriesFunc = func(_ context.Context, app string) {
-		desktopCleanupCalled = app
+	var desktopCleanupCalled bool
+	cleanStaleDesktopEntriesFunc = func(_ context.Context, _ string) {
+		desktopCleanupCalled = true
 	}
 
 	// Call the real authorizeCommunityMode directly.
 	err := authorizeCommunityMode(t.Context(), "my-community-server", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create callback server")
-	assert.Equal(t, "my-community-server", desktopCleanupCalled,
-		"community authorize should clean stale Desktop entries before proceeding")
+	assert.False(t, desktopCleanupCalled,
+		"community authorize should NOT clean Desktop entries when flow fails before token storage")
 }
