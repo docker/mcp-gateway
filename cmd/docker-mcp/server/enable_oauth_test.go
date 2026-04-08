@@ -144,8 +144,9 @@ func TestEnable_OAuthServer_DesktopCommunityFlagOn(t *testing.T) {
 }
 
 // TestEnable_DynamicDiscovery_GatewayOwns verifies that a community remote
-// server without explicit OAuth does not trigger dynamic discovery when
-// Gateway owns OAuth.
+// server without explicit OAuth still triggers dynamic discovery when Gateway
+// owns OAuth. Registration is for OAuth tab visibility — Gateway still owns
+// the authorize/revoke lifecycle.
 func TestEnable_DynamicDiscovery_GatewayOwns(t *testing.T) {
 	ctx, _, docker, dockerCli := setup(t,
 		withEmptyRegistryYaml(),
@@ -158,8 +159,8 @@ func TestEnable_DynamicDiscovery_GatewayOwns(t *testing.T) {
 	err := Enable(ctx, docker, dockerCli, []string{"community-remote"}, true)
 	require.NoError(t, err)
 
-	assert.Empty(t, *discoveryCalls,
-		"Gateway-owned OAuth should not trigger dynamic discovery")
+	assert.Equal(t, []string{"community-remote"}, *discoveryCalls,
+		"Gateway-owned OAuth should still trigger dynamic discovery for OAuth tab visibility")
 }
 
 // Verify the function pointers are wired to the real functions by default.
