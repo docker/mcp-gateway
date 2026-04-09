@@ -202,7 +202,7 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	dcrClient, err := pkgoauth.GetDCRClientFromDockerPass(ctx, serverName)
 	if err != nil || dcrClient.ClientID == "" || dcrClient.RedirectURI != callbackURL {
 		// No DCR client, or the cached client was registered with a different
-		// redirect URI (e.g. after a port change). Re-register so the
+		// redirect URI (e.g. after a port change). Re register so the
 		// authorization URL and token exchange use a consistent redirect URI.
 		if err == nil && dcrClient.ClientID != "" {
 			fmt.Printf("Re-registering DCR client (redirect URI changed from %q to %q)...\n", dcrClient.RedirectURI, callbackURL)
