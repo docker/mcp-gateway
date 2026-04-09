@@ -141,7 +141,7 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
 
 	// Step 5: Wait for callback
-	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())
+	fmt.Printf("Waiting for authorization callback on http://127.0.0.1:%d/callback...\n", callbackServer.Port())
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
@@ -195,14 +195,18 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 		}
 	}()
 
-	callbackURL := callbackServer.URL() // http://localhost:{port}/callback
+	callbackURL := callbackServer.URL() // http://127.0.0.1:{port}/callback
 
 	// Step 2: Ensure DCR client is registered in docker pass
 	fmt.Printf("Checking DCR registration...\n")
 	dcrClient, err := pkgoauth.GetDCRClientFromDockerPass(ctx, serverName)
-	if err != nil || dcrClient.ClientID == "" {
-		// No DCR client in docker pass — perform discovery and registration
-		// using the localhost callback URL so community servers accept it.
+	if err != nil || dcrClient.ClientID == "" || dcrClient.RedirectURI != callbackURL {
+		// No DCR client, or the cached client was registered with a different
+		// redirect URI (e.g. after a port change). Re-register so the
+		// authorization URL and token exchange use a consistent redirect URI.
+		if err == nil && dcrClient.ClientID != "" {
+			fmt.Printf("Re-registering DCR client (redirect URI changed from %q to %q)...\n", dcrClient.RedirectURI, callbackURL)
+		}
 		dcrClient, err = dcr.DiscoverAndRegister(ctx, serverName, scopes, callbackURL)
 		if err != nil {
 			return fmt.Errorf("DCR registration failed: %w", err)
@@ -256,7 +260,7 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
 
 	// Step 5: Wait for callback
-	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())
+	fmt.Printf("Waiting for authorization callback on http://127.0.0.1:%d/callback...\n", callbackServer.Port())
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()

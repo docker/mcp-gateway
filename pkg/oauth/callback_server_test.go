@@ -34,7 +34,7 @@ func TestCallbackServer_PortAssignment(t *testing.T) {
 	// Should get a valid port
 	assert.Positive(t, server.Port())
 	assert.NotEmpty(t, server.URL())
-	assert.Contains(t, server.URL(), "http://localhost:")
+	assert.Contains(t, server.URL(), "http://127.0.0.1:")
 	assert.Contains(t, server.URL(), "/callback")
 }
 

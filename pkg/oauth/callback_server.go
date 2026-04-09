@@ -14,7 +14,7 @@ import (
 
 // DefaultOAuthPort is the default port for the OAuth callback server
 // Can be overridden with MCP_GATEWAY_OAUTH_PORT environment variable
-const DefaultOAuthPort = 5000
+const DefaultOAuthPort = 54321
 
 // CallbackData represents the data received from an OAuth callback
 type CallbackData struct {
@@ -48,7 +48,7 @@ func getOAuthPort() int {
 	return DefaultOAuthPort
 }
 
-// NewCallbackServer creates a new callback server on a fixed port (default 5000)
+// NewCallbackServer creates a new callback server on a fixed port (default 54321)
 // The port can be customized via MCP_GATEWAY_OAUTH_PORT environment variable
 func NewCallbackServer() (*CallbackServer, error) {
 	port := getOAuthPort()
@@ -85,8 +85,10 @@ func (s *CallbackServer) Port() int {
 }
 
 // URL returns the full callback URL
+// Uses 127.0.0.1 explicitly to avoid localhost resolving to ::1 (IPv6)
+// when the server only binds to the IPv4 loopback interface.
 func (s *CallbackServer) URL() string {
-	return fmt.Sprintf("http://localhost:%d/callback", s.port)
+	return fmt.Sprintf("http://127.0.0.1:%d/callback", s.port)
 }
 
 // Start starts the HTTP server
@@ -101,7 +103,7 @@ func (s *CallbackServer) Start() error {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	log.Logf("- Callback server listening on http://localhost:%d/callback", s.port)
+	log.Logf("- Callback server listening on http://127.0.0.1:%d/callback", s.port)
 
 	if err := s.server.Serve(s.listener); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("callback server error: %w", err)
@@ -184,8 +186,12 @@ func (s *CallbackServer) Wait(ctx context.Context) (code string, state string, e
 
 // Shutdown gracefully shuts down the callback server
 func (s *CallbackServer) Shutdown(ctx context.Context) error {
-	if s.server == nil {
-		return nil
+	if s.server != nil {
+		return s.server.Shutdown(ctx)
 	}
-	return s.server.Shutdown(ctx)
+	// Server was never started; close the raw listener so the port is released.
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
 }
