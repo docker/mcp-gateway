@@ -140,3 +140,41 @@ func TestAuthorize_CEMode_CommunityServer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
+
+// TestAuthorizeCommunityMode_NoCleanupOnFailure verifies that
+// authorizeCommunityMode does NOT clean stale Desktop entries when the
+// authorize flow fails before token storage. This ensures the user
+// retains their existing Desktop authorization as a fallback if the
+// community flow fails mid-way (port conflict, user closes browser, etc.).
+// Cleanup only runs after the fresh token is safely stored in docker pass.
+func TestAuthorizeCommunityMode_NoCleanupOnFailure(t *testing.T) {
+	// Save and restore all function pointers touched by this test.
+	oldDesktopCleanup := cleanStaleDesktopEntriesFunc
+	oldCheckPass := checkHasDockerPassFunc
+	oldNewCallback := newCallbackServerFunc
+	t.Cleanup(func() {
+		cleanStaleDesktopEntriesFunc = oldDesktopCleanup
+		checkHasDockerPassFunc = oldCheckPass
+		newCallbackServerFunc = oldNewCallback
+	})
+
+	// Mock docker pass check to succeed.
+	checkHasDockerPassFunc = func(_ context.Context) error { return nil }
+
+	// Mock callback server creation to fail — simulates a mid-flow failure.
+	newCallbackServerFunc = func() (*pkgoauth.CallbackServer, error) {
+		return nil, fmt.Errorf("test: port conflict")
+	}
+
+	var desktopCleanupCalled bool
+	cleanStaleDesktopEntriesFunc = func(_ context.Context, _ string) {
+		desktopCleanupCalled = true
+	}
+
+	// Call the real authorizeCommunityMode directly.
+	err := authorizeCommunityMode(t.Context(), "my-community-server", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create callback server")
+	assert.False(t, desktopCleanupCalled,
+		"community authorize should NOT clean Desktop entries when flow fails before token storage")
+}

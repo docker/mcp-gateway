@@ -25,6 +25,11 @@ var (
 	authorizeCEModeFunc        = authorizeCEMode
 	authorizeDesktopModeFunc   = authorizeDesktopMode
 	authorizeCommunityModeFunc = authorizeCommunityMode
+
+	// Internal deps used by authorizeCommunityMode — overridden in tests to
+	// avoid requiring docker pass or binding a localhost port.
+	checkHasDockerPassFunc = desktop.CheckHasDockerPass
+	newCallbackServerFunc  = pkgoauth.NewCallbackServer
 )
 
 // Authorize performs OAuth authorization for a server, routing to the
@@ -187,14 +192,14 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	fmt.Printf("Starting OAuth authorization for %s (community)...\n", serverName)
 
 	// Validate docker pass is available (required for community mode)
-	if err := desktop.CheckHasDockerPass(ctx); err != nil {
+	if err := checkHasDockerPassFunc(ctx); err != nil {
 		return fmt.Errorf("docker pass required for community server OAuth: %w", err)
 	}
 
 	// Step 1: Create callback server first — we need its localhost URL for DCR
 	// registration. Community servers reject mcp.docker.com/oauth/callback and
 	// only accept localhost redirect URIs.
-	callbackServer, err := pkgoauth.NewCallbackServer()
+	callbackServer, err := newCallbackServerFunc()
 	if err != nil {
 		return fmt.Errorf("failed to create callback server: %w", err)
 	}
@@ -324,6 +329,15 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	if err := pkgoauth.SaveTokenToDockerPass(ctx, serverName, token); err != nil {
 		return fmt.Errorf("failed to store token: %w", err)
 	}
+
+	// Step 8: Clean stale Desktop Secrets Engine entries now that the fresh
+	// token is safely stored in docker pass. We defer this until after storage
+	// succeeds so that if the authorize flow fails at any earlier step, the
+	// user retains their existing Desktop authorization as a fallback.
+	// The docker-desktop-mcp-oauth plugin (pattern docker/mcp/oauth/**) has
+	// higher priority than docker-pass (**), so stale Desktop entries would
+	// shadow the fresh token if not removed.
+	cleanStaleDesktopEntriesFunc(ctx, serverName)
 
 	fmt.Printf("Authorization successful! Token stored securely.\n")
 	fmt.Printf("You can now use: docker mcp server start %s\n", serverName)

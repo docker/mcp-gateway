@@ -140,3 +140,60 @@ func TestRevoke_CEMode_CommunityServer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
+
+// TestRevokeCommunityMode_CleansDesktopEntries verifies that the real
+// revokeCommunityMode function cleans up stale Desktop Secrets Engine
+// entries in addition to docker pass entries.
+func TestRevokeCommunityMode_CleansDesktopEntries(t *testing.T) {
+	// Save and restore all function pointers touched by this test.
+	oldDesktopCleanup := cleanStaleDesktopEntriesFunc
+	oldDeleteToken := deleteOAuthTokenFunc
+	oldDeleteDCR := deleteDCRClientFunc
+	t.Cleanup(func() {
+		cleanStaleDesktopEntriesFunc = oldDesktopCleanup
+		deleteOAuthTokenFunc = oldDeleteToken
+		deleteDCRClientFunc = oldDeleteDCR
+	})
+
+	// Mock the docker pass operations so the real handler doesn't shell out.
+	deleteOAuthTokenFunc = func(_ context.Context, _ string) error { return nil }
+	deleteDCRClientFunc = func(_ context.Context, _ string) error { return nil }
+
+	var desktopCleanupCalled string
+	cleanStaleDesktopEntriesFunc = func(_ context.Context, app string) {
+		desktopCleanupCalled = app
+	}
+
+	// Call the real revokeCommunityMode directly.
+	err := revokeCommunityMode(t.Context(), "my-community-server")
+	require.NoError(t, err)
+	assert.Equal(t, "my-community-server", desktopCleanupCalled,
+		"community revoke should clean stale Desktop entries")
+}
+
+// TestRevokeDesktopMode_CleansDockerPassEntries verifies that the real
+// revokeDesktopMode function cleans up stale docker pass entries in
+// addition to Desktop entries.
+func TestRevokeDesktopMode_CleansDockerPassEntries(t *testing.T) {
+	// Save and restore all function pointers touched by this test.
+	oldDockerPassCleanup := cleanStaleDockerPassEntriesFunc
+	oldDesktopDelete := desktopDeleteOAuthAppFunc
+	t.Cleanup(func() {
+		cleanStaleDockerPassEntriesFunc = oldDockerPassCleanup
+		desktopDeleteOAuthAppFunc = oldDesktopDelete
+	})
+
+	// Mock the Desktop API call so the real handler doesn't contact Desktop.
+	desktopDeleteOAuthAppFunc = func(_ context.Context, _ string) error { return nil }
+
+	var dockerPassCleanupCalled string
+	cleanStaleDockerPassEntriesFunc = func(_ context.Context, app string) {
+		dockerPassCleanupCalled = app
+	}
+
+	// Call the real revokeDesktopMode directly.
+	err := revokeDesktopMode(t.Context(), "my-catalog-server")
+	require.NoError(t, err)
+	assert.Equal(t, "my-catalog-server", dockerPassCleanupCalled,
+		"desktop revoke should clean stale docker pass entries")
+}
