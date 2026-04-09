@@ -211,3 +211,10 @@ func TestCombinedSecurityLayers(t *testing.T) {
 		})
 	}
 }
+
+func authenticationMiddleware(token string, next http.Handler) http.Handler {
+	store := TokenStore{
+		token: {Identity: "test"},
+	}
+	return authenticationMiddlewareMulti(store, next)
+}
