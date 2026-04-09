@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/google/go-containerregistry/pkg/name"
+	v0 "github.com/modelcontextprotocol/registry/pkg/api/v0"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/fetch"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -29,7 +32,7 @@ type serverFilter struct {
 	value string
 }
 
-func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
+func InspectServer(ctx context.Context, dao db.DAO, registryClient registryapi.Client, catalogRef string, serverName string, format workingset.OutputFormat) error {
 	ref, err := name.ParseReference(catalogRef)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
@@ -60,9 +63,30 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
 		readmeContent, err := fetch.Untrusted(ctx, server.Snapshot.Server.ReadmeURL)
 		if err != nil {
-			return fmt.Errorf("failed to fetch readme: %w", err)
+			// Log but don't fail: the URL may point to a private repo or
+			// a path that doesn't exist (e.g. community registry servers
+			// whose GitHub README URL was derived from the repository field).
+			fmt.Fprintf(os.Stderr, "Warning: failed to fetch readme for %s: %v\n", serverName, err)
+		} else {
+			inspectResult.ReadmeContent = string(readmeContent)
 		}
-		inspectResult.ReadmeContent = string(readmeContent)
+	}
+
+	// Try live registry API lookup to discover README URL when the snapshot
+	// has no baked-in ReadmeURL (common for older community catalogs).
+	var registryResp *v0.ServerResponse
+	if inspectResult.ReadmeContent == "" && registryClient != nil && server.Snapshot != nil {
+		content, resp := fetchReadmeViaRegistryAPI(ctx, registryClient, &server.Snapshot.Server)
+		if content != "" {
+			inspectResult.ReadmeContent = content
+		}
+		registryResp = resp
+	}
+
+	// When no README content is available, synthesize an overview from the
+	// server's metadata so the overview tab is not empty.
+	if inspectResult.ReadmeContent == "" && server.Snapshot != nil {
+		inspectResult.ReadmeContent = buildSynthesizedOverview(&server.Snapshot.Server, registryResp)
 	}
 
 	var data []byte
@@ -83,6 +107,241 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	fmt.Println(string(data))
 
 	return nil
+}
+
+// buildSynthesizedOverview constructs a markdown overview from a server's
+// catalog metadata. This is used as a fallback when the server has no
+// fetchable README (common for community registry servers with private
+// repos or no repo at all).
+//
+// When a registry API response is available, its title, status, and
+// websiteUrl fields are included to enrich the overview.
+//
+// The server's description is intentionally omitted because the UI header
+// already displays it. It is only used as a last resort when no other
+// content can be synthesized at all.
+func buildSynthesizedOverview(s *catalog.Server, registryResp *v0.ServerResponse) string {
+	if s == nil {
+		return ""
+	}
+
+	var b strings.Builder
+
+	// Title -- prefer registry API response, fall back to catalog snapshot
+	title := s.Title
+	if registryResp != nil && registryResp.Server.Title != "" {
+		title = registryResp.Server.Title
+	}
+	if title != "" {
+		b.WriteString(fmt.Sprintf("# %s\n\n", title))
+	}
+
+	// Status from registry API metadata
+	if registryResp != nil && registryResp.Meta.Official != nil {
+		status := string(registryResp.Meta.Official.Status)
+		if status != "" {
+			b.WriteString(fmt.Sprintf("**Status:** %s\n\n", status))
+		}
+	}
+
+	// Connection info
+	if s.Remote.URL != "" {
+		b.WriteString("**Remote MCP server**")
+		if s.Remote.Transport != "" {
+			b.WriteString(fmt.Sprintf(" (%s)", s.Remote.Transport))
+		}
+		b.WriteString("\n")
+	} else if s.Image != "" {
+		b.WriteString(fmt.Sprintf("**Runs in Docker container** `%s`\n", s.Image))
+	}
+
+	// Tools section
+	if len(s.Tools) > 0 {
+		b.WriteString("\n## Tools\n\n")
+		b.WriteString("| Tool | Description |\n")
+		b.WriteString("|------|-------------|\n")
+		for _, tool := range s.Tools {
+			desc := tool.Description
+			if desc == "" {
+				desc = "-"
+			}
+			b.WriteString(fmt.Sprintf("| %s | %s |\n", tool.Name, desc))
+		}
+	}
+
+	// Configuration section -- show non-secret config schema properties
+	if len(s.Config) > 0 {
+		if items := extractConfigProperties(s.Config); len(items) > 0 {
+			b.WriteString("\n## Configuration\n\n")
+			for _, item := range items {
+				b.WriteString(item)
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	// Authentication section
+	if len(s.Secrets) > 0 || s.IsOAuthServer() {
+		b.WriteString("\n## Authentication\n\n")
+		if s.IsOAuthServer() {
+			for _, provider := range s.OAuth.Providers {
+				b.WriteString(fmt.Sprintf("- OAuth provider: **%s**\n", provider.Provider))
+			}
+		}
+		for _, secret := range s.Secrets {
+			// Show the environment variable name (more useful than the
+			// fully-qualified internal secret key).
+			if secret.Env != "" {
+				b.WriteString(fmt.Sprintf("- `%s`\n", secret.Env))
+			} else {
+				b.WriteString(fmt.Sprintf("- `%s`\n", secret.Name))
+			}
+		}
+	}
+
+	// Metadata section
+	if s.Metadata != nil {
+		var metaItems []string
+		if s.Metadata.Category != "" {
+			metaItems = append(metaItems, fmt.Sprintf("- **Category:** %s", s.Metadata.Category))
+		}
+		if s.Metadata.License != "" {
+			metaItems = append(metaItems, fmt.Sprintf("- **License:** %s", s.Metadata.License))
+		}
+		if len(s.Metadata.Tags) > 0 {
+			metaItems = append(metaItems, fmt.Sprintf("- **Tags:** %s", strings.Join(s.Metadata.Tags, ", ")))
+		}
+		if len(metaItems) > 0 {
+			b.WriteString("\n## Details\n\n")
+			for _, item := range metaItems {
+				b.WriteString(item)
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	// Links section
+	var links []string
+	if registryResp != nil && registryResp.Server.WebsiteURL != "" {
+		links = append(links, fmt.Sprintf("- [Website](%s)", registryResp.Server.WebsiteURL))
+	}
+	if s.Metadata != nil && s.Metadata.RegistryURL != "" {
+		links = append(links, fmt.Sprintf("- [MCP Registry](%s)", s.Metadata.RegistryURL))
+	}
+	if s.Remote.URL != "" {
+		links = append(links, fmt.Sprintf("- Endpoint: `%s`", s.Remote.URL))
+	}
+	if s.ReadmeURL != "" {
+		links = append(links, fmt.Sprintf("- [Source Repository](%s)", sourceRepoFromReadmeURL(s.ReadmeURL)))
+	}
+	if len(links) > 0 {
+		b.WriteString("\n## Links\n\n")
+		for _, link := range links {
+			b.WriteString(link)
+			b.WriteString("\n")
+		}
+	}
+
+	// If we produced no structured content at all, fall back to the
+	// description so the overview is not completely blank.
+	if b.Len() == 0 && s.Description != "" {
+		return s.Description + "\n"
+	}
+
+	return b.String()
+}
+
+// extractConfigProperties pulls human-readable property descriptions from
+// the Config []any slice. Each element is expected to be a JSON-schema-like
+// map with a "properties" key.
+func extractConfigProperties(config []any) []string {
+	var items []string
+	for _, cfg := range config {
+		configMap, ok := cfg.(map[string]any)
+		if !ok {
+			continue
+		}
+		props, ok := configMap["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		for propName, propVal := range props {
+			propMap, ok := propVal.(map[string]any)
+			if !ok {
+				continue
+			}
+			desc, _ := propMap["description"].(string)
+			if desc != "" {
+				items = append(items, fmt.Sprintf("- `%s`: %s", propName, desc))
+			} else {
+				items = append(items, fmt.Sprintf("- `%s`", propName))
+			}
+		}
+	}
+	return items
+}
+
+// sourceRepoFromReadmeURL extracts a GitHub repository URL from a
+// raw.githubusercontent.com README URL. Returns the input unchanged
+// if it does not match the expected pattern.
+func sourceRepoFromReadmeURL(readmeURL string) string {
+	const prefix = "https://raw.githubusercontent.com/"
+	if !strings.HasPrefix(readmeURL, prefix) {
+		return readmeURL
+	}
+	rest := strings.TrimPrefix(readmeURL, prefix)
+	parts := strings.SplitN(rest, "/", 3) // owner/repo/...
+	if len(parts) < 2 {
+		return readmeURL
+	}
+	return fmt.Sprintf("https://github.com/%s/%s", parts[0], parts[1])
+}
+
+// fetchReadmeViaRegistryAPI attempts to discover a README by calling the
+// community registry API using the server's Metadata.RegistryURL. It extracts
+// the repository info from the API response, derives a GitHub raw README URL,
+// and fetches the content. Returns the README content (empty on failure) and
+// the registry API response (nil if the API call itself failed). The response
+// is returned even when the README fetch fails so callers can use its metadata
+// (title, status, websiteUrl) for the synthesized overview.
+func fetchReadmeViaRegistryAPI(ctx context.Context, client registryapi.Client, s *catalog.Server) (string, *v0.ServerResponse) {
+	if s.Metadata == nil || s.Metadata.RegistryURL == "" {
+		return "", nil
+	}
+
+	serverURL, err := registryapi.ParseServerURL(s.Metadata.RegistryURL)
+	if err != nil {
+		return "", nil
+	}
+
+	resp, err := client.GetServer(ctx, serverURL)
+	if err != nil {
+		return "", nil
+	}
+
+	if resp.Server.Repository.URL == "" {
+		return "", &resp
+	}
+
+	readmeURL := catalog.BuildGitHubReadmeURL(resp.Server.Repository.URL, resp.Server.Repository.Subfolder)
+	if readmeURL == "" {
+		return "", &resp
+	}
+
+	content, err := fetch.Untrusted(ctx, readmeURL)
+	if err == nil {
+		return string(content), &resp
+	}
+
+	// The raw.githubusercontent.com URL failed (commonly a 404 due to
+	// README filename casing: readme.md vs README.md, or the repo being
+	// private/deleted). Fall back to the GitHub API readme endpoint which
+	// auto-discovers the README regardless of filename or casing.
+	apiContent, apiErr := catalog.FetchGitHubReadmeViaAPI(ctx, resp.Server.Repository.URL, resp.Server.Repository.Subfolder)
+	if apiErr != nil {
+		return "", &resp
+	}
+	return apiContent, &resp
 }
 
 // ListServers lists servers in a catalog with optional filtering
