@@ -37,14 +37,6 @@ func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 			continue
 		}
 
-		// Desktop mode: skip registration for community servers when the
-		// McpGatewayOAuth flag is ON — Gateway owns OAuth for those.
-		if server.Snapshot.Server.IsCommunity() {
-			if shouldUseGatewayOAuthFunc(ctx, true) {
-				continue
-			}
-		}
-
 		if server.Snapshot.Server.HasExplicitOAuthProviders() {
 			serverName := server.Snapshot.Server.Name
 			providerName := server.Snapshot.Server.OAuth.Providers[0].Provider

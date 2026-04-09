@@ -94,8 +94,8 @@ func TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOn(t *testing.T) {
 
 	RegisterOAuthProvidersForServers(context.Background(), servers)
 
-	assert.Equal(t, []string{"catalog-oauth"}, registeredServers,
-		"flag ON: only catalog server should be registered with Desktop")
+	assert.Equal(t, []string{"catalog-oauth", "community-oauth"}, registeredServers,
+		"flag ON: both catalog and community servers should be registered with Desktop for OAuth tab visibility")
 }
 
 // TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOff verifies that
@@ -145,8 +145,9 @@ func newCommunityRemoteServer(name, url string) Server {
 }
 
 // TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn verifies that
-// community servers with a URL but no explicit OAuth are NOT registered for
-// dynamic discovery when the McpGatewayOAuth flag is ON (Gateway owns OAuth).
+// community servers with a URL but no explicit OAuth ARE registered for
+// dynamic discovery when the McpGatewayOAuth flag is ON. Registration is for
+// OAuth tab visibility — Gateway still owns the authorize/revoke lifecycle.
 func TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn(t *testing.T) {
 	mockDesktopModeWithGatewayOAuth(t, true)
 
@@ -165,8 +166,8 @@ func TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn(t *testing.T) {
 
 	RegisterOAuthProvidersForServers(context.Background(), servers)
 
-	assert.Empty(t, discoveredServers,
-		"flag ON: community remote server should NOT trigger dynamic discovery (Gateway owns OAuth)")
+	assert.Equal(t, []string{"community-remote"}, discoveredServers,
+		"flag ON: community remote server should trigger dynamic discovery for OAuth tab visibility")
 }
 
 // TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOff verifies that
