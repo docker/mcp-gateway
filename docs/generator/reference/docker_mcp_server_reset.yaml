@@ -1,11 +1,11 @@
 command: docker mcp server reset
-short: Disable all the servers
-long: Disable all the servers
+short: Obsolete
+long: Obsolete
 usage: docker mcp server reset
 pname: docker mcp server
 plink: docker_mcp_server.yaml
 deprecated: false
-hidden: false
+hidden: true
 experimental: false
 experimentalcli: false
 kubernetes: false
