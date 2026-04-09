@@ -418,6 +418,17 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}()
 	}
 
+	if g.DryRun {
+		// In dry-run mode, load capabilities synchronously so we validate
+		// server configs and report discovered tools before exiting.
+		if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+			log.Logf("> Initial capability load failed: %s", err)
+		}
+		log.Log("> Initialized in", time.Since(start))
+		log.Log("Dry run mode enabled, not starting the server.")
+		return nil
+	}
+
 	// Load initial server capabilities in the background. This connects to
 	// each configured MCP server to discover its tools, prompts, and
 	// resources. Unreachable servers (e.g. VPN-only endpoints when off-VPN)
@@ -432,11 +443,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 		log.Log("> Initialized in", time.Since(start))
 	}()
-
-	if g.DryRun {
-		log.Log("Dry run mode enabled, not starting the server.")
-		return nil
-	}
 
 	// Initialize authentication token for SSE and streaming modes
 	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
