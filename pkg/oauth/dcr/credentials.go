@@ -26,6 +26,7 @@ type Client struct {
 	ClientID              string    `json:"clientId,omitempty"`
 	ClientName            string    `json:"clientName,omitempty"`
 	ProviderName          string    `json:"providerName"`
+	RedirectURI           string    `json:"redirectUri,omitempty"`
 	RegisteredAt          time.Time `json:"registeredAt"`
 	RequiredScopes        []string  `json:"requiredScopes,omitempty"`
 	ResourceURL           string    `json:"resourceUrl,omitempty"`
