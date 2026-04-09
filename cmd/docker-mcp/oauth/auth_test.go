@@ -172,7 +172,7 @@ func TestAuthorizeCommunityMode_NoCleanupOnFailure(t *testing.T) {
 	}
 
 	// Call the real authorizeCommunityMode directly.
-	err := authorizeCommunityMode(t.Context(), "my-community-server", "")
+	err := authorizeCommunityMode(t.Context(), "my-community-server", "", true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create callback server")
 	assert.False(t, desktopCleanupCalled,
