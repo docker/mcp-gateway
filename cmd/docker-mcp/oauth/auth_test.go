@@ -33,7 +33,7 @@ func mockAuthorizeRouting(t *testing.T) *string {
 	})
 
 	var called string
-	authorizeCEModeFunc = func(_ context.Context, _, _ string) error {
+	authorizeCEModeFunc = func(_ context.Context, _, _ string, _ bool) error {
 		called = "ce"
 		return nil
 	}
@@ -41,7 +41,7 @@ func mockAuthorizeRouting(t *testing.T) *string {
 		called = "desktop"
 		return nil
 	}
-	authorizeCommunityModeFunc = func(_ context.Context, _, _ string) error {
+	authorizeCommunityModeFunc = func(_ context.Context, _, _ string, _ bool) error {
 		called = "community"
 		return nil
 	}
@@ -57,7 +57,7 @@ func TestAuthorize_CEMode_CatalogLookupFails(t *testing.T) {
 		return false, fmt.Errorf("server not found")
 	}
 
-	err := Authorize(t.Context(), "unknown-server", "")
+	err := Authorize(t.Context(), "unknown-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }
@@ -72,7 +72,7 @@ func TestAuthorize_DesktopMode_CatalogLookupFails(t *testing.T) {
 		return false, fmt.Errorf("server not found")
 	}
 
-	err := Authorize(t.Context(), "unknown-server", "")
+	err := Authorize(t.Context(), "unknown-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
@@ -88,7 +88,7 @@ func TestAuthorize_CatalogServer_DesktopMode(t *testing.T) {
 		return pkgoauth.ModeDesktop
 	}
 
-	err := Authorize(t.Context(), "catalog-server", "")
+	err := Authorize(t.Context(), "catalog-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
@@ -104,7 +104,7 @@ func TestAuthorize_CommunityServer_FlagOn(t *testing.T) {
 		return pkgoauth.ModeCommunity
 	}
 
-	err := Authorize(t.Context(), "community-server", "")
+	err := Authorize(t.Context(), "community-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "community", *called)
 }
@@ -120,7 +120,7 @@ func TestAuthorize_CommunityServer_FlagOff(t *testing.T) {
 		return pkgoauth.ModeDesktop
 	}
 
-	err := Authorize(t.Context(), "community-server", "")
+	err := Authorize(t.Context(), "community-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "desktop", *called)
 }
@@ -136,7 +136,7 @@ func TestAuthorize_CEMode_CommunityServer(t *testing.T) {
 		return pkgoauth.ModeCE
 	}
 
-	err := Authorize(t.Context(), "community-server", "")
+	err := Authorize(t.Context(), "community-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "ce", *called)
 }

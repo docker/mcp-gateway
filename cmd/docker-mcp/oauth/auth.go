@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -27,25 +29,41 @@ var (
 
 // Authorize performs OAuth authorization for a server, routing to the
 // appropriate flow based on the per-server mode (Desktop, CE, or Community).
-func Authorize(ctx context.Context, app string, scopes string) error {
+func Authorize(ctx context.Context, app string, scopes string, openBrowser bool) error {
 	isCommunity, err := lookupIsCommunityFunc(ctx, app)
 	if err != nil {
 		// Server not in catalog -- fall back to legacy global routing
 		// so existing servers without catalog entries still work.
 		if isCEModeFunc() {
-			return authorizeCEModeFunc(ctx, app, scopes)
+			return authorizeCEModeFunc(ctx, app, scopes, openBrowser)
 		}
 		return authorizeDesktopModeFunc(ctx, app, scopes)
 	}
 
 	switch determineModeFunc(ctx, isCommunity) {
 	case pkgoauth.ModeCE:
-		return authorizeCEModeFunc(ctx, app, scopes)
+		return authorizeCEModeFunc(ctx, app, scopes, openBrowser)
 	case pkgoauth.ModeCommunity:
-		return authorizeCommunityModeFunc(ctx, app, scopes)
+		return authorizeCommunityModeFunc(ctx, app, scopes, openBrowser)
 	default: // ModeDesktop
 		return authorizeDesktopModeFunc(ctx, app, scopes)
 	}
+}
+
+// openBrowserURL opens the given URL in the system's default browser.
+func openBrowserURL(rawURL string) {
+	ctx := context.Background()
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.CommandContext(ctx, "open", rawURL)
+	case "windows":
+		cmd = exec.CommandContext(ctx, "cmd", "/c", "start", rawURL)
+	default: // linux and others
+		cmd = exec.CommandContext(ctx, "xdg-open", rawURL)
+	}
+	// Best-effort: ignore errors so a missing browser doesn't fail the auth flow.
+	_ = cmd.Start()
 }
 
 // lookupIsCommunity checks the OCI catalog database to determine if a server is a community server.
@@ -81,7 +99,7 @@ func authorizeDesktopMode(ctx context.Context, app string, scopes string) error 
 }
 
 // authorizeCEMode handles OAuth in standalone CE mode
-func authorizeCEMode(ctx context.Context, serverName string, scopes string) error {
+func authorizeCEMode(ctx context.Context, serverName string, scopes string, openBrowser bool) error {
 	fmt.Printf("Starting OAuth authorization for %s...\n", serverName)
 
 	// Create OAuth manager with read-write credential helper
@@ -133,7 +151,12 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 	_ = baseState // We'll validate using the state from callback
 
 	// Step 4: Display authorization URL
-	fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
+	if openBrowser {
+		fmt.Printf("Opening your browser for authentication. If it doesn't open automatically, please visit: %s\n", authURL)
+		openBrowserURL(authURL)
+	} else {
+		fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
+	}
 
 	// Step 5: Wait for callback
 	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())
@@ -160,7 +183,7 @@ func authorizeCEMode(ctx context.Context, serverName string, scopes string) erro
 
 // authorizeCommunityMode handles OAuth for community servers in Desktop mode.
 // Uses the Gateway OAuth flow (localhost callback, PKCE) with docker pass storage.
-func authorizeCommunityMode(ctx context.Context, serverName string, scopes string) error {
+func authorizeCommunityMode(ctx context.Context, serverName string, scopes string, openBrowser bool) error {
 	fmt.Printf("Starting OAuth authorization for %s (community)...\n", serverName)
 
 	// Validate docker pass is available (required for community mode)
@@ -247,8 +270,13 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 
 	authURL := config.AuthCodeURL(state, opts...)
 
-	// Step 4: Display authorization URL
-	fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
+	// Step 4: Display authorization URL (and open browser if requested)
+	if openBrowser {
+		fmt.Printf("Opening your browser for authentication. If it doesn't open automatically, please visit: %s\n", authURL)
+		openBrowserURL(authURL)
+	} else {
+		fmt.Printf("Please visit this URL to authorize:\n\n  %s\n\n", authURL)
+	}
 
 	// Step 5: Wait for callback
 	fmt.Printf("Waiting for authorization callback on http://localhost:%d/callback...\n", callbackServer.Port())

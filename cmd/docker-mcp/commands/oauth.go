@@ -36,18 +36,20 @@ func lsOauthCommand() *cobra.Command {
 
 func authorizeOauthCommand() *cobra.Command {
 	var opts struct {
-		Scopes string
+		Scopes      string
+		OpenBrowser bool
 	}
 	cmd := &cobra.Command{
 		Use:   "authorize <app>",
 		Short: "Authorize the specified OAuth app.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return oauth.Authorize(cmd.Context(), args[0], opts.Scopes)
+			return oauth.Authorize(cmd.Context(), args[0], opts.Scopes, opts.OpenBrowser)
 		},
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Scopes, "scopes", "", "OAuth scopes to request (space-separated)")
+	flags.BoolVar(&opts.OpenBrowser, "open-browser", false, "Open the authorization URL in the default browser automatically")
 	return cmd
 }
 
