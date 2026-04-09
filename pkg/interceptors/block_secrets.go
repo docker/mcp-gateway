@@ -21,6 +21,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 
 			var toolName string
 			var arguments any
+			var inputHadSecrets bool
 
 			// Try to extract from request
 			if callReq, ok := req.(*mcp.CallToolRequest); ok && callReq.Params != nil {
@@ -32,7 +33,8 @@ func BlockSecretsMiddleware() mcp.Middleware {
 				log.Logf("  - Scanning tool call arguments for secrets...\n")
 
 				argumentsStr := argumentsToString(arguments)
-				if secretsscan.ContainsSecrets(argumentsStr) {
+				if argumentsStr != "" && secretsscan.ContainsSecrets(argumentsStr) {
+					inputHadSecrets = true
 					return nil, fmt.Errorf("a secret is being passed to tool %s", toolName)
 				}
 
@@ -44,8 +46,9 @@ func BlockSecretsMiddleware() mcp.Middleware {
 				return result, err
 			}
 
-			// Check response for secrets
-			if result != nil {
+			// Check response for secrets only if secrets were present in the input
+			if result != nil && inputHadSecrets {
+
 				log.Logf("  - Scanning tool call response for secrets...\n")
 
 				var contents string
