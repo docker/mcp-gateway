@@ -12,6 +12,7 @@ Manage MCP servers and clients
 | [`config`](mcp_config.md)   | Manage the configuration                |
 | [`feature`](mcp_feature.md) | Manage experimental features            |
 | [`gateway`](mcp_gateway.md) | Manage the MCP Server gateway           |
+| [`oauth`](mcp_oauth.md)     | Manage OAuth app authorizations         |
 | [`secret`](mcp_secret.md)   | Manage secrets in the local OS Keychain |
 | [`server`](mcp_server.md)   | Manage servers                          |
 | [`tools`](mcp_tools.md)     | Manage tools                            |
