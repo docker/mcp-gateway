@@ -5,7 +5,7 @@ usage: docker mcp oauth revoke <app>
 pname: docker mcp oauth
 plink: docker_mcp_oauth.yaml
 deprecated: false
-hidden: true
+hidden: false
 experimental: false
 experimentalcli: false
 kubernetes: false

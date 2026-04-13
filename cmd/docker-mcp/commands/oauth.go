@@ -8,8 +8,8 @@ import (
 
 func oauthCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "oauth",
-		Hidden: true,
+		Use:   "oauth",
+		Short: "Manage OAuth app authorizations",
 	}
 	cmd.AddCommand(lsOauthCommand())
 	cmd.AddCommand(authorizeOauthCommand())

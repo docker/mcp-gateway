@@ -1,4 +1,6 @@
 command: docker mcp oauth
+short: Manage OAuth app authorizations
+long: Manage OAuth app authorizations
 pname: docker mcp
 plink: docker_mcp.yaml
 cname:
@@ -10,7 +12,7 @@ clink:
     - docker_mcp_oauth_ls.yaml
     - docker_mcp_oauth_revoke.yaml
 deprecated: false
-hidden: true
+hidden: false
 experimental: false
 experimentalcli: false
 kubernetes: false
