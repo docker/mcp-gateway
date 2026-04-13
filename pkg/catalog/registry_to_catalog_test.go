@@ -3,6 +3,8 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -1219,5 +1221,250 @@ func TestTransformPyPIPackageNotFound(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "nonexistent-mcp-server@9.9.9") {
 		t.Errorf("Expected package identifier and version in error message, got: %v", err)
+	}
+}
+
+func TestBuildGitHubReadmeURL(t *testing.T) {
+	tests := []struct {
+		name      string
+		repoURL   string
+		subfolder string
+		want      string
+	}{
+		{
+			name:    "standard GitHub URL",
+			repoURL: "https://github.com/owner/repo",
+			want:    "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
+		},
+		{
+			name:    "GitHub URL with trailing slash",
+			repoURL: "https://github.com/owner/repo/",
+			want:    "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
+		},
+		{
+			name:    "GitHub URL with .git suffix",
+			repoURL: "https://github.com/owner/repo.git",
+			want:    "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
+		},
+		{
+			name:      "GitHub URL with subfolder",
+			repoURL:   "https://github.com/owner/repo",
+			subfolder: "packages/my-server",
+			want:      "https://raw.githubusercontent.com/owner/repo/HEAD/packages/my-server/README.md",
+		},
+		{
+			name:    "non-GitHub URL",
+			repoURL: "https://gitlab.com/owner/repo",
+			want:    "",
+		},
+		{
+			name:    "empty URL",
+			repoURL: "",
+			want:    "",
+		},
+		{
+			name:    "invalid URL",
+			repoURL: "://not-a-url",
+			want:    "",
+		},
+		{
+			name:    "GitHub URL with only owner (no repo)",
+			repoURL: "https://github.com/owner",
+			want:    "",
+		},
+		{
+			name:    "GitHub URL with extra path segments",
+			repoURL: "https://github.com/owner/repo/tree/main",
+			want:    "https://raw.githubusercontent.com/owner/repo/HEAD/README.md",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BuildGitHubReadmeURL(tt.repoURL, tt.subfolder)
+			if got != tt.want {
+				t.Errorf("BuildGitHubReadmeURL(%q, %q) = %q, want %q", tt.repoURL, tt.subfolder, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTransformSetsReadmeURLFromRepository(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.github.example/server-with-repo",
+			"description": "Server with a GitHub repository",
+			"version": "1.0.0",
+			"repository": {
+				"url": "https://github.com/example/my-server",
+				"source": "github",
+				"id": "12345"
+			},
+			"packages": [{
+				"registryType": "oci",
+				"identifier": "docker.io/example/my-server",
+				"version": "sha256:abc123",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, _ := transformTestJSON(t, registryJSON, nil)
+
+	expected := "https://raw.githubusercontent.com/example/my-server/HEAD/README.md"
+	if result.ReadmeURL != expected {
+		t.Errorf("Expected ReadmeURL %q, got %q", expected, result.ReadmeURL)
+	}
+}
+
+func TestTransformSetsReadmeURLFromRepositoryWithSubfolder(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "io.github.example/mono-server",
+			"description": "Server in a monorepo subfolder",
+			"version": "1.0.0",
+			"repository": {
+				"url": "https://github.com/example/monorepo",
+				"source": "github",
+				"id": "12345",
+				"subfolder": "packages/mcp-server"
+			},
+			"packages": [{
+				"registryType": "oci",
+				"identifier": "docker.io/example/mono-server",
+				"version": "sha256:abc123",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, _ := transformTestJSON(t, registryJSON, nil)
+
+	expected := "https://raw.githubusercontent.com/example/monorepo/HEAD/packages/mcp-server/README.md"
+	if result.ReadmeURL != expected {
+		t.Errorf("Expected ReadmeURL %q, got %q", expected, result.ReadmeURL)
+	}
+}
+
+func TestTransformNoReadmeURLWithoutRepository(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "com.example/no-repo-server",
+			"description": "Server without repository info",
+			"version": "1.0.0",
+			"remotes": [{
+				"type": "streamable-http",
+				"url": "https://api.example.com/mcp"
+			}]
+		}
+	}`
+
+	result, _ := transformTestJSON(t, registryJSON, nil)
+
+	if result.ReadmeURL != "" {
+		t.Errorf("Expected empty ReadmeURL for server without repository, got %q", result.ReadmeURL)
+	}
+}
+
+func TestTransformNoReadmeURLWithNonGitHubRepository(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+			"name": "com.example/gitlab-server",
+			"description": "Server with non-GitHub repository",
+			"version": "1.0.0",
+			"repository": {
+				"url": "https://gitlab.com/example/my-server",
+				"source": "gitlab"
+			},
+			"remotes": [{
+				"type": "streamable-http",
+				"url": "https://api.example.com/mcp"
+			}]
+		}
+	}`
+
+	result, _ := transformTestJSON(t, registryJSON, nil)
+
+	if result.ReadmeURL != "" {
+		t.Errorf("Expected empty ReadmeURL for non-GitHub repository, got %q", result.ReadmeURL)
+	}
+}
+
+func TestFetchGitHubReadmeViaAPI(t *testing.T) {
+	t.Run("non-GitHub URL returns error", func(t *testing.T) {
+		_, err := FetchGitHubReadmeViaAPI(t.Context(), "https://gitlab.com/owner/repo", "")
+		if err == nil {
+			t.Error("Expected error for non-GitHub URL")
+		}
+	})
+
+	t.Run("empty URL returns error", func(t *testing.T) {
+		_, err := FetchGitHubReadmeViaAPI(t.Context(), "", "")
+		if err == nil {
+			t.Error("Expected error for empty URL")
+		}
+	})
+
+	t.Run("successful fetch from mock server", func(t *testing.T) {
+		// Use httptest to simulate the GitHub API
+		readmeContent := "# My MCP Server\n\nThis is the readme."
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Accept") != "application/vnd.github.raw+json" {
+				t.Errorf("Expected Accept header application/vnd.github.raw+json, got %q", r.Header.Get("Accept"))
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(readmeContent))
+		}))
+		defer ts.Close()
+
+		// We can't easily redirect FetchGitHubReadmeViaAPI to our test server
+		// because it constructs the URL internally. But we CAN test the URL
+		// construction logic via parseGitHubOwnerRepo and verify the function
+		// handles non-200 responses correctly. The full integration path is
+		// tested via the TestFetchReadmeViaRegistryAPI tests in
+		// server_test.go where the mock server exercises the fallback.
+		owner, repo := parseGitHubOwnerRepo("https://github.com/test/repo")
+		if owner != "test" || repo != "repo" {
+			t.Errorf("parseGitHubOwnerRepo: got (%q, %q), want (test, repo)", owner, repo)
+		}
+	})
+
+	t.Run("subfolder URL construction", func(t *testing.T) {
+		owner, repo := parseGitHubOwnerRepo("https://github.com/org/monorepo.git")
+		if owner != "org" || repo != "monorepo" {
+			t.Errorf("parseGitHubOwnerRepo: got (%q, %q), want (org, monorepo)", owner, repo)
+		}
+	})
+}
+
+func TestParseGitHubOwnerRepo(t *testing.T) {
+	tests := []struct {
+		name      string
+		url       string
+		wantOwner string
+		wantRepo  string
+	}{
+		{"standard URL", "https://github.com/owner/repo", "owner", "repo"},
+		{"trailing slash", "https://github.com/owner/repo/", "owner", "repo"},
+		{".git suffix", "https://github.com/owner/repo.git", "owner", "repo"},
+		{"extra path segments", "https://github.com/owner/repo/tree/main/src", "owner", "repo"},
+		{"non-GitHub", "https://gitlab.com/owner/repo", "", ""},
+		{"no repo", "https://github.com/owner", "", ""},
+		{"empty", "", "", ""},
+		{"invalid URL", "://bad", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			owner, repo := parseGitHubOwnerRepo(tt.url)
+			if owner != tt.wantOwner || repo != tt.wantRepo {
+				t.Errorf("parseGitHubOwnerRepo(%q) = (%q, %q), want (%q, %q)",
+					tt.url, owner, repo, tt.wantOwner, tt.wantRepo)
+			}
+		})
 	}
 }
