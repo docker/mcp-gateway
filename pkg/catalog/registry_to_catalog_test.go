@@ -1221,3 +1221,633 @@ func TestTransformPyPIPackageNotFound(t *testing.T) {
 		t.Errorf("Expected package identifier and version in error message, got: %v", err)
 	}
 }
+
+// transformTestJSONWithOpts is a test helper that accepts variadic TransformOptions.
+func transformTestJSONWithOpts(t *testing.T, registryJSON string, opts ...TransformOption) (Server, string) {
+	t.Helper()
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+	result, _, err := TransformToDocker(t.Context(), serverResponse.Server, opts...)
+	if err != nil {
+		t.Fatalf("TransformToDocker failed: %v", err)
+	}
+	catalogJSON, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		t.Fatalf("Failed to marshal catalog JSON: %v", err)
+	}
+	return *result, string(catalogJSON)
+}
+
+func TestTransformNPM(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "ai.agenttrust/mcp-server",
+			"title": "AgentTrust",
+			"description": "Identity, trust, and A2A orchestration for autonomous AI agents.",
+			"version": "1.1.1",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://registry.npmjs.org",
+				"identifier": "@agenttrust/mcp-server",
+				"version": "1.1.1",
+				"transport": {"type": "stdio"},
+				"environmentVariables": [
+					{
+						"name": "AGENTTRUST_API_KEY",
+						"description": "Your AgentTrust API key",
+						"isSecret": true,
+						"isRequired": true
+					}
+				]
+			}]
+		}
+	}`
+
+	mockResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "22", true
+	}
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON, WithNPMResolver(mockResolver))
+
+	if result.Name != "ai-agenttrust-mcp-server" {
+		t.Errorf("Expected name 'ai-agenttrust-mcp-server', got '%s'", result.Name)
+	}
+	if result.Title != "AgentTrust" {
+		t.Errorf("Expected title 'AgentTrust', got '%s'", result.Title)
+	}
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	expectedImage := "node:22-bookworm-slim"
+	if result.Image != expectedImage {
+		t.Errorf("Expected image '%s', got '%s'", expectedImage, result.Image)
+	}
+
+	expectedCommand := []string{"npx", "--yes", "@agenttrust/mcp-server@1.1.1"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	if !result.LongLived {
+		t.Error("Expected npm server to be long-lived")
+	}
+
+	if len(result.Volumes) == 0 {
+		t.Error("Expected volumes to be present")
+	} else {
+		expectedVolume := "docker-mcp-npm-cache-ai-agenttrust-mcp-server:/root/.npm"
+		if result.Volumes[0] != expectedVolume {
+			t.Errorf("Expected volume '%s', got '%s'", expectedVolume, result.Volumes[0])
+		}
+	}
+
+	if len(result.Secrets) == 0 {
+		t.Error("Expected secrets to be present")
+	} else {
+		found := false
+		for _, secret := range result.Secrets {
+			if secret.Name == "ai-agenttrust-mcp-server.AGENTTRUST_API_KEY" {
+				if secret.Env != "AGENTTRUST_API_KEY" {
+					t.Errorf("Expected secret env 'AGENTTRUST_API_KEY', got '%s'", secret.Env)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected AGENTTRUST_API_KEY secret")
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMScopedPackage(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.github.playwright/mcp",
+			"title": "Playwright MCP Server",
+			"description": "MCP server for Playwright browser automation",
+			"version": "0.1.0",
+			"packages": [{
+				"registryType": "npm",
+				"identifier": "@playwright/mcp",
+				"version": "0.1.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	mockResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "18", true
+	}
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON, WithNPMResolver(mockResolver))
+
+	expectedImage := "node:18-bookworm-slim"
+	if result.Image != expectedImage {
+		t.Errorf("Expected image '%s', got '%s'", expectedImage, result.Image)
+	}
+
+	expectedCommand := []string{"npx", "--yes", "@playwright/mcp@0.1.0"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMWithCustomRegistry(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "com.example/custom-npm-server",
+			"title": "Custom npm Server",
+			"description": "MCP server from custom npm registry",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://custom.registry.com",
+				"identifier": "my-custom-package",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
+
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	expectedCommand := []string{"npx", "--yes", "--registry", "https://custom.registry.com", "my-custom-package@1.0.0"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMWithPackageArgs(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.example/npm-with-args",
+			"title": "npm Server with Arguments",
+			"description": "MCP server with command-line arguments",
+			"version": "2.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"identifier": "telbase",
+				"version": "2.0.0",
+				"transport": {"type": "stdio"},
+				"packageArguments": [
+					{
+						"type": "positional",
+						"value": "mcp"
+					},
+					{
+						"type": "positional",
+						"value": "serve"
+					}
+				]
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
+
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	expectedCommand := []string{"npx", "--yes", "telbase@2.0.0", "mcp", "serve"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMWithoutVersion(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.example/npm-no-version",
+			"title": "npm Server No Version",
+			"description": "MCP server without version specified",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"identifier": "@contextlayer/mcp",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
+
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	expectedCommand := []string{"npx", "--yes", "@contextlayer/mcp"}
+	if len(result.Command) != len(expectedCommand) {
+		t.Errorf("Expected command length %d, got %d", len(expectedCommand), len(result.Command))
+	} else {
+		for i, cmd := range expectedCommand {
+			if result.Command[i] != cmd {
+				t.Errorf("Expected command[%d] '%s', got '%s'", i, cmd, result.Command[i])
+			}
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMWithEnvVariables(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.example/npm-with-env",
+			"title": "npm Server with Environment Variables",
+			"description": "MCP server with environment variables",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"identifier": "my-env-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"},
+				"environmentVariables": [
+					{
+						"name": "API_KEY",
+						"description": "API key for authentication",
+						"isSecret": true,
+						"isRequired": true
+					},
+					{
+						"name": "LOG_LEVEL",
+						"value": "{log_level}",
+						"variables": {
+							"log_level": {
+								"description": "Logging level",
+								"default": "info"
+							}
+						}
+					}
+				]
+			}]
+		}
+	}`
+
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
+
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+
+	// Verify secrets
+	if len(result.Secrets) == 0 {
+		t.Error("Expected secrets to be present")
+	} else {
+		found := false
+		for _, secret := range result.Secrets {
+			if secret.Name == "io-example-npm-with-env.API_KEY" {
+				if secret.Env != "API_KEY" {
+					t.Errorf("Expected secret env 'API_KEY', got '%s'", secret.Env)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected API_KEY secret")
+		}
+	}
+
+	// Verify environment variables
+	if len(result.Env) == 0 {
+		t.Error("Expected environment variables to be present")
+	} else {
+		found := false
+		for _, env := range result.Env {
+			if env.Name == "LOG_LEVEL" {
+				if env.Value != "{{io-example-npm-with-env.log_level}}" {
+					t.Errorf("Expected LOG_LEVEL value '{{io-example-npm-with-env.log_level}}', got '%s'", env.Value)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected LOG_LEVEL environment variable")
+		}
+	}
+
+	// Verify config
+	if len(result.Config) == 0 {
+		t.Error("Expected config to be present")
+	} else {
+		configMap, ok := result.Config[0].(map[string]any)
+		if !ok {
+			t.Fatal("Expected config to be a map[string]any")
+		}
+		properties, ok := configMap["properties"].(map[string]any)
+		if !ok {
+			t.Fatal("Expected properties in config")
+		}
+		if _, ok := properties["log_level"]; !ok {
+			t.Error("Expected log_level in config properties")
+		}
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}
+
+func TestTransformNPMDisallowed(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/npm-only-server",
+			"title": "npm Only Server",
+			"description": "Server with only npm package",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://registry.npmjs.org",
+				"identifier": "@example/mcp-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	_, _, err := TransformToDocker(t.Context(), serverResponse.Server, WithAllowNPM(false))
+	if err == nil {
+		t.Fatal("Expected error when npm is disallowed, got nil")
+	}
+	if !strings.Contains(err.Error(), "incompatible server") {
+		t.Errorf("Expected incompatible server error, got: %v", err)
+	}
+}
+
+func TestTransformNPMAllowedByDefault(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/npm-default",
+			"title": "npm Default Server",
+			"description": "Server with only npm package",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://registry.npmjs.org",
+				"identifier": "@example/mcp-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	result, source, err := TransformToDocker(t.Context(), serverResponse.Server)
+	if err != nil {
+		t.Fatalf("Expected success for npm with default options, got: %v", err)
+	}
+	if source != TransformSourceNPM {
+		t.Errorf("Expected source %q, got %q", TransformSourceNPM, source)
+	}
+	if result.Type != "server" {
+		t.Errorf("Expected type 'server', got '%s'", result.Type)
+	}
+	if result.Image == "" {
+		t.Error("Expected image to be set for npm server")
+	}
+}
+
+func TestTransformNPMPackageNotFound(t *testing.T) {
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/npm-not-found",
+			"title": "npm Not Found Server",
+			"description": "Server whose npm package does not exist",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://registry.npmjs.org",
+				"identifier": "@nonexistent/mcp-server",
+				"version": "9.9.9",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	notFoundResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "", false
+	}
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	_, _, err := TransformToDocker(t.Context(), serverResponse.Server, WithNPMResolver(notFoundResolver))
+	if err == nil {
+		t.Fatal("Expected error when npm package is not found, got nil")
+	}
+	if !strings.Contains(err.Error(), "was not found") {
+		t.Errorf("Expected 'was not found' in error message, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "@nonexistent/mcp-server@9.9.9") {
+		t.Errorf("Expected package identifier and version in error message, got: %v", err)
+	}
+}
+
+func TestTransformNPMPackageNotFoundWithRemoteFallback(t *testing.T) {
+	// When npm resolver returns not-found but a remote transport exists,
+	// the server should fall back to remote instead of erroring.
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/npm-with-remote-fallback",
+			"title": "npm Server with Remote Fallback",
+			"description": "Server with npm package and remote transport",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"registryBaseUrl": "https://registry.npmjs.org",
+				"identifier": "@nonexistent/mcp-server",
+				"version": "9.9.9",
+				"transport": {"type": "stdio"}
+			}],
+			"remotes": [{
+				"type": "sse",
+				"url": "https://example.com/mcp"
+			}]
+		}
+	}`
+
+	notFoundResolver := func(_ context.Context, _, _, _ string) (string, bool) {
+		return "", false
+	}
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	result, source, err := TransformToDocker(t.Context(), serverResponse.Server, WithNPMResolver(notFoundResolver))
+	if err != nil {
+		t.Fatalf("Expected success with remote fallback, got: %v", err)
+	}
+	if source != TransformSourceRemote {
+		t.Errorf("Expected source %q, got %q", TransformSourceRemote, source)
+	}
+	if result.Remote.URL != "https://example.com/mcp" {
+		t.Errorf("Expected remote URL 'https://example.com/mcp', got '%s'", result.Remote.URL)
+	}
+	if result.Type != "remote" {
+		t.Errorf("Expected type 'remote', got '%s'", result.Type)
+	}
+}
+
+func TestTransformNPMPreferOCIOverNPM(t *testing.T) {
+	// When a server has both OCI and npm packages, OCI should be preferred.
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/oci-and-npm",
+			"title": "Server with OCI and npm",
+			"description": "Server with both package types",
+			"version": "1.0.0",
+			"packages": [
+				{
+					"registryType": "npm",
+					"identifier": "@example/mcp-server",
+					"version": "1.0.0",
+					"transport": {"type": "stdio"}
+				},
+				{
+					"registryType": "oci",
+					"identifier": "ghcr.io/example/server:1.0.0",
+					"transport": {"type": "stdio"}
+				}
+			]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	result, source, err := TransformToDocker(t.Context(), serverResponse.Server)
+	if err != nil {
+		t.Fatalf("Expected success, got: %v", err)
+	}
+	if source != TransformSourceOCI {
+		t.Errorf("Expected source %q, got %q", TransformSourceOCI, source)
+	}
+	if result.Image != "ghcr.io/example/server:1.0.0" {
+		t.Errorf("Expected OCI image, got '%s'", result.Image)
+	}
+}
+
+func TestTransformNPMPreferPyPIOverNPM(t *testing.T) {
+	// When a server has both PyPI and npm packages, PyPI should be preferred.
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/pypi-and-npm",
+			"title": "Server with PyPI and npm",
+			"description": "Server with both package types",
+			"version": "1.0.0",
+			"packages": [
+				{
+					"registryType": "npm",
+					"identifier": "@example/mcp-server",
+					"version": "1.0.0",
+					"transport": {"type": "stdio"}
+				},
+				{
+					"registryType": "pypi",
+					"identifier": "example-mcp-server",
+					"version": "1.0.0",
+					"transport": {"type": "stdio"}
+				}
+			]
+		}
+	}`
+
+	var serverResponse v0.ServerResponse
+	if err := json.Unmarshal([]byte(registryJSON), &serverResponse); err != nil {
+		t.Fatalf("Failed to parse registry JSON: %v", err)
+	}
+
+	result, source, err := TransformToDocker(t.Context(), serverResponse.Server)
+	if err != nil {
+		t.Fatalf("Expected success, got: %v", err)
+	}
+	if source != TransformSourcePyPI {
+		t.Errorf("Expected source %q, got %q", TransformSourcePyPI, source)
+	}
+	if !strings.HasPrefix(result.Image, "ghcr.io/astral-sh/uv:") {
+		t.Errorf("Expected uv image for PyPI, got '%s'", result.Image)
+	}
+}
+
+func TestTransformNPMNilResolver(t *testing.T) {
+	// When no npm resolver is provided, the default Node version should be used.
+	registryJSON := `{
+		"server": {
+			"name": "io.github.example/npm-nil-resolver",
+			"title": "npm Server No Resolver",
+			"description": "npm server without resolver",
+			"version": "1.0.0",
+			"packages": [{
+				"registryType": "npm",
+				"identifier": "@example/mcp-server",
+				"version": "1.0.0",
+				"transport": {"type": "stdio"}
+			}]
+		}
+	}`
+
+	// Explicitly pass no npm resolver
+	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
+
+	expectedImage := "node:22-bookworm-slim"
+	if result.Image != expectedImage {
+		t.Errorf("Expected default image '%s', got '%s'", expectedImage, result.Image)
+	}
+
+	t.Logf("Catalog JSON:\n%s", catalogJSON)
+}

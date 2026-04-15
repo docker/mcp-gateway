@@ -23,6 +23,7 @@ type TransformSource string
 const (
 	TransformSourceOCI    TransformSource = "oci"
 	TransformSourcePyPI   TransformSource = "pypi"
+	TransformSourceNPM    TransformSource = "npm"
 	TransformSourceRemote TransformSource = "remote"
 )
 
@@ -32,6 +33,8 @@ type TransformOption func(*transformOptions)
 type transformOptions struct {
 	allowPyPI    bool
 	pypiResolver PyPIVersionResolver
+	allowNPM     bool
+	npmResolver  NPMVersionResolver
 }
 
 // WithAllowPyPI controls whether PyPI packages are considered during transformation.
@@ -47,6 +50,22 @@ func WithAllowPyPI(allow bool) TransformOption {
 func WithPyPIResolver(resolver PyPIVersionResolver) TransformOption {
 	return func(o *transformOptions) {
 		o.pypiResolver = resolver
+	}
+}
+
+// WithAllowNPM controls whether npm packages are considered during transformation.
+// By default, npm packages are allowed.
+func WithAllowNPM(allow bool) TransformOption {
+	return func(o *transformOptions) {
+		o.allowNPM = allow
+	}
+}
+
+// WithNPMResolver sets the npm version resolver used to determine the Node.js
+// version for npm packages. If not set, the default Node.js version is used.
+func WithNPMResolver(resolver NPMVersionResolver) TransformOption {
+	return func(o *transformOptions) {
+		o.npmResolver = resolver
 	}
 }
 
@@ -226,6 +245,36 @@ func extractPyPIInfo(pkg model.Package, pythonVersion string, serverName string)
 	// Add uv cache volume (keyed per server to avoid cross-contamination)
 	volumeName := fmt.Sprintf("docker-mcp-uv-cache-%s", serverName)
 	volumes = []string{volumeName + ":/root/.cache/uv"}
+
+	return image, command, volumes
+}
+
+func extractNPMInfo(pkg model.Package, nodeVersion string, serverName string) (image string, command []string, volumes []string) {
+	if pkg.RegistryType != "npm" {
+		return "", nil, nil
+	}
+
+	// Set the Node.js Docker image based on version
+	image = nodeVersionToImageTag(nodeVersion)
+
+	// Build npx command with --yes to avoid interactive prompts
+	command = []string{"npx", "--yes"}
+
+	// Add custom registry if specified (and not default npm registry)
+	if pkg.RegistryBaseURL != "" && pkg.RegistryBaseURL != "https://registry.npmjs.org" {
+		command = append(command, "--registry", pkg.RegistryBaseURL)
+	}
+
+	// Add package identifier with optional version
+	if pkg.Version != "" {
+		command = append(command, fmt.Sprintf("%s@%s", pkg.Identifier, pkg.Version))
+	} else {
+		command = append(command, pkg.Identifier)
+	}
+
+	// Add npm cache volume (keyed per server to avoid cross-contamination)
+	volumeName := fmt.Sprintf("docker-mcp-npm-cache-%s", serverName)
+	volumes = []string{volumeName + ":/root/.npm"}
 
 	return image, command, volumes
 }
@@ -411,6 +460,7 @@ func getPublisherProvidedMeta(meta *v0.ServerMeta) map[string]any {
 func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...TransformOption) (*Server, TransformSource, error) {
 	options := transformOptions{
 		allowPyPI: true,
+		allowNPM:  true,
 	}
 	for _, opt := range opts {
 		opt(&options)
@@ -430,6 +480,15 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 	if pkg == nil && options.allowPyPI {
 		for i := range serverDetail.Packages {
 			if serverDetail.Packages[i].RegistryType == "pypi" &&
+				serverDetail.Packages[i].Transport.Type == "stdio" {
+				pkg = &serverDetail.Packages[i]
+				break
+			}
+		}
+	}
+	if pkg == nil && options.allowNPM {
+		for i := range serverDetail.Packages {
+			if serverDetail.Packages[i].RegistryType == "npm" &&
 				serverDetail.Packages[i].Transport.Type == "stdio" {
 				pkg = &serverDetail.Packages[i]
 				break
@@ -480,6 +539,24 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 				server.LongLived = true
 				source = TransformSourcePyPI
 			}
+		case "npm":
+			var nodeVersion string
+			if options.npmResolver != nil {
+				nv, found := options.npmResolver(ctx, pkg.Identifier, pkg.Version, pkg.RegistryBaseURL)
+				if !found && remote == nil { // Only fail if we can't use a remote fallback
+					return nil, "", fmt.Errorf("npm package %s@%s was not found", pkg.Identifier, pkg.Version)
+				}
+				nodeVersion = nv
+			}
+			image, command, volumes := extractNPMInfo(*pkg, nodeVersion, serverName)
+			if image != "" {
+				server.Image = image
+				server.Command = command
+				server.Volumes = volumes
+				server.Type = "server"
+				server.LongLived = true
+				source = TransformSourceNPM
+			}
 		default:
 			return nil, "", fmt.Errorf("unsupported registry type: %s", pkg.RegistryType)
 		}
@@ -515,8 +592,8 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 
 	// Add package arguments
 	if pkg != nil && len(pkg.PackageArguments) > 0 {
-		if pkg.RegistryType == "pypi" {
-			// For PyPI: append package args to the uvx command
+		if pkg.RegistryType == "pypi" || pkg.RegistryType == "npm" {
+			// For PyPI/npm: append package args to the uvx/npx command
 			server.Command = append(server.Command, convertPackageArgsToCommand(pkg.PackageArguments, serverName)...)
 		} else {
 			// For OCI: package args become the full command
