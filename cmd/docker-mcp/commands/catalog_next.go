@@ -42,6 +42,7 @@ func createCatalogNextCommand() *cobra.Command {
 		Servers               []string
 		Exclude               []string
 		IncludePyPI           bool
+		IncludeNPM            bool
 	}
 
 	cmd := &cobra.Command{
@@ -92,6 +93,10 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 				return fmt.Errorf("--include-pypi can only be used when creating a catalog from a community registry")
 			}
 
+			if opts.IncludeNPM && opts.FromCommunityRegistry == "" {
+				return fmt.Errorf("--include-npm can only be used when creating a catalog from a community registry")
+			}
+
 			if len(opts.Exclude) > 0 && opts.FromCommunityRegistry == "" {
 				return fmt.Errorf("--exclude can only be used when creating a catalog from a community registry")
 			}
@@ -102,7 +107,16 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 			}
 			registryClient := registryapi.NewClient()
 			ociService := oci.NewService()
-			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], opts.Servers, opts.FromWorkingSet, opts.FromLegacyCatalog, opts.FromCommunityRegistry, opts.Title, opts.IncludePyPI, opts.Exclude)
+			return catalognext.Create(cmd.Context(), dao, registryClient, ociService, args[0], catalognext.CreateOptions{
+				Servers:              opts.Servers,
+				WorkingSetID:         opts.FromWorkingSet,
+				LegacyCatalogURL:     opts.FromLegacyCatalog,
+				CommunityRegistryRef: opts.FromCommunityRegistry,
+				Title:                opts.Title,
+				IncludePyPI:          opts.IncludePyPI,
+				IncludeNPM:           opts.IncludeNPM,
+				ExcludeServers:       opts.Exclude,
+			})
 		},
 	}
 
@@ -116,6 +130,8 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 	flags.StringArrayVar(&opts.Exclude, "exclude", []string{}, "Server name to exclude from the catalog (can be specified multiple times, only valid with --from-community-registry)")
 	flags.BoolVar(&opts.IncludePyPI, "include-pypi", false, "Include PyPI servers when creating a catalog from a community registry")
 	cmd.Flags().MarkHidden("include-pypi") //nolint:errcheck
+	flags.BoolVar(&opts.IncludeNPM, "include-npm", false, "Include npm servers when creating a catalog from a community registry")
+	cmd.Flags().MarkHidden("include-npm") //nolint:errcheck
 
 	return cmd
 }
