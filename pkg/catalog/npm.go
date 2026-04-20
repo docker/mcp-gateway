@@ -17,9 +17,9 @@ const (
 )
 
 var (
-	nodePinVersionRe    = regexp.MustCompile(`(?:\^|~)\s*(\d+)`)
-	nodeLowerBoundRe    = regexp.MustCompile(`(?:>=|>)\s*\d+`)
-	bareNodeVersionRe   = regexp.MustCompile(`^\s*(\d+)\s*$`)
+	nodePinVersionRe  = regexp.MustCompile(`(?:\^|~)\s*(\d+)`)
+	nodeLowerBoundRe  = regexp.MustCompile(`(?:>=|>)\s*\d+`)
+	bareNodeVersionRe = regexp.MustCompile(`^\s*(\d+)\s*$`)
 )
 
 // NPMVersionResolver resolves the minimum Node.js version for an npm package.

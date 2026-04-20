@@ -172,7 +172,7 @@ func TestNPMVersionResolver(t *testing.T) {
 	// Map of npm registry URL paths to testdata files
 	packageFiles := map[string]string{
 		"/@anthropic-ai/claude-code/latest": "testdata/npm_package_claude_code.json",
-		"/@agenttrust/mcp-server/1.1.1":    "testdata/npm_package_agenttrust.json",
+		"/@agenttrust/mcp-server/1.1.1":     "testdata/npm_package_agenttrust.json",
 		"/@contextlayer/mcp/0.0.3":          "testdata/npm_package_contextlayer.json",
 	}
 
@@ -188,7 +188,7 @@ func TestNPMVersionResolver(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		_, _ = w.Write(data)
 	}))
 	defer srv.Close()
 
