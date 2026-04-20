@@ -38,7 +38,7 @@ type transformOptions struct {
 }
 
 // WithAllowPyPI controls whether PyPI packages are considered during transformation.
-// By default, PyPI packages are allowed.
+// By default, PyPI packages are not allowed.
 func WithAllowPyPI(allow bool) TransformOption {
 	return func(o *transformOptions) {
 		o.allowPyPI = allow
@@ -54,7 +54,7 @@ func WithPyPIResolver(resolver PyPIVersionResolver) TransformOption {
 }
 
 // WithAllowNPM controls whether npm packages are considered during transformation.
-// By default, npm packages are allowed.
+// By default, npm packages are not allowed.
 func WithAllowNPM(allow bool) TransformOption {
 	return func(o *transformOptions) {
 		o.allowNPM = allow

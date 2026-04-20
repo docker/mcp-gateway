@@ -1844,7 +1844,7 @@ func TestTransformNPMNilResolver(t *testing.T) {
 	// Explicitly pass no npm resolver
 	result, catalogJSON := transformTestJSONWithOpts(t, registryJSON)
 
-	expectedImage := "node:22-bookworm-slim"
+	expectedImage := "node:24-bookworm-slim"
 	if result.Image != expectedImage {
 		t.Errorf("Expected default image '%s', got '%s'", expectedImage, result.Image)
 	}

@@ -2,62 +2,56 @@ package catalog
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
-	"net/url"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
-// TestIntegrationNPMTransformBatch fetches real npm-only servers from the MCP community
-// registry and validates that TransformToDocker produces correct output for each one.
-// This test exercises the full npm transformation pipeline against live registry data.
+// registryListResponse matches the community registry list endpoint response.
+type registryListResponse struct {
+	Servers  []serverResponseJSON `json:"servers"`
+	Metadata struct {
+		NextCursor string `json:"nextCursor"`
+		Count      int    `json:"count"`
+	} `json:"metadata"`
+}
+
+type serverResponseJSON struct {
+	Server ServerDetail `json:"server"`
+}
+
+// TestNPMTransformBatch loads npm servers from testdata and validates that
+// TransformToDocker produces correct output for each one.
 //
-// Run with: go test -count=1 ./pkg/catalog/... -run TestIntegrationNPMTransformBatch -v -timeout 5m
-func TestIntegrationNPMTransformBatch(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	// Use an explicit transport that bypasses any system/Desktop proxy settings,
-	// since the Go default transport may pick up macOS proxy configuration.
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig:     &tls.Config{},
-			DialContext:         (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
-			TLSHandshakeTimeout: 10 * time.Second,
-		},
-	}
-
-	// Fetch npm-only servers from the community registry (direct HTTP, no Desktop proxy).
-	// Paginates up to maxPages to collect a broad sample. The registry has ~16K servers
-	// total with ~49% being npm, so 50 pages of 100 covers a good sample.
-	servers, pagesRead, err := fetchNPMOnlyServers(ctx, client, 500, 30)
+// Run with: go test -count=1 ./pkg/catalog/... -run TestNPMTransformBatch -v
+func TestNPMTransformBatch(t *testing.T) {
+	data, err := os.ReadFile("testdata/npm_registry_servers.json")
 	if err != nil {
-		// Network errors during pagination are not fatal - test what we got
-		t.Logf("Warning: registry fetch stopped early after %d pages: %v", pagesRead, err)
+		t.Fatalf("reading testdata: %v", err)
 	}
 
+	var listResp registryListResponse
+	if err := json.Unmarshal(data, &listResp); err != nil {
+		t.Fatalf("parsing testdata: %v", err)
+	}
+
+	servers := listResp.Servers
 	if len(servers) == 0 {
-		t.Fatal("No npm-only servers found in registry - cannot validate npm support")
+		t.Fatal("No servers found in testdata")
 	}
 
-	t.Logf("Fetched %d npm-only stdio servers across %d pages of registry results", len(servers), pagesRead)
+	t.Logf("Loaded %d npm servers from testdata", len(servers))
 
 	// Mock resolver returns empty string so we use default node version.
-	// This avoids hammering the npm registry during batch testing.
 	mockResolver := func(_ context.Context, _, _, _ string) (string, bool) {
 		return "", true
 	}
+
+	ctx := t.Context()
 
 	var (
 		passed  int
@@ -156,10 +150,10 @@ func TestIntegrationNPMTransformBatch(t *testing.T) {
 	}
 
 	t.Logf("\n=== NPM Transform Batch Results ===")
-	t.Logf("Total servers fetched: %d", len(servers))
-	t.Logf("Passed:                %d", passed)
-	t.Logf("Failed:                %d", failed)
-	t.Logf("Skipped (remote/err):  %d", skipped)
+	t.Logf("Total servers loaded: %d", len(servers))
+	t.Logf("Passed:               %d", passed)
+	t.Logf("Failed:               %d", failed)
+	t.Logf("Skipped (remote/err): %d", skipped)
 
 	if failed > 0 {
 		t.Errorf("%d servers failed transformation validation", failed)
@@ -168,40 +162,82 @@ func TestIntegrationNPMTransformBatch(t *testing.T) {
 	if passed == 0 {
 		t.Error("No servers passed npm transformation - something is wrong")
 	}
-
-	successRate := float64(passed) / float64(passed+failed) * 100
-	t.Logf("Success rate:          %.1f%% (%d/%d of transformable servers)", successRate, passed, passed+failed)
 }
 
-// TestIntegrationNPMVersionResolver tests the real npm registry version resolver
-// against a set of known npm MCP packages.
+// TestNPMVersionResolver tests the npm registry version resolver using a local
+// httptest server that serves responses from testdata files.
 //
-// Run with: go test -count=1 ./pkg/catalog/... -run TestIntegrationNPMVersionResolver -v
-func TestIntegrationNPMVersionResolver(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+// Run with: go test -count=1 ./pkg/catalog/... -run TestNPMVersionResolver -v
+func TestNPMVersionResolver(t *testing.T) {
+	// Map of npm registry URL paths to testdata files
+	packageFiles := map[string]string{
+		"/@anthropic-ai/claude-code/latest": "testdata/npm_package_claude_code.json",
+		"/@agenttrust/mcp-server/1.1.1":    "testdata/npm_package_agenttrust.json",
+		"/@contextlayer/mcp/0.0.3":          "testdata/npm_package_contextlayer.json",
 	}
 
-	resolverClient := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig:     &tls.Config{},
-			DialContext:         (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
-			TLSHandshakeTimeout: 10 * time.Second,
-		},
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		file, ok := packageFiles[r.URL.Path]
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
+	}))
+	defer srv.Close()
+
+	// Create a resolver that points to our test server instead of the real npm registry.
+	// We construct the resolver manually rather than using NewNPMVersionResolver because
+	// the standard resolver hardcodes the npm registry URL.
+	resolver := func(ctx context.Context, identifier, version, _ string) (string, bool) {
+		var url string
+		if version != "" {
+			url = fmt.Sprintf("%s/%s/%s", srv.URL, identifier, version)
+		} else {
+			url = fmt.Sprintf("%s/%s/latest", srv.URL, identifier)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return "", false
+		}
+
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			return "", false
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return "", false
+		}
+
+		var info npmPackageInfo
+		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+			return "", false
+		}
+
+		return parseNodeVersion(info.Engines.Node), true
 	}
-	resolver := NewNPMVersionResolver(resolverClient)
-	ctx := context.Background()
+
+	ctx := t.Context()
 
 	tests := []struct {
-		identifier string
-		version    string
-		wantFound  bool
+		identifier  string
+		version     string
+		wantFound   bool
+		wantVersion string
 	}{
-		{"@anthropic-ai/claude-code", "", true},
-		{"@agenttrust/mcp-server", "1.1.1", true},
-		{"@contextlayer/mcp", "0.0.3", true},
-		{"@nonexistent-scope/definitely-not-a-real-package", "99.99.99", false},
+		{"@anthropic-ai/claude-code", "", true, ""},
+		{"@agenttrust/mcp-server", "1.1.1", true, ""},
+		{"@contextlayer/mcp", "0.0.3", true, ""},
+		{"@nonexistent-scope/definitely-not-a-real-package", "99.99.99", false, ""},
 	}
 
 	for _, tt := range tests {
@@ -211,101 +247,12 @@ func TestIntegrationNPMVersionResolver(t *testing.T) {
 			if found != tt.wantFound {
 				t.Errorf("found=%v, want %v", found, tt.wantFound)
 			}
+			if found && nodeVer != tt.wantVersion {
+				t.Errorf("nodeVer=%q, want %q", nodeVer, tt.wantVersion)
+			}
 			if found {
 				t.Logf("%s: engines.node resolved to %q (will use image %s)", name, nodeVer, nodeVersionToImageTag(nodeVer))
 			}
 		})
 	}
-}
-
-// registryListResponse matches the community registry list endpoint response.
-type registryListResponse struct {
-	Servers  []serverResponseJSON `json:"servers"`
-	Metadata struct {
-		NextCursor string `json:"nextCursor"`
-		Count      int    `json:"count"`
-	} `json:"metadata"`
-}
-
-type serverResponseJSON struct {
-	Server ServerDetail `json:"server"`
-}
-
-// fetchNPMOnlyServers fetches npm-only servers from the MCP community registry.
-// It paginates through the registry collecting servers that have only npm packages
-// with stdio transport. Stops after maxServers are collected or maxPages are read.
-// Returns partial results with a non-nil error if a page fetch fails.
-func fetchNPMOnlyServers(ctx context.Context, client *http.Client, maxServers int, maxPages int) ([]serverResponseJSON, int, error) {
-	var npmServers []serverResponseJSON
-	cursor := ""
-	baseURL := "https://registry.modelcontextprotocol.io/v0/servers?version=latest&limit=100"
-	pagesRead := 0
-
-	for len(npmServers) < maxServers && pagesRead < maxPages {
-		reqURL := baseURL
-		if cursor != "" {
-			reqURL += "&cursor=" + url.QueryEscape(cursor)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-		if err != nil {
-			return npmServers, pagesRead, fmt.Errorf("creating request: %w", err)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			// Return what we have so far on network error
-			return npmServers, pagesRead, fmt.Errorf("fetching page %d: %w", pagesRead+1, err)
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return npmServers, pagesRead, fmt.Errorf("reading page %d: %w", pagesRead+1, err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return npmServers, pagesRead, fmt.Errorf("page %d returned %d: %s", pagesRead+1, resp.StatusCode, string(body[:min(200, len(body))]))
-		}
-
-		var listResp registryListResponse
-		if err := json.Unmarshal(body, &listResp); err != nil {
-			return npmServers, pagesRead, fmt.Errorf("parsing page %d: %w", pagesRead+1, err)
-		}
-
-		pagesRead++
-
-		for _, s := range listResp.Servers {
-			pkgs := s.Server.Packages
-			hasNPMStdio := false
-			hasOCI := false
-			hasPyPI := false
-			for _, p := range pkgs {
-				switch p.RegistryType {
-				case "oci":
-					hasOCI = true
-				case "pypi":
-					hasPyPI = true
-				case "npm":
-					if p.Transport.Type == "stdio" {
-						hasNPMStdio = true
-					}
-				}
-			}
-			if hasNPMStdio && !hasOCI && !hasPyPI {
-				npmServers = append(npmServers, s)
-			}
-		}
-
-		if listResp.Metadata.NextCursor == "" || len(listResp.Servers) == 0 {
-			break
-		}
-		cursor = listResp.Metadata.NextCursor
-	}
-
-	if len(npmServers) > maxServers {
-		npmServers = npmServers[:maxServers]
-	}
-
-	return npmServers, pagesRead, nil
 }

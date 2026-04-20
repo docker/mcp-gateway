@@ -1,0 +1,254 @@
+{
+  "servers": [
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "ai.agenttrust/mcp-server",
+        "description": "Identity, trust, and A2A orchestration for autonomous AI agents.",
+        "title": "AgentTrust MCP Server",
+        "version": "1.1.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@agenttrust/mcp-server",
+            "version": "1.1.1",
+            "transport": { "type": "stdio" },
+            "environmentVariables": [
+              {
+                "name": "AGENTTRUST_API_KEY",
+                "description": "API key for AgentTrust",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/simple-npm-server",
+        "description": "A simple npm MCP server for testing.",
+        "title": "Simple NPM Server",
+        "version": "2.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "simple-npm-server",
+            "version": "2.0.0",
+            "transport": { "type": "stdio" }
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/scoped-server",
+        "description": "A scoped npm package server.",
+        "title": "Scoped Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@scope/mcp-tools",
+            "version": "0.5.0",
+            "transport": { "type": "stdio" },
+            "packageArguments": [
+              {
+                "type": "positional",
+                "value": "--stdio"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/env-server",
+        "description": "An npm server with environment variables.",
+        "title": "Env Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@example/env-mcp",
+            "version": "1.0.0",
+            "transport": { "type": "stdio" },
+            "environmentVariables": [
+              {
+                "name": "API_KEY",
+                "description": "API key",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "DEBUG",
+                "description": "Enable debug mode",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "false"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/remote-and-npm",
+        "description": "A server with both npm and remote transports.",
+        "title": "Remote And NPM Server",
+        "version": "1.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "remote-npm-server",
+            "version": "1.2.0",
+            "transport": { "type": "stdio" }
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://api.example.com/mcp"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/custom-registry",
+        "description": "An npm server from a custom registry.",
+        "title": "Custom Registry Server",
+        "version": "3.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@custom/mcp-server",
+            "version": "3.0.0",
+            "registryBaseUrl": "https://npm.custom.io",
+            "transport": { "type": "stdio" }
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/no-version-server",
+        "description": "An npm server without a pinned version.",
+        "title": "No Version Server",
+        "version": "0.0.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "no-version-mcp",
+            "transport": { "type": "stdio" }
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/multi-env-server",
+        "description": "An npm server with multiple env vars and secrets.",
+        "title": "Multi Env Server",
+        "version": "1.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multi/mcp-server",
+            "version": "1.5.0",
+            "transport": { "type": "stdio" },
+            "environmentVariables": [
+              {
+                "name": "TOKEN",
+                "description": "Auth token",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "REGION",
+                "description": "AWS region",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "us-east-1"
+              },
+              {
+                "name": "ENDPOINT",
+                "description": "Custom endpoint URL",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/icon-server",
+        "description": "An npm server with an icon.",
+        "title": "Icon Server",
+        "version": "1.0.0",
+        "icons": [
+          { "src": "https://example.com/icon.png" }
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "icon-mcp",
+            "version": "1.0.0",
+            "transport": { "type": "stdio" }
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.user/complex-server",
+        "description": "An npm server with complex config.",
+        "title": "Complex Server",
+        "version": "2.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@complex/mcp-tools",
+            "version": "2.1.0",
+            "transport": { "type": "stdio" },
+            "packageArguments": [
+              {
+                "type": "positional",
+                "value": "serve"
+              },
+              {
+                "type": "positional",
+                "value": "--stdio"
+              }
+            ],
+            "environmentVariables": [
+              {
+                "name": "SERVICE_KEY",
+                "description": "Service key",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "count": 10
+  }
+}

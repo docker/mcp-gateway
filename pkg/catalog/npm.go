@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	defaultNodeVersion = "22"
+	defaultNodeVersion = "24"
 	nodeBaseImage      = "node"
 )
 
 var (
-	nodeVersionRe     = regexp.MustCompile(`(?:>=|>|\^|~)\s*(\d+)`)
-	bareNodeVersionRe = regexp.MustCompile(`^\s*(\d+)\s*$`)
+	nodePinVersionRe    = regexp.MustCompile(`(?:\^|~)\s*(\d+)`)
+	nodeLowerBoundRe    = regexp.MustCompile(`(?:>=|>)\s*\d+`)
+	bareNodeVersionRe   = regexp.MustCompile(`^\s*(\d+)\s*$`)
 )
 
 // NPMVersionResolver resolves the minimum Node.js version for an npm package.
@@ -80,18 +81,25 @@ func DefaultNPMVersionResolver() NPMVersionResolver {
 	return NewNPMVersionResolver(client)
 }
 
-// parseNodeVersion extracts the minimum major Node.js version from a semver constraint.
-// It looks for the first >=, >, ^, or ~ operator and returns the major version number.
+// parseNodeVersion extracts the Node.js major version from a semver constraint.
+// Pinning operators (^ or ~) resolve to a specific major version.
+// >= and > mean "this or newer", so we use the latest (default).
 // A bare major version (e.g., "18") is also accepted.
-// Examples: ">=18" -> "18", "^20.0.0" -> "20", ">=16.17.0" -> "16", "18" -> "18", "" -> "" (use default)
+// Examples: "^20.0.0" -> "20", "~18" -> "18", ">=18" -> "" (use latest), ">16" -> "" (use latest),
+// "18" -> "18", "" -> "" (use default)
 func parseNodeVersion(enginesNode string) string {
 	if enginesNode == "" {
 		return ""
 	}
 
-	match := nodeVersionRe.FindStringSubmatch(enginesNode)
-	if match != nil {
+	// Check for pinning constraints (^ or ~) first - these specify a major version
+	if match := nodePinVersionRe.FindStringSubmatch(enginesNode); match != nil {
 		return match[1]
+	}
+
+	// >= and > mean "this or newer", so use the latest (default)
+	if nodeLowerBoundRe.MatchString(enginesNode) {
+		return ""
 	}
 
 	// Fall back to bare major version (e.g., "18")

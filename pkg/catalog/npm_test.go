@@ -11,20 +11,20 @@ func TestParseNodeVersion(t *testing.T) {
 		want        string
 	}{
 		{"empty string", "", ""},
-		{"greater than or equal", ">=18", "18"},
-		{"greater than or equal with patch", ">=16.17.0", "16"},
-		{"greater than or equal with minor", ">=20.0", "20"},
+		{"greater than or equal", ">=18", ""},
+		{"greater than or equal with patch", ">=16.17.0", ""},
+		{"greater than or equal with minor", ">=20.0", ""},
 		{"caret constraint", "^18", "18"},
 		{"caret with patch", "^20.0.0", "20"},
 		{"tilde constraint", "~18", "18"},
 		{"tilde with minor", "~20.11", "20"},
-		{"greater than", ">16", "16"},
-		{"range with upper bound", ">=18 <22", "18"},
+		{"greater than", ">16", ""},
+		{"range with upper bound", ">=18 <22", ""},
 		{"or range", "18 || 20 || 22", ""},
 		{"garbage input", "foobar", ""},
 		{"just a number", "18", "18"},
-		{"with spaces", ">= 18", "18"},
-		{"complex range", ">=18.0.0 <25.0.0", "18"},
+		{"with spaces", ">= 18", ""},
+		{"complex range", ">=18.0.0 <25.0.0", ""},
 	}
 
 	for _, tt := range tests {
@@ -43,7 +43,7 @@ func TestNodeVersionToImageTag(t *testing.T) {
 		nodeVersion string
 		want        string
 	}{
-		{"empty defaults to 22", "", "node:22-bookworm-slim"},
+		{"empty defaults to 24", "", "node:24-bookworm-slim"},
 		{"node 18", "18", "node:18-bookworm-slim"},
 		{"node 20", "20", "node:20-bookworm-slim"},
 		{"node 22", "22", "node:22-bookworm-slim"},
