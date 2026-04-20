@@ -1,0 +1,2292 @@
+{
+  "servers": [
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-filesystem",
+        "description": "Provides file system access for reading, writing, and managing files and directories.",
+        "title": "Filesystem MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-filesystem",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-github",
+        "description": "Access GitHub repositories, issues, pull requests, and code through the MCP protocol.",
+        "title": "GitHub MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-github",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-postgres",
+        "description": "Connect to PostgreSQL databases and run queries through a natural language interface.",
+        "title": "PostgreSQL MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-postgres",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-slack",
+        "description": "Interact with Slack workspaces: read channels, post messages, manage users.",
+        "title": "Slack MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-slack",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-google-maps",
+        "description": "Use Google Maps APIs including geocoding, directions, and place searches.",
+        "title": "Google Maps MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-google-maps",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-brave-search",
+        "description": "Perform web searches using the Brave Search API.",
+        "title": "Brave Search MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-brave-search",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-memory",
+        "description": "Persistent key-value memory store accessible across sessions.",
+        "title": "Memory MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-memory",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-puppeteer",
+        "description": "Control a headless Chrome browser for web scraping and automation.",
+        "title": "Puppeteer MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-puppeteer",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-sqlite",
+        "description": "Interact with SQLite databases: read schema, run queries, and inspect data.",
+        "title": "SQLite MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-sqlite",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.modelcontextprotocol/server-everything",
+        "description": "A demo server that exercises every MCP feature for testing and exploration.",
+        "title": "Everything MCP Server",
+        "version": "0.6.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@modelcontextprotocol/server-everything",
+            "version": "0.6.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "com.example/mcp-server-linear",
+        "description": "Manage Linear issues, projects, and cycles directly from your AI assistant.",
+        "title": "Linear MCP Server",
+        "version": "2.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@example/mcp-server-linear",
+            "version": "2.1.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "com.example/mcp-server-notion",
+        "description": "Read and write Notion pages, databases, and blocks.",
+        "title": "Notion MCP Server",
+        "version": "1.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@example/mcp-server-notion",
+            "version": "1.3.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "com.example/mcp-server-jira",
+        "description": "Create, update, and search Jira issues and projects.",
+        "title": "Jira MCP Server",
+        "version": "1.0.5",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@example/mcp-server-jira",
+            "version": "1.0.5",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.acme/mcp-server-stripe",
+        "description": "Interact with the Stripe API: manage customers, charges, and subscriptions.",
+        "title": "Stripe MCP Server",
+        "version": "0.9.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@acme/mcp-server-stripe",
+            "version": "0.9.1",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.acme/mcp-server-sendgrid",
+        "description": "Send transactional emails and manage contacts via SendGrid.",
+        "title": "SendGrid MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@acme/mcp-server-sendgrid",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.acme/mcp-server-twilio",
+        "description": "Send SMS and make calls via the Twilio API.",
+        "title": "Twilio MCP Server",
+        "version": "1.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@acme/mcp-server-twilio",
+            "version": "1.2.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.devtools/mcp-server-datadog",
+        "description": "Query Datadog metrics, logs, and monitors.",
+        "title": "Datadog MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@devtools/mcp-server-datadog",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.devtools/mcp-server-pagerduty",
+        "description": "Acknowledge, resolve, and create PagerDuty incidents from your AI assistant.",
+        "title": "PagerDuty MCP Server",
+        "version": "0.3.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@devtools/mcp-server-pagerduty",
+            "version": "0.3.1",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.cloudtools/mcp-server-aws",
+        "description": "Interact with AWS services including EC2, S3, Lambda, and IAM.",
+        "title": "AWS MCP Server",
+        "version": "0.7.3",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@cloudtools/mcp-server-aws",
+            "version": "0.7.3",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.cloudtools/mcp-server-gcp",
+        "description": "Access Google Cloud Platform services: GCS, BigQuery, Cloud Run, and more.",
+        "title": "Google Cloud MCP Server",
+        "version": "0.5.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@cloudtools/mcp-server-gcp",
+            "version": "0.5.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-calculator",
+        "description": "A simple calculator MCP server for arithmetic and expression evaluation.",
+        "title": "Calculator MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-calculator",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-weather",
+        "description": "Get current weather and forecasts for any location worldwide.",
+        "title": "Weather MCP Server",
+        "version": "2.0.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-weather",
+            "version": "2.0.1",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-clock",
+        "description": "Provides current time and timezone conversion utilities.",
+        "title": "Clock MCP Server",
+        "version": "0.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-clock",
+            "version": "0.2.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-currency",
+        "description": "Convert between currencies using live exchange rates.",
+        "title": "Currency MCP Server",
+        "version": "1.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-currency",
+            "version": "1.1.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-url-fetch",
+        "description": "Fetch the contents of a URL and return it as text or structured data.",
+        "title": "URL Fetch MCP Server",
+        "version": "0.8.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-url-fetch",
+            "version": "0.8.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-base64",
+        "description": "Encode and decode Base64 strings and binary data.",
+        "title": "Base64 MCP Server",
+        "version": "0.1.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-base64",
+            "version": "0.1.2",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-uuid",
+        "description": "Generate and validate UUIDs of all standard versions.",
+        "title": "UUID MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-uuid",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-hash",
+        "description": "Compute cryptographic hashes including MD5, SHA-1, SHA-256, and more.",
+        "title": "Hash MCP Server",
+        "version": "0.2.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-hash",
+            "version": "0.2.1",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-diff",
+        "description": "Compute textual diffs between strings or files using standard algorithms.",
+        "title": "Diff MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-diff",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-regex",
+        "description": "Test and apply regular expressions with detailed match explanations.",
+        "title": "Regex MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-regex",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-artifactory",
+        "description": "Browse and download artifacts from a JFrog Artifactory instance.",
+        "title": "Artifactory MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-artifactory",
+            "version": "1.0.0",
+            "registryBaseUrl": "https://artifactory.example.corp/api/npm/npm-virtual/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-nexus",
+        "description": "Access artifacts and metadata from a Sonatype Nexus Repository.",
+        "title": "Nexus MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-nexus",
+            "version": "0.3.0",
+            "registryBaseUrl": "https://nexus.internal.corp/repository/npm-group/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-github-packages",
+        "description": "Install and query packages from the GitHub Packages npm registry.",
+        "title": "GitHub Packages MCP Server",
+        "version": "0.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-github-packages",
+            "version": "0.2.0",
+            "registryBaseUrl": "https://npm.pkg.github.com/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-verdaccio",
+        "description": "Connect to a Verdaccio private registry for package management.",
+        "title": "Verdaccio MCP Server",
+        "version": "0.1.5",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-verdaccio",
+            "version": "0.1.5",
+            "registryBaseUrl": "https://verdaccio.mycompany.io/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-gitlab-packages",
+        "description": "Access packages published to GitLab's npm package registry.",
+        "title": "GitLab Packages MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-gitlab-packages",
+            "version": "0.4.0",
+            "registryBaseUrl": "https://gitlab.example.com/api/v4/projects/42/packages/npm/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-aws-codeartifact",
+        "description": "Pull packages from an AWS CodeArtifact domain.",
+        "title": "AWS CodeArtifact MCP Server",
+        "version": "0.6.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-aws-codeartifact",
+            "version": "0.6.0",
+            "registryBaseUrl": "https://mycompany-123456789.d.codeartifact.us-east-1.amazonaws.com/npm/my-repo/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-azure-artifacts",
+        "description": "Access npm packages stored in Azure Artifacts feeds.",
+        "title": "Azure Artifacts MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-azure-artifacts",
+            "version": "0.5.0",
+            "registryBaseUrl": "https://pkgs.dev.azure.com/myorg/myproject/_packaging/myfeed/npm/registry/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.enterprise/mcp-server-custom-registry",
+        "description": "An MCP server installed from a private self-hosted npm registry mirror.",
+        "title": "Custom Registry MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@enterprise/mcp-server-custom-registry",
+            "version": "1.0.0",
+            "registryBaseUrl": "https://npm.internal.example.net/",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.apitools/mcp-server-openai",
+        "description": "Call OpenAI chat completions and embedding APIs directly from MCP.",
+        "title": "OpenAI MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@apitools/mcp-server-openai",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "OPENAI_API_KEY",
+                "description": "Your OpenAI API secret key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "OPENAI_MODEL",
+                "description": "The model to use for completions.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "gpt-4o"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.apitools/mcp-server-anthropic",
+        "description": "Run Claude models via the Anthropic API.",
+        "title": "Anthropic MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@apitools/mcp-server-anthropic",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "ANTHROPIC_API_KEY",
+                "description": "Your Anthropic API key.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.apitools/mcp-server-github-token",
+        "description": "Authenticated GitHub API access using a personal access token.",
+        "title": "GitHub Token MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@apitools/mcp-server-github-token",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "GITHUB_TOKEN",
+                "description": "Personal access token with repo and read:org scopes.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "GITHUB_ORG",
+                "description": "Default GitHub organization to scope operations to.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.apitools/mcp-server-aws-credentials",
+        "description": "AWS API access using static credentials or assumed roles.",
+        "title": "AWS Credentials MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@apitools/mcp-server-aws-credentials",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "AWS_ACCESS_KEY_ID",
+                "description": "AWS access key ID.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "AWS_SECRET_ACCESS_KEY",
+                "description": "AWS secret access key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "AWS_REGION",
+                "description": "Default AWS region.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "us-east-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.apitools/mcp-server-database-url",
+        "description": "Database access using a connection URL with embedded credentials.",
+        "title": "Database URL MCP Server",
+        "version": "0.8.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@apitools/mcp-server-database-url",
+            "version": "0.8.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "DATABASE_URL",
+                "description": "Full database connection URL including username, password, host, and database name.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "DATABASE_POOL_SIZE",
+                "description": "Maximum number of connections in the pool.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "10"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.commerce/mcp-server-shopify",
+        "description": "Manage Shopify store products, orders, and customers.",
+        "title": "Shopify MCP Server",
+        "version": "1.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@commerce/mcp-server-shopify",
+            "version": "1.2.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SHOPIFY_STORE_DOMAIN",
+                "description": "Your Shopify store domain, e.g. mystore.myshopify.com.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "SHOPIFY_ACCESS_TOKEN",
+                "description": "Shopify Admin API access token.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.commerce/mcp-server-hubspot",
+        "description": "Access and manage HubSpot CRM contacts, deals, and companies.",
+        "title": "HubSpot MCP Server",
+        "version": "0.9.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@commerce/mcp-server-hubspot",
+            "version": "0.9.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "HUBSPOT_API_KEY",
+                "description": "HubSpot private app API key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "HUBSPOT_PORTAL_ID",
+                "description": "Your HubSpot portal ID.",
+                "isRequired": true,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.analytics/mcp-server-mixpanel",
+        "description": "Query Mixpanel events, funnels, and user profiles.",
+        "title": "Mixpanel MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@analytics/mcp-server-mixpanel",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "MIXPANEL_SERVICE_ACCOUNT_USER",
+                "description": "Mixpanel service account username.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "MIXPANEL_SERVICE_ACCOUNT_SECRET",
+                "description": "Mixpanel service account secret.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "MIXPANEL_PROJECT_ID",
+                "description": "The Mixpanel project ID to query.",
+                "isRequired": true,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.analytics/mcp-server-segment",
+        "description": "Pull data from Segment sources and write to destinations.",
+        "title": "Segment MCP Server",
+        "version": "0.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@analytics/mcp-server-segment",
+            "version": "0.2.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SEGMENT_WRITE_KEY",
+                "description": "Segment source write key.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.analytics/mcp-server-amplitude",
+        "description": "Analyze Amplitude events, cohorts, and charts.",
+        "title": "Amplitude MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@analytics/mcp-server-amplitude",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "AMPLITUDE_API_KEY",
+                "description": "Amplitude project API key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "AMPLITUDE_SECRET_KEY",
+                "description": "Amplitude project secret key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "AMPLITUDE_REGION",
+                "description": "Amplitude data residency region.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "US"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv/mcp-server-redis",
+        "description": "Connect to Redis and perform key-value operations, pub/sub, and stream reads.",
+        "title": "Redis MCP Server",
+        "version": "1.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv/mcp-server-redis",
+            "version": "1.1.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "REDIS_HOST",
+                "description": "Redis server hostname.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "localhost"
+              },
+              {
+                "name": "REDIS_PORT",
+                "description": "Redis server port.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "6379"
+              },
+              {
+                "name": "REDIS_PASSWORD",
+                "description": "Redis AUTH password (leave empty if not set).",
+                "isRequired": false,
+                "isSecret": true
+              },
+              {
+                "name": "REDIS_TLS",
+                "description": "Enable TLS for the Redis connection.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "false"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv/mcp-server-elasticsearch",
+        "description": "Index, search, and manage data in Elasticsearch clusters.",
+        "title": "Elasticsearch MCP Server",
+        "version": "0.6.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv/mcp-server-elasticsearch",
+            "version": "0.6.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "ELASTICSEARCH_URL",
+                "description": "Elasticsearch cluster URL including scheme and port.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "ELASTICSEARCH_API_KEY",
+                "description": "API key for authenticating to Elasticsearch.",
+                "isRequired": false,
+                "isSecret": true
+              },
+              {
+                "name": "ELASTICSEARCH_USERNAME",
+                "description": "Basic auth username.",
+                "isRequired": false,
+                "isSecret": false
+              },
+              {
+                "name": "ELASTICSEARCH_PASSWORD",
+                "description": "Basic auth password.",
+                "isRequired": false,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv/mcp-server-kafka",
+        "description": "Produce and consume messages on Kafka topics.",
+        "title": "Kafka MCP Server",
+        "version": "0.4.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv/mcp-server-kafka",
+            "version": "0.4.1",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "KAFKA_BROKERS",
+                "description": "Comma-separated list of Kafka broker addresses.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "KAFKA_SASL_USERNAME",
+                "description": "SASL username for authentication.",
+                "isRequired": false,
+                "isSecret": false
+              },
+              {
+                "name": "KAFKA_SASL_PASSWORD",
+                "description": "SASL password for authentication.",
+                "isRequired": false,
+                "isSecret": true
+              },
+              {
+                "name": "KAFKA_CLIENT_ID",
+                "description": "Client ID reported to the broker.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "mcp-server-kafka"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv/mcp-server-mongodb",
+        "description": "Perform CRUD operations and aggregations on MongoDB collections.",
+        "title": "MongoDB MCP Server",
+        "version": "0.7.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv/mcp-server-mongodb",
+            "version": "0.7.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "MONGODB_CONNECTION_STRING",
+                "description": "MongoDB connection string including username, password, and database.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "MONGODB_DATABASE",
+                "description": "Default database to connect to.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv/mcp-server-supabase",
+        "description": "Interact with Supabase databases, auth, and storage buckets.",
+        "title": "Supabase MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv/mcp-server-supabase",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SUPABASE_URL",
+                "description": "Your Supabase project URL.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "SUPABASE_SERVICE_ROLE_KEY",
+                "description": "Supabase service role key with full access.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "SUPABASE_SCHEMA",
+                "description": "Default schema to use for database queries.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "public"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-stdio-runner",
+        "description": "Run arbitrary shell commands and return their stdout and stderr.",
+        "title": "Shell Runner MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-stdio-runner",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "--stdio"},
+              {"type": "positional", "value": "--allow-all"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-serve",
+        "description": "Start a local static file server and expose directory contents.",
+        "title": "Serve MCP Server",
+        "version": "2.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-serve",
+            "version": "2.0.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "serve"},
+              {"type": "positional", "value": "--stdio"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-watch",
+        "description": "Watch the filesystem for changes and emit events.",
+        "title": "Watch MCP Server",
+        "version": "1.0.2",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-watch",
+            "version": "1.0.2",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "watch"},
+              {"type": "positional", "value": "--recursive"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-build",
+        "description": "Trigger and monitor build pipelines from an AI assistant.",
+        "title": "Build MCP Server",
+        "version": "0.9.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-build",
+            "version": "0.9.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "--mode"},
+              {"type": "positional", "value": "stdio"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-lint",
+        "description": "Run linters on code files and report issues and auto-fix suggestions.",
+        "title": "Lint MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-lint",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "--stdio"},
+              {"type": "positional", "value": "--format"},
+              {"type": "positional", "value": "json"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-test-runner",
+        "description": "Execute test suites and return structured results.",
+        "title": "Test Runner MCP Server",
+        "version": "1.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-test-runner",
+            "version": "1.1.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "run"},
+              {"type": "positional", "value": "--reporter"},
+              {"type": "positional", "value": "json"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.clitools/mcp-server-format",
+        "description": "Auto-format source code using Prettier, gofmt, or black.",
+        "title": "Format MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@clitools/mcp-server-format",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"},
+            "packageArguments": [
+              {"type": "positional", "value": "--stdio"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.remote/mcp-server-search-hybrid",
+        "description": "Search the web using both an npm fallback and a hosted streaming HTTP endpoint.",
+        "title": "Hybrid Search MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@remote/mcp-server-search-hybrid",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SEARCH_API_KEY",
+                "description": "API key for the search service.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://api.search-service.example.com/mcp"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.remote/mcp-server-vector-db",
+        "description": "Query a vector database with both a local npm client and a cloud fallback.",
+        "title": "Vector DB MCP Server",
+        "version": "0.8.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@remote/mcp-server-vector-db",
+            "version": "0.8.0",
+            "transport": {"type": "stdio"}
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://vectors.example.io/mcp"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.remote/mcp-server-llm-gateway",
+        "description": "Route requests to multiple LLM providers via a hosted gateway or local proxy.",
+        "title": "LLM Gateway MCP Server",
+        "version": "1.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@remote/mcp-server-llm-gateway",
+            "version": "1.2.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "GATEWAY_ENDPOINT",
+                "description": "URL of the local or self-hosted gateway endpoint.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "http://localhost:8080"
+              }
+            ]
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://llm-gateway.example.com/mcp"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.remote/mcp-server-rag",
+        "description": "Retrieval-augmented generation server with local embedding and remote retrieval.",
+        "title": "RAG MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@remote/mcp-server-rag",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"}
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://rag.example.com/mcp/v1"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.remote/mcp-server-code-execution",
+        "description": "Execute code snippets remotely in a sandboxed environment.",
+        "title": "Code Execution MCP Server",
+        "version": "0.9.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@remote/mcp-server-code-execution",
+            "version": "0.9.0",
+            "transport": {"type": "stdio"}
+          }
+        ],
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://sandbox.coderunner.example.net/mcp"
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.iconpack/mcp-server-git",
+        "description": "Perform Git operations: commit, diff, log, and branch management.",
+        "title": "Git MCP Server",
+        "version": "1.0.0",
+        "icons": [
+          {"src": "https://git-scm.com/images/logos/downloads/Git-Icon-1788C.png"}
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@iconpack/mcp-server-git",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.iconpack/mcp-server-docker",
+        "description": "Manage Docker containers, images, volumes, and networks.",
+        "title": "Docker MCP Server",
+        "version": "0.7.0",
+        "icons": [
+          {"src": "https://www.docker.com/wp-content/uploads/2022/03/Moby-logo.png"}
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@iconpack/mcp-server-docker",
+            "version": "0.7.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.iconpack/mcp-server-kubernetes",
+        "description": "Inspect and manage Kubernetes pods, deployments, services, and namespaces.",
+        "title": "Kubernetes MCP Server",
+        "version": "0.5.0",
+        "icons": [
+          {"src": "https://kubernetes.io/images/kubernetes-horizontal-color.png"}
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@iconpack/mcp-server-kubernetes",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.iconpack/mcp-server-terraform",
+        "description": "Plan and apply Terraform configurations from an AI assistant.",
+        "title": "Terraform MCP Server",
+        "version": "0.3.0",
+        "icons": [
+          {"src": "https://www.terraform.io/assets/images/og-image-8b3e4f7d.png"}
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@iconpack/mcp-server-terraform",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.iconpack/mcp-server-ansible",
+        "description": "Run Ansible playbooks and inventory queries.",
+        "title": "Ansible MCP Server",
+        "version": "0.2.0",
+        "icons": [
+          {"src": "https://www.ansible.com/hubfs/2016_Images/Assets/Ansible-Mark-Large-RGB-Pool.png"}
+        ],
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@iconpack/mcp-server-ansible",
+            "version": "0.2.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.noversion/mcp-server-graphql",
+        "description": "Introspect and query GraphQL endpoints.",
+        "title": "GraphQL MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@noversion/mcp-server-graphql",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.noversion/mcp-server-grpc",
+        "description": "Call gRPC services using reflection or provided proto definitions.",
+        "title": "gRPC MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@noversion/mcp-server-grpc",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.noversion/mcp-server-rest-client",
+        "description": "Issue HTTP requests and inspect responses for any REST API.",
+        "title": "REST Client MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@noversion/mcp-server-rest-client",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.noversion/mcp-server-openapi-explorer",
+        "description": "Load an OpenAPI spec and explore endpoints, schemas, and examples.",
+        "title": "OpenAPI Explorer MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@noversion/mcp-server-openapi-explorer",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.noversion/mcp-server-proto-tools",
+        "description": "Encode and decode Protobuf messages given a .proto schema.",
+        "title": "Proto Tools MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@noversion/mcp-server-proto-tools",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.useroverride/mcp-server-node-script",
+        "description": "Run arbitrary Node.js scripts as an unprivileged user.",
+        "title": "Node Script MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@useroverride/mcp-server-node-script",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-u", "value": "node"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.useroverride/mcp-server-sandbox",
+        "description": "Sandboxed execution environment running as a restricted user.",
+        "title": "Sandbox MCP Server",
+        "version": "0.6.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@useroverride/mcp-server-sandbox",
+            "version": "0.6.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-u", "value": "nobody"},
+              {"type": "named", "name": "--read-only", "value": ""}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.useroverride/mcp-server-rootless",
+        "description": "Run an MCP server process as a non-root user inside the container.",
+        "title": "Rootless MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@useroverride/mcp-server-rootless",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-u", "value": "1001:1001"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.useroverride/mcp-server-ci-runner",
+        "description": "CI-oriented MCP server running as the ci user for reproducible builds.",
+        "title": "CI Runner MCP Server",
+        "version": "0.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@useroverride/mcp-server-ci-runner",
+            "version": "0.2.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-u", "value": "ci"},
+              {"type": "named", "name": "-e", "value": "CI=true"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.useroverride/mcp-server-daemon",
+        "description": "Long-lived MCP server daemon running as a dedicated service account.",
+        "title": "Daemon MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@useroverride/mcp-server-daemon",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-u", "value": "daemon"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-data-processor",
+        "description": "Process large data files from a mounted host volume.",
+        "title": "Data Processor MCP Server",
+        "version": "1.0.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-data-processor",
+            "version": "1.0.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/data:/data"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-config-reader",
+        "description": "Read application configuration from a bind-mounted directory.",
+        "title": "Config Reader MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-config-reader",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/etc/myapp:/config:ro"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-workspace",
+        "description": "Operate on a shared workspace directory via bind mount.",
+        "title": "Workspace MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-workspace",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/workspace:/workspace"},
+              {"type": "named", "name": "-w", "value": "/workspace"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-log-analyzer",
+        "description": "Analyze application logs from a host path mounted read-only.",
+        "title": "Log Analyzer MCP Server",
+        "version": "0.7.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-log-analyzer",
+            "version": "0.7.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/var/log/myapp:/logs:ro"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-db-backup",
+        "description": "Read database backup files from a mounted network-attached storage volume.",
+        "title": "DB Backup Reader MCP Server",
+        "version": "0.2.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-db-backup",
+            "version": "0.2.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/mnt/nas/backups:/backups:ro"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-vault",
+        "description": "Read and write secrets in a HashiCorp Vault instance.",
+        "title": "Vault MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-vault",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "VAULT_ADDR",
+                "description": "Address of the Vault server.",
+                "isRequired": true,
+                "isSecret": false,
+                "value": "http://127.0.0.1:8200"
+              },
+              {
+                "name": "VAULT_TOKEN",
+                "description": "Vault authentication token.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "VAULT_NAMESPACE",
+                "description": "Vault namespace to use.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-splunk",
+        "description": "Search and alert on Splunk indexes and dashboards.",
+        "title": "Splunk MCP Server",
+        "version": "0.6.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-splunk",
+            "version": "0.6.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SPLUNK_HOST",
+                "description": "Splunk instance hostname.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "SPLUNK_PORT",
+                "description": "Splunk REST API port.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "8089"
+              },
+              {
+                "name": "SPLUNK_TOKEN",
+                "description": "Splunk authentication token.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "SPLUNK_INDEX",
+                "description": "Default Splunk index to search.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "main"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-prometheus",
+        "description": "Query Prometheus metrics using PromQL.",
+        "title": "Prometheus MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-prometheus",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "PROMETHEUS_URL",
+                "description": "Base URL of the Prometheus server.",
+                "isRequired": true,
+                "isSecret": false,
+                "value": "http://localhost:9090"
+              },
+              {
+                "name": "PROMETHEUS_BEARER_TOKEN",
+                "description": "Bearer token for Prometheus authentication.",
+                "isRequired": false,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-grafana",
+        "description": "Query Grafana dashboards and panels, and manage alerts.",
+        "title": "Grafana MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-grafana",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "GRAFANA_URL",
+                "description": "Grafana instance base URL.",
+                "isRequired": true,
+                "isSecret": false,
+                "value": "http://localhost:3000"
+              },
+              {
+                "name": "GRAFANA_API_KEY",
+                "description": "Grafana service account API key.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "GRAFANA_ORG_ID",
+                "description": "Grafana organization ID.",
+                "isRequired": false,
+                "isSecret": false,
+                "value": "1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-okta",
+        "description": "Manage Okta users, groups, and applications.",
+        "title": "Okta MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-okta",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "OKTA_DOMAIN",
+                "description": "Your Okta organization domain, e.g. mycompany.okta.com.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "OKTA_API_TOKEN",
+                "description": "Okta API token with required scopes.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-auth0",
+        "description": "Manage Auth0 users, roles, and connections.",
+        "title": "Auth0 MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-auth0",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "AUTH0_DOMAIN",
+                "description": "Your Auth0 tenant domain.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "AUTH0_CLIENT_ID",
+                "description": "Auth0 machine-to-machine application client ID.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "AUTH0_CLIENT_SECRET",
+                "description": "Auth0 machine-to-machine application client secret.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-cloudflare",
+        "description": "Manage Cloudflare DNS records, workers, and KV namespaces.",
+        "title": "Cloudflare MCP Server",
+        "version": "0.5.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-cloudflare",
+            "version": "0.5.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "CLOUDFLARE_API_TOKEN",
+                "description": "Cloudflare API token with zone and worker permissions.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "CLOUDFLARE_ACCOUNT_ID",
+                "description": "Cloudflare account ID.",
+                "isRequired": true,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-vercel",
+        "description": "Deploy and manage Vercel projects, domains, and environment variables.",
+        "title": "Vercel MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-vercel",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "VERCEL_TOKEN",
+                "description": "Vercel personal access token.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "VERCEL_TEAM_ID",
+                "description": "Team ID for team-scoped operations.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-netlify",
+        "description": "Manage Netlify sites, deploys, and forms.",
+        "title": "Netlify MCP Server",
+        "version": "0.3.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-netlify",
+            "version": "0.3.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "NETLIFY_AUTH_TOKEN",
+                "description": "Netlify personal access token.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "NETLIFY_SITE_ID",
+                "description": "Default site ID for operations.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-sentry",
+        "description": "Triage Sentry issues, releases, and performance spans.",
+        "title": "Sentry MCP Server",
+        "version": "0.6.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-sentry",
+            "version": "0.6.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "SENTRY_AUTH_TOKEN",
+                "description": "Sentry authentication token.",
+                "isRequired": true,
+                "isSecret": true
+              },
+              {
+                "name": "SENTRY_ORG",
+                "description": "Sentry organization slug.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "SENTRY_PROJECT",
+                "description": "Default Sentry project slug.",
+                "isRequired": false,
+                "isSecret": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-yaml-validator",
+        "description": "Validate and pretty-print YAML documents.",
+        "title": "YAML Validator MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-yaml-validator",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-json-schema",
+        "description": "Validate JSON documents against a JSON Schema and report errors.",
+        "title": "JSON Schema Validator MCP Server",
+        "version": "0.3.1",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-json-schema",
+            "version": "0.3.1",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.basictools/mcp-server-csv-parser",
+        "description": "Parse CSV files and run column-level queries and transformations.",
+        "title": "CSV Parser MCP Server",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "mcp-server-csv-parser",
+            "transport": {"type": "stdio"}
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.multienv2/mcp-server-firebase",
+        "description": "Read and write Firebase Firestore documents and Realtime Database nodes.",
+        "title": "Firebase MCP Server",
+        "version": "0.4.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@multienv2/mcp-server-firebase",
+            "version": "0.4.0",
+            "transport": {"type": "stdio"},
+            "environmentVariables": [
+              {
+                "name": "FIREBASE_PROJECT_ID",
+                "description": "Firebase project ID.",
+                "isRequired": true,
+                "isSecret": false
+              },
+              {
+                "name": "FIREBASE_SERVICE_ACCOUNT_KEY",
+                "description": "JSON-encoded service account key for Firebase Admin SDK.",
+                "isRequired": true,
+                "isSecret": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "server": {
+        "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+        "name": "io.github.volumes/mcp-server-model-weights",
+        "description": "Serve local ML model weights from a bind-mounted model directory.",
+        "title": "Model Weights MCP Server",
+        "version": "0.1.0",
+        "packages": [
+          {
+            "registryType": "npm",
+            "identifier": "@volumes/mcp-server-model-weights",
+            "version": "0.1.0",
+            "transport": {"type": "stdio"},
+            "runtimeArguments": [
+              {"type": "named", "name": "-v", "value": "/models:/models:ro"},
+              {"type": "named", "name": "-u", "value": "nobody"}
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {"count": 100}
+}

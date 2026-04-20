@@ -9,9 +9,11 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"golang.org/x/sync/errgroup"
 
 	legacycatalog "github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
@@ -21,7 +23,19 @@ import (
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
-func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, servers []string, workingSetID string, legacyCatalogURL string, communityRegistryRef string, title string, includePyPI bool, excludeServers []string) error {
+// CreateOptions configures catalog creation behavior.
+type CreateOptions struct {
+	Servers              []string
+	WorkingSetID         string
+	LegacyCatalogURL     string
+	CommunityRegistryRef string
+	Title                string
+	IncludePyPI          bool
+	IncludeNPM           bool
+	ExcludeServers       []string
+}
+
+func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, ociService oci.Service, refStr string, opts CreateOptions) error {
 	telemetry.Init()
 	start := time.Now()
 	var success bool
@@ -38,30 +52,30 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 	}
 
 	var catalog Catalog
-	if workingSetID != "" {
-		catalog, err = createCatalogFromWorkingSet(ctx, dao, workingSetID)
+	if opts.WorkingSetID != "" {
+		catalog, err = createCatalogFromWorkingSet(ctx, dao, opts.WorkingSetID)
 		if err != nil {
 			return fmt.Errorf("failed to create catalog from profile: %w", err)
 		}
-	} else if legacyCatalogURL != "" {
-		catalog, err = createCatalogFromLegacyCatalog(ctx, legacyCatalogURL)
+	} else if opts.LegacyCatalogURL != "" {
+		catalog, err = createCatalogFromLegacyCatalog(ctx, opts.LegacyCatalogURL)
 		if err != nil {
 			return fmt.Errorf("failed to create catalog from legacy catalog: %w", err)
 		}
-	} else if communityRegistryRef != "" {
-		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, communityRegistryRef, includePyPI, excludeServers)
+	} else if opts.CommunityRegistryRef != "" {
+		catalog, err = createCatalogFromCommunityRegistry(ctx, registryClient, opts.CommunityRegistryRef, opts.IncludePyPI, opts.IncludeNPM, opts.ExcludeServers)
 		if err != nil {
 			return fmt.Errorf("failed to create catalog from community registry: %w", err)
 		}
 	} else {
 		// Construct from servers
-		if title == "" {
+		if opts.Title == "" {
 			return fmt.Errorf("title is required when creating a catalog without using an existing legacy catalog, profile, or community registry")
 		}
 		catalog = Catalog{
 			CatalogArtifact: CatalogArtifact{
-				Title:   title,
-				Servers: make([]Server, 0, len(servers)),
+				Title:   opts.Title,
+				Servers: make([]Server, 0, len(opts.Servers)),
 			},
 			Source: SourcePrefixUser + "cli",
 		}
@@ -69,11 +83,11 @@ func Create(ctx context.Context, dao db.DAO, registryClient registryapi.Client, 
 
 	catalog.Ref = oci.FullNameWithoutDigest(ref)
 
-	if title != "" {
-		catalog.Title = title
+	if opts.Title != "" {
+		catalog.Title = opts.Title
 	}
 
-	if err := addServersToCatalog(ctx, dao, registryClient, ociService, &catalog, servers); err != nil {
+	if err := addServersToCatalog(ctx, dao, registryClient, ociService, &catalog, opts.Servers); err != nil {
 		return err
 	}
 
@@ -203,77 +217,125 @@ type communityRegistryResult struct {
 	serversAdded   int
 	serversOCI     int
 	serversPyPI    int
+	serversNPM     int
 	serversRemote  int
 	serversSkipped int
 	totalServers   int
 	skippedByType  map[string]int
 }
 
-func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string, includePyPI bool, excludeServers []string) (Catalog, error) {
+func createCatalogFromCommunityRegistry(ctx context.Context, registryClient registryapi.Client, registryRef string, includePyPI bool, includeNPM bool, excludeServers []string) (Catalog, error) {
 	baseURL := "https://" + registryRef
 	servers, err := registryClient.ListServers(ctx, baseURL, "")
 	if err != nil {
 		return Catalog{}, fmt.Errorf("failed to fetch servers from community registry: %w", err)
 	}
 
-	catalogServers := make([]Server, 0)
+	// Create resolvers once (they share an HTTP client internally).
+	pypiResolver := legacycatalog.DefaultPyPIVersionResolver()
+	npmResolver := legacycatalog.DefaultNPMVersionResolver()
+
+	transformOpts := []legacycatalog.TransformOption{
+		legacycatalog.WithAllowPyPI(includePyPI),
+		legacycatalog.WithPyPIResolver(pypiResolver),
+		legacycatalog.WithAllowNPM(includeNPM),
+		legacycatalog.WithNPMResolver(npmResolver),
+	}
+
+	type transformResult struct {
+		server Server
+		source legacycatalog.TransformSource
+	}
+
+	results := make([]transformResult, len(servers))
+	resultValid := make([]bool, len(servers))
+
+	var mu sync.Mutex
 	skippedByType := make(map[string]int)
-	var ociCount, remoteCount, pypiCount int
+	var ociCount, remoteCount, pypiCount, npmCount int
 
-	for _, serverResp := range servers {
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(12)
+
+	for i, serverResp := range servers {
 		if slices.Contains(excludeServers, serverResp.Server.Name) {
+			mu.Lock()
 			skippedByType["excluded"]++
+			mu.Unlock()
 			continue
 		}
 
-		catalogServer, transformSource, err := legacycatalog.TransformToDocker(ctx, serverResp.Server, legacycatalog.WithAllowPyPI(includePyPI), legacycatalog.WithPyPIResolver(legacycatalog.DefaultPyPIVersionResolver()))
-		if err != nil {
-			if !errors.Is(err, legacycatalog.ErrIncompatibleServer) {
-				fmt.Fprintf(os.Stderr, "Warning: failed to transform server %q: %v\n", serverResp.Server.Name, err)
+		g.Go(func() error {
+			catalogServer, transformSource, err := legacycatalog.TransformToDocker(gctx, serverResp.Server, transformOpts...)
+			if err != nil {
+				mu.Lock()
+				if !errors.Is(err, legacycatalog.ErrIncompatibleServer) {
+					fmt.Fprintf(os.Stderr, "Warning: failed to transform server %q: %v\n", serverResp.Server.Name, err)
+				}
+				if len(serverResp.Server.Packages) > 0 {
+					skippedByType[serverResp.Server.Packages[0].RegistryType]++
+				} else {
+					skippedByType["none"]++
+				}
+				mu.Unlock()
+				return nil
 			}
-			if len(serverResp.Server.Packages) > 0 {
-				skippedByType[serverResp.Server.Packages[0].RegistryType]++
-			} else {
-				skippedByType["none"]++
+
+			if catalogServer.Metadata == nil {
+				catalogServer.Metadata = &legacycatalog.Metadata{}
 			}
-			continue
-		}
+			catalogServer.Metadata.Tags = appendIfMissing(catalogServer.Metadata.Tags, "community")
 
-		// Tag with "community" for source identification
-		if catalogServer.Metadata == nil {
-			catalogServer.Metadata = &legacycatalog.Metadata{}
-		}
-		catalogServer.Metadata.Tags = appendIfMissing(catalogServer.Metadata.Tags, "community")
-
-		var s Server
-		switch catalogServer.Type {
-		case "server":
-			switch transformSource {
-			case legacycatalog.TransformSourcePyPI:
-				pypiCount++
+			var s Server
+			switch catalogServer.Type {
+			case "server":
+				mu.Lock()
+				switch transformSource {
+				case legacycatalog.TransformSourcePyPI:
+					pypiCount++
+				case legacycatalog.TransformSourceNPM:
+					npmCount++
+				default:
+					ociCount++
+				}
+				mu.Unlock()
+				s = Server{
+					Type:  workingset.ServerTypeImage,
+					Image: catalogServer.Image,
+					Snapshot: &workingset.ServerSnapshot{
+						Server: *catalogServer,
+					},
+				}
+			case "remote":
+				mu.Lock()
+				remoteCount++
+				mu.Unlock()
+				s = Server{
+					Type:     workingset.ServerTypeRemote,
+					Endpoint: catalogServer.Remote.URL,
+					Snapshot: &workingset.ServerSnapshot{
+						Server: *catalogServer,
+					},
+				}
 			default:
-				ociCount++
+				return nil
 			}
-			s = Server{
-				Type:  workingset.ServerTypeImage,
-				Image: catalogServer.Image,
-				Snapshot: &workingset.ServerSnapshot{
-					Server: *catalogServer,
-				},
-			}
-		case "remote":
-			remoteCount++
-			s = Server{
-				Type:     workingset.ServerTypeRemote,
-				Endpoint: catalogServer.Remote.URL,
-				Snapshot: &workingset.ServerSnapshot{
-					Server: *catalogServer,
-				},
-			}
-		default:
-			continue
+
+			results[i] = transformResult{server: s, source: transformSource}
+			resultValid[i] = true
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return Catalog{}, fmt.Errorf("failed to transform servers: %w", err)
+	}
+
+	catalogServers := make([]Server, 0, len(servers))
+	for i := range results {
+		if resultValid[i] {
+			catalogServers = append(catalogServers, results[i].server)
 		}
-		catalogServers = append(catalogServers, s)
 	}
 
 	slices.SortStableFunc(catalogServers, func(a, b Server) int {
@@ -284,12 +346,13 @@ func createCatalogFromCommunityRegistry(ctx context.Context, registryClient regi
 		serversAdded:   len(catalogServers),
 		serversOCI:     ociCount,
 		serversPyPI:    pypiCount,
+		serversNPM:     npmCount,
 		serversRemote:  remoteCount,
 		serversSkipped: totalSkipped(skippedByType),
 		totalServers:   len(servers),
 		skippedByType:  skippedByType,
 	}
-	printCommunityRegistryResult(registryRef, result, includePyPI)
+	printCommunityRegistryResult(registryRef, result, includePyPI, includeNPM)
 
 	return Catalog{
 		CatalogArtifact: CatalogArtifact{
@@ -308,13 +371,16 @@ func totalSkipped(skippedByType map[string]int) int {
 	return total
 }
 
-func printCommunityRegistryResult(refStr string, result communityRegistryResult, includePyPI bool) {
+func printCommunityRegistryResult(refStr string, result communityRegistryResult, includePyPI bool, includeNPM bool) {
 	fmt.Fprintf(os.Stderr, "Fetched %d servers from %s\n", result.serversAdded, refStr)
 	fmt.Fprintf(os.Stderr, "  Total in registry: %d\n", result.totalServers)
 	fmt.Fprintf(os.Stderr, "  Imported:          %d\n", result.serversAdded)
 	fmt.Fprintf(os.Stderr, "    OCI (stdio):     %d\n", result.serversOCI)
 	if includePyPI {
 		fmt.Fprintf(os.Stderr, "    PyPI (stdio):    %d\n", result.serversPyPI)
+	}
+	if includeNPM {
+		fmt.Fprintf(os.Stderr, "    npm (stdio):     %d\n", result.serversNPM)
 	}
 	fmt.Fprintf(os.Stderr, "    Remote:          %d\n", result.serversRemote)
 	fmt.Fprintf(os.Stderr, "  Skipped:           %d\n", result.serversSkipped)
