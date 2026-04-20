@@ -33,19 +33,21 @@ type npmPackageInfo struct {
 	} `json:"engines"`
 }
 
-// NewNPMVersionResolver creates a resolver that queries the npm registry API.
-func NewNPMVersionResolver(httpClient *http.Client) NPMVersionResolver {
+const defaultNPMRegistryURL = "https://registry.npmjs.org"
+
+// NewNPMVersionResolver creates a resolver that queries the given npm registry URL.
+func NewNPMVersionResolver(httpClient *http.Client, npmRegistryURL string) NPMVersionResolver {
 	return func(ctx context.Context, identifier, version, registryBaseURL string) (string, bool) {
 		// Only query npm for standard npm registry
-		if registryBaseURL != "" && registryBaseURL != "https://registry.npmjs.org" {
+		if registryBaseURL != "" && registryBaseURL != npmRegistryURL {
 			return "", true // assume found for non-standard registries
 		}
 
 		var url string
 		if version != "" {
-			url = fmt.Sprintf("https://registry.npmjs.org/%s/%s", identifier, version)
+			url = fmt.Sprintf("%s/%s/%s", npmRegistryURL, identifier, version)
 		} else {
-			url = fmt.Sprintf("https://registry.npmjs.org/%s/latest", identifier)
+			url = fmt.Sprintf("%s/%s/latest", npmRegistryURL, identifier)
 		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -78,7 +80,7 @@ func DefaultNPMVersionResolver() NPMVersionResolver {
 		Transport: desktop.ProxyTransport(),
 		Timeout:   10 * time.Second,
 	}
-	return NewNPMVersionResolver(client)
+	return NewNPMVersionResolver(client, defaultNPMRegistryURL)
 }
 
 // parseNodeVersion extracts the Node.js major version from a semver constraint.

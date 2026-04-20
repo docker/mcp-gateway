@@ -80,9 +80,26 @@ type (
 // Helper Functions
 
 func extractServerName(fullName string) string {
-	// com.docker.mcp/server-name -> com-docker-mcp-server-name
-	name := strings.ReplaceAll(fullName, "/", "-")
-	name = strings.ReplaceAll(name, ".", "-")
+	// Produce a name that is safe for Docker volume names, secret names, and config schema names.
+	// Docker volume names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*.
+	// We replace any non-alphanumeric/non-hyphen character with '-' and trim leading
+	// non-alphanumeric characters so names like "@scope/pkg" become "scope-pkg".
+	var b strings.Builder
+	for _, r := range fullName {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			b.WriteRune(r)
+		} else {
+			b.WriteRune('-')
+		}
+	}
+	name := b.String()
+	// Trim leading non-alphanumeric characters (hyphens, etc.)
+	name = strings.TrimLeftFunc(name, func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < 'A' || r > 'Z') && (r < '0' || r > '9')
+	})
+	if name == "" {
+		name = "server"
+	}
 	return name
 }
 
@@ -605,6 +622,15 @@ func TransformToDocker(ctx context.Context, serverDetail ServerDetail, opts ...T
 	if pkg != nil {
 		if user := extractUserFromRuntimeArgs(pkg.RuntimeArguments, serverName); user != "" {
 			server.User = user
+			// A non-root user cannot write to /root/.npm or /root/.cache/uv, so
+			// drop any cache volumes that target /root/ to avoid silent failures.
+			filtered := server.Volumes[:0]
+			for _, v := range server.Volumes {
+				if !strings.Contains(v, ":/root/") {
+					filtered = append(filtered, v)
+				}
+			}
+			server.Volumes = filtered
 		}
 	}
 

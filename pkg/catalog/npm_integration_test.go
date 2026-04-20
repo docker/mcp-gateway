@@ -119,30 +119,34 @@ func TestNPMTransformBatch(t *testing.T) {
 				return
 			}
 
-			// Validate volumes contain npm cache
-			if len(result.Volumes) == 0 {
-				t.Errorf("%s: expected at least one volume for npm cache", name)
-				failed++
-				return
-			}
-			hasNPMCache := false
-			for _, v := range result.Volumes {
-				if strings.Contains(v, ":/root/.npm") && strings.HasPrefix(v, "docker-mcp-npm-cache-") {
-					hasNPMCache = true
-					break
+			// Validate volumes contain npm cache (unless a user override dropped it)
+			if result.User == "" {
+				if len(result.Volumes) == 0 {
+					t.Errorf("%s: expected at least one volume for npm cache", name)
+					failed++
+					return
+				}
+				hasNPMCache := false
+				for _, v := range result.Volumes {
+					if strings.Contains(v, ":/root/.npm") && strings.HasPrefix(v, "docker-mcp-npm-cache-") {
+						hasNPMCache = true
+						break
+					}
+				}
+				if !hasNPMCache {
+					t.Errorf("%s: expected npm cache volume, got %v", name, result.Volumes)
+					failed++
+					return
 				}
 			}
-			if !hasNPMCache {
-				t.Errorf("%s: expected npm cache volume, got %v", name, result.Volumes)
-				failed++
-				return
-			}
 
-			// Validate metadata has registry URL
-			if result.Metadata == nil || result.Metadata.RegistryURL == "" {
-				t.Errorf("%s: expected metadata.registryUrl to be set", name)
-				failed++
-				return
+			// Validate metadata has registry URL (only when server has a version)
+			if s.Server.Version != "" {
+				if result.Metadata == nil || result.Metadata.RegistryURL == "" {
+					t.Errorf("%s: expected metadata.registryUrl to be set", name)
+					failed++
+					return
+				}
 			}
 
 			passed++
@@ -192,39 +196,8 @@ func TestNPMVersionResolver(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	// Create a resolver that points to our test server instead of the real npm registry.
-	// We construct the resolver manually rather than using NewNPMVersionResolver because
-	// the standard resolver hardcodes the npm registry URL.
-	resolver := func(ctx context.Context, identifier, version, _ string) (string, bool) {
-		var url string
-		if version != "" {
-			url = fmt.Sprintf("%s/%s/%s", srv.URL, identifier, version)
-		} else {
-			url = fmt.Sprintf("%s/%s/latest", srv.URL, identifier)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return "", false
-		}
-
-		resp, err := srv.Client().Do(req)
-		if err != nil {
-			return "", false
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return "", false
-		}
-
-		var info npmPackageInfo
-		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-			return "", false
-		}
-
-		return parseNodeVersion(info.Engines.Node), true
-	}
+	// Use the production resolver pointed at our test server.
+	resolver := NewNPMVersionResolver(srv.Client(), srv.URL)
 
 	ctx := t.Context()
 
