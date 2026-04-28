@@ -3,11 +3,13 @@ package oauth
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
@@ -153,7 +155,13 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 		opts = append(opts, oauth2.SetAuthURLParam("resource", provider.ResourceURL()))
 	}
 
-	token, err := config.Exchange(ctx, code, opts...)
+	// Inject proxy transport so the token endpoint is reachable through
+	// Docker Desktop's HTTP proxy when applicable.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+		Transport: desktop.ProxyTransport(),
+	})
+
+	token, err := config.Exchange(proxyCtx, code, opts...)
 	if err != nil {
 		return fmt.Errorf("token exchange failed for %s: %w", serverName, err)
 	}

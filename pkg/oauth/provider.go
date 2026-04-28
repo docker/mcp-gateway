@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -165,7 +166,7 @@ func (p *Provider) Run(ctx context.Context) {
 			case ModeCE:
 				// CE mode: Refresh token directly, then reload server connection
 				go func() {
-					if err := p.refreshTokenCE(); err != nil {
+					if err := p.refreshTokenCE(ctx); err != nil {
 						log.Logf("! Token refresh failed for %s: %v", p.name, err)
 						return
 					}
@@ -277,7 +278,13 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 	provider := NewDCRProvider(dcrClient, DefaultRedirectURI)
 	config := provider.Config()
 
-	refreshedToken, err := config.TokenSource(ctx, token).Token()
+	// Inject proxy transport so the token endpoint is reachable through
+	// Docker Desktop's HTTP proxy when applicable.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+		Transport: desktop.ProxyTransport(),
+	})
+
+	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
 	if err != nil {
 		return fmt.Errorf("token refresh failed: %w", err)
 	}
@@ -293,7 +300,7 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 
 // refreshTokenCE refreshes an OAuth token in CE mode
 // Uses the same oauth2 library refresh mechanism as Desktop
-func (p *Provider) refreshTokenCE() error {
+func (p *Provider) refreshTokenCE(ctx context.Context) error {
 	// Create read-write credential helper for save operations
 	rwHelper := NewReadWriteCredentialHelper()
 
@@ -315,8 +322,14 @@ func (p *Provider) refreshTokenCE() error {
 	provider := NewDCRProvider(dcrClient, DefaultRedirectURI)
 	config := provider.Config()
 
+	// Inject proxy transport so the token endpoint is reachable through
+	// Docker Desktop's HTTP proxy when applicable.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+		Transport: desktop.ProxyTransport(),
+	})
+
 	// TokenSource automatically refreshes using refresh_token
-	refreshedToken, err := config.TokenSource(context.Background(), token).Token()
+	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
 	if err != nil {
 		return fmt.Errorf("token refresh failed: %w", err)
 	}
