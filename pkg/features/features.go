@@ -58,25 +58,6 @@ func (f *featuresImpl) IsRunningInDockerDesktop() bool {
 	return f.runningDockerDesktop
 }
 
-func readProfilesFeature(ctx context.Context, dockerCli command.Cli, runningDockerDesktop bool) (bool, error) {
-	if runningDockerDesktop {
-		// Check DD feature flag
-		return desktop.CheckFeatureFlagIsEnabled(ctx, "MCPWorkingSets")
-	}
-
-	// Otherwise, check the profiles feature in Docker CE or in a container
-	return isProfilesCLIFeatureEnabled(dockerCli), nil
-}
-
-func isProfilesCLIFeatureEnabled(dockerCli command.Cli) bool {
-	configFile := dockerCli.ConfigFile()
-	if configFile == nil || configFile.Features == nil {
-		return false
-	}
-
-	value, exists := configFile.Features["profiles"]
-	if !exists {
-		return false
-	}
-	return value == "enabled"
+func readProfilesFeature(_ context.Context, _ command.Cli, _ bool) (bool, error) {
+	return true, nil
 }
