@@ -327,10 +327,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}
 	}
 
-	if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
-		return fmt.Errorf("loading configuration: %w", err)
-	}
-
 	// When running in Container mode, disable OAuth notification monitoring and authentication
 	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
 
@@ -422,11 +418,31 @@ func (g *Gateway) Run(ctx context.Context) error {
 		}()
 	}
 
-	log.Log("> Initialized in", time.Since(start))
 	if g.DryRun {
+		// In dry-run mode, load capabilities synchronously so we validate
+		// server configs and report discovered tools before exiting.
+		if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+			log.Logf("> Initial capability load failed: %s", err)
+		}
+		log.Log("> Initialized in", time.Since(start))
 		log.Log("Dry run mode enabled, not starting the server.")
 		return nil
 	}
+
+	// Load initial server capabilities in the background. This connects to
+	// each configured MCP server to discover its tools, prompts, and
+	// resources. Unreachable servers (e.g. VPN-only endpoints when off-VPN)
+	// can take 30s+ to time out, so we do this concurrently with starting the
+	// transport server. The go-sdk's Server.AddTool is thread-safe and
+	// automatically sends tools/list_changed notifications to connected
+	// clients once new tools are registered.
+	go func() {
+		if err := g.reloadConfiguration(ctx, configuration, nil, nil); err != nil {
+			log.Logf("> Initial capability load failed: %s", err)
+			log.Log("> Gateway is running but no tools are available. Tools will load on next configuration update.")
+		}
+		log.Log("> Initialized in", time.Since(start))
+	}()
 
 	// Initialize authentication token for SSE and streaming modes
 	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
