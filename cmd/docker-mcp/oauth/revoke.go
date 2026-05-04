@@ -50,12 +50,12 @@ func Revoke(ctx context.Context, app string) error {
 	}
 }
 
-// revokeDesktopMode handles revoke via Docker Desktop (existing behavior)
+// revokeDesktopMode handles revoke via Docker Desktop (catalog servers).
 func revokeDesktopMode(ctx context.Context, app string) error {
 	// Best-effort cleanup of docker pass entries that may exist from a
-	// previous authorization with the McpGatewayOAuth flag ON. Run this
-	// before the Desktop API call so entries are cleaned even when the
-	// Desktop provider has no token for this server.
+	// previous community-mode authorization. Run this before the Desktop
+	// API call so entries are cleaned even when the Desktop provider has
+	// no token for this server.
 	cleanStaleDockerPassEntriesFunc(ctx, app)
 
 	// Revoke tokens via Docker Desktop
@@ -100,7 +100,7 @@ func revokeCEMode(ctx context.Context, app string) error {
 // revokeCommunityMode handles revoke for community servers in Desktop mode.
 // Deletes the OAuth token and DCR client from docker pass, and cleans up
 // any stale Desktop Secrets Engine entries left from prior Desktop OAuth
-// authorizations (when the McpGatewayOAuth flag was OFF).
+// authorizations.
 func revokeCommunityMode(ctx context.Context, app string) error {
 	// Delete OAuth token from docker pass
 	if err := deleteOAuthTokenFunc(ctx, app); err != nil {
@@ -114,9 +114,9 @@ func revokeCommunityMode(ctx context.Context, app string) error {
 		fmt.Printf("Note: %v\n", err)
 	}
 
-	// Best-effort cleanup of stale Desktop Secrets Engine entries. When the
-	// flag was previously OFF, Desktop may have stored oauth/dcr entries for
-	// this community server. Removing them prevents the Secrets Engine from
+	// Best-effort cleanup of stale Desktop Secrets Engine entries. Desktop
+	// may have stored oauth/dcr entries for this community server from a
+	// prior authorization. Removing them prevents the Secrets Engine from
 	// returning stale Desktop-managed tokens that shadow docker pass entries.
 	cleanStaleDesktopEntriesFunc(ctx, app)
 
