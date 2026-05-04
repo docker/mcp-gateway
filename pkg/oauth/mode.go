@@ -42,7 +42,7 @@ func (m Mode) String() string {
 //   - CE mode (no Desktop): ModeCE
 //   - Desktop + community server: ModeCommunity
 //   - Desktop + catalog server: ModeDesktop
-func DetermineMode(ctx context.Context, isCommunity bool) Mode {
+func DetermineMode(_ context.Context, isCommunity bool) Mode {
 	if IsCEMode() {
 		return ModeCE
 	}
