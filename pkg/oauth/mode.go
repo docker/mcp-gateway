@@ -43,7 +43,13 @@ func (m Mode) String() string {
 //   - Desktop + community server: ModeCommunity
 //   - Desktop + catalog server: ModeDesktop
 func DetermineMode(_ context.Context, isCommunity bool) Mode {
-	if IsCEMode() {
+	return determineMode(IsCEMode(), isCommunity)
+}
+
+// determineMode is the testable core. ceMode is pre-resolved so tests
+// don't need to mock env/OS detection or the Desktop backend socket.
+func determineMode(ceMode bool, isCommunity bool) Mode {
+	if ceMode {
 		return ModeCE
 	}
 	if isCommunity {

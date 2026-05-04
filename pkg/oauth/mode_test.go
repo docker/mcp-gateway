@@ -8,6 +8,8 @@ import (
 
 func TestShouldUseGatewayOAuth(t *testing.T) {
 	// ShouldUseGatewayOAuth is a wrapper: DetermineMode(...) != ModeDesktop.
+	// We test via the unexported determineMode so CI (Linux, no Desktop)
+	// can exercise the Desktop path without env hacks.
 
 	tests := []struct {
 		name        string
@@ -22,10 +24,7 @@ func TestShouldUseGatewayOAuth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.ceMode {
-				t.Setenv("DOCKER_MCP_USE_CE", "true")
-			}
-			mode := DetermineMode(t.Context(), tt.isCommunity)
+			mode := determineMode(tt.ceMode, tt.isCommunity)
 			got := mode != ModeDesktop
 			assert.Equal(t, tt.expected, got)
 		})
@@ -44,6 +43,8 @@ func TestShouldUseGatewayOAuth_CEModeIntegration(t *testing.T) {
 }
 
 func TestDetermineMode(t *testing.T) {
+	// Test via the unexported determineMode so CI (Linux, no Desktop)
+	// can exercise the Desktop path without env hacks.
 	tests := []struct {
 		name        string
 		ceMode      bool
@@ -83,10 +84,7 @@ func TestDetermineMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.ceMode {
-				t.Setenv("DOCKER_MCP_USE_CE", "true")
-			}
-			got := DetermineMode(t.Context(), tt.isCommunity)
+			got := determineMode(tt.ceMode, tt.isCommunity)
 			assert.Equal(t, tt.expected, got)
 		})
 	}
