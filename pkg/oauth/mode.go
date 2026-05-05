@@ -40,24 +40,20 @@ func (m Mode) String() string {
 // DetermineMode returns the credential storage mode for a server.
 //
 //   - CE mode (no Desktop): ModeCE
+//   - Desktop + community server: ModeCommunity
 //   - Desktop + catalog server: ModeDesktop
-//   - Desktop + community server + McpGatewayOAuth flag ON: ModeCommunity
-//   - Desktop + community server + flag OFF/error: ModeDesktop (fallback)
-func DetermineMode(ctx context.Context, isCommunity bool) Mode {
-	return determineMode(ctx, IsCEMode(), isCommunity, desktop.CheckFeatureFlagIsEnabled)
+func DetermineMode(_ context.Context, isCommunity bool) Mode {
+	return determineMode(IsCEMode(), isCommunity)
 }
 
 // determineMode is the testable core. ceMode is pre-resolved so tests
 // don't need to mock env/OS detection or the Desktop backend socket.
-func determineMode(ctx context.Context, ceMode bool, isCommunity bool, checkFlag featureFlagChecker) Mode {
+func determineMode(ceMode bool, isCommunity bool) Mode {
 	if ceMode {
 		return ModeCE
 	}
 	if isCommunity {
-		enabled, err := checkFlag(ctx, "McpGatewayOAuth")
-		if err == nil && enabled {
-			return ModeCommunity
-		}
+		return ModeCommunity
 	}
 	return ModeDesktop
 }
@@ -81,9 +77,6 @@ func IsCEMode() bool {
 	// IsCEMode is the inverse of IsRunningInDockerDesktop
 	return !desktop.IsRunningInDockerDesktop(context.Background())
 }
-
-// featureFlagChecker abstracts feature flag queries for testing.
-type featureFlagChecker func(ctx context.Context, featureName string) (bool, error)
 
 // ShouldUseGatewayOAuth returns true when the Gateway should own the OAuth
 // lifecycle for a server (localhost callback, PKCE, token storage via

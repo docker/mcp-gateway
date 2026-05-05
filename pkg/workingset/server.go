@@ -175,9 +175,8 @@ type dcrClient interface {
 // entries from accumulating.
 //
 // communityServers maps server names to true when the server is a community
-// server. Servers where Gateway owns OAuth (CE mode, or Desktop + community
-// + McpGatewayOAuth flag ON) are skipped since their DCR entries are not
-// managed by Desktop.
+// server. Servers where Gateway owns OAuth (CE mode, or Desktop + community)
+// are skipped since their DCR entries are not managed by Desktop.
 func CleanupOrphanedDCREntries(ctx context.Context, dao db.DAO, serverNames []string, communityServers map[string]bool) {
 	if isCEModeFunc() {
 		return

@@ -24,8 +24,8 @@ var (
 //
 // This function is idempotent and safe to call multiple times for the same servers.
 // When the Gateway owns OAuth for a server (CE mode, or Desktop + community
-// server + McpGatewayOAuth flag ON), Desktop registration is skipped — DCR
-// happens during the authorize command instead.
+// server), Desktop registration is skipped -- DCR happens during the authorize
+// command instead.
 func RegisterOAuthProvidersForServers(ctx context.Context, servers []Server) {
 	// CE mode: all OAuth is Gateway-owned, skip Desktop registration entirely.
 	if isCEModeFunc() {

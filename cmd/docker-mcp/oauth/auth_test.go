@@ -93,9 +93,9 @@ func TestAuthorize_CatalogServer_DesktopMode(t *testing.T) {
 	assert.Equal(t, "desktop", *called)
 }
 
-// TestAuthorize_CommunityServer_FlagOn verifies that a community server with
-// the McpGatewayOAuth flag ON routes to authorizeCommunityMode.
-func TestAuthorize_CommunityServer_FlagOn(t *testing.T) {
+// TestAuthorize_CommunityServer verifies that a community server
+// routes to authorizeCommunityMode.
+func TestAuthorize_CommunityServer(t *testing.T) {
 	called := mockAuthorizeRouting(t)
 	lookupIsCommunityFunc = func(_ context.Context, _ string) (bool, error) {
 		return true, nil // community server
@@ -107,22 +107,6 @@ func TestAuthorize_CommunityServer_FlagOn(t *testing.T) {
 	err := Authorize(t.Context(), "community-server", "", false)
 	require.NoError(t, err)
 	assert.Equal(t, "community", *called)
-}
-
-// TestAuthorize_CommunityServer_FlagOff verifies that a community server with
-// the McpGatewayOAuth flag OFF routes to authorizeDesktopMode.
-func TestAuthorize_CommunityServer_FlagOff(t *testing.T) {
-	called := mockAuthorizeRouting(t)
-	lookupIsCommunityFunc = func(_ context.Context, _ string) (bool, error) {
-		return true, nil // community server
-	}
-	determineModeFunc = func(_ context.Context, _ bool) pkgoauth.Mode {
-		return pkgoauth.ModeDesktop
-	}
-
-	err := Authorize(t.Context(), "community-server", "", false)
-	require.NoError(t, err)
-	assert.Equal(t, "desktop", *called)
 }
 
 // TestAuthorize_CEMode_CommunityServer verifies that CE mode routes all

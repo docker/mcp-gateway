@@ -93,9 +93,9 @@ func TestRevoke_CatalogServer_DesktopMode(t *testing.T) {
 	assert.Equal(t, "desktop", *called)
 }
 
-// TestRevoke_CommunityServer_FlagOn verifies that a community server with
-// the McpGatewayOAuth flag ON routes to revokeCommunityMode.
-func TestRevoke_CommunityServer_FlagOn(t *testing.T) {
+// TestRevoke_CommunityServer verifies that a community server
+// routes to revokeCommunityMode.
+func TestRevoke_CommunityServer(t *testing.T) {
 	called := mockRevokeRouting(t)
 	lookupIsCommunityFunc = func(_ context.Context, _ string) (bool, error) {
 		return true, nil // community server
@@ -107,22 +107,6 @@ func TestRevoke_CommunityServer_FlagOn(t *testing.T) {
 	err := Revoke(t.Context(), "community-server")
 	require.NoError(t, err)
 	assert.Equal(t, "community", *called)
-}
-
-// TestRevoke_CommunityServer_FlagOff verifies that a community server with
-// the McpGatewayOAuth flag OFF routes to revokeDesktopMode.
-func TestRevoke_CommunityServer_FlagOff(t *testing.T) {
-	called := mockRevokeRouting(t)
-	lookupIsCommunityFunc = func(_ context.Context, _ string) (bool, error) {
-		return true, nil // community server
-	}
-	determineModeFunc = func(_ context.Context, _ bool) pkgoauth.Mode {
-		return pkgoauth.ModeDesktop
-	}
-
-	err := Revoke(t.Context(), "community-server")
-	require.NoError(t, err)
-	assert.Equal(t, "desktop", *called)
 }
 
 // TestRevoke_CEMode_CommunityServer verifies that CE mode routes all

@@ -8,21 +8,16 @@ import (
 )
 
 // TestMixedMode_DetermineModeTwoServers verifies that two servers in the same
-// Desktop session get different modes: catalog -> ModeDesktop, community with
-// flag ON -> ModeCommunity. This is the core "mixed mode" acceptance criterion.
+// Desktop session get different modes: catalog -> ModeDesktop, community ->
+// ModeCommunity. This is the core "mixed mode" acceptance criterion.
 func TestMixedMode_DetermineModeTwoServers(t *testing.T) {
-	flagOn := func(_ context.Context, _ string) (bool, error) {
-		return true, nil
-	}
-
-	ctx := t.Context()
 	ceMode := false // Desktop is running
 
-	catalogMode := determineMode(ctx, ceMode, false, flagOn)
-	communityMode := determineMode(ctx, ceMode, true, flagOn)
+	catalogMode := determineMode(ceMode, false)
+	communityMode := determineMode(ceMode, true)
 
 	assert.Equal(t, ModeDesktop, catalogMode, "catalog server should use ModeDesktop")
-	assert.Equal(t, ModeCommunity, communityMode, "community server with flag ON should use ModeCommunity")
+	assert.Equal(t, ModeCommunity, communityMode, "community server should use ModeCommunity")
 	assert.NotEqual(t, catalogMode, communityMode, "catalog and community should resolve to different modes")
 }
 
@@ -57,13 +52,8 @@ func TestMixedMode_ProviderRefreshRouting(t *testing.T) {
 // unavailable, the mode falls back to ModeDesktop. This mirrors the logic in
 // pkg/gateway/run.go (lines 374-377).
 func TestMixedMode_DockerPassFallback(t *testing.T) {
-	flagOn := func(_ context.Context, _ string) (bool, error) {
-		return true, nil
-	}
-
-	ctx := t.Context()
-	mode := determineMode(ctx, false, true, flagOn)
-	assert.Equal(t, ModeCommunity, mode, "community with flag ON should be ModeCommunity")
+	mode := determineMode(false, true)
+	assert.Equal(t, ModeCommunity, mode, "community server should be ModeCommunity")
 
 	// Simulate the fallback from run.go: when docker pass is unavailable,
 	// the gateway overrides the mode to ModeDesktop.

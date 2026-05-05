@@ -1,8 +1,6 @@
 package oauth
 
 import (
-	"context"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,32 +8,23 @@ import (
 
 func TestShouldUseGatewayOAuth(t *testing.T) {
 	// ShouldUseGatewayOAuth is a wrapper: DetermineMode(...) != ModeDesktop.
-	// The full decision-tree coverage lives in TestDetermineMode; here we
-	// verify the bool mapping via determineMode (testable core).
-
-	flagOn := func(_ context.Context, _ string) (bool, error) {
-		return true, nil
-	}
-	flagOff := func(_ context.Context, _ string) (bool, error) {
-		return false, nil
-	}
+	// We test via the unexported determineMode so CI (Linux, no Desktop)
+	// can exercise the Desktop path without env hacks.
 
 	tests := []struct {
 		name        string
 		ceMode      bool
 		isCommunity bool
-		checkFlag   featureFlagChecker
 		expected    bool
 	}{
-		{"CE mode -> true (ModeCE)", true, false, flagOff, true},
-		{"Desktop catalog -> false (ModeDesktop)", false, false, flagOn, false},
-		{"Desktop community flag ON -> true (ModeCommunity)", false, true, flagOn, true},
-		{"Desktop community flag OFF -> false (ModeDesktop)", false, true, flagOff, false},
+		{"CE mode -> true (ModeCE)", true, false, true},
+		{"Desktop catalog -> false (ModeDesktop)", false, false, false},
+		{"Desktop community -> true (ModeCommunity)", false, true, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mode := determineMode(t.Context(), tt.ceMode, tt.isCommunity, tt.checkFlag)
+			mode := determineMode(tt.ceMode, tt.isCommunity)
 			got := mode != ModeDesktop
 			assert.Equal(t, tt.expected, got)
 		})
@@ -54,24 +43,12 @@ func TestShouldUseGatewayOAuth_CEModeIntegration(t *testing.T) {
 }
 
 func TestDetermineMode(t *testing.T) {
-	// Test the internal function directly so we can control ceMode and the
-	// feature-flag checker.
-
-	flagOn := func(_ context.Context, _ string) (bool, error) {
-		return true, nil
-	}
-	flagOff := func(_ context.Context, _ string) (bool, error) {
-		return false, nil
-	}
-	flagErr := func(_ context.Context, _ string) (bool, error) {
-		return false, errors.New("Desktop not running")
-	}
-
+	// Test via the unexported determineMode so CI (Linux, no Desktop)
+	// can exercise the Desktop path without env hacks.
 	tests := []struct {
 		name        string
 		ceMode      bool
 		isCommunity bool
-		checkFlag   featureFlagChecker
 		expected    Mode
 	}{
 		// CE mode: always ModeCE regardless of server type
@@ -79,14 +56,12 @@ func TestDetermineMode(t *testing.T) {
 			name:        "CE mode, catalog server",
 			ceMode:      true,
 			isCommunity: false,
-			checkFlag:   flagOff,
 			expected:    ModeCE,
 		},
 		{
 			name:        "CE mode, community server",
 			ceMode:      true,
 			isCommunity: true,
-			checkFlag:   flagOff,
 			expected:    ModeCE,
 		},
 
@@ -95,37 +70,21 @@ func TestDetermineMode(t *testing.T) {
 			name:        "Desktop, catalog server",
 			ceMode:      false,
 			isCommunity: false,
-			checkFlag:   flagOn,
 			expected:    ModeDesktop,
 		},
 
-		// Desktop + community server: depends on feature flag
+		// Desktop + community server: always ModeCommunity
 		{
-			name:        "Desktop, community server, flag ON",
+			name:        "Desktop, community server",
 			ceMode:      false,
 			isCommunity: true,
-			checkFlag:   flagOn,
 			expected:    ModeCommunity,
-		},
-		{
-			name:        "Desktop, community server, flag OFF",
-			ceMode:      false,
-			isCommunity: true,
-			checkFlag:   flagOff,
-			expected:    ModeDesktop,
-		},
-		{
-			name:        "Desktop, community server, flag error",
-			ceMode:      false,
-			isCommunity: true,
-			checkFlag:   flagErr,
-			expected:    ModeDesktop,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := determineMode(t.Context(), tt.ceMode, tt.isCommunity, tt.checkFlag)
+			got := determineMode(tt.ceMode, tt.isCommunity)
 			assert.Equal(t, tt.expected, got)
 		})
 	}

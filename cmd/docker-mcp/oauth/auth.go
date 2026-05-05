@@ -338,9 +338,6 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 	// token is safely stored in docker pass. We defer this until after storage
 	// succeeds so that if the authorize flow fails at any earlier step, the
 	// user retains their existing Desktop authorization as a fallback.
-	// The docker-desktop-mcp-oauth plugin (pattern docker/mcp/oauth/**) has
-	// higher priority than docker-pass (**), so stale Desktop entries would
-	// shadow the fresh token if not removed.
 	cleanStaleDesktopEntriesFunc(ctx, serverName)
 
 	fmt.Printf("Authorization successful! Token stored securely.\n")

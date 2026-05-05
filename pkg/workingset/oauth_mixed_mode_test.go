@@ -7,13 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/oauth"
 )
 
-// mockDesktopModeWithGatewayOAuth sets up Desktop mode mocks including the
-// shouldUseGatewayOAuthFunc override. It extends the existing mockDesktopMode
+// mockDesktopModeForMixedTests sets up Desktop mode mocks including the
+// shouldUseGatewayOAuthFunc override. It extends the existing mockDesktopModeForMixedTests
 // pattern from oauth_test.go.
-func mockDesktopModeWithGatewayOAuth(t *testing.T, gatewayOAuthEnabled bool) {
+func mockDesktopModeForMixedTests(t *testing.T) {
 	t.Helper()
 	oldCE := isCEModeFunc
 	oldGateway := shouldUseGatewayOAuthFunc
@@ -22,9 +21,8 @@ func mockDesktopModeWithGatewayOAuth(t *testing.T, gatewayOAuthEnabled bool) {
 
 	isCEModeFunc = func() bool { return false }
 	shouldUseGatewayOAuthFunc = func(_ context.Context, isCommunity bool) bool {
-		// In Desktop mode, Gateway owns OAuth only for community servers
-		// when the flag is enabled.
-		return gatewayOAuthEnabled && isCommunity
+		// In Desktop mode, Gateway owns OAuth for community servers.
+		return isCommunity
 	}
 
 	t.Cleanup(func() {
@@ -72,11 +70,10 @@ func newCommunityServer(name string) Server {
 
 // --- Registration tests ---
 
-// TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOn verifies that
-// when the McpGatewayOAuth flag is ON, catalog servers are registered with
-// Desktop but community servers are skipped (Gateway owns their OAuth).
-func TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOn(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, true)
+// TestRegisterOAuthProviders_MixedCatalogAndCommunity verifies that catalog
+// and community servers are both registered with Desktop for OAuth tab visibility.
+func TestRegisterOAuthProviders_MixedCatalogAndCommunity(t *testing.T) {
+	mockDesktopModeForMixedTests(t)
 
 	var registeredServers []string
 	registerWithSnapshotFunc = func(_ context.Context, serverName, _ string) error {
@@ -95,33 +92,7 @@ func TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOn(t *testing.T) {
 	RegisterOAuthProvidersForServers(context.Background(), servers)
 
 	assert.Equal(t, []string{"catalog-oauth", "community-oauth"}, registeredServers,
-		"flag ON: both catalog and community servers should be registered with Desktop for OAuth tab visibility")
-}
-
-// TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOff verifies that
-// when the McpGatewayOAuth flag is OFF, both catalog and community servers
-// are registered with Desktop (Desktop manages all OAuth).
-func TestRegisterOAuthProviders_MixedCatalogAndCommunity_FlagOff(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, false)
-
-	var registeredServers []string
-	registerWithSnapshotFunc = func(_ context.Context, serverName, _ string) error {
-		registeredServers = append(registeredServers, serverName)
-		return nil
-	}
-	registerForDynamicDiscoveryFunc = func(_ context.Context, _, _ string) error {
-		return nil
-	}
-
-	servers := []Server{
-		newCatalogServer("catalog-oauth"),
-		newCommunityServer("community-oauth"),
-	}
-
-	RegisterOAuthProvidersForServers(context.Background(), servers)
-
-	assert.Equal(t, []string{"catalog-oauth", "community-oauth"}, registeredServers,
-		"flag OFF: both catalog and community servers should be registered with Desktop")
+		"both catalog and community servers should be registered with Desktop for OAuth tab visibility")
 }
 
 // --- Dynamic discovery tests ---
@@ -144,12 +115,12 @@ func newCommunityRemoteServer(name, url string) Server {
 	}
 }
 
-// TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn verifies that
+// TestRegisterOAuthProviders_CommunityDynamicDiscovery verifies that
 // community servers with a URL but no explicit OAuth ARE registered for
-// dynamic discovery when the McpGatewayOAuth flag is ON. Registration is for
-// OAuth tab visibility — Gateway still owns the authorize/revoke lifecycle.
-func TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, true)
+// dynamic discovery. Registration is for OAuth tab visibility -- Gateway
+// still owns the authorize/revoke lifecycle.
+func TestRegisterOAuthProviders_CommunityDynamicDiscovery(t *testing.T) {
+	mockDesktopModeForMixedTests(t)
 
 	var discoveredServers []string
 	registerWithSnapshotFunc = func(_ context.Context, _, _ string) error {
@@ -167,42 +138,17 @@ func TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOn(t *testing.T) {
 	RegisterOAuthProvidersForServers(context.Background(), servers)
 
 	assert.Equal(t, []string{"community-remote"}, discoveredServers,
-		"flag ON: community remote server should trigger dynamic discovery for OAuth tab visibility")
-}
-
-// TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOff verifies that
-// community servers with a URL but no explicit OAuth ARE registered for
-// dynamic discovery when the McpGatewayOAuth flag is OFF (Desktop manages).
-func TestRegisterOAuthProviders_CommunityDynamicDiscovery_FlagOff(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, false)
-
-	var discoveredServers []string
-	registerWithSnapshotFunc = func(_ context.Context, _, _ string) error {
-		return nil
-	}
-	registerForDynamicDiscoveryFunc = func(_ context.Context, serverName, _ string) error {
-		discoveredServers = append(discoveredServers, serverName)
-		return nil
-	}
-
-	servers := []Server{
-		newCommunityRemoteServer("community-remote", "https://example.com/mcp"),
-	}
-
-	RegisterOAuthProvidersForServers(context.Background(), servers)
-
-	assert.Equal(t, []string{"community-remote"}, discoveredServers,
-		"flag OFF: community remote server should trigger dynamic discovery (Desktop manages)")
+		"community remote server should trigger dynamic discovery for OAuth tab visibility")
 }
 
 // --- Cleanup filtering tests ---
 
-// TestCleanupOrphanedDCREntries_SkipsCommunityWhenFlagOn verifies that when
-// the McpGatewayOAuth flag is ON, community servers are filtered out of the
-// cleanup list. When all servers are community, the filtered list is empty and
-// doCleanupOrphanedDCREntries is never called (safe with nil dao).
-func TestCleanupOrphanedDCREntries_SkipsCommunityWhenFlagOn(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, true)
+// TestCleanupOrphanedDCREntries_SkipsCommunity verifies that community
+// servers are filtered out of the cleanup list. When all servers are
+// community, the filtered list is empty and doCleanupOrphanedDCREntries
+// is never called (safe with nil dao).
+func TestCleanupOrphanedDCREntries_SkipsCommunity(t *testing.T) {
+	mockDesktopModeForMixedTests(t)
 
 	communityServers := map[string]bool{
 		"comm-a": true,
@@ -218,30 +164,4 @@ func TestCleanupOrphanedDCREntries_SkipsCommunityWhenFlagOn(t *testing.T) {
 		communityServers,
 	)
 	// No panic = community servers were correctly filtered out.
-}
-
-// TestCleanupOrphanedDCREntries_IncludesCommunityWhenFlagOff verifies that
-// when the McpGatewayOAuth flag is OFF, community servers are NOT filtered
-// out of the cleanup list. We verify this by checking that
-// shouldUseGatewayOAuthFunc returns false for community servers when the
-// flag is off, meaning they pass through the filter.
-func TestCleanupOrphanedDCREntries_IncludesCommunityWhenFlagOff(t *testing.T) {
-	mockDesktopModeWithGatewayOAuth(t, false)
-
-	// Verify the filter logic: with flag OFF, shouldUseGatewayOAuthFunc returns
-	// false for community servers, meaning they would NOT be filtered out.
-	assert.False(t, shouldUseGatewayOAuthFunc(context.Background(), true),
-		"flag OFF: community servers should not be filtered (shouldUseGatewayOAuth=false)")
-	assert.False(t, shouldUseGatewayOAuthFunc(context.Background(), false),
-		"flag OFF: catalog servers should not be filtered (shouldUseGatewayOAuth=false)")
-
-	// Contrast with flag ON:
-	oldGateway := shouldUseGatewayOAuthFunc
-	shouldUseGatewayOAuthFunc = oauth.ShouldUseGatewayOAuth
-	t.Cleanup(func() { shouldUseGatewayOAuthFunc = oldGateway })
-
-	// With the real function and DOCKER_MCP_USE_CE=true, all servers use Gateway OAuth.
-	t.Setenv("DOCKER_MCP_USE_CE", "true")
-	assert.True(t, shouldUseGatewayOAuthFunc(context.Background(), true),
-		"CE mode: community servers should be filtered (shouldUseGatewayOAuth=true)")
 }
