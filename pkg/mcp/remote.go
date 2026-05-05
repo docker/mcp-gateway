@@ -81,37 +81,51 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		headers[k] = expandEnv(v, env)
 	}
 
-	// Add OAuth token if remote server has OAuth configuration
-	if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
-		if verbose {
-			log.Logf("    - Using OAuth token for: %s", c.config.Name)
-		}
-		credHelper := oauth.NewOAuthCredentialHelper()
-		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
-		if err != nil {
-			log.Logf("Failed to get OAuth token for %s: %v", c.config.Name, err)
-		} else if token != "" {
-			headers["Authorization"] = "Bearer " + token
-		}
-	} else if c.config.Spec.Remote.URL != "" {
-		// Community servers may have OAuth tokens via dynamic discovery (DCR)
-		// without explicit OAuth metadata in the catalog. Try to get a stored token.
-		// Use per-server mode so community servers read from docker pass.
-		mode := oauth.DetermineMode(ctx, c.config.Spec.IsCommunity())
-		credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
-		token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
-		if err == nil && token != "" {
+	// Determine OAuth mode for this server.
+	oauthMode := oauth.DetermineMode(ctx, c.config.Spec.IsCommunity())
+
+	// For SSE transport, inject OAuth token into headers (SSE lacks OAuthHandler support).
+	// For streamable transport, the SDK's OAuthHandler handles token injection and 401 retry.
+	isStreamable := false
+	switch strings.ToLower(transport) {
+	case "http", "streamable", "streaming", "streamable-http":
+		isStreamable = true
+	}
+
+	if isStreamable {
+		// Streamable path: the SDK's OAuthHandler manages the Authorization header.
+		// Remove any user-configured Authorization to avoid conflicts.
+		delete(headers, "Authorization")
+	} else {
+		// SSE path: inject OAuth token directly into headers.
+		if c.config.Spec.OAuth != nil && len(c.config.Spec.OAuth.Providers) > 0 {
 			if verbose {
-				log.Logf("    - Using dynamic OAuth token for: %s", c.config.Name)
+				log.Logf("    - Using OAuth token for: %s", c.config.Name)
 			}
-			headers["Authorization"] = "Bearer " + token
+			credHelper := oauth.NewOAuthCredentialHelper()
+			token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+			if err != nil {
+				log.Logf("Failed to get OAuth token for %s: %v", c.config.Name, err)
+			} else if token != "" {
+				headers["Authorization"] = "Bearer " + token
+			}
+		} else if c.config.Spec.Remote.URL != "" {
+			credHelper := oauth.NewOAuthCredentialHelperWithMode(oauthMode)
+			token, err := credHelper.GetOAuthToken(ctx, c.config.Name)
+			if err == nil && token != "" {
+				if verbose {
+					log.Logf("    - Using dynamic OAuth token for: %s", c.config.Name)
+				}
+				headers["Authorization"] = "Bearer " + token
+			}
 		}
 	}
 
 	var mcpTransport mcp.Transport
 	var err error
 
-	// Create HTTP client with custom headers
+	// Create HTTP client with custom headers (non-OAuth headers for streamable,
+	// all headers including OAuth for SSE).
 	httpClient := &http.Client{
 		Transport: &headerRoundTripper{
 			base:    desktop.ProxyTransport(),
@@ -126,9 +140,14 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 			HTTPClient: httpClient,
 		}
 	case "http", "streamable", "streaming", "streamable-http":
+		sdkOAuthHandler := oauth.NewSDKHandler(c.config.Name, oauthMode)
+		if verbose {
+			log.Logf("    - Using SDK OAuthHandler for: %s (mode=%s)", c.config.Name, oauthMode)
+		}
 		mcpTransport = &mcp.StreamableClientTransport{
-			Endpoint:   url,
-			HTTPClient: httpClient,
+			Endpoint:     url,
+			HTTPClient:   httpClient,
+			OAuthHandler: sdkOAuthHandler,
 		}
 	default:
 		return fmt.Errorf("unsupported remote transport: %s", transport)
