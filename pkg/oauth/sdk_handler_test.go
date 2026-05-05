@@ -29,7 +29,7 @@ func TestSDKHandler_TokenSource_NoToken(t *testing.T) {
 	}
 
 	ts, err := handler.TokenSource(context.Background())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Nil(t, ts, "TokenSource should return nil when no token exists")
 }
 
@@ -88,7 +88,7 @@ func TestSDKHandler_Authorize_ReturnsError(t *testing.T) {
 		StatusCode: http.StatusUnauthorized,
 		Body:       io.NopCloser(strings.NewReader("Unauthorized")),
 	}
-	req, _ := http.NewRequest("POST", "https://example.com/mcp", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://example.com/mcp", nil)
 
 	err := handler.Authorize(context.Background(), req, resp)
 	require.Error(t, err)

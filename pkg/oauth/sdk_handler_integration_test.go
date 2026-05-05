@@ -99,13 +99,17 @@ func TestSDKHandler_Integration_TokenInjection(t *testing.T) {
 		return mcpServer
 	}, nil)
 
-	listener, err := net.Listen("tcp", ":0")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	lc := &net.ListenConfig{}
+	listener, err := lc.Listen(ctx, "tcp", ":0")
 	require.NoError(t, err)
 	defer listener.Close()
 
 	srv := &http.Server{Handler: httpHandler}
 	go func() { _ = srv.Serve(listener) }()
-	defer srv.Shutdown(context.Background())
+	defer func() { _ = srv.Shutdown(context.Background()) }()
 	time.Sleep(50 * time.Millisecond)
 
 	serverURL := fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
@@ -120,9 +124,6 @@ func TestSDKHandler_Integration_TokenInjection(t *testing.T) {
 		Name:    "integ-test-client",
 		Version: "1.0.0",
 	}, nil)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	session, err := client.Connect(ctx, transport, nil)
 	require.NoError(t, err)
@@ -174,7 +175,7 @@ func TestSDKHandler_Integration_401Retry(t *testing.T) {
 		Version: "1.0.0",
 	}, nil)
 
-	httpHandler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+	httpHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return mcpServer
 	}, nil)
 
@@ -198,13 +199,17 @@ func TestSDKHandler_Integration_401Retry(t *testing.T) {
 		httpHandler.ServeHTTP(w, r)
 	})
 
-	listener, err := net.Listen("tcp", ":0")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	lc := &net.ListenConfig{}
+	listener, err := lc.Listen(ctx, "tcp", ":0")
 	require.NoError(t, err)
 	defer listener.Close()
 
 	srv := &http.Server{Handler: gatedHandler}
 	go func() { _ = srv.Serve(listener) }()
-	defer srv.Shutdown(context.Background())
+	defer func() { _ = srv.Shutdown(context.Background()) }()
 	time.Sleep(50 * time.Millisecond)
 
 	serverURL := fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
@@ -218,9 +223,6 @@ func TestSDKHandler_Integration_401Retry(t *testing.T) {
 		Name:    "auth-test-client",
 		Version: "1.0.0",
 	}, nil)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	_, err = client.Connect(ctx, transport, nil)
 	require.Error(t, err, "Connect should fail because Authorize returns an error")

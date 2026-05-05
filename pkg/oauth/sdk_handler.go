@@ -55,7 +55,7 @@ func (h *SDKHandler) Authorize(_ context.Context, _ *http.Request, resp *http.Re
 	if resp != nil {
 		statusCode = resp.StatusCode
 		if resp.Body != nil {
-			io.Copy(io.Discard, resp.Body)
+			_, _ = io.Copy(io.Discard, resp.Body)
 			resp.Body.Close()
 		}
 	}
@@ -67,7 +67,7 @@ func (h *SDKHandler) Authorize(_ context.Context, _ *http.Request, resp *http.Re
 // access token from the gateway's credential store. Each call to Token()
 // fetches the latest token, so background refreshes are picked up automatically.
 type gatewayTokenSource struct {
-	ctx        context.Context
+	ctx        context.Context //nolint:containedctx // oauth2.TokenSource.Token() has no context param; storing ctx is the only option
 	serverName string
 	credHelper *CredentialHelper
 }
