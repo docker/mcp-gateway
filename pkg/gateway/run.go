@@ -292,6 +292,15 @@ func (g *Gateway) Run(ctx context.Context) error {
 					log.Log(fmt.Sprintf("- Initialize request:\n  %s", string(initJSON)))
 				}
 			}
+
+			// Release cached containers when the session disconnects
+			ss := req.Session
+			go func() {
+				_ = ss.Wait() // blocks until the session closes
+				log.Log(fmt.Sprintf("- Client disconnected %s@%s, releasing containers", clientInfo.Name, clientInfo.Version))
+				g.clientPool.ReleaseClientsForSession(ss)
+				g.RemoveSessionCache(ss)
+			}()
 		},
 		HasPrompts:   true,
 		HasResources: true,

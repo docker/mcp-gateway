@@ -78,6 +78,11 @@ func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clie
 		return true
 	}
 
+	// One container per (server, session), not per call
+	if serverConfig.Spec.Image != "" {
+		return true
+	}
+
 	// For Docker-based servers, respect the LongLived flag
 	return serverConfig.Spec.LongLived || cp.LongLived
 }
@@ -100,19 +105,26 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.S
 
 	// No client found, create a new one
 	if getter == nil {
-		getter = newClientGetter(serverConfig, cp, config)
-
 		// If the client is long running, save it for later
 		if cp.longLived(serverConfig, config) {
+			// Double-checked locking: re-check under write lock to avoid duplicate containers
 			c = context.Background()
 			cp.clientLock.Lock()
-			cp.keptClients[key] = keptClient{
-				Name:         serverConfig.Name,
-				Getter:       getter,
-				Config:       serverConfig,
-				ClientConfig: config,
+			if kc, exists := cp.keptClients[key]; exists {
+				// Lost the race; reuse the existing getter
+				getter = kc.Getter
+			} else {
+				getter = newClientGetter(serverConfig, cp, config)
+				cp.keptClients[key] = keptClient{
+					Name:         serverConfig.Name,
+					Getter:       getter,
+					Config:       serverConfig,
+					ClientConfig: config,
+				}
 			}
 			cp.clientLock.Unlock()
+		} else {
+			getter = newClientGetter(serverConfig, cp, config)
 		}
 	}
 
@@ -167,6 +179,26 @@ func (cp *clientPool) Close() {
 
 func (cp *clientPool) SetNetworks(networks []string) {
 	cp.networks = networks
+}
+
+// ReleaseClientsForSession closes and removes all cached clients for the given session
+func (cp *clientPool) ReleaseClientsForSession(session *mcp.ServerSession) {
+	cp.clientLock.Lock()
+	var toClose []keptClient
+	for key, kc := range cp.keptClients {
+		if key.session == session {
+			toClose = append(toClose, kc)
+			delete(cp.keptClients, key)
+		}
+	}
+	cp.clientLock.Unlock()
+
+	for _, kc := range toClose {
+		client, err := kc.Getter.GetClient(context.TODO()) // should be cached
+		if err == nil {
+			client.Session().Close()
+		}
+	}
 }
 
 // InvalidateOAuthClients closes and removes all OAuth client connections for the specified provider
