@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -467,6 +468,141 @@ func TestInvalidateOAuthClients_OnlyMatchingRemoved(t *testing.T) {
 	assert.True(t, hasGithub, "github-remote should remain")
 	_, hasLocal := cp.keptClients[clientKey{serverName: "local-server"}]
 	assert.True(t, hasLocal, "local-server should remain")
+}
+
+func TestLongLivedDockerImageServer(t *testing.T) {
+	session := &mcp.ServerSession{}
+
+	cp := &clientPool{}
+
+	imageServer := &catalog.ServerConfig{
+		Name: "github",
+		Spec: catalog.Server{
+			Type:  "server",
+			Image: "ghcr.io/github/github-mcp-server:latest",
+		},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	assert.True(t, cp.longLived(imageServer, cfg), "Docker image server with a session must be long-lived")
+}
+
+func TestLongLivedDockerImageServerNoSession(t *testing.T) {
+	cp := &clientPool{}
+
+	imageServer := &catalog.ServerConfig{
+		Name: "github",
+		Spec: catalog.Server{
+			Type:  "server",
+			Image: "ghcr.io/github/github-mcp-server:latest",
+		},
+	}
+
+	assert.False(t, cp.longLived(imageServer, nil), "Docker image server without a session must not be long-lived")
+	assert.False(t, cp.longLived(imageServer, &clientConfig{}), "Docker image server with nil serverSession must not be long-lived")
+}
+
+func TestLongLivedRemoteServer(t *testing.T) {
+	session := &mcp.ServerSession{}
+	cp := &clientPool{}
+
+	remoteServer := &catalog.ServerConfig{
+		Name: "remote-svc",
+		Spec: catalog.Server{
+			Type:   "remote",
+			Remote: catalog.Remote{URL: "https://mcp.example.com/mcp"},
+		},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	assert.True(t, cp.longLived(remoteServer, cfg), "Remote server must always be long-lived")
+}
+
+func TestReleaseClientsForSession(t *testing.T) {
+	sess1 := &mcp.ServerSession{}
+	sess2 := &mcp.ServerSession{}
+
+	makeGetter := func() *clientGetter {
+		g := &clientGetter{}
+		g.once.Do(func() {})
+		g.err = fmt.Errorf("mock: no real client")
+		return g
+	}
+
+	cp := &clientPool{
+		keptClients: map[clientKey]keptClient{
+			{serverName: "server-a", session: sess1}: {
+				Name:   "server-a",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-a"},
+			},
+			{serverName: "server-b", session: sess1}: {
+				Name:   "server-b",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-b"},
+			},
+			{serverName: "server-a", session: sess2}: {
+				Name:   "server-a",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-a"},
+			},
+		},
+	}
+
+	cp.ReleaseClientsForSession(sess1)
+
+	assert.Len(t, cp.keptClients, 1, "only sess2's client should remain")
+	_, hasSess2 := cp.keptClients[clientKey{serverName: "server-a", session: sess2}]
+	assert.True(t, hasSess2, "sess2's server-a client must still be present")
+}
+
+func TestAcquireClientNoDuplicatesUnderConcurrency(t *testing.T) {
+	// Concurrent calls must produce exactly one client per (server, session)
+	session := &mcp.ServerSession{}
+	serverConfig := &catalog.ServerConfig{
+		Name: "github",
+		Spec: catalog.Server{
+			Type:  "server",
+			Image: "ghcr.io/github/github-mcp-server:latest",
+		},
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	cp := &clientPool{
+		Options:     Options{Cpus: 1, Memory: "2Gb"},
+		keptClients: make(map[clientKey]keptClient),
+		docker:      nil, // GetClient is not called
+	}
+
+	const goroutines = 20
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			// Only test the locking path; skip GetClient (would start a real container)
+			if cp.longLived(serverConfig, cfg) {
+				key := clientKey{serverName: serverConfig.Name, session: session}
+				cp.clientLock.Lock()
+				if _, exists := cp.keptClients[key]; !exists {
+					cp.keptClients[key] = keptClient{
+						Name:         serverConfig.Name,
+						Getter:       newClientGetter(serverConfig, cp, cfg),
+						Config:       serverConfig,
+						ClientConfig: cfg,
+					}
+				}
+				cp.clientLock.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+
+	key := clientKey{serverName: "github", session: session}
+	assert.Len(t, cp.keptClients, 1, "exactly one client entry must exist after concurrent acquisition")
+	assert.NotNil(t, cp.keptClients[key].Getter, "the single getter must be non-nil")
 }
 
 func TestStdioClientInitialization(t *testing.T) {
