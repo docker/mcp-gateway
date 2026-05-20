@@ -74,11 +74,12 @@ func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clie
 		return false
 	}
 
-	// Remote servers are always long-lived
+	// Remote servers are always treated as long-lived since no container is involved
 	if serverConfig.IsRemote() {
 		return true
 	}
 
+	// For Docker-based servers, respect the LongLived flag
 	return serverConfig.Spec.LongLived || cp.LongLived
 }
 
