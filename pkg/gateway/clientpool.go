@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -73,17 +74,11 @@ func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clie
 		return false
 	}
 
-	// Remote servers are always treated as long-lived since no container is involved
+	// Remote servers are always long-lived
 	if serverConfig.IsRemote() {
 		return true
 	}
 
-	// One container per (server, session), not per call
-	if serverConfig.Spec.Image != "" {
-		return true
-	}
-
-	// For Docker-based servers, respect the LongLived flag
 	return serverConfig.Spec.LongLived || cp.LongLived
 }
 
@@ -194,7 +189,10 @@ func (cp *clientPool) ReleaseClientsForSession(session *mcp.ServerSession) {
 	cp.clientLock.Unlock()
 
 	for _, kc := range toClose {
-		client, err := kc.Getter.GetClient(context.TODO()) // should be cached
+		if !kc.Getter.started.Load() {
+			continue // GetClient never called; no container to stop
+		}
+		client, err := kc.Getter.GetClient(context.Background()) // should be cached
 		if err == nil {
 			client.Session().Close()
 		}
@@ -322,7 +320,8 @@ func (cp *clientPool) baseArgs(name string) []string {
 	}
 
 	// Add a few labels to the container for identification
-	args = append(args,
+	args = append(
+		args,
 		"-l", "docker-mcp=true",
 		"-l", "docker-mcp-tool-type=mcp",
 		"-l", "docker-mcp-name="+name,
@@ -451,9 +450,10 @@ func maskSecret(value string) string {
 }
 
 type clientGetter struct {
-	once   sync.Once
-	client mcpclient.Client
-	err    error
+	once    sync.Once
+	started atomic.Bool
+	client  mcpclient.Client
+	err     error
 
 	serverConfig *catalog.ServerConfig
 	cp           *clientPool
@@ -474,6 +474,7 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 }
 
 func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
+	cg.started.Store(true)
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
 			cleanup := func(context.Context) error { return nil }
