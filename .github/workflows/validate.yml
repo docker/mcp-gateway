@@ -20,7 +20,7 @@ jobs:
   prepare:
     runs-on: ubuntu-24.04
     outputs:
-      targets: ${{ steps.generate.outputs.targets }}
+      matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       -
         name: Checkout
@@ -28,7 +28,7 @@ jobs:
       -
         name: List targets
         id: generate
-        uses: docker/bake-action/subaction/list-targets@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4  # v6.10.0
+        uses: docker/bake-action/subaction/matrix@6614cfa25eff9a0b2b2697efb0b6159e7680d584  # v7.2.0
         with:
           target: validate-docs
 
@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJson(needs.prepare.outputs.targets) }}
+        include: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
       -
         name: Set up Docker Buildx
@@ -48,6 +48,6 @@ jobs:
           buildkitd-flags: --debug
       -
         name: Validate
-        uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4  # v6.10.0
+        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584  # v7.2.0
         with:
           targets: ${{ matrix.target }}
