@@ -232,7 +232,6 @@ docker mcp gateway run --port 8080 --transport streaming
 If no `--profile` flag is provided, the gateway uses the `default` profile.
 
 * more about [the MCP Gateway](docs/mcp-gateway.md)
-* [running an unpublished local image](docs/self-configured.md)
 
 ### Client Connection
 

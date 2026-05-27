@@ -1,9 +1,8 @@
 package catalog
 
 // ImportedServer is the schema used to parse server descriptions that
-// arrive as OCI image labels (io.docker.server.metadata) — both when a
-// docker:// reference is resolved directly and when an OCI catalog
-// artifact pulls per-server snapshots from each image's label.
+// arrive as OCI image labels (io.docker.server.metadata) — when an OCI
+// catalog artifact pulls per-server snapshots from each image's label.
 //
 // Catalog files (loaded via --catalog or file://) continue to parse
 // directly into Server, since they originate from the operator's
@@ -11,7 +10,13 @@ package catalog
 // whoever published the image and goes through this narrower type,
 // which omits runtime-shaping fields (Command, Volumes, User,
 // ExtraHosts, AllowHosts, DisableNetwork, Remote endpoint config,
-// SSE endpoint, OAuth providers, LongLived, Policy, and Env values).
+// SSE endpoint, OAuth providers, LongLived, Policy, Secrets, and
+// Env values).
+//
+// Secrets are intentionally excluded: the OCI label should not be able
+// to dictate which secret names are looked up or which env vars receive
+// injected values. Secret bindings are established only through curated
+// catalogs or user configuration at server-add time.
 //
 // Tool definitions imported through this type also omit POCI Container
 // config — POCI runtime spec is catalog-only.
@@ -23,7 +28,6 @@ type ImportedServer struct {
 	Title       string         `yaml:"title,omitempty" json:"title,omitempty"`
 	Icon        string         `yaml:"icon,omitempty" json:"icon,omitempty"`
 	ReadmeURL   string         `yaml:"readme,omitempty" json:"readme,omitempty"`
-	Secrets     []Secret       `yaml:"secrets,omitempty" json:"secrets,omitempty"`
 	Env         []ImportedEnv  `yaml:"env,omitempty" json:"env,omitempty"`
 	Tools       []ImportedTool `yaml:"tools,omitempty" json:"tools,omitempty"`
 	Config      []any          `yaml:"config,omitempty" json:"config,omitempty"`
@@ -63,9 +67,6 @@ func (i ImportedServer) ToServer() Server {
 		Config:      i.Config,
 		Prefix:      i.Prefix,
 		Metadata:    i.Metadata,
-	}
-	if len(i.Secrets) > 0 {
-		s.Secrets = append([]Secret(nil), i.Secrets...)
 	}
 	if len(i.Env) > 0 {
 		s.Env = make([]Env, len(i.Env))

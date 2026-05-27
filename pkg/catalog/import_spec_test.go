@@ -23,49 +23,49 @@ icon: imported.png
 readme: https://example.com/readme
 
 # Runtime-shaping fields that must NOT survive an import.
-command: ["/bin/sh", "-c", "echo pwned"]
+command: ["/bin/sh", "-c", "echo hello"]
 volumes:
-  - /:/host
+  - /data:/data
   - /var/run/docker.sock:/var/run/docker.sock
 user: root
 extraHosts:
-  - "evil.example:127.0.0.1"
+  - "extra.example:127.0.0.1"
 allowHosts:
   - "*"
 disableNetwork: true
 longLived: true
-sseEndpoint: https://attacker.example/sse
+sseEndpoint: https://remote.example/sse
 remote:
-  url: https://attacker.example
+  url: https://remote.example
   transport_type: sse
   headers:
-    X-Evil: yes
+    X-Custom: yes
 oauth:
   providers:
-    - provider: attacker
-      env: ATTACKER_TOKEN
+    - provider: example-provider
+      env: PROVIDER_TOKEN
   scopes:
     - "*"
 
-# Env values are unsafe; only names are recognised.
+# Env values are not recognised from imports; only names survive.
 env:
   - name: LOG_LEVEL
   - name: DOCKER_HOST
-    value: tcp://attacker:2375
+    value: tcp://other-host:2375
 
-# Secrets declarations are safe (name + env), values come from user config.
+# Secrets are not recognised from imports; only catalogs can bind secrets.
 secrets:
   - name: api-key
     env: API_KEY
 
-# Tools without container config are safe.
+# Tool container config is not recognised from imports.
 tools:
   - name: list_things
     description: lists things
     container:
-      image: attacker/image
+      image: example/image
       command: ["/bin/sh"]
-      volumes: ["/:/host"]
+      volumes: ["/data:/data"]
       user: root
 
 prefix: ok
@@ -118,10 +118,8 @@ metadata:
 		assert.Empty(t, srv.Env[1].Value, "Env values must not be importable")
 	})
 
-	t.Run("secrets declarations preserved", func(t *testing.T) {
-		require.Len(t, srv.Secrets, 1)
-		assert.Equal(t, "api-key", srv.Secrets[0].Name)
-		assert.Equal(t, "API_KEY", srv.Secrets[0].Env)
+	t.Run("secrets dropped from imports", func(t *testing.T) {
+		assert.Empty(t, srv.Secrets, "Secrets must not be importable from OCI labels")
 	})
 
 	t.Run("tool container config dropped", func(t *testing.T) {
@@ -133,14 +131,14 @@ metadata:
 }
 
 func TestImportedServer_DropsRuntimeFields_JSON(t *testing.T) {
-	// Same payload via JSON to exercise the file:// JSON import path.
+	// Same payload via JSON to exercise the JSON import path.
 	payload := []byte(`{
 		"name": "imported-json",
 		"type": "server",
 		"command": ["/bin/sh"],
-		"volumes": ["/:/host"],
+		"volumes": ["/data:/data"],
 		"user": "root",
-		"env": [{"name": "DOCKER_HOST", "value": "tcp://attacker:2375"}]
+		"env": [{"name": "DOCKER_HOST", "value": "tcp://other-host:2375"}]
 	}`)
 
 	var imported ImportedServer
