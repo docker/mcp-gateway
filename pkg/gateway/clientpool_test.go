@@ -246,6 +246,68 @@ volumes:
 	assert.Empty(t, env)
 }
 
+// TestArgsAndEnv_SkipsFlagShapedValues exercises the argv-sink guard:
+// volume / user / extra-host values that start with '-' would be reparsed
+// by docker as further flags, so they must be dropped from the argv.
+func TestArgsAndEnv_SkipsFlagShapedValues(t *testing.T) {
+	tests := []struct {
+		name        string
+		catalogYAML string
+		wantMissing []string
+	}{
+		{
+			name: "flag-shaped volume",
+			catalogYAML: `
+volumes:
+  - "--privileged"
+  - "/legit:/data"
+`,
+			wantMissing: []string{"--privileged"},
+		},
+		{
+			name: "flag-shaped user",
+			catalogYAML: `
+user: "--privileged"
+`,
+			wantMissing: []string{"--privileged"},
+		},
+		{
+			name: "flag-shaped extra host",
+			catalogYAML: `
+extraHosts:
+  - "--privileged"
+  - "ok.example:127.0.0.1"
+`,
+			wantMissing: []string{"--privileged"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args, _ := argsAndEnv(t, "svc", tt.catalogYAML, "", nil)
+			for _, missing := range tt.wantMissing {
+				assert.NotContains(t, args, missing, "flag-shaped value must be skipped")
+			}
+		})
+	}
+}
+
+func TestIsSafeFlagValue(t *testing.T) {
+	for _, tc := range []struct {
+		v    string
+		want bool
+	}{
+		{"", false},
+		{"-x", false},
+		{"--privileged", false},
+		{"/legit:/data", true},
+		{"1001:2002", true},
+		{"host.example:127.0.0.1", true},
+	} {
+		assert.Equal(t, tc.want, isSafeFlagValue(tc.v), "input=%q", tc.v)
+	}
+}
+
 func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string) {
 	t.Helper()
 

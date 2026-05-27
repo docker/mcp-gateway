@@ -34,11 +34,12 @@ func SelfContainedCatalog(ctx context.Context, dockerClient docker.Client, serve
 				return catalog.Catalog{}, nil, fmt.Errorf("server name %s looks like an OCI ref but is missing the io.docker.server.metadata label", serverName)
 			}
 
-			var server catalog.Server
-			if err := yaml.Unmarshal([]byte(metadataLabel), &server); err != nil {
+			var imported catalog.ImportedServer
+			if err := yaml.Unmarshal([]byte(metadataLabel), &imported); err != nil {
 				return catalog.Catalog{}, nil, fmt.Errorf("failed to parse metadata label for %s: %w", serverName, err)
 			}
 
+			server := imported.ToServer()
 			server.Image = ociRef
 
 			// Determine the server name to use

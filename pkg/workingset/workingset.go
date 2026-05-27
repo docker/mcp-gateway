@@ -746,11 +746,12 @@ func getCatalogServerFromImage(ociService oci.Service, img v1.Image, name string
 	}
 
 	// Basic parsing validation
-	var server catalog.Server
-	if err := yaml.Unmarshal([]byte(metadataLabel), &server); err != nil {
+	var imported catalog.ImportedServer
+	if err := yaml.Unmarshal([]byte(metadataLabel), &imported); err != nil {
 		return catalog.Server{}, fmt.Errorf("failed to parse metadata label for %s: %w", name, err)
 	}
 
+	server := imported.ToServer()
 	server.Type = "server"
 	server.Image = name
 
