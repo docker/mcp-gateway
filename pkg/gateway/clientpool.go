@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -100,19 +101,26 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.S
 
 	// No client found, create a new one
 	if getter == nil {
-		getter = newClientGetter(serverConfig, cp, config)
-
 		// If the client is long running, save it for later
 		if cp.longLived(serverConfig, config) {
+			// Double-checked locking: re-check under write lock to avoid duplicate containers
 			c = context.Background()
 			cp.clientLock.Lock()
-			cp.keptClients[key] = keptClient{
-				Name:         serverConfig.Name,
-				Getter:       getter,
-				Config:       serverConfig,
-				ClientConfig: config,
+			if kc, exists := cp.keptClients[key]; exists {
+				// Lost the race; reuse the existing getter
+				getter = kc.Getter
+			} else {
+				getter = newClientGetter(serverConfig, cp, config)
+				cp.keptClients[key] = keptClient{
+					Name:         serverConfig.Name,
+					Getter:       getter,
+					Config:       serverConfig,
+					ClientConfig: config,
+				}
 			}
 			cp.clientLock.Unlock()
+		} else {
+			getter = newClientGetter(serverConfig, cp, config)
 		}
 	}
 
@@ -167,6 +175,29 @@ func (cp *clientPool) Close() {
 
 func (cp *clientPool) SetNetworks(networks []string) {
 	cp.networks = networks
+}
+
+// ReleaseClientsForSession closes and removes all cached clients for the given session
+func (cp *clientPool) ReleaseClientsForSession(session *mcp.ServerSession) {
+	cp.clientLock.Lock()
+	var toClose []keptClient
+	for key, kc := range cp.keptClients {
+		if key.session == session {
+			toClose = append(toClose, kc)
+			delete(cp.keptClients, key)
+		}
+	}
+	cp.clientLock.Unlock()
+
+	for _, kc := range toClose {
+		if !kc.Getter.started.Load() {
+			continue // GetClient never called; no container to stop
+		}
+		client, err := kc.Getter.GetClient(context.Background()) // should be cached
+		if err == nil {
+			client.Session().Close()
+		}
+	}
 }
 
 // InvalidateOAuthClients closes and removes all OAuth client connections for the specified provider
@@ -290,7 +321,8 @@ func (cp *clientPool) baseArgs(name string) []string {
 	}
 
 	// Add a few labels to the container for identification
-	args = append(args,
+	args = append(
+		args,
 		"-l", "docker-mcp=true",
 		"-l", "docker-mcp-tool-type=mcp",
 		"-l", "docker-mcp-name="+name,
@@ -419,9 +451,10 @@ func maskSecret(value string) string {
 }
 
 type clientGetter struct {
-	once   sync.Once
-	client mcpclient.Client
-	err    error
+	once    sync.Once
+	started atomic.Bool
+	client  mcpclient.Client
+	err     error
 
 	serverConfig *catalog.ServerConfig
 	cp           *clientPool
@@ -442,6 +475,7 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 }
 
 func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
+	cg.started.Store(true)
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
 			cleanup := func(context.Context) error { return nil }

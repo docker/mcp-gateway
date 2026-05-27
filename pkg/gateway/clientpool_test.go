@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -467,6 +468,127 @@ func TestInvalidateOAuthClients_OnlyMatchingRemoved(t *testing.T) {
 	assert.True(t, hasGithub, "github-remote should remain")
 	_, hasLocal := cp.keptClients[clientKey{serverName: "local-server"}]
 	assert.True(t, hasLocal, "local-server should remain")
+}
+
+func TestLongLivedFlaggedServer(t *testing.T) {
+	session := &mcp.ServerSession{}
+	cp := &clientPool{}
+
+	server := &catalog.ServerConfig{
+		Name: "github",
+		Spec: catalog.Server{
+			Type:      "server",
+			Image:     "ghcr.io/github/github-mcp-server:latest",
+			LongLived: true,
+		},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	assert.True(t, cp.longLived(server, cfg), "LongLived=true with session")
+}
+
+func TestLongLivedRequiresSession(t *testing.T) {
+	cp := &clientPool{}
+
+	server := &catalog.ServerConfig{
+		Name: "github",
+		Spec: catalog.Server{
+			Type:      "server",
+			Image:     "ghcr.io/github/github-mcp-server:latest",
+			LongLived: true,
+		},
+	}
+
+	assert.False(t, cp.longLived(server, nil), "nil config")
+	assert.False(t, cp.longLived(server, &clientConfig{}), "nil serverSession")
+}
+
+func TestLongLivedRemoteServer(t *testing.T) {
+	session := &mcp.ServerSession{}
+	cp := &clientPool{}
+
+	remoteServer := &catalog.ServerConfig{
+		Name: "remote-svc",
+		Spec: catalog.Server{
+			Type:   "remote",
+			Remote: catalog.Remote{URL: "https://mcp.example.com/mcp"},
+		},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	assert.True(t, cp.longLived(remoteServer, cfg), "Remote server must always be long-lived")
+}
+
+func TestReleaseClientsForSession(t *testing.T) {
+	sess1 := &mcp.ServerSession{}
+	sess2 := &mcp.ServerSession{}
+
+	makeGetter := func() *clientGetter {
+		g := &clientGetter{}
+		g.once.Do(func() {})
+		g.err = fmt.Errorf("mock: no real client")
+		return g
+	}
+
+	cp := &clientPool{
+		keptClients: map[clientKey]keptClient{
+			{serverName: "server-a", session: sess1}: {
+				Name:   "server-a",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-a"},
+			},
+			{serverName: "server-b", session: sess1}: {
+				Name:   "server-b",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-b"},
+			},
+			{serverName: "server-a", session: sess2}: {
+				Name:   "server-a",
+				Getter: makeGetter(),
+				Config: &catalog.ServerConfig{Name: "server-a"},
+			},
+		},
+	}
+
+	cp.ReleaseClientsForSession(sess1)
+
+	assert.Len(t, cp.keptClients, 1, "only sess2's client should remain")
+	_, hasSess2 := cp.keptClients[clientKey{serverName: "server-a", session: sess2}]
+	assert.True(t, hasSess2, "sess2's server-a client must still be present")
+}
+
+func TestAcquireClientNoDuplicatesUnderConcurrency(t *testing.T) {
+	// Verify no map races under concurrent long-lived AcquireClient calls (run with -race)
+	session := &mcp.ServerSession{}
+	serverConfig := &catalog.ServerConfig{
+		Name: "test-server",
+		Spec: catalog.Server{
+			Type:      "server",
+			Image:     "mcp/test:latest",
+			LongLived: true,
+		},
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}
+	cfg := &clientConfig{serverSession: session}
+	cp := &clientPool{
+		Options:     Options{},
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	const n = 10
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for range n {
+		go func() {
+			defer wg.Done()
+			_, _ = cp.AcquireClient(context.Background(), serverConfig, cfg)
+		}()
+	}
+	wg.Wait()
+
+	// GetClient fails without a running container; AcquireClient must remove the entry
+	assert.Empty(t, cp.keptClients)
 }
 
 func TestStdioClientInitialization(t *testing.T) {
