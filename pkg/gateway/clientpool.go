@@ -261,6 +261,10 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 		if mount == "" {
 			continue
 		}
+		if !isSafeFlagValue(mount) {
+			log.Logf("Warning: tool '%s' has volume value that looks like a flag, skipping: %q", tool.Name, mount)
+			continue
+		}
 
 		args = append(args, "-v", mount)
 	}
@@ -269,7 +273,11 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 	if tool.Container.User != "" {
 		userVal := fmt.Sprintf("%v", eval.Evaluate(tool.Container.User, arguments))
 		if userVal != "" {
-			args = append(args, "-u", userVal)
+			if !isSafeFlagValue(userVal) {
+				log.Logf("Warning: tool '%s' has user value that looks like a flag, skipping: %q", tool.Name, userVal)
+			} else {
+				args = append(args, "-u", userVal)
+			}
 		}
 	}
 
@@ -394,6 +402,10 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 		if mount == "" {
 			continue
 		}
+		if !isSafeFlagValue(mount) {
+			log.Logf("Warning: server '%s' has volume value that looks like a flag, skipping: %q", serverConfig.Name, mount)
+			continue
+		}
 
 		args = append(args, "-v", mount)
 	}
@@ -405,18 +417,34 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 			val = fmt.Sprintf("%v", eval.Evaluate(val, serverConfig.Config))
 		}
 		if val != "" {
-			args = append(args, "-u", val)
+			if !isSafeFlagValue(val) {
+				log.Logf("Warning: server '%s' has user value that looks like a flag, skipping: %q", serverConfig.Name, val)
+			} else {
+				args = append(args, "-u", val)
+			}
 		}
 	}
 
 	// Extra hosts (for /etc/hosts entries)
 	for _, host := range serverConfig.Spec.ExtraHosts {
-		if host != "" {
-			args = append(args, "--add-host", host)
+		if host == "" {
+			continue
 		}
+		if !isSafeFlagValue(host) {
+			log.Logf("Warning: server '%s' has extra-host value that looks like a flag, skipping: %q", serverConfig.Name, host)
+			continue
+		}
+		args = append(args, "--add-host", host)
 	}
 
 	return args, env
+}
+
+// isSafeFlagValue reports whether v can be safely appended to a docker run
+// argv after a flag like -v, -u, or --add-host. Values that start with '-'
+// would be reparsed by docker as further options.
+func isSafeFlagValue(v string) bool {
+	return v != "" && !strings.HasPrefix(v, "-")
 }
 
 func expandEnv(value string, env []string) string {
