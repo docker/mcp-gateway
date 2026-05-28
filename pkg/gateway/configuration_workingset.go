@@ -87,9 +87,10 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 		// 	namespace = server.Secrets + "_"
 		// }
 		configs = append(configs, ServerSecretConfig{
-			Secrets:   server.Snapshot.Server.Secrets,
-			OAuth:     server.Snapshot.Server.OAuth,
-			Namespace: namespace,
+			Secrets:                server.Snapshot.Server.Secrets,
+			OAuth:                  server.Snapshot.Server.OAuth,
+			Namespace:              namespace,
+			RequireVerifiedSecrets: localLongLivedServer(server.Snapshot.Server, c.config.LongLived),
 		})
 	}
 	secrets := BuildSecretsURIs(ctx, configs)

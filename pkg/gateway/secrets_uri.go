@@ -10,9 +10,10 @@ import (
 
 // ServerSecretConfig contains the secret definitions and OAuth config for a server.
 type ServerSecretConfig struct {
-	Secrets   []catalog.Secret // Secret definitions from server catalog
-	OAuth     *catalog.OAuth   // OAuth config (if present, OAuth takes priority over direct secret)
-	Namespace string           // Prefix for map keys (used by WorkingSet for namespacing)
+	Secrets                []catalog.Secret // Secret definitions from server catalog
+	OAuth                  *catalog.OAuth   // OAuth config (if present, OAuth takes priority over direct secret)
+	Namespace              string           // Prefix for map keys (used by WorkingSet for namespacing)
+	RequireVerifiedSecrets bool             // Do not synthesize fallback URIs when existence cannot be checked.
 }
 
 // BuildSecretsURIs generates se:// URIs for secrets with OAuth priority handling.
@@ -21,9 +22,10 @@ type ServerSecretConfig struct {
 // actually exist in the store (OAuth token checked first, then direct secret).
 //
 // When the secrets engine is unreachable (e.g. MSIX-sandboxed clients on Windows
-// cannot follow AF_UNIX reparse points), URIs are generated for all declared secrets
-// since we cannot check existence. Docker Desktop resolves se:// URIs at container
-// runtime via named pipes, which are unaffected by MSIX restrictions.
+// cannot follow AF_UNIX reparse points), URIs are generated for declared secrets
+// unless their server requires verified secrets. Docker Desktop resolves se://
+// URIs at container runtime via named pipes, which are unaffected by MSIX
+// restrictions.
 func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[string]string {
 	allSecrets, err := secret.GetSecrets(ctx)
 	if err != nil {
@@ -38,13 +40,38 @@ func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[str
 	return buildVerifiedURIs(configs, availableSecrets)
 }
 
+func localLongLivedServer(server catalog.Server, globalLongLived bool) bool {
+	if server.Remote.URL != "" || server.SSEEndpoint != "" {
+		return false
+	}
+	return server.LongLived || globalLongLived
+}
+
 // buildFallbackURIs generates se:// URIs for all declared secrets without checking
 // existence. Used when the secrets engine is unreachable. OAuth URIs are preferred
 // when configured (matching the normal priority order).
 func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
 	secretNameToURI := make(map[string]string)
+	requireVerified := make(map[string]struct{})
 
 	for _, cfg := range configs {
+		if !cfg.RequireVerifiedSecrets {
+			continue
+		}
+		for _, s := range cfg.Secrets {
+			if err := secret.ValidateSecretName(s.Name); err != nil {
+				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
+				continue
+			}
+			requireVerified[cfg.Namespace+s.Name] = struct{}{}
+		}
+	}
+
+	for _, cfg := range configs {
+		if cfg.RequireVerifiedSecrets {
+			continue
+		}
+
 		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
@@ -53,6 +80,9 @@ func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
 				continue
 			}
 			secretName := cfg.Namespace + s.Name
+			if _, ok := requireVerified[secretName]; ok {
+				continue
+			}
 			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
 				secretNameToURI[secretName] = "se://" + oauthSecretID
 			} else {
