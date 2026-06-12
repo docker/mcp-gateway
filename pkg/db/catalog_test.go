@@ -45,6 +45,40 @@ func TestCreateCatalogAndGetCatalog(t *testing.T) {
 	assert.WithinDuration(t, time.Now().UTC(), *retrieved.LastUpdated, 60*time.Second)
 }
 
+func TestCreateCatalogWithManyServers(t *testing.T) {
+	dao := setupTestDB(t)
+	ctx := t.Context()
+
+	// More servers than fit in a single SQLite statement: with 7 bound
+	// parameters per server, anything over 32766/7 = 4680 servers would
+	// overflow SQLITE_MAX_VARIABLE_NUMBER if inserted in one statement.
+	const serverCount = 10000
+	servers := make([]CatalogServer, serverCount)
+	for i := range servers {
+		servers[i] = CatalogServer{
+			ServerType: "registry",
+			Tools:      ToolList{"tool1"},
+			Source:     "https://example.com/server",
+			Image:      "docker/test:latest",
+		}
+	}
+
+	catalog := Catalog{
+		Ref:     "docker.io/test/large:latest",
+		Digest:  "large123",
+		Title:   "large-catalog",
+		Source:  "https://example.com/large",
+		Servers: servers,
+	}
+
+	err := dao.UpsertCatalog(ctx, catalog)
+	require.NoError(t, err)
+
+	retrieved, err := dao.GetCatalog(ctx, "docker.io/test/large:latest")
+	require.NoError(t, err)
+	assert.Len(t, retrieved.Servers, serverCount)
+}
+
 func TestCreateCatalogWithEmptyServers(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
