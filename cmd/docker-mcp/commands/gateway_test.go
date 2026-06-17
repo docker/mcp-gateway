@@ -4,8 +4,10 @@ import (
 	"testing"
 
 	"github.com/docker/cli/cli/config/configfile"
-	"github.com/docker/mcp-gateway/pkg/features"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/features"
 )
 
 func TestGatewayRunCommandContainerAuthDefaults(t *testing.T) {
@@ -13,7 +15,7 @@ func TestGatewayRunCommandContainerAuthDefaults(t *testing.T) {
 
 	cmd := gatewayCommand(nil, nil, features.AllDisabled())
 	runCmd, _, err := cmd.Find([]string{"run"})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	hostFlag := runCmd.Flags().Lookup("host")
 	assert.NotNil(t, hostFlag)
