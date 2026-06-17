@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -56,6 +57,137 @@ func TestIsAllowedOrigin(t *testing.T) {
 			result := isAllowedOrigin(tt.origin)
 			if result != tt.expected {
 				t.Errorf("isAllowedOrigin(%q) = %v, expected %v", tt.origin, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGatewayListenAddress(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		port int
+		want string
+	}{
+		{
+			name: "all interfaces",
+			host: "",
+			port: 8811,
+			want: ":8811",
+		},
+		{
+			name: "ipv4 loopback",
+			host: "127.0.0.1",
+			port: 8811,
+			want: "127.0.0.1:8811",
+		},
+		{
+			name: "ipv6 loopback",
+			host: "::1",
+			port: 8811,
+			want: "[::1]:8811",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := gatewayListenAddress(tt.host, tt.port)
+			if got != tt.want {
+				t.Errorf("gatewayListenAddress(%q, %d) = %q, expected %q", tt.host, tt.port, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsExternallyReachableHost(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		want bool
+	}{
+		{
+			name: "empty host binds all interfaces",
+			host: "",
+			want: true,
+		},
+		{
+			name: "zero ipv4 binds all interfaces",
+			host: "0.0.0.0",
+			want: true,
+		},
+		{
+			name: "zero ipv6 binds all interfaces",
+			host: "::",
+			want: true,
+		},
+		{
+			name: "localhost",
+			host: "localhost",
+			want: false,
+		},
+		{
+			name: "ipv4 loopback",
+			host: "127.0.0.1",
+			want: false,
+		},
+		{
+			name: "ipv6 loopback",
+			host: "::1",
+			want: false,
+		},
+		{
+			name: "external ipv4",
+			host: "192.0.2.1",
+			want: true,
+		},
+		{
+			name: "hostname",
+			host: "gateway.example.com",
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isExternallyReachableHost(tt.host)
+			if got != tt.want {
+				t.Errorf("isExternallyReachableHost(%q) = %v, expected %v", tt.host, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHTTPTransportsRequireAuthToken(t *testing.T) {
+	tests := []struct {
+		name    string
+		start   func(*Gateway) error
+		wantErr string
+	}{
+		{
+			name: "sse",
+			start: func(g *Gateway) error {
+				return g.startSseServer(context.Background(), nil)
+			},
+			wantErr: "authentication token is required for SSE transport",
+		},
+		{
+			name: "streaming",
+			start: func(g *Gateway) error {
+				return g.startStreamingServer(context.Background(), nil)
+			},
+			wantErr: "authentication token is required for streaming transport",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Gateway{}
+			err := tt.start(g)
+			if err == nil {
+				t.Fatalf("expected auth token error")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error to contain %q, got %q", tt.wantErr, err.Error())
 			}
 		})
 	}

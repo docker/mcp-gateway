@@ -1,11 +1,14 @@
 package gateway
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 func TestGenerateAuthToken(t *testing.T) {
@@ -77,6 +80,60 @@ func TestGetOrGenerateAuthToken_EmptyEnvironment(t *testing.T) {
 
 	if !wasGenerated {
 		t.Error("expected wasGenerated to be true when environment token is empty")
+	}
+}
+
+func TestInitializeHTTPAuth_ContainerModeRequiresAuth(t *testing.T) {
+	t.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", "container-token")
+
+	g := &Gateway{
+		Options: Options{
+			Transport: "sse",
+		},
+	}
+
+	if err := g.initializeHTTPAuth(); err != nil {
+		t.Fatalf("initializeHTTPAuth() failed: %v", err)
+	}
+	if g.authToken != "container-token" {
+		t.Errorf("expected auth token from environment, got %q", g.authToken)
+	}
+	if g.authTokenWasGenerated {
+		t.Error("expected authTokenWasGenerated to be false")
+	}
+}
+
+func TestInitializeHTTPAuth_AllowUnauthenticatedSkipsAuth(t *testing.T) {
+	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", "ignored-token")
+
+	var logs bytes.Buffer
+	log.SetLogWriter(&logs)
+	defer log.SetLogWriter(os.Stderr)
+
+	g := &Gateway{
+		Options: Options{
+			Transport:            "streaming",
+			AllowUnauthenticated: true,
+		},
+	}
+
+	if err := g.initializeHTTPAuth(); err != nil {
+		t.Fatalf("initializeHTTPAuth() failed: %v", err)
+	}
+	if g.authToken != "" {
+		t.Errorf("expected auth token to stay empty when unauthenticated access is explicit, got %q", g.authToken)
+	}
+
+	logOutput := logs.String()
+	if !strings.Contains(logOutput, "ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set") {
+		t.Errorf("expected log output to mention ignored auth token, got %q", logOutput)
+	}
+	if !strings.Contains(logOutput, "without authentication on all interfaces") {
+		t.Errorf("expected log output to mention unauthenticated all-interfaces listener, got %q", logOutput)
+	}
+	if !strings.Contains(logOutput, "execute configured MCP tools") {
+		t.Errorf("expected log output to mention tool execution risk, got %q", logOutput)
 	}
 }
 

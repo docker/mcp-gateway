@@ -45,6 +45,16 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: allow-unauthenticated
+      value_type: bool
+      default_value: "false"
+      description: Allow unauthenticated HTTP/SSE gateway requests
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: block-network
       value_type: bool
       default_value: "false"
@@ -122,6 +132,15 @@ options:
       default_value: "false"
       description: |
         Enable all servers in the catalog (instead of using individual --servers options)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: host
+      value_type: string
+      description: Host or IP address to bind TCP transports to
       deprecated: false
       hidden: false
       experimental: false

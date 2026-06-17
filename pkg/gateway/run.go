@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -226,7 +227,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 			lc  net.ListenConfig
 			err error
 		)
-		ln, err = lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
+		ln, err = lc.Listen(ctx, "tcp", gatewayListenAddress(g.Host, port))
 		if err != nil {
 			return err
 		}
@@ -340,7 +341,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
-	// When running in Container mode, disable OAuth notification monitoring and authentication
+	// When running in Container mode, disable OAuth notification monitoring.
 	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
 
 	if g.McpOAuthDcrEnabled && !inContainer {
@@ -437,16 +438,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return nil
 	}
 
-	// Initialize authentication token for SSE and streaming modes
-	// Skip authentication when running in container (DOCKER_MCP_IN_CONTAINER=1)
+	// Initialize authentication token for SSE and streaming modes.
 	transport := strings.ToLower(g.Transport)
-	if (transport == "sse" || transport == "http" || transport == "streamable" || transport == "streaming" || transport == "streamable-http") && !inContainer {
-		token, wasGenerated, err := getOrGenerateAuthToken()
-		if err != nil {
-			return fmt.Errorf("failed to initialize auth token: %w", err)
-		}
-		g.authToken = token
-		g.authTokenWasGenerated = wasGenerated
+	if err := g.initializeHTTPAuth(); err != nil {
+		return err
 	}
 
 	// Start the server
@@ -459,9 +454,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start sse server on port", g.Port)
 		endpoint := "/sse"
 		url := formatGatewayURL(g.Port, endpoint)
-		if inContainer {
+		if g.AllowUnauthenticated {
 			log.Logf("> Gateway URL: %s", url)
-			log.Logf("> Authentication disabled (running in container)")
+			log.Logf("> Authentication disabled by explicit configuration")
 		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
@@ -475,9 +470,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("> Start streaming server on port", g.Port)
 		endpoint := "/mcp"
 		url := formatGatewayURL(g.Port, endpoint)
-		if inContainer {
+		if g.AllowUnauthenticated {
 			log.Logf("> Gateway URL: %s", url)
-			log.Logf("> Authentication disabled (running in container)")
+			log.Logf("> Authentication disabled by explicit configuration")
 		} else if g.authTokenWasGenerated {
 			log.Logf("> Gateway URL: %s", url)
 			log.Logf("> Use Bearer token: %s", formatBearerToken(g.authToken))
@@ -490,6 +485,71 @@ func (g *Gateway) Run(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
 	}
+}
+
+func (g *Gateway) initializeHTTPAuth() error {
+	if !isHTTPTransport(g.Transport) {
+		return nil
+	}
+	if g.AllowUnauthenticated {
+		if os.Getenv("MCP_GATEWAY_AUTH_TOKEN") != "" {
+			log.Log("Warning: ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set")
+		}
+		if isExternallyReachableHost(g.Host) {
+			log.Logf("WARNING: --allow-unauthenticated is exposing the MCP gateway without authentication on %s. Any client that can reach this listener can execute configured MCP tools. Remove --allow-unauthenticated or bind with --host 127.0.0.1 unless this is intentional.", gatewayListenerDescription(g.Host))
+		}
+		return nil
+	}
+
+	token, wasGenerated, err := getOrGenerateAuthToken()
+	if err != nil {
+		return fmt.Errorf("failed to initialize auth token: %w", err)
+	}
+	if token == "" {
+		return fmt.Errorf("authentication token is empty")
+	}
+	g.authToken = token
+	g.authTokenWasGenerated = wasGenerated
+	return nil
+}
+
+func isHTTPTransport(transport string) bool {
+	switch strings.ToLower(transport) {
+	case "sse", "http", "streamable", "streaming", "streamable-http":
+		return true
+	default:
+		return false
+	}
+}
+
+func gatewayListenAddress(host string, port int) string {
+	return net.JoinHostPort(host, strconv.Itoa(port))
+}
+
+func gatewayListenerDescription(host string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return "all interfaces"
+	}
+	return host
+}
+
+func isExternallyReachableHost(host string) bool {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return true
+	}
+	if strings.EqualFold(host, "localhost") {
+		return false
+	}
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = strings.TrimPrefix(strings.TrimSuffix(host, "]"), "[")
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return true
+	}
+	return !ip.IsLoopback()
 }
 
 // RefreshCapabilities implements the CapabilityRefresher interface

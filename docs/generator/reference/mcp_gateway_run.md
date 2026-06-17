@@ -11,6 +11,7 @@ Run the gateway
 | `--additional-config`       | `stringSlice` |                     | Additional config paths to merge with the default config.yaml                                                                                 |
 | `--additional-registry`     | `stringSlice` |                     | Additional registry paths to merge with the default registry.yaml                                                                             |
 | `--additional-tools-config` | `stringSlice` |                     | Additional tools paths to merge with the default tools.yaml                                                                                   |
+| `--allow-unauthenticated`   | `bool`        |                     | Allow unauthenticated HTTP/SSE gateway requests                                                                                               |
 | `--block-network`           | `bool`        |                     | Block tools from accessing forbidden network resources                                                                                        |
 | `--block-secrets`           | `bool`        | `true`              | Block secrets from being/received sent to/from tools                                                                                          |
 | `--catalog`                 | `stringSlice` | `[docker-mcp.yaml]` | Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)                                                                    |
@@ -19,6 +20,7 @@ Run the gateway
 | `--debug-dns`               | `bool`        |                     | Debug DNS resolution                                                                                                                          |
 | `--dry-run`                 | `bool`        |                     | Start the gateway but do not listen for connections (useful for testing the configuration)                                                    |
 | `--enable-all-servers`      | `bool`        |                     | Enable all servers in the catalog (instead of using individual --servers options)                                                             |
+| `--host`                    | `string`      |                     | Host or IP address to bind TCP transports to                                                                                                  |
 | `--interceptor`             | `stringArray` |                     | List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')                                                            |
 | `--log-calls`               | `bool`        | `true`              | Log calls to the tools                                                                                                                        |
 | `--long-lived`              | `bool`        |                     | Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers                                   |

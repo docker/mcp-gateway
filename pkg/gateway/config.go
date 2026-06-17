@@ -16,6 +16,7 @@ type Config struct {
 
 type Options struct {
 	Port                    int
+	Host                    string
 	Transport               string
 	ToolNames               []string
 	Interceptors            []string
@@ -39,4 +40,5 @@ type Options struct {
 	LogFilePath             string
 	UseEmbeddings           bool
 	UseProfiles             bool
+	AllowUnauthenticated    bool
 }
