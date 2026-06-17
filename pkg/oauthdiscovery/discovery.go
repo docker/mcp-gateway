@@ -14,7 +14,6 @@ import (
 
 	oauthhelpers "github.com/docker/mcp-gateway-oauth-helpers"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
@@ -23,7 +22,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*oauthhel
 		return nil, err
 	}
 
-	client := remoteurl.NewHTTPClient(30*time.Second, desktop.ProxyTransport())
+	client := remoteurl.NewDirectHTTPClient(30 * time.Second)
 
 	parsedURL, err := url.Parse(serverURL)
 	if err != nil {
@@ -191,7 +190,7 @@ func PerformDCR(ctx context.Context, discovery *oauthhelpers.Discovery, serverNa
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "MCP-Gateway/1.0.0")
 
-	client := remoteurl.NewHTTPClient(30*time.Second, desktop.ProxyTransport())
+	client := remoteurl.NewDirectHTTPClient(30 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send DCR request to %s: %w", discovery.RegistrationEndpoint, err)
@@ -276,7 +275,7 @@ func fetchOAuthProtectedResourceMetadata(ctx context.Context, client *http.Clien
 }
 
 func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, authServerURL string) (*oauthhelpers.AuthorizationServerMetadata, error) {
-	metadataURL, err := buildRFC8414WellKnownURL(authServerURL)
+	metadataURL, err := buildRFC8414WellKnownURL(ctx, authServerURL)
 	if err != nil {
 		return nil, fmt.Errorf("building well-known URL: %w", err)
 	}
@@ -322,13 +321,13 @@ func fetchAuthorizationServerMetadata(ctx context.Context, client *http.Client, 
 	return &metadata, nil
 }
 
-func buildRFC8414WellKnownURL(issuerURL string) (string, error) {
+func buildRFC8414WellKnownURL(ctx context.Context, issuerURL string) (string, error) {
 	parsed, err := url.Parse(issuerURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid issuer URL: %w", err)
 	}
-	if parsed.Scheme != "https" {
-		return "", fmt.Errorf("issuer URL must use https scheme")
+	if err := remoteurl.Validate(ctx, issuerURL); err != nil {
+		return "", err
 	}
 	if parsed.RawQuery != "" {
 		return "", fmt.Errorf("issuer URL must not contain query parameters")
@@ -343,7 +342,7 @@ func buildRFC8414WellKnownURL(issuerURL string) (string, error) {
 		path = ""
 	}
 
-	return fmt.Sprintf("https://%s/.well-known/oauth-authorization-server%s", host, path), nil
+	return fmt.Sprintf("%s://%s/.well-known/oauth-authorization-server%s", parsed.Scheme, host, path), nil
 }
 
 func validateRedirectURI(redirectURI string) error {

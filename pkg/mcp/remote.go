@@ -12,7 +12,6 @@ import (
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/remoteurl"
@@ -118,7 +117,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	// Create HTTP client with custom headers
 	httpClient := &http.Client{
 		Transport: &headerRoundTripper{
-			base:    remoteurl.GuardTransport(desktop.ProxyTransport()),
+			base:    remoteurl.GuardDirectTransport(),
 			headers: headers,
 		},
 	}

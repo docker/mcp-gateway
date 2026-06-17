@@ -132,6 +132,19 @@ func GuardTransport(base http.RoundTripper) http.RoundTripper {
 	return DefaultValidator().GuardTransport(base)
 }
 
+func DirectTransport() http.RoundTripper {
+	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+		cloned := transport.Clone()
+		cloned.Proxy = nil
+		return cloned
+	}
+	return &http.Transport{}
+}
+
+func GuardDirectTransport() http.RoundTripper {
+	return DefaultValidator().GuardTransport(DirectTransport())
+}
+
 func (v Validator) GuardTransport(base http.RoundTripper) http.RoundTripper {
 	if base == nil {
 		base = http.DefaultTransport
@@ -148,6 +161,17 @@ func NewHTTPClient(timeout time.Duration, base http.RoundTripper) *http.Client {
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: validator.GuardTransport(base),
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			return validator.ValidateURL(req.Context(), req.URL)
+		},
+	}
+}
+
+func NewDirectHTTPClient(timeout time.Duration) *http.Client {
+	validator := DefaultValidator()
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: validator.GuardTransport(DirectTransport()),
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			return validator.ValidateURL(req.Context(), req.URL)
 		},

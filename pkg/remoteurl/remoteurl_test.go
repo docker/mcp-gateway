@@ -75,8 +75,15 @@ func TestValidateAllowsInsecureDevURLsWhenOptedIn(t *testing.T) {
 	validator := NewValidator(Options{AllowInsecure: true})
 
 	require.NoError(t, validator.Validate(context.Background(), "http://localhost:3000/mcp"))
-	assert.Error(t, validator.Validate(context.Background(), "file://localhost/tmp/socket"))
-	assert.Error(t, validator.Validate(context.Background(), "https://user@example.com/mcp"))
+	require.Error(t, validator.Validate(context.Background(), "file://localhost/tmp/socket"))
+	require.Error(t, validator.Validate(context.Background(), "https://user@example.com/mcp"))
+}
+
+func TestDirectTransportDisablesProxy(t *testing.T) {
+	transport, ok := DirectTransport().(*http.Transport)
+
+	require.True(t, ok)
+	assert.Nil(t, transport.Proxy)
 }
 
 func TestGuardTransportRejectsUnsafeRedirects(t *testing.T) {
@@ -103,7 +110,10 @@ func TestGuardTransportRejectsUnsafeRedirects(t *testing.T) {
 		Transport: validator.GuardTransport(base),
 	}
 
-	_, err := client.Get("https://public.example.test/mcp")
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
 	require.Error(t, err)
 	assert.Equal(t, 1, calls, "redirect destination should be rejected before the second request reaches the base transport")
 }
