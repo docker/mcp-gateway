@@ -158,7 +158,7 @@ func ResolveLocalCatalogPath(path string) (string, error) {
 		return "", errUntrustedLocalPath
 	}
 
-	return candidate, nil
+	return candidateForCheck, nil
 }
 
 func evalPathIfExists(path string) (string, error) {

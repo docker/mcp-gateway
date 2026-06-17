@@ -212,6 +212,27 @@ func TestReadOneRejectsSymlinkEscape(t *testing.T) {
 	require.ErrorIs(t, err, errUntrustedLocalPath)
 }
 
+func TestResolveLocalCatalogPathReturnsResolvedPath(t *testing.T) {
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	catalogsDir := filepath.Join(tempHome, ".docker", "mcp", "catalogs")
+	require.NoError(t, os.MkdirAll(catalogsDir, 0o755))
+
+	targetCatalog := filepath.Join(catalogsDir, "target.yaml")
+	require.NoError(t, os.WriteFile(targetCatalog, []byte("registry: {}\n"), 0o644))
+	if err := os.Symlink(targetCatalog, filepath.Join(catalogsDir, "link.yaml")); err != nil {
+		t.Skipf("symlink creation is not available: %v", err)
+	}
+
+	resolvedTarget, err := filepath.EvalSymlinks(targetCatalog)
+	require.NoError(t, err)
+
+	path, err := ResolveLocalCatalogPath("link.yaml")
+	require.NoError(t, err)
+	require.Equal(t, resolvedTarget, path)
+}
+
 // Helper functions
 
 func setupTestCatalogs(t *testing.T, homeDir string) {

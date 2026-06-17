@@ -9,7 +9,7 @@ options:
       value_type: stringSlice
       default_value: '[]'
       description: |
-        Additional catalog paths under ~/.docker/mcp/catalogs/ to append to the default catalogs
+        Additional catalog paths must resolve under ~/.docker/mcp/catalogs/
       deprecated: false
       hidden: false
       experimental: false
@@ -69,7 +69,7 @@ options:
     - option: catalog
       value_type: stringSlice
       default_value: '[docker-mcp.yaml]'
-      description: Paths to docker catalogs under ~/.docker/mcp/catalogs/
+      description: Catalog paths must resolve under ~/.docker/mcp/catalogs/
       deprecated: false
       hidden: false
       experimental: false

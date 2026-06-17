@@ -1321,6 +1321,29 @@ func TestResolveFile(t *testing.T) {
 	}
 }
 
+func TestResolveFileDecodesEscapedLocalReference(t *testing.T) {
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	content, err := testData.ReadFile("testdata/server.yaml")
+	require.NoError(t, err)
+
+	tempFile := filepath.Join(tempHome, ".docker", "mcp", "catalogs", "testdata", "server copy.yaml")
+	require.NoError(t, os.MkdirAll(filepath.Dir(tempFile), 0o755))
+	require.NoError(t, os.WriteFile(tempFile, content, 0o644))
+
+	servers, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), setupTestDB(t), "file://testdata/server%20copy.yaml")
+	require.NoError(t, err)
+	require.Len(t, servers, 1)
+	require.Equal(t, "myimage:latest", servers[0].Image)
+}
+
+func TestResolveFileRejectsInvalidEscapedLocalReference(t *testing.T) {
+	_, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), setupTestDB(t), "file://testdata/%zz.yaml")
+	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid local file reference")
+}
+
 func TestResolveFileRejectsUntrustedPaths(t *testing.T) {
 	tempHome := t.TempDir()
 	t.Setenv("HOME", tempHome)
