@@ -220,7 +220,7 @@ Use 'docker mcp template list' to see available templates.`,
 	flags := cmd.Flags()
 	flags.StringVar(&opts.Name, "name", "", "Name of the profile (required unless --from-template is used)")
 	flags.StringVar(&opts.ID, "id", "", "ID of the profile (defaults to a slugified version of the name)")
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path under ~/.docker/mcp/catalogs). Can be specified multiple times.")
 	flags.StringArrayVar(&opts.Connect, "connect", []string{}, fmt.Sprintf("Clients to connect to: mcp-client (can be specified multiple times). Supported clients: %s", client.GetSupportedMCPClients(*cfg)))
 	flags.StringVar(&opts.FromTemplate, "from-template", "", "Create profile from a starter template (use `docker mcp template list` to see options)")
 
@@ -466,7 +466,7 @@ func addServerCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path under ~/.docker/mcp/catalogs). Can be specified multiple times.")
 
 	return cmd
 }

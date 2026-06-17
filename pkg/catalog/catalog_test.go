@@ -131,7 +131,7 @@ func TestCatalogPrecedenceOrder(t *testing.T) {
 	ctx := context.Background()
 
 	// Test precedence order: Docker → Configured → CLI-specified
-	additionalCatalogs := []string{filepath.Join(tempHome, "cli-catalog.yaml")}
+	additionalCatalogs := []string{filepath.Join(tempHome, ".docker", "mcp", "catalogs", "cli-catalog.yaml")}
 	catalog, err := GetWithOptions(ctx, true, additionalCatalogs)
 	require.NoError(t, err)
 
@@ -151,6 +151,49 @@ func TestCatalogPrecedenceOrder(t *testing.T) {
 	require.Len(t, overlappingServer.Tools, 1, "should have exactly the tools from winning server")
 	assert.Equal(t, "overlapping-tool", overlappingServer.Tools[0].Name, "tool name should be preserved")
 	assert.Equal(t, "CLI Catalog Server", overlappingServer.Tools[0].Description, "should use entire server from highest precedence catalog")
+}
+
+func TestReadOneRejectsCatalogPathTraversal(t *testing.T) {
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	tests := []struct {
+		name string
+		path string
+	}{
+		{
+			name: "relative traversal outside catalogs dir",
+			path: "../outside.yaml",
+		},
+		{
+			name: "nested relative traversal outside catalogs dir",
+			path: "nested/../../outside.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, _, err := ReadOne(t.Context(), tt.path)
+			require.ErrorIs(t, err, errUntrustedLocalPath)
+		})
+	}
+}
+
+func TestReadOneRejectsSymlinkEscape(t *testing.T) {
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	catalogsDir := filepath.Join(tempHome, ".docker", "mcp", "catalogs")
+	require.NoError(t, os.MkdirAll(catalogsDir, 0o755))
+
+	outsideCatalog := filepath.Join(t.TempDir(), "outside.yaml")
+	require.NoError(t, os.WriteFile(outsideCatalog, []byte("registry: {}\n"), 0o644))
+	if err := os.Symlink(outsideCatalog, filepath.Join(catalogsDir, "escape.yaml")); err != nil {
+		t.Skipf("symlink creation is not available: %v", err)
+	}
+
+	_, _, _, err := ReadOne(t.Context(), "escape.yaml")
+	require.ErrorIs(t, err, errUntrustedLocalPath)
 }
 
 // Helper functions
@@ -305,6 +348,6 @@ func setupOverlappingCatalogs(t *testing.T, homeDir string) {
         container:
           image: cli/overlapping-server
           command: []`
-	err = os.WriteFile(filepath.Join(homeDir, "cli-catalog.yaml"), []byte(cliCatalog), 0o644)
+	err = os.WriteFile(filepath.Join(catalogsDir, "cli-catalog.yaml"), []byte(cliCatalog), 0o644)
 	require.NoError(t, err)
 }

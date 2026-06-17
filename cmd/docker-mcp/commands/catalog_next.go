@@ -121,7 +121,7 @@ When using --server without --from-profile, --from-legacy-catalog, or --from-com
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
+	flags.StringArrayVar(&opts.Servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path under ~/.docker/mcp/catalogs). Can be specified multiple times.")
 	flags.StringVar(&opts.FromWorkingSet, "from-profile", "", "Profile ID to create the catalog from")
 	flags.StringVar(&opts.FromLegacyCatalog, "from-legacy-catalog", "", "Legacy catalog URL to create the catalog from")
 	flags.StringVar(&opts.FromCommunityRegistry, "from-community-registry", "", "Community registry hostname to fetch servers from (e.g. registry.modelcontextprotocol.io)")
@@ -415,7 +415,7 @@ func addCatalogNextServersCommand() *cobra.Command {
 	}
 
 	flags := cmd.Flags()
-	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path). Can be specified multiple times.")
+	flags.StringArrayVar(&servers, "server", []string{}, "Server to include specified with a URI: https:// (MCP Registry reference) or docker:// (Docker Image reference) or catalog:// (Catalog reference) or file:// (Local file path under ~/.docker/mcp/catalogs). Can be specified multiple times.")
 
 	return cmd
 }

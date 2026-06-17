@@ -428,7 +428,12 @@ func isV0ServerJSON(buf []byte) bool {
 }
 
 func ResolveFile(ctx context.Context, value string) ([]Server, error) {
-	buf, err := os.ReadFile(value)
+	path, err := catalog.ResolveLocalCatalogPath(value)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -440,7 +445,7 @@ func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 	}
 
 	var servers []catalog.Server
-	switch filepath.Ext(strings.ToLower(value)) {
+	switch filepath.Ext(strings.ToLower(path)) {
 	case ".yaml", ".yml":
 		if err := yaml.Unmarshal(buf, &probe); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
@@ -496,7 +501,7 @@ func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 			}
 		}
 	default:
-		return nil, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", value)
+		return nil, fmt.Errorf("unsupported file extension: must be .yaml, .yml, or .json")
 	}
 
 	if probe.Registry != nil {

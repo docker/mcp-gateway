@@ -17,6 +17,18 @@ import (
 	"github.com/docker/mcp-gateway/test/mocks"
 )
 
+func trustedLegacyCatalogPath(t *testing.T, name string) string {
+	t.Helper()
+
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+
+	catalogFile := filepath.Join(tempHome, ".docker", "mcp", "catalogs", name)
+	require.NoError(t, os.MkdirAll(filepath.Dir(catalogFile), 0o755))
+
+	return catalogFile
+}
+
 func TestCreateFromWorkingSet(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
@@ -381,9 +393,7 @@ func TestCreateFromLegacyCatalog(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create a temporary legacy catalog file
-	tempDir := t.TempDir()
-	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -441,9 +451,7 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) 
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create a temporary legacy catalog file
-	tempDir := t.TempDir()
-	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -498,9 +506,7 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testin
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	// Create a temporary legacy catalog file
-	tempDir := t.TempDir()
-	catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -962,9 +968,7 @@ func TestCreateFromLegacyCatalogWithRemotes(t *testing.T) {
 			dao := setupTestDB(t)
 			ctx := t.Context()
 
-			// Create a temporary legacy catalog file
-			tempDir := t.TempDir()
-			catalogFile := filepath.Join(tempDir, "test-catalog.yaml")
+			catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
 
 			legacyCatalogYAML := "name: test-catalog\nregistry:\n  test-server:\n" + tt.serverYAML + "\n"
 
