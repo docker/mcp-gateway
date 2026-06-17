@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,6 +152,42 @@ func TestIsExternallyReachableHost(t *testing.T) {
 			got := isExternallyReachableHost(tt.host)
 			if got != tt.want {
 				t.Errorf("isExternallyReachableHost(%q) = %v, expected %v", tt.host, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHTTPTransportsRequireAuthToken(t *testing.T) {
+	tests := []struct {
+		name    string
+		start   func(*Gateway) error
+		wantErr string
+	}{
+		{
+			name: "sse",
+			start: func(g *Gateway) error {
+				return g.startSseServer(context.Background(), nil)
+			},
+			wantErr: "authentication token is required for SSE transport",
+		},
+		{
+			name: "streaming",
+			start: func(g *Gateway) error {
+				return g.startStreamingServer(context.Background(), nil)
+			},
+			wantErr: "authentication token is required for streaming transport",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &Gateway{}
+			err := tt.start(g)
+			if err == nil {
+				t.Fatalf("expected auth token error")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error to contain %q, got %q", tt.wantErr, err.Error())
 			}
 		})
 	}

@@ -1,11 +1,14 @@
 package gateway
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/docker/mcp-gateway/pkg/log"
 )
 
 func TestGenerateAuthToken(t *testing.T) {
@@ -104,10 +107,13 @@ func TestInitializeHTTPAuth_ContainerModeRequiresAuth(t *testing.T) {
 func TestInitializeHTTPAuth_AllowUnauthenticatedSkipsAuth(t *testing.T) {
 	t.Setenv("MCP_GATEWAY_AUTH_TOKEN", "ignored-token")
 
+	var logs bytes.Buffer
+	log.SetLogWriter(&logs)
+	defer log.SetLogWriter(os.Stderr)
+
 	g := &Gateway{
 		Options: Options{
 			Transport:            "streaming",
-			Host:                 "0.0.0.0",
 			AllowUnauthenticated: true,
 		},
 	}
@@ -117,6 +123,17 @@ func TestInitializeHTTPAuth_AllowUnauthenticatedSkipsAuth(t *testing.T) {
 	}
 	if g.authToken != "" {
 		t.Errorf("expected auth token to stay empty when unauthenticated access is explicit, got %q", g.authToken)
+	}
+
+	logOutput := logs.String()
+	if !strings.Contains(logOutput, "ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set") {
+		t.Errorf("expected log output to mention ignored auth token, got %q", logOutput)
+	}
+	if !strings.Contains(logOutput, "without authentication on all interfaces") {
+		t.Errorf("expected log output to mention unauthenticated all-interfaces listener, got %q", logOutput)
+	}
+	if !strings.Contains(logOutput, "execute configured MCP tools") {
+		t.Errorf("expected log output to mention tool execution risk, got %q", logOutput)
 	}
 }
 

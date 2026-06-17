@@ -492,8 +492,11 @@ func (g *Gateway) initializeHTTPAuth() error {
 		return nil
 	}
 	if g.AllowUnauthenticated {
+		if os.Getenv("MCP_GATEWAY_AUTH_TOKEN") != "" {
+			log.Log("Warning: ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set")
+		}
 		if isExternallyReachableHost(g.Host) {
-			log.Log("Warning: unauthenticated gateway access is enabled on a non-loopback listener")
+			log.Logf("WARNING: --allow-unauthenticated is exposing the MCP gateway without authentication on %s. Any client that can reach this listener can execute configured MCP tools. Remove --allow-unauthenticated or bind with --host 127.0.0.1 unless this is intentional.", gatewayListenerDescription(g.Host))
 		}
 		return nil
 	}
@@ -521,6 +524,14 @@ func isHTTPTransport(transport string) bool {
 
 func gatewayListenAddress(host string, port int) string {
 	return net.JoinHostPort(host, strconv.Itoa(port))
+}
+
+func gatewayListenerDescription(host string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return "all interfaces"
+	}
+	return host
 }
 
 func isExternallyReachableHost(host string) bool {
