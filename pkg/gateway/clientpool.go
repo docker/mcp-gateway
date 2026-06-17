@@ -265,7 +265,8 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 			log.Logf("Warning: tool '%s' has volume value that looks like a flag, skipping: %q", tool.Name, mount)
 			continue
 		}
-		if err := validateDockerVolumeBinds([]string{mount}); err != nil {
+		mount, err := normalizeDockerVolumeBind(mount)
+		if err != nil {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{
 					Text: fmt.Sprintf("validate volume for %s: %v", tool.Name, err),
@@ -414,7 +415,8 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 			log.Logf("Warning: server '%s' has volume value that looks like a flag, skipping: %q", serverConfig.Name, mount)
 			continue
 		}
-		if err := validateDockerVolumeBinds([]string{mount}); err != nil {
+		mount, err := normalizeDockerVolumeBind(mount)
+		if err != nil {
 			return nil, nil, fmt.Errorf("validate volume for %s: %w", serverConfig.Name, err)
 		}
 

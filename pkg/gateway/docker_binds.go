@@ -20,6 +20,8 @@ const dockerBindAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS"
 type dockerVolumeBind struct {
 	raw        string
 	source     string
+	target     string
+	mode       string
 	hostPath   bool
 	readOnly   bool
 	sourcePath string
@@ -28,25 +30,36 @@ type dockerVolumeBind struct {
 func validateDockerVolumeBinds(volumes []string) error {
 	allowedRoots := dockerBindAllowedRoots()
 	for _, raw := range volumes {
-		bind, err := parseDockerVolumeBind(raw)
-		if err != nil {
+		if _, err := normalizeDockerVolumeBindWithRoots(raw, allowedRoots); err != nil {
 			return err
-		}
-		if !bind.hostPath {
-			continue
-		}
-		if !bind.readOnly {
-			return fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only", bind.raw)
-		}
-		if disallowed, reason := disallowedDockerHostPath(bind.sourcePath); disallowed {
-			return fmt.Errorf("unsafe docker volume %q: host path %q is blocked (%s)", bind.raw, bind.source, reason)
-		}
-		if !isPathUnderAnyRoot(bind.sourcePath, allowedRoots) {
-			return fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s",
-				bind.raw, bind.source, strings.Join(allowedRoots, ", "))
 		}
 	}
 	return nil
+}
+
+func normalizeDockerVolumeBind(raw string) (string, error) {
+	return normalizeDockerVolumeBindWithRoots(raw, dockerBindAllowedRoots())
+}
+
+func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots []string) (string, error) {
+	bind, err := parseDockerVolumeBind(raw)
+	if err != nil {
+		return "", err
+	}
+	if !bind.hostPath {
+		return bind.raw, nil
+	}
+	if !bind.readOnly {
+		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only", bind.raw)
+	}
+	if disallowed, reason := disallowedDockerHostPath(bind.sourcePath); disallowed {
+		return "", fmt.Errorf("unsafe docker volume %q: host path %q is blocked (%s)", bind.raw, bind.source, reason)
+	}
+	if !isPathUnderAnyRoot(bind.sourcePath, allowedRoots) {
+		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s",
+			bind.raw, bind.source, strings.Join(allowedRoots, ", "))
+	}
+	return bind.sourcePath + ":" + bind.target + ":" + bind.mode, nil
 }
 
 func parseDockerVolumeBind(raw string) (dockerVolumeBind, error) {
@@ -67,11 +80,13 @@ func parseDockerVolumeBind(raw string) (dockerVolumeBind, error) {
 		return bind, nil
 	case 2, 3:
 		bind.source = strings.TrimSpace(parts[0])
-		if bind.source == "" || strings.TrimSpace(parts[1]) == "" {
+		bind.target = strings.TrimSpace(parts[1])
+		if bind.source == "" || bind.target == "" {
 			return dockerVolumeBind{}, fmt.Errorf("invalid docker volume %q: source and target are required", raw)
 		}
 		if len(parts) == 3 {
-			bind.readOnly = dockerVolumeModeReadOnly(parts[2])
+			bind.mode = strings.TrimSpace(parts[2])
+			bind.readOnly = dockerVolumeModeReadOnly(bind.mode)
 		}
 		bind.hostPath = dockerVolumeSourceIsHostPath(bind.source)
 		if bind.hostPath {

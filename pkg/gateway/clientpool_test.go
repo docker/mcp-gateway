@@ -121,6 +121,8 @@ secrets:
 
 func TestApplyConfigMountAs(t *testing.T) {
 	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
 	catalogYAML := `
 volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
@@ -135,7 +137,7 @@ hub:
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
-		"-v", hostPath + ":/logs:ro",
+		"-v", expectedHostPath + ":/logs:ro",
 	}, args)
 	assert.Empty(t, env)
 }
@@ -157,6 +159,8 @@ volumes:
 
 func TestApplyConfigMountAsReadOnly(t *testing.T) {
 	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
 	catalogYAML := `
 volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
@@ -171,7 +175,7 @@ hub:
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
-		"-v", hostPath + ":/logs:ro",
+		"-v", expectedHostPath + ":/logs:ro",
 	}, args)
 	assert.Empty(t, env)
 }
@@ -319,6 +323,11 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		t.Setenv(dockerBindAllowedPathsEnv, "~/trusted")
 
 		require.NoError(t, validateDockerVolumeBinds([]string{"~/trusted/project:/data:ro"}))
+		expectedSource, err := cleanDockerHostPath("~/trusted/project")
+		require.NoError(t, err)
+		normalized, err := normalizeDockerVolumeBind("~/trusted/project:/data:ro")
+		require.NoError(t, err)
+		require.Equal(t, expectedSource+":/data:ro", normalized)
 	})
 
 	t.Run("rejects host paths outside allowed roots", func(t *testing.T) {
