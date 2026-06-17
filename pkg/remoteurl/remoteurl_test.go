@@ -3,6 +3,7 @@ package remoteurl
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/netip"
 	"testing"
@@ -45,6 +46,7 @@ func TestValidateRejectsUnsafeRemoteURLs(t *testing.T) {
 		{name: "loopback IPv4", rawURL: "https://127.0.0.1/mcp"},
 		{name: "loopback IPv6", rawURL: "https://[::1]/mcp"},
 		{name: "IPv4-mapped loopback", rawURL: "https://[::ffff:127.0.0.1]/mcp"},
+		{name: "NAT64 well-known prefix", rawURL: "https://[64:ff9b::a9fe:a9fe]/mcp"},
 		{name: "link local", rawURL: "https://169.254.169.254/latest/meta-data"},
 		{name: "private IP", rawURL: "https://10.0.0.1/mcp"},
 		{name: "cluster suffix", rawURL: "https://api.default.svc.cluster.local/mcp"},
@@ -84,6 +86,31 @@ func TestDirectTransportDisablesProxy(t *testing.T) {
 
 	require.True(t, ok)
 	assert.Nil(t, transport.Proxy)
+}
+
+func TestGuardDialerRequiresRequestTargetHost(t *testing.T) {
+	validator := NewValidator(Options{
+		Resolver: fakeResolver{
+			"public.example.test": {netip.MustParseAddr("8.8.8.8")},
+		},
+	})
+
+	calledDialer := false
+	base := &http.Transport{
+		DialContext: func(context.Context, string, string) (net.Conn, error) {
+			calledDialer = true
+			return nil, fmt.Errorf("unexpected dial")
+		},
+	}
+
+	rt := validator.guardDialer(base)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
+	require.NoError(t, err)
+
+	_, err = rt.RoundTrip(req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "target host missing")
+	assert.False(t, calledDialer)
 }
 
 func TestGuardTransportRejectsUnsafeRedirects(t *testing.T) {

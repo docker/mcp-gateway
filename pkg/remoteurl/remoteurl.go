@@ -196,7 +196,11 @@ func (v Validator) guardDialer(base http.RoundTripper) http.RoundTripper {
 			return originalDialContext(ctx, network, address)
 		}
 
-		targetHost, _ := ctx.Value(contextKey{}).(string)
+		targetHost, ok := ctx.Value(contextKey{}).(string)
+		if !ok || targetHost == "" {
+			return nil, fmt.Errorf("remote URL target host missing from request context")
+		}
+
 		if !sameHostname(targetHost, host) || v.allowInsecure {
 			return originalDialContext(ctx, network, address)
 		}
@@ -308,6 +312,7 @@ var blockedPrefixes = []netip.Prefix{
 	netip.MustParsePrefix("255.255.255.255/32"),
 	netip.MustParsePrefix("::/128"),
 	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("64:ff9b::/96"),
 	netip.MustParsePrefix("fc00::/7"),
 	netip.MustParsePrefix("fe80::/10"),
 	netip.MustParsePrefix("ff00::/8"),
