@@ -17,13 +17,13 @@ import (
 	"github.com/docker/mcp-gateway/test/mocks"
 )
 
-func trustedLegacyCatalogPath(t *testing.T, name string) string {
+func trustedLegacyCatalogPath(t *testing.T) string {
 	t.Helper()
 
 	tempHome := t.TempDir()
 	t.Setenv("HOME", tempHome)
 
-	catalogFile := filepath.Join(tempHome, ".docker", "mcp", "catalogs", name)
+	catalogFile := filepath.Join(tempHome, ".docker", "mcp", "catalogs", "test-catalog.yaml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(catalogFile), 0o755))
 
 	return catalogFile
@@ -393,7 +393,7 @@ func TestCreateFromLegacyCatalog(t *testing.T) {
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t)
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -451,7 +451,7 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithSameContent(t *testing.T) 
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t)
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -506,7 +506,7 @@ func TestCreateFromLegacyCatalogWithRemoveExistingWithDifferentContent(t *testin
 	dao := setupTestDB(t)
 	ctx := t.Context()
 
-	catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
+	catalogFile := trustedLegacyCatalogPath(t)
 
 	legacyCatalogYAML := `name: test-catalog
 registry:
@@ -968,7 +968,7 @@ func TestCreateFromLegacyCatalogWithRemotes(t *testing.T) {
 			dao := setupTestDB(t)
 			ctx := t.Context()
 
-			catalogFile := trustedLegacyCatalogPath(t, "test-catalog.yaml")
+			catalogFile := trustedLegacyCatalogPath(t)
 
 			legacyCatalogYAML := "name: test-catalog\nregistry:\n  test-server:\n" + tt.serverYAML + "\n"
 
