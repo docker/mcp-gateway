@@ -120,32 +120,6 @@ func TestInitializeHTTPAuth_AllowUnauthenticatedSkipsAuth(t *testing.T) {
 	}
 }
 
-func TestApplyRuntimeDefaults_ContainerBindsLoopback(t *testing.T) {
-	t.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
-
-	g := &Gateway{}
-	g.applyRuntimeDefaults()
-
-	if g.Host != DefaultContainerGatewayHost {
-		t.Errorf("expected container default host %q, got %q", DefaultContainerGatewayHost, g.Host)
-	}
-}
-
-func TestApplyRuntimeDefaults_ExplicitHostWins(t *testing.T) {
-	t.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
-
-	g := &Gateway{
-		Options: Options{
-			Host: "0.0.0.0",
-		},
-	}
-	g.applyRuntimeDefaults()
-
-	if g.Host != "0.0.0.0" {
-		t.Errorf("expected explicit host to be preserved, got %q", g.Host)
-	}
-}
-
 func TestAuthenticationMiddleware_HealthEndpoint(t *testing.T) {
 	authToken := "test-token-123"
 	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

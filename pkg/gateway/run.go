@@ -144,7 +144,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 	if g.policyClient == nil {
 		g.policyClient = newPolicyClient(ctx)
 	}
-	g.applyRuntimeDefaults()
 
 	// Set up log file redirection if specified
 	if g.LogFilePath != "" {
@@ -485,12 +484,6 @@ func (g *Gateway) Run(ctx context.Context) error {
 
 	default:
 		return fmt.Errorf("unknown transport %q, expected 'stdio', 'sse' or 'streaming", g.Transport)
-	}
-}
-
-func (g *Gateway) applyRuntimeDefaults() {
-	if os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1" && g.Host == "" {
-		g.Host = DefaultContainerGatewayHost
 	}
 }
 

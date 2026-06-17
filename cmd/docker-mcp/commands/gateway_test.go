@@ -5,11 +5,10 @@ import (
 
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/mcp-gateway/pkg/features"
-	gatewaypkg "github.com/docker/mcp-gateway/pkg/gateway"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGatewayRunCommandContainerNetworkDefaults(t *testing.T) {
+func TestGatewayRunCommandContainerAuthDefaults(t *testing.T) {
 	t.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
 
 	cmd := gatewayCommand(nil, nil, features.AllDisabled())
@@ -18,7 +17,7 @@ func TestGatewayRunCommandContainerNetworkDefaults(t *testing.T) {
 
 	hostFlag := runCmd.Flags().Lookup("host")
 	assert.NotNil(t, hostFlag)
-	assert.Equal(t, gatewaypkg.DefaultContainerGatewayHost, hostFlag.DefValue)
+	assert.Empty(t, hostFlag.DefValue)
 
 	allowUnauthenticatedFlag := runCmd.Flags().Lookup("allow-unauthenticated")
 	assert.NotNil(t, allowUnauthenticatedFlag)

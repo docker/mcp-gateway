@@ -2,8 +2,6 @@ package gateway
 
 import "github.com/docker/mcp-gateway/pkg/catalog"
 
-const DefaultContainerGatewayHost = "127.0.0.1"
-
 type Config struct {
 	Options
 	WorkingSet         string

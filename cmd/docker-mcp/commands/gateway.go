@@ -39,7 +39,6 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 				Cpus:         1,
 				Memory:       "2Gb",
 				Transport:    "stdio",
-				Host:         gateway.DefaultContainerGatewayHost,
 				LogCalls:     true,
 				BlockSecrets: true,
 				Verbose:      true,
