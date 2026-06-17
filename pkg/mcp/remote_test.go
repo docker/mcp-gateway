@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
 // roundTripFunc is an adapter to use functions as http.RoundTripper.
@@ -141,4 +143,20 @@ func TestHeaderRoundTripper_EmptyHeaders(t *testing.T) {
 	require.NotNil(t, capturedReq)
 	assert.Empty(t, capturedReq.Header.Get("Authorization"),
 		"no Authorization header when headers map is empty")
+}
+
+func TestRemoteMCPClientRejectsUnsafeRemoteURL(t *testing.T) {
+	client := NewRemoteMCPClient(&catalog.ServerConfig{
+		Name: "unsafe-remote",
+		Spec: catalog.Server{
+			Remote: catalog.Remote{
+				URL:       "http://127.0.0.1:8080/mcp",
+				Transport: "streamable-http",
+			},
+		},
+	})
+
+	err := client.Initialize(context.Background(), nil, false, nil, nil, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsafe remote MCP URL")
 }

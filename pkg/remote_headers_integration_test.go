@@ -15,12 +15,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 // TestIntegrationRemoteWithCustomHeaders tests that custom headers (including Authorization
 // with Bearer tokens from secrets) are properly transmitted to remote MCP servers.
 func TestIntegrationRemoteWithCustomHeaders(t *testing.T) {
 	thisIsAnIntegrationTest(t)
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	// Start a test MCP server that can validate the Authorization header
 	server := newTestMCPServer(t)
 	defer server.close()
