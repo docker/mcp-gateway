@@ -265,6 +265,14 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 			log.Logf("Warning: tool '%s' has volume value that looks like a flag, skipping: %q", tool.Name, mount)
 			continue
 		}
+		if err := validateDockerVolumeBinds([]string{mount}); err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("validate volume for %s: %v", tool.Name, err),
+				}},
+				IsError: true,
+			}, nil
+		}
 
 		args = append(args, "-v", mount)
 	}
@@ -340,7 +348,7 @@ func (cp *clientPool) baseArgs(name string) []string {
 	return args
 }
 
-func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string) {
+func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string, error) {
 	args := cp.baseArgs(serverConfig.Name)
 	var env []string
 
@@ -406,6 +414,9 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 			log.Logf("Warning: server '%s' has volume value that looks like a flag, skipping: %q", serverConfig.Name, mount)
 			continue
 		}
+		if err := validateDockerVolumeBinds([]string{mount}); err != nil {
+			return nil, nil, fmt.Errorf("validate volume for %s: %w", serverConfig.Name, err)
+		}
 
 		args = append(args, "-v", mount)
 	}
@@ -437,7 +448,7 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 		args = append(args, "--add-host", host)
 	}
 
-	return args, env
+	return args, env, nil
 }
 
 // isSafeFlagValue reports whether v can be safely appended to a docker run
@@ -527,7 +538,10 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				}
 
 				image := cg.serverConfig.Spec.Image
-				args, env := cg.cp.argsAndEnv(cg.serverConfig, targetConfig)
+				args, env, err := cg.cp.argsAndEnv(cg.serverConfig, targetConfig)
+				if err != nil {
+					return nil, err
+				}
 
 				command := expandEnvList(eval.EvaluateList(cg.serverConfig.Spec.Command, cg.serverConfig.Config), env)
 				if len(command) == 0 {
