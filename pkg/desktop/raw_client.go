@@ -37,23 +37,34 @@ func ProxyTransport() http.RoundTripper {
 			return
 		}
 
-		ctx := context.Background()
-		if !IsRunningInDockerDesktop(ctx) {
+		transport := DockerDesktopProxySocketTransport(context.Background())
+		if transport == nil {
 			desktopProxyTransportInst = http.DefaultTransport
 			return
 		}
-
-		desktopProxyTransportInst = &http.Transport{
-			Proxy: http.ProxyURL(&url.URL{
-				Scheme: "http",
-			}),
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return dialHTTPProxy(ctx)
-			},
-		}
+		desktopProxyTransportInst = transport
 	})
 
 	return desktopProxyTransportInst
+}
+
+// DockerDesktopProxySocketTransport returns a transport that proxies through
+// Docker Desktop's local HTTP proxy socket only. It intentionally ignores
+// HTTP_PROXY/HTTPS_PROXY environment variables so callers can opt into the
+// trusted Desktop socket without permitting arbitrary forward proxies.
+func DockerDesktopProxySocketTransport(ctx context.Context) http.RoundTripper {
+	if !IsRunningInDockerDesktop(ctx) {
+		return nil
+	}
+
+	return &http.Transport{
+		Proxy: http.ProxyURL(&url.URL{
+			Scheme: "http",
+		}),
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return dialHTTPProxy(ctx)
+		},
+	}
 }
 
 // hasEnvProxyVars returns true if any HTTP proxy environment variables are set.

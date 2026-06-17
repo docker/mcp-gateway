@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,7 +104,7 @@ func TestGuardDialerRequiresRequestTargetHost(t *testing.T) {
 		},
 	}
 
-	rt := validator.guardDialer(base)
+	rt := validator.guardDialer(base, false)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
 	require.NoError(t, err)
 
@@ -111,6 +112,68 @@ func TestGuardDialerRequiresRequestTargetHost(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "target host missing")
 	assert.False(t, calledDialer)
+}
+
+func TestGuardTransportRejectsUnexpectedProxyDial(t *testing.T) {
+	validator := NewValidator(Options{
+		Resolver: fakeResolver{
+			"public.example.test": {netip.MustParseAddr("8.8.8.8")},
+		},
+	})
+
+	calledDialer := false
+	base := &http.Transport{
+		Proxy: http.ProxyURL(&url.URL{
+			Scheme: "http",
+			Host:   "proxy.example.test:8080",
+		}),
+		DialContext: func(context.Context, string, string) (net.Conn, error) {
+			calledDialer = true
+			return nil, fmt.Errorf("unexpected proxy dial")
+		},
+	}
+	client := &http.Client{
+		Transport: validator.GuardTransport(base),
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not match request host")
+	assert.False(t, calledDialer)
+}
+
+func TestGuardTrustedProxyTransportAllowsExplicitProxyDial(t *testing.T) {
+	validator := NewValidator(Options{
+		Resolver: fakeResolver{
+			"public.example.test": {netip.MustParseAddr("8.8.8.8")},
+		},
+	})
+
+	calledDialer := false
+	base := &http.Transport{
+		Proxy: http.ProxyURL(&url.URL{
+			Scheme: "http",
+			Host:   "proxy.example.test:8080",
+		}),
+		DialContext: func(context.Context, string, string) (net.Conn, error) {
+			calledDialer = true
+			return nil, fmt.Errorf("trusted proxy dial")
+		},
+	}
+	client := &http.Client{
+		Transport: validator.GuardTrustedProxyTransport(base),
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "trusted proxy dial")
+	assert.True(t, calledDialer)
 }
 
 func TestGuardTransportRejectsUnsafeRedirects(t *testing.T) {

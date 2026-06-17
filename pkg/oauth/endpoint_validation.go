@@ -6,11 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
-func guardedOAuthHTTPClient(timeout time.Duration) *http.Client {
+func guardedOAuthHTTPClient(ctx context.Context, timeout time.Duration) *http.Client {
+	if proxyTransport := desktop.DockerDesktopProxySocketTransport(ctx); proxyTransport != nil {
+		return remoteurl.NewTrustedProxyHTTPClient(timeout, proxyTransport)
+	}
+
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: remoteurl.GuardDirectTransport(),

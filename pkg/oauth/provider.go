@@ -283,7 +283,7 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 	// Inject proxy transport so the token endpoint is reachable through
 	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
 	// derived OAuth endpoints.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(ctx, 0))
 
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
 	if err != nil {
@@ -329,7 +329,7 @@ func (p *Provider) refreshTokenCE(ctx context.Context) error {
 	// Inject proxy transport so the token endpoint is reachable through
 	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
 	// derived OAuth endpoints.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(ctx, 0))
 
 	// TokenSource automatically refreshes using refresh_token
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()

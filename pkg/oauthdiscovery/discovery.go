@@ -14,6 +14,7 @@ import (
 
 	oauthhelpers "github.com/docker/mcp-gateway-oauth-helpers"
 
+	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
@@ -22,7 +23,7 @@ func DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*oauthhel
 		return nil, err
 	}
 
-	client := remoteurl.NewDirectHTTPClient(30 * time.Second)
+	client := newGuardedHTTPClient(ctx, 30*time.Second)
 
 	parsedURL, err := url.Parse(serverURL)
 	if err != nil {
@@ -190,7 +191,7 @@ func PerformDCR(ctx context.Context, discovery *oauthhelpers.Discovery, serverNa
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "MCP-Gateway/1.0.0")
 
-	client := remoteurl.NewDirectHTTPClient(30 * time.Second)
+	client := newGuardedHTTPClient(ctx, 30*time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send DCR request to %s: %w", discovery.RegistrationEndpoint, err)
@@ -361,4 +362,11 @@ func validateRedirectURI(redirectURI string) error {
 	default:
 		return fmt.Errorf("redirect URI host %q not allowed - must be localhost or mcp.docker.com", parsed.Hostname())
 	}
+}
+
+func newGuardedHTTPClient(ctx context.Context, timeout time.Duration) *http.Client {
+	if proxyTransport := desktop.DockerDesktopProxySocketTransport(ctx); proxyTransport != nil {
+		return remoteurl.NewTrustedProxyHTTPClient(timeout, proxyTransport)
+	}
+	return remoteurl.NewDirectHTTPClient(timeout)
 }

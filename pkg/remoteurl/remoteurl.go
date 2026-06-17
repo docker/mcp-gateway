@@ -132,6 +132,13 @@ func GuardTransport(base http.RoundTripper) http.RoundTripper {
 	return DefaultValidator().GuardTransport(base)
 }
 
+// GuardTrustedProxyTransport validates request and redirect URLs, but permits
+// dial targets that differ from the request host. Use it only with a trusted
+// local proxy transport such as Docker Desktop's proxy socket.
+func GuardTrustedProxyTransport(base http.RoundTripper) http.RoundTripper {
+	return DefaultValidator().GuardTrustedProxyTransport(base)
+}
+
 func DirectTransport() http.RoundTripper {
 	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
 		cloned := transport.Clone()
@@ -146,10 +153,21 @@ func GuardDirectTransport() http.RoundTripper {
 }
 
 func (v Validator) GuardTransport(base http.RoundTripper) http.RoundTripper {
+	return v.guardTransport(base, false)
+}
+
+// GuardTrustedProxyTransport validates request and redirect URLs, but permits
+// dial targets that differ from the request host. Use it only with a trusted
+// local proxy transport such as Docker Desktop's proxy socket.
+func (v Validator) GuardTrustedProxyTransport(base http.RoundTripper) http.RoundTripper {
+	return v.guardTransport(base, true)
+}
+
+func (v Validator) guardTransport(base http.RoundTripper, allowTrustedProxy bool) http.RoundTripper {
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	base = v.guardDialer(base)
+	base = v.guardDialer(base, allowTrustedProxy)
 	return &validatingRoundTripper{
 		base:      base,
 		validator: v,
@@ -167,6 +185,19 @@ func NewHTTPClient(timeout time.Duration, base http.RoundTripper) *http.Client {
 	}
 }
 
+// NewTrustedProxyHTTPClient returns a guarded client for a trusted local proxy
+// transport, such as Docker Desktop's proxy socket.
+func NewTrustedProxyHTTPClient(timeout time.Duration, base http.RoundTripper) *http.Client {
+	validator := DefaultValidator()
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: validator.GuardTrustedProxyTransport(base),
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			return validator.ValidateURL(req.Context(), req.URL)
+		},
+	}
+}
+
 func NewDirectHTTPClient(timeout time.Duration) *http.Client {
 	validator := DefaultValidator()
 	return &http.Client{
@@ -178,7 +209,7 @@ func NewDirectHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func (v Validator) guardDialer(base http.RoundTripper) http.RoundTripper {
+func (v Validator) guardDialer(base http.RoundTripper, allowTrustedProxy bool) http.RoundTripper {
 	transport, ok := base.(*http.Transport)
 	if !ok {
 		return base
@@ -201,8 +232,14 @@ func (v Validator) guardDialer(base http.RoundTripper) http.RoundTripper {
 			return nil, fmt.Errorf("remote URL target host missing from request context")
 		}
 
-		if !sameHostname(targetHost, host) || v.allowInsecure {
+		if v.allowInsecure {
 			return originalDialContext(ctx, network, address)
+		}
+		if !sameHostname(targetHost, host) {
+			if allowTrustedProxy {
+				return originalDialContext(ctx, network, address)
+			}
+			return nil, fmt.Errorf("remote URL dial target %q does not match request host %q", host, targetHost)
 		}
 
 		return v.dialAllowedAddress(ctx, originalDialContext, network, host, port)
