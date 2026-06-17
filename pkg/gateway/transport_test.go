@@ -61,6 +61,101 @@ func TestIsAllowedOrigin(t *testing.T) {
 	}
 }
 
+func TestGatewayListenAddress(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		port int
+		want string
+	}{
+		{
+			name: "all interfaces",
+			host: "",
+			port: 8811,
+			want: ":8811",
+		},
+		{
+			name: "ipv4 loopback",
+			host: "127.0.0.1",
+			port: 8811,
+			want: "127.0.0.1:8811",
+		},
+		{
+			name: "ipv6 loopback",
+			host: "::1",
+			port: 8811,
+			want: "[::1]:8811",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := gatewayListenAddress(tt.host, tt.port)
+			if got != tt.want {
+				t.Errorf("gatewayListenAddress(%q, %d) = %q, expected %q", tt.host, tt.port, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsExternallyReachableHost(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+		want bool
+	}{
+		{
+			name: "empty host binds all interfaces",
+			host: "",
+			want: true,
+		},
+		{
+			name: "zero ipv4 binds all interfaces",
+			host: "0.0.0.0",
+			want: true,
+		},
+		{
+			name: "zero ipv6 binds all interfaces",
+			host: "::",
+			want: true,
+		},
+		{
+			name: "localhost",
+			host: "localhost",
+			want: false,
+		},
+		{
+			name: "ipv4 loopback",
+			host: "127.0.0.1",
+			want: false,
+		},
+		{
+			name: "ipv6 loopback",
+			host: "::1",
+			want: false,
+		},
+		{
+			name: "external ipv4",
+			host: "192.0.2.1",
+			want: true,
+		},
+		{
+			name: "hostname",
+			host: "gateway.example.com",
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isExternallyReachableHost(tt.host)
+			if got != tt.want {
+				t.Errorf("isExternallyReachableHost(%q) = %v, expected %v", tt.host, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOriginSecurityHandler(t *testing.T) {
 	// Create a simple handler that always succeeds if reached
 	successHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

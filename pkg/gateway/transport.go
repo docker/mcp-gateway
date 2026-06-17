@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -19,6 +20,10 @@ func (g *Gateway) startStdioServer(ctx context.Context, _ io.Reader, _ io.Writer
 }
 
 func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
+	if g.authToken == "" && !g.AllowUnauthenticated {
+		return errors.New("authentication token is required for SSE transport")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/health", healthHandler(&g.health))
 	mux.Handle("/", redirectHandler("/sse"))
@@ -44,6 +49,10 @@ func (g *Gateway) startSseServer(ctx context.Context, ln net.Listener) error {
 }
 
 func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) error {
+	if g.authToken == "" && !g.AllowUnauthenticated {
+		return errors.New("authentication token is required for streaming transport")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/health", healthHandler(&g.health))
 	mux.Handle("/", redirectHandler("/mcp"))

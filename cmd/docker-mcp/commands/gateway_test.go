@@ -4,8 +4,26 @@ import (
 	"testing"
 
 	"github.com/docker/cli/cli/config/configfile"
+	"github.com/docker/mcp-gateway/pkg/features"
+	gatewaypkg "github.com/docker/mcp-gateway/pkg/gateway"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestGatewayRunCommandContainerNetworkDefaults(t *testing.T) {
+	t.Setenv("DOCKER_MCP_IN_CONTAINER", "1")
+
+	cmd := gatewayCommand(nil, nil, features.AllDisabled())
+	runCmd, _, err := cmd.Find([]string{"run"})
+	assert.NoError(t, err)
+
+	hostFlag := runCmd.Flags().Lookup("host")
+	assert.NotNil(t, hostFlag)
+	assert.Equal(t, gatewaypkg.DefaultContainerGatewayHost, hostFlag.DefValue)
+
+	allowUnauthenticatedFlag := runCmd.Flags().Lookup("allow-unauthenticated")
+	assert.NotNil(t, allowUnauthenticatedFlag)
+	assert.Equal(t, "false", allowUnauthenticatedFlag.DefValue)
+}
 
 func TestIsOAuthInterceptorFeatureEnabled(t *testing.T) {
 	t.Run("enabled", func(t *testing.T) {
