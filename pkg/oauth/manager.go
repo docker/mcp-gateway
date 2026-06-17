@@ -3,13 +3,11 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"github.com/docker/docker-credential-helpers/credentials"
 	"golang.org/x/oauth2"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
@@ -140,6 +138,9 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 	if err != nil {
 		return fmt.Errorf("DCR client not found for %s: %w", serverName, err)
 	}
+	if err := validateOutboundDCRClientEndpoints(ctx, dcrClient); err != nil {
+		return err
+	}
 
 	// Create provider
 	provider := NewDCRProvider(dcrClient, m.redirectURI)
@@ -156,10 +157,9 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 	}
 
 	// Inject proxy transport so the token endpoint is reachable through
-	// Docker Desktop's HTTP proxy when applicable.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
-		Transport: desktop.ProxyTransport(),
-	})
+	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
+	// derived OAuth endpoints.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
 
 	token, err := config.Exchange(proxyCtx, code, opts...)
 	if err != nil {

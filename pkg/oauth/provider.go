@@ -3,7 +3,6 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
@@ -262,6 +261,9 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get DCR client from docker pass: %w", err)
 	}
+	if err := validateOutboundDCRClientEndpoints(ctx, dcrClient); err != nil {
+		return err
+	}
 
 	// Get current token from docker pass
 	token, err := GetTokenFromDockerPass(ctx, p.name)
@@ -279,10 +281,9 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 	config := provider.Config()
 
 	// Inject proxy transport so the token endpoint is reachable through
-	// Docker Desktop's HTTP proxy when applicable.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
-		Transport: desktop.ProxyTransport(),
-	})
+	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
+	// derived OAuth endpoints.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
 
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
 	if err != nil {
@@ -310,6 +311,9 @@ func (p *Provider) refreshTokenCE(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get DCR client: %w", err)
 	}
+	if err := validateOutboundDCRClientEndpoints(ctx, dcrClient); err != nil {
+		return err
+	}
 
 	// Get current token and create token store
 	tokenStore := NewTokenStore(rwHelper)
@@ -323,10 +327,9 @@ func (p *Provider) refreshTokenCE(ctx context.Context) error {
 	config := provider.Config()
 
 	// Inject proxy transport so the token endpoint is reachable through
-	// Docker Desktop's HTTP proxy when applicable.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
-		Transport: desktop.ProxyTransport(),
-	})
+	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
+	// derived OAuth endpoints.
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
 
 	// TokenSource automatically refreshes using refresh_token
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()

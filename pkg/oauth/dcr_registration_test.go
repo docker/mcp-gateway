@@ -106,3 +106,9 @@ func TestRegisterProviderForDynamicDiscovery_SkipsOnProbeError(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, client.registered, "should not register when probe fails")
 }
+
+func TestDefaultOAuthProberRejectsUnsafeRemoteURL(t *testing.T) {
+	_, err := defaultOAuthProber{}.DiscoverOAuthRequirements(t.Context(), "http://127.0.0.1/mcp")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "https")
+}

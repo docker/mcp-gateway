@@ -9,6 +9,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/oauthdiscovery"
 )
 
 // dcrRegistrationClient is the subset of desktop.Tools used for DCR registration.
@@ -27,7 +28,7 @@ type oauthProber interface {
 type defaultOAuthProber struct{}
 
 func (defaultOAuthProber) DiscoverOAuthRequirements(ctx context.Context, serverURL string) (*oauthhelpers.Discovery, error) {
-	return oauthhelpers.DiscoverOAuthRequirements(ctx, serverURL)
+	return oauthdiscovery.DiscoverOAuthRequirements(ctx, serverURL)
 }
 
 // RegisterProviderForLazySetup registers a DCR provider with Docker Desktop

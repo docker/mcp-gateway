@@ -8,10 +8,9 @@ import (
 
 	"github.com/docker/docker-credential-helpers/credentials"
 
-	oauth "github.com/docker/mcp-gateway-oauth-helpers"
-
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/log"
+	"github.com/docker/mcp-gateway/pkg/oauthdiscovery"
 )
 
 // Manager orchestrates Dynamic Client Registration flows
@@ -69,8 +68,7 @@ func DiscoverAndRegister(ctx context.Context, serverName string, scopes string, 
 
 	// Perform OAuth discovery (RFC 9728, RFC 8414)
 	log.Logf("- Starting OAuth discovery for: %s at: %s", serverName, serverURL)
-	ctx = oauth.WithLogger(ctx, &logger{})
-	discovery, err := oauth.DiscoverOAuthRequirements(ctx, serverURL)
+	discovery, err := oauthdiscovery.DiscoverOAuthRequirements(ctx, serverURL)
 	if err != nil {
 		return Client{}, fmt.Errorf("discovering OAuth requirements for %s: %w", serverName, err)
 	}
@@ -84,7 +82,7 @@ func DiscoverAndRegister(ctx context.Context, serverName string, scopes string, 
 	}
 
 	// Perform Dynamic Client Registration (RFC 7591) with our redirect URI
-	creds, err := oauth.PerformDCR(ctx, discovery, serverName, redirectURI)
+	creds, err := oauthdiscovery.PerformDCR(ctx, discovery, serverName, redirectURI)
 	if err != nil {
 		return Client{}, fmt.Errorf("registering DCR client for %s: %w", serverName, err)
 	}
@@ -156,19 +154,4 @@ func mergeScopes(requiredScopes []string, userScopes string) []string {
 	}
 
 	return merged
-}
-
-// logger adapter for oauth-helpers library
-type logger struct{}
-
-func (l *logger) Infof(format string, args ...any) {
-	log.Logf(format, args...)
-}
-
-func (l *logger) Warnf(format string, args ...any) {
-	log.Logf("! "+format, args...)
-}
-
-func (l *logger) Debugf(format string, args ...any) {
-	log.Logf(format, args...)
 }
