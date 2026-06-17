@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -56,6 +57,9 @@ func DockerDesktopProxySocketTransport(ctx context.Context) http.RoundTripper {
 	if !IsRunningInDockerDesktop(ctx) {
 		return nil
 	}
+	if !desktopProxySocketAvailable() {
+		return nil
+	}
 
 	return &http.Transport{
 		Proxy: http.ProxyURL(&url.URL{
@@ -65,6 +69,18 @@ func DockerDesktopProxySocketTransport(ctx context.Context) http.RoundTripper {
 			return dialHTTPProxy(ctx)
 		},
 	}
+}
+
+func desktopProxySocketAvailable() bool {
+	if runtime.GOOS == "windows" {
+		return true
+	}
+
+	info, err := os.Stat(Paths().HTTPProxySocket)
+	if err != nil {
+		return false
+	}
+	return info.Mode().Type() == os.ModeSocket
 }
 
 // hasEnvProxyVars returns true if any HTTP proxy environment variables are set.
