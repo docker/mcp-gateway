@@ -157,10 +157,26 @@ func TestReadOneRejectsCatalogPathTraversal(t *testing.T) {
 	tempHome := t.TempDir()
 	t.Setenv("HOME", tempHome)
 
+	cwd := t.TempDir()
+	originalCwd, err := os.Getwd()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = os.Chdir(originalCwd)
+	})
+	require.NoError(t, os.Chdir(cwd))
+
 	tests := []struct {
 		name string
 		path string
 	}{
+		{
+			name: "absolute path outside catalogs dir",
+			path: filepath.Join(t.TempDir(), "outside.yaml"),
+		},
+		{
+			name: "dot-relative path outside catalogs dir",
+			path: "./outside.yaml",
+		},
 		{
 			name: "relative traversal outside catalogs dir",
 			path: "../outside.yaml",

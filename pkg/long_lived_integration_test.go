@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -77,14 +76,13 @@ func TestIntegrationShortLivedContainerCloses(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 
 	dockerClient := createDockerClient(t)
-	tmp := t.TempDir()
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=time",
 	}
 
@@ -113,14 +111,13 @@ func TestIntegrationLongLivedServerStaysRunning(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 
 	dockerClient := createDockerClient(t)
-	tmp := t.TempDir()
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    longLived: true\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    longLived: true\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=time",
 	}
 
@@ -147,14 +144,13 @@ func TestIntegrationLongLivedServerWithFlagStaysRunning(t *testing.T) {
 	thisIsAnIntegrationTest(t)
 
 	dockerClient := createDockerClient(t)
-	tmp := t.TempDir()
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=time",
 		"--long-lived",
 	}
@@ -182,14 +178,13 @@ func TestIntegrationLongLivedShouldCleanupContainerBeforeShutdown(t *testing.T) 
 	thisIsAnIntegrationTest(t)
 
 	dockerClient := createDockerClient(t)
-	tmp := t.TempDir()
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  time:\n    image: mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=time",
 		"--long-lived",
 	}

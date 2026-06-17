@@ -102,16 +102,6 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 
 		return io.ReadAll(resp.Body)
 
-	case filepath.IsAbs(fileOrURL) || strings.HasPrefix(fileOrURL, "./"):
-		buf, err := os.ReadFile(fileOrURL)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-		return buf, nil
-
 	default:
 		path, err := ResolveLocalCatalogPath(fileOrURL)
 		if err != nil {
