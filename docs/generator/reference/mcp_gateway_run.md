@@ -7,13 +7,13 @@ Run the gateway
 
 | Name                        | Type          | Default             | Description                                                                                                                                   |
 |:----------------------------|:--------------|:--------------------|:----------------------------------------------------------------------------------------------------------------------------------------------|
-| `--additional-catalog`      | `stringSlice` |                     | Additional catalog paths to append to the default catalogs                                                                                    |
+| `--additional-catalog`      | `stringSlice` |                     | Additional catalog paths under ~/.docker/mcp/catalogs/ to append to the default catalogs                                                      |
 | `--additional-config`       | `stringSlice` |                     | Additional config paths to merge with the default config.yaml                                                                                 |
 | `--additional-registry`     | `stringSlice` |                     | Additional registry paths to merge with the default registry.yaml                                                                             |
 | `--additional-tools-config` | `stringSlice` |                     | Additional tools paths to merge with the default tools.yaml                                                                                   |
 | `--block-network`           | `bool`        |                     | Block tools from accessing forbidden network resources                                                                                        |
 | `--block-secrets`           | `bool`        | `true`              | Block secrets from being/received sent to/from tools                                                                                          |
-| `--catalog`                 | `stringSlice` | `[docker-mcp.yaml]` | Paths to docker catalogs (absolute or relative to ~/.docker/mcp/catalogs/)                                                                    |
+| `--catalog`                 | `stringSlice` | `[docker-mcp.yaml]` | Paths to docker catalogs under ~/.docker/mcp/catalogs/                                                                                        |
 | `--config`                  | `stringSlice` | `[config.yaml]`     | Paths to the config files (absolute or relative to ~/.docker/mcp/)                                                                            |
 | `--cpus`                    | `int`         | `1`                 | CPUs allocated to each MCP Server (default is 1)                                                                                              |
 | `--debug-dns`               | `bool`        |                     | Debug DNS resolution                                                                                                                          |
