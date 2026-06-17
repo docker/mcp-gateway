@@ -47,8 +47,21 @@ func writeFile(t *testing.T, parent, name string, content string) {
 	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 }
 
+func writeTrustedCatalogFile(t *testing.T, name, content string) string {
+	t.Helper()
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	path := filepath.Join(home, ".docker", "mcp", "catalogs", name)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+
+	return path
+}
+
 // createClickhouseCatalogFile creates a temporary catalog file containing only the clickhouse server entry
-func createClickhouseCatalogFile(t *testing.T, tempDir string) string {
+func createClickhouseCatalogFile(t *testing.T) string {
 	t.Helper()
 
 	// Create a minimal catalog using raw YAML content
@@ -121,11 +134,7 @@ func createClickhouseCatalogFile(t *testing.T, tempDir string) string {
       owner: ClickHouse
 `
 
-	// Write to temporary file
-	catalogFile := filepath.Join(tempDir, "clickhouse-catalog.yaml")
-	require.NoError(t, os.WriteFile(catalogFile, []byte(catalogYAML), 0o644))
-
-	return catalogFile
+	return writeTrustedCatalogFile(t, "clickhouse-catalog.yaml", catalogYAML)
 }
 
 func TestIntegrationVersion(t *testing.T) {
@@ -172,7 +181,7 @@ func TestIntegrationCallToolClickhouse(t *testing.T) {
 	writeFile(t, tmp, "config.yaml", "clickhouse:\n  host: sql-clickhouse.clickhouse.com\n  user: demo\n")
 
 	// Create temporary catalog file with only the clickhouse entry
-	catalogFile := createClickhouseCatalogFile(t, tmp)
+	catalogFile := createClickhouseCatalogFile(t)
 
 	gatewayArgs := []string{
 		"--servers=clickhouse",

@@ -86,14 +86,13 @@ func TestIntegrationWithElicitation(t *testing.T) {
 	buildElicitImage(t)
 
 	dockerClient := createDockerClientForElicitation(t)
-	tmp := t.TempDir()
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=elicit",
 		"--long-lived",
 		"--verbose",

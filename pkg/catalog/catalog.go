@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,6 +21,8 @@ import (
 const (
 	DockerCatalogFilename = "docker-mcp.yaml"
 )
+
+var errUntrustedLocalPath = errors.New("local file path must resolve within Docker MCP catalogs directory")
 
 func Get(ctx context.Context) (Catalog, error) {
 	return ReadFrom(ctx, []string{DockerCatalogFilename})
@@ -99,23 +102,11 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 
 		return io.ReadAll(resp.Body)
 
-	case filepath.IsAbs(fileOrURL) || strings.HasPrefix(fileOrURL, "./"):
-		buf, err := os.ReadFile(fileOrURL)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-		return buf, nil
-
 	default:
-		homeDir, err := user.HomeDir()
+		path, err := ResolveLocalCatalogPath(fileOrURL)
 		if err != nil {
 			return nil, err
 		}
-
-		path := filepath.Join(homeDir, ".docker", "mcp", "catalogs", fileOrURL)
 
 		buf, err := os.ReadFile(path)
 		if err != nil {
@@ -126,6 +117,67 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 		}
 		return buf, nil
 	}
+}
+
+func ResolveLocalCatalogPath(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("local file path is required")
+	}
+
+	homeDir, err := user.HomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	catalogsDir := filepath.Join(homeDir, ".docker", "mcp", "catalogs")
+	root, err := filepath.Abs(catalogsDir)
+	if err != nil {
+		return "", err
+	}
+
+	var candidate string
+	if filepath.IsAbs(path) || strings.HasPrefix(path, "."+string(filepath.Separator)) || path == "." {
+		candidate, err = filepath.Abs(path)
+	} else {
+		candidate, err = filepath.Abs(filepath.Join(root, path))
+	}
+	if err != nil {
+		return "", err
+	}
+
+	root, err = evalPathIfExists(root)
+	if err != nil {
+		return "", err
+	}
+	candidateForCheck, err := evalPathIfExists(candidate)
+	if err != nil {
+		return "", err
+	}
+
+	if !pathWithin(root, candidateForCheck) {
+		return "", errUntrustedLocalPath
+	}
+
+	return candidateForCheck, nil
+}
+
+func evalPathIfExists(path string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err == nil {
+		return resolved, nil
+	}
+	if os.IsNotExist(err) {
+		return path, nil
+	}
+	return "", err
+}
+
+func pathWithin(root, candidate string) bool {
+	rel, err := filepath.Rel(root, candidate)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 func isURL(fileOrURL string) bool {

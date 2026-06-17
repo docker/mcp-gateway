@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -395,10 +396,25 @@ func ResolveServersFromString(ctx context.Context, registryClient registryapi.Cl
 			return nil, fmt.Errorf("failed to resolve registry: %w", err)
 		}
 		return []Server{server}, nil
-	} else if v, ok := strings.CutPrefix(value, "file://"); ok {
-		return ResolveFile(ctx, v)
+	} else if path, ok := strings.CutPrefix(value, "file://"); ok {
+		path, err := parseLocalFileReference(path, value)
+		if err != nil {
+			return nil, err
+		}
+		return ResolveFile(ctx, path)
 	}
 	return nil, fmt.Errorf("invalid server value: %s", value)
+}
+
+func parseLocalFileReference(path, value string) (string, error) {
+	// Docker MCP treats file:// as a catalog-root-relative local file reference,
+	// not as an RFC file URI with a host component. Decode escapes before the
+	// catalog resolver applies the trusted-root boundary.
+	decodedPath, err := url.PathUnescape(path)
+	if err != nil {
+		return "", fmt.Errorf("invalid local file reference %q: %w", value, err)
+	}
+	return decodedPath, nil
 }
 
 // isV0ServerJSON checks if the JSON data represents a v0.ServerJSON/v0.ServerResponse
@@ -428,7 +444,12 @@ func isV0ServerJSON(buf []byte) bool {
 }
 
 func ResolveFile(ctx context.Context, value string) ([]Server, error) {
-	buf, err := os.ReadFile(value)
+	path, err := catalog.ResolveLocalCatalogPath(value)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -440,7 +461,7 @@ func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 	}
 
 	var servers []catalog.Server
-	switch filepath.Ext(strings.ToLower(value)) {
+	switch filepath.Ext(strings.ToLower(path)) {
 	case ".yaml", ".yml":
 		if err := yaml.Unmarshal(buf, &probe); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
@@ -496,7 +517,7 @@ func ResolveFile(ctx context.Context, value string) ([]Server, error) {
 			}
 		}
 	default:
-		return nil, fmt.Errorf("unsupported file extension: %s, must be .yaml or .json", value)
+		return nil, fmt.Errorf("unsupported file extension: must be .yaml, .yml, or .json")
 	}
 
 	if probe.Registry != nil {

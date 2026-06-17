@@ -50,7 +50,7 @@ registry:
         env: AUTH_TOKEN
 `, server.url)
 
-	writeFile(t, tmp, "catalog.yaml", catalogContent)
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", catalogContent)
 
 	// Optional: uncomment for debugging
 	// fmt.Printf("DEBUG: Catalog content:\n%s\n", catalogContent)
@@ -60,7 +60,7 @@ registry:
 	gatewayArgs := []string{
 		"--servers=test-server",
 		"--secrets=" + filepath.Join(tmp, ".env"),
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 	}
 
 	out := runDockerMCP(t, "tools", "call", "--gateway-arg="+strings.Join(gatewayArgs, ","), "get_auth_header")

@@ -87,17 +87,16 @@ func TestIntegrationToolListChangeNotifications(t *testing.T) {
 	buildElicitImageForToolNotifications(t)
 
 	dockerClient := createDockerClientForToolNotifications(t)
-	tmp := t.TempDir()
 
 	// Test that the gateway properly handles tool list change notifications and refreshes capabilities
 	// This verifies that dynamic tools added by MCP servers become visible and callable
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=elicit",
 		"--long-lived",
 		"--verbose",
@@ -232,16 +231,15 @@ func TestIntegrationToolListNotificationRouting(t *testing.T) {
 	buildElicitImageForToolNotifications(t)
 
 	dockerClient := createDockerClientForToolNotifications(t)
-	tmp := t.TempDir()
 
 	// Set up a test scenario with multiple clients to verify notification routing
-	writeFile(t, tmp, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
+	catalogFile := writeTrustedCatalogFile(t, "catalog.yaml", "name: docker-test\nregistry:\n  elicit:\n    longLived: true\n    image: elicit:latest")
 
 	args := []string{
 		"mcp",
 		"gateway",
 		"run",
-		"--catalog=" + filepath.Join(tmp, "catalog.yaml"),
+		"--catalog=" + catalogFile,
 		"--servers=elicit",
 		"--long-lived",
 		"--verbose",
