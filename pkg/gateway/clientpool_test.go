@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -119,21 +120,24 @@ secrets:
 }
 
 func TestApplyConfigMountAs(t *testing.T) {
+	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
 	catalogYAML := `
 volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
-	configYAML := `
+	configYAML := fmt.Sprintf(`
 hub:
-  log_path: /local/logs
-`
+  log_path: %s
+`, hostPath)
 
 	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
-		"-v", "/local/logs:/logs:ro",
+		"-v", expectedHostPath + ":/logs:ro",
 	}, args)
 	assert.Empty(t, env)
 }
@@ -154,21 +158,24 @@ volumes:
 }
 
 func TestApplyConfigMountAsReadOnly(t *testing.T) {
+	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
 	catalogYAML := `
 volumes:
   - '{{hub.log_path|mount_as:/logs:ro}}'
   `
-	configYAML := `
+	configYAML := fmt.Sprintf(`
 hub:
-  log_path: /local/logs
-`
+  log_path: %s
+`, hostPath)
 
 	args, env := argsAndEnv(t, "hub", catalogYAML, configYAML, nil)
 
 	assert.Equal(t, []string{
 		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
 		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=hub", "-l", "docker-mcp-transport=stdio",
-		"-v", "/local/logs:/logs:ro",
+		"-v", expectedHostPath + ":/logs:ro",
 	}, args)
 	assert.Empty(t, env)
 }
@@ -211,39 +218,25 @@ extraHosts:
 	assert.Empty(t, env)
 }
 
-func TestApplyConfigLongLivedIgnoresReadOnly(t *testing.T) {
+func TestApplyConfigLongLivedRejectsWritableHostBind(t *testing.T) {
 	catalogYAML := `
 longLived: true
 volumes:
   - '/local/data:/data'
   `
 
-	args, env := argsAndEnv(t, "longlived", catalogYAML, "", nil)
-
-	// Volumes should NOT have :ro appended regardless of readOnly flag
-	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=longlived", "-l", "docker-mcp-transport=stdio",
-		"-v", "/local/data:/data",
-	}, args)
-	assert.Empty(t, env)
+	_, _, err := argsAndEnvErr(t, "longlived", catalogYAML, "", nil)
+	require.ErrorContains(t, err, "host path bind mounts must be read-only")
 }
 
-func TestApplyConfigShortLivedRespectsReadOnly(t *testing.T) {
+func TestApplyConfigShortLivedRejectsWritableHostBind(t *testing.T) {
 	catalogYAML := `
 volumes:
   - '/local/data:/data'
   `
 
-	args, env := argsAndEnv(t, "shortlived", catalogYAML, "", nil)
-
-	// Short-lived servers no longer apply read-only mounts automatically
-	assert.Equal(t, []string{
-		"run", "--rm", "-i", "--init", "--security-opt", "no-new-privileges", "--cpus", "1", "--memory", "2Gb", "--pull", "never",
-		"-l", "docker-mcp=true", "-l", "docker-mcp-tool-type=mcp", "-l", "docker-mcp-name=shortlived", "-l", "docker-mcp-transport=stdio",
-		"-v", "/local/data:/data",
-	}, args)
-	assert.Empty(t, env)
+	_, _, err := argsAndEnvErr(t, "shortlived", catalogYAML, "", nil)
+	require.ErrorContains(t, err, "host path bind mounts must be read-only")
 }
 
 // TestArgsAndEnv_SkipsFlagShapedValues exercises the argv-sink guard:
@@ -260,7 +253,7 @@ func TestArgsAndEnv_SkipsFlagShapedValues(t *testing.T) {
 			catalogYAML: `
 volumes:
   - "--privileged"
-  - "/legit:/data"
+  - "legit-volume:/data"
 `,
 			wantMissing: []string{"--privileged"},
 		},
@@ -308,7 +301,91 @@ func TestIsSafeFlagValue(t *testing.T) {
 	}
 }
 
+func TestValidateDockerVolumeBinds(t *testing.T) {
+	t.Run("allows named volumes", func(t *testing.T) {
+		require.NoError(t, validateDockerVolumeBinds([]string{"mcp-cache_1.cache:/cache"}))
+	})
+
+	t.Run("allows read-only binds from allowed roots", func(t *testing.T) {
+		require.NoError(t, validateDockerVolumeBinds([]string{t.TempDir() + ":/data:ro"}))
+	})
+
+	t.Run("allows read-only binds from configured roots", func(t *testing.T) {
+		t.Setenv(dockerBindAllowedPathsEnv, "/opt/mcp-data")
+		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:ro"}))
+	})
+
+	t.Run("allows home paths from configured roots", func(t *testing.T) {
+		home := t.TempDir()
+		project := filepath.Join(home, "trusted", "project")
+		require.NoError(t, os.MkdirAll(project, 0o755))
+		t.Setenv("HOME", home)
+		t.Setenv(dockerBindAllowedPathsEnv, "~/trusted")
+
+		require.NoError(t, validateDockerVolumeBinds([]string{"~/trusted/project:/data:ro"}))
+		expectedSource, err := cleanDockerHostPath("~/trusted/project")
+		require.NoError(t, err)
+		normalized, err := normalizeDockerVolumeBind("~/trusted/project:/data:ro")
+		require.NoError(t, err)
+		require.Equal(t, expectedSource+":/data:ro", normalized)
+	})
+
+	t.Run("rejects host paths outside allowed roots", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"/opt/mcp-data:/data:ro"})
+		require.ErrorContains(t, err, "outside allowed roots")
+	})
+
+	t.Run("rejects relative host paths with slash", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"foo/bar:/data"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+
+		err = validateDockerVolumeBinds([]string{"foo/bar:/data:ro"})
+		require.ErrorContains(t, err, "outside allowed roots")
+	})
+
+	t.Run("rejects relative host paths escaping upward", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"subdir/../../../etc:/data"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+
+		err = validateDockerVolumeBinds([]string{"subdir/../../../etc:/data:ro"})
+		require.ErrorContains(t, err, "outside allowed roots")
+	})
+
+	t.Run("rejects writable host path binds", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{t.TempDir() + ":/data"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+	})
+
+	t.Run("rejects docker socket binds", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"/var/run/docker.sock:/var/run/docker.sock:ro"})
+		require.ErrorContains(t, err, "blocked")
+	})
+
+	t.Run("rejects symlink host paths escaping allowed roots", func(t *testing.T) {
+		allowedRoot := t.TempDir()
+		link := filepath.Join(allowedRoot, "etc-link")
+		if err := os.Symlink("/etc", link); err != nil {
+			t.Skipf("cannot create symlink: %v", err)
+		}
+
+		err := validateDockerVolumeBinds([]string{filepath.ToSlash(link) + ":/data:ro"})
+		require.ErrorContains(t, err, "sensitive system path")
+	})
+
+	t.Run("rejects credential paths even under allowed roots", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{filepath.Join(t.TempDir(), ".ssh") + ":/ssh:ro"})
+		require.ErrorContains(t, err, "credential path")
+	})
+}
+
 func argsAndEnv(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string) {
+	t.Helper()
+	args, env, err := argsAndEnvErr(t, name, catalogYAML, configYAML, secrets)
+	require.NoError(t, err)
+	return args, env
+}
+
+func argsAndEnvErr(t *testing.T, name, catalogYAML, configYAML string, secrets map[string]string) ([]string, []string, error) {
 	t.Helper()
 
 	clientPool := &clientPool{

@@ -41,6 +41,8 @@ func NewVectorDBClient(ctx context.Context, dataDir string, dimension int, logFu
 		"docker", "run", "-i", "--rm",
 		"--name", containerName,
 		"--platform", "linux/amd64",
+		// dataDir is gateway-selected state storage, not catalog/server-supplied.
+		// The vector DB container needs this mount writable to persist vectors.db.
 		"-v", fmt.Sprintf("%s:/data", dataDir),
 		"-e", "DB_PATH=/data/vectors.db",
 		"-e", fmt.Sprintf("VECTOR_DIMENSION=%d", dimension),
