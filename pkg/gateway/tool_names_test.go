@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 func TestValidateExternalToolNameCollisionsRejectsDuplicateBaseServers(t *testing.T) {
@@ -79,7 +80,15 @@ func TestValidateExternalToolNameCollisionsRejectsDynamicMcpExecShadow(t *testin
 }
 
 func TestPolicyFilteredDynamicToolsDoNotTriggerCollisionValidation(t *testing.T) {
-	caps := &Capabilities{
+	mock := newMockPolicyClient()
+	mock.deny("candidate", "mcp-exec", policy.ActionLoad, "blocked")
+	g := &Gateway{policyClient: mock}
+
+	filtered := g.filterToolCapabilitiesByPolicy(context.Background(), Configuration{
+		servers: map[string]catalog.Server{
+			"candidate": {Name: "candidate"},
+		},
+	}, &Capabilities{
 		Tools: []ToolRegistration{
 			{
 				ServerName: "candidate",
@@ -90,9 +99,7 @@ func TestPolicyFilteredDynamicToolsDoNotTriggerCollisionValidation(t *testing.T)
 				Tool:       &mcp.Tool{Name: "safe-tool"},
 			},
 		},
-	}
-
-	filtered := filterCapabilitiesByAllowedTools(caps, []bool{false, true})
+	}, "tool")
 
 	require.Len(t, filtered.Tools, 1)
 	assert.Equal(t, "safe-tool", filtered.Tools[0].Tool.Name)
