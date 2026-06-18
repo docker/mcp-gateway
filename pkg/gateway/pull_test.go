@@ -165,7 +165,7 @@ func (c *recordingDockerClient) InspectContainer(context.Context, string) (conta
 }
 
 func (c *recordingDockerClient) ReadLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error) {
-	return nil, nil
+	return io.NopCloser(strings.NewReader("")), nil
 }
 
 func (c *recordingDockerClient) ImageExists(context.Context, string) (bool, error) {
