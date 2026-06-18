@@ -11,9 +11,7 @@ import (
 
 const desktopProxySocketProbeTimeout = 500 * time.Millisecond
 
-var dialHTTPProxyForAvailability = func(ctx context.Context) (net.Conn, error) {
-	return dialHTTPProxy(ctx)
-}
+var dialHTTPProxyForAvailability = dialHTTPProxy
 
 func desktopProxySocketAvailable(ctx context.Context) bool {
 	return desktopProxySocketAvailableWithDial(ctx, dialHTTPProxyForAvailability)
