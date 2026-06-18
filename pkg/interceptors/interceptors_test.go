@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/docker/mcp-gateway/pkg/log"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
