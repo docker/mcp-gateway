@@ -58,8 +58,34 @@ func NewNotificationMonitor() *NotificationMonitor {
 	}
 }
 
-// Start begins monitoring OAuth notifications from Docker Desktop
+// Start begins monitoring OAuth notifications from Docker Desktop.
+//
+// This performs a one-time availability check against the OAuth notification
+// endpoint before starting the monitor. If the endpoint or Docker Desktop
+// backend socket is unavailable (common on non–Docker Desktop environments),
+// the monitor is disabled to avoid repeated connection attempts and log spam.
+//
+// This ensures the gateway behaves correctly when OAuth notifications are
+// not configured or supported, without impacting Docker Desktop users.
 func (m *NotificationMonitor) Start(ctx context.Context) {
+	// Try once to detect availability
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url, nil)
+	if err != nil {
+		log.Logf("- OAuth notification monitor disabled: %v", err)
+		return
+	}
+
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		log.Logf("- OAuth notification endpoint not available, monitor disabled: %v", err)
+		return
+	}
+	resp.Body.Close()
+
+	// If reachable, start monitor normally
 	go m.monitor(ctx)
 }
 
