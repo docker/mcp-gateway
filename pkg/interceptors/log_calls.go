@@ -30,7 +30,7 @@ func LogCallsMiddleware() mcp.Middleware {
 			}
 
 			if toolName != "" {
-				log.Logf("  - Calling tool %s with arguments: %s\n", toolName, argumentsToString(arguments))
+				log.Logf("  - Calling tool %s with arguments: %s\n", toolName, argumentsSummary(arguments))
 			} else {
 				log.Logf("  - Calling tool (unknown) with method: %s\n", method)
 			}

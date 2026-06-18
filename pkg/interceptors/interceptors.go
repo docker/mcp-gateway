@@ -35,14 +35,15 @@ func Callbacks(logCalls, blockSecrets bool, oauthInterceptorEnabled bool, interc
 		middleware = append(middleware, interceptor.ToMiddleware())
 	}
 
+	// Add block secrets middleware before logging so request payloads are scanned
+	// before any built-in diagnostic logging observes the call.
+	if blockSecrets {
+		middleware = append(middleware, BlockSecretsMiddleware())
+	}
+
 	// Add log calls middleware
 	if logCalls {
 		middleware = append(middleware, LogCallsMiddleware())
-	}
-
-	// Add block secrets middleware
-	if blockSecrets {
-		middleware = append(middleware, BlockSecretsMiddleware())
 	}
 
 	return middleware
