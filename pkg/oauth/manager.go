@@ -159,7 +159,7 @@ func (m *Manager) ExchangeCode(ctx context.Context, code string, state string) e
 	// Inject proxy transport so the token endpoint is reachable through
 	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
 	// derived OAuth endpoints.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(0))
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, guardedOAuthHTTPClient(ctx, 0))
 
 	token, err := config.Exchange(proxyCtx, code, opts...)
 	if err != nil {

@@ -241,3 +241,11 @@ func TestDelete_ErrorStatusPlainBody(t *testing.T) {
 		t.Errorf("expected %q, got %q", expected, err.Error())
 	}
 }
+
+func TestDockerDesktopProxySocketTransportReturnsNilWhenDesktopDisabled(t *testing.T) {
+	ctx := WithNoDockerDesktop(context.Background())
+
+	if transport := DockerDesktopProxySocketTransport(ctx); transport != nil {
+		t.Fatalf("expected nil transport, got %T", transport)
+	}
+}

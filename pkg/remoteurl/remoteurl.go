@@ -166,10 +166,43 @@ func GuardDirectTransport() http.RoundTripper {
 }
 
 func (v Validator) GuardTransport(base http.RoundTripper) http.RoundTripper {
+	return v.guardTransport(base, false)
+}
+
+// TrustedProxyDialer dials a trusted local HTTP proxy socket.
+type TrustedProxyDialer func(context.Context) (net.Conn, error)
+
+// GuardTrustedProxyDialer validates request and redirect URLs, then sends
+// traffic through a trusted local HTTP proxy socket dialer. Use it only with
+// Docker Desktop's hardcoded local proxy socket.
+//
+// Unlike GuardTransport's direct path, this proxy path cannot pin the dialed IP
+// after validation because Docker Desktop's proxy resolves and dials the final
+// target. The validator still rejects blocked request and redirect URLs before
+// the proxy is dialed, but a narrow DNS-rebinding race remains accepted here to
+// preserve Docker Desktop proxy semantics.
+func GuardTrustedProxyDialer(dialer TrustedProxyDialer) http.RoundTripper {
+	return DefaultValidator().GuardTrustedProxyDialer(dialer)
+}
+
+// GuardTrustedProxyDialer validates request and redirect URLs, then sends
+// traffic through a trusted local HTTP proxy socket dialer. Use it only with
+// Docker Desktop's hardcoded local proxy socket.
+//
+// Unlike GuardTransport's direct path, this proxy path cannot pin the dialed IP
+// after validation because Docker Desktop's proxy resolves and dials the final
+// target. The validator still rejects blocked request and redirect URLs before
+// the proxy is dialed, but a narrow DNS-rebinding race remains accepted here to
+// preserve Docker Desktop proxy semantics.
+func (v Validator) GuardTrustedProxyDialer(dialer TrustedProxyDialer) http.RoundTripper {
+	return v.guardTransport(trustedProxyTransport(dialer), true)
+}
+
+func (v Validator) guardTransport(base http.RoundTripper, allowTrustedProxy bool) http.RoundTripper {
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	base = v.guardDialer(base)
+	base = v.guardDialer(base, allowTrustedProxy)
 	return &validatingRoundTripper{
 		base:      base,
 		validator: v,
@@ -187,6 +220,19 @@ func NewHTTPClient(timeout time.Duration, base http.RoundTripper) *http.Client {
 	}
 }
 
+// NewTrustedProxyHTTPClient returns a guarded client for a trusted local proxy
+// dialer, such as Docker Desktop's proxy socket dialer.
+func NewTrustedProxyHTTPClient(timeout time.Duration, dialer TrustedProxyDialer) *http.Client {
+	validator := DefaultValidator()
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: validator.GuardTrustedProxyDialer(dialer),
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			return validator.ValidateURL(req.Context(), req.URL)
+		},
+	}
+}
+
 func NewDirectHTTPClient(timeout time.Duration) *http.Client {
 	validator := DefaultValidator()
 	return &http.Client{
@@ -198,7 +244,7 @@ func NewDirectHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func (v Validator) guardDialer(base http.RoundTripper) http.RoundTripper {
+func (v Validator) guardDialer(base http.RoundTripper, allowTrustedProxy bool) http.RoundTripper {
 	transport, ok := base.(*http.Transport)
 	if !ok {
 		return base
@@ -221,14 +267,36 @@ func (v Validator) guardDialer(base http.RoundTripper) http.RoundTripper {
 			return nil, fmt.Errorf("remote URL target host missing from request context")
 		}
 
-		if !sameHostname(targetHost, host) || v.allowInsecure {
+		if v.allowInsecure {
 			return originalDialContext(ctx, network, address)
+		}
+		if !sameHostname(targetHost, host) {
+			if allowTrustedProxy {
+				return originalDialContext(ctx, network, address)
+			}
+			return nil, fmt.Errorf("remote URL dial target %q does not match request host %q", host, targetHost)
 		}
 
 		return v.dialAllowedAddress(ctx, originalDialContext, network, host, port)
 	}
 
 	return cloned
+}
+
+func trustedProxyTransport(dialer TrustedProxyDialer) http.RoundTripper {
+	if dialer == nil {
+		dialer = func(context.Context) (net.Conn, error) {
+			return nil, fmt.Errorf("trusted proxy dialer is nil")
+		}
+	}
+	return &http.Transport{
+		Proxy: http.ProxyURL(&url.URL{
+			Scheme: "http",
+		}),
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return dialer(ctx)
+		},
+	}
 }
 
 func (v Validator) dialAllowedAddress(ctx context.Context, dial func(context.Context, string, string) (net.Conn, error), network, host, port string) (net.Conn, error) {

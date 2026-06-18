@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync/atomic"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -38,7 +39,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	}
 
 	cmd := exec.CommandContext(ctx, c.command, c.args...)
-	cmd.Env = c.env
+	cmd.Env = commandEnv(c.env)
 
 	if debug {
 		cmd.Stderr = logs.NewPrefixer(os.Stderr, "- "+c.name+": ")
@@ -61,6 +62,27 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	c.initialized.Store(true)
 
 	return nil
+}
+
+func commandEnv(env []string) []string {
+	if envHasKey(env, "PATH") {
+		return env
+	}
+	path := os.Getenv("PATH")
+	if path == "" {
+		return env
+	}
+	return append([]string{"PATH=" + path}, env...)
+}
+
+func envHasKey(env []string, key string) bool {
+	prefix := key + "="
+	for _, item := range env {
+		if strings.HasPrefix(item, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *stdioMCPClient) AddRoots(roots []*mcp.Root) {

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,6 +10,40 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCommandEnvAddsOnlyProcessPATH(t *testing.T) {
+	t.Setenv("MCP_GATEWAY_STDIO_TEST_ENV", "base")
+	t.Setenv("PATH", "/test/path")
+
+	env := commandEnv([]string{
+		"MCP_GATEWAY_STDIO_TEST_EXTRA=extra",
+		"MCP_GATEWAY_STDIO_TEST_ENV=override",
+	})
+
+	assert.Equal(t, "/test/path", envValue(env, "PATH"))
+	assert.Equal(t, "extra", envValue(env, "MCP_GATEWAY_STDIO_TEST_EXTRA"))
+	assert.Equal(t, "override", envValue(env, "MCP_GATEWAY_STDIO_TEST_ENV"))
+	assert.NotContains(t, env, "MCP_GATEWAY_STDIO_TEST_ENV=base")
+}
+
+func TestCommandEnvKeepsExplicitPATH(t *testing.T) {
+	t.Setenv("PATH", "/process/path")
+
+	env := commandEnv([]string{"PATH=/server/path"})
+
+	assert.Equal(t, "/server/path", envValue(env, "PATH"))
+	assert.Equal(t, []string{"PATH=/server/path"}, env)
+}
+
+func envValue(env []string, key string) string {
+	prefix := key + "="
+	for i := len(env) - 1; i >= 0; i-- {
+		if strings.HasPrefix(env[i], prefix) {
+			return strings.TrimPrefix(env[i], prefix)
+		}
+	}
+	return ""
+}
 
 func TestStdioClientInitializeAndListTools(t *testing.T) {
 	// Skip if running in CI or if Docker is not available
