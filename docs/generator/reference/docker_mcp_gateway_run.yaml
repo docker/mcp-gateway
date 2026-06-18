@@ -314,8 +314,8 @@ options:
       swarm: false
     - option: verify-signatures
       value_type: bool
-      default_value: "false"
-      description: Verify signatures of the server images
+      default_value: "true"
+      description: Verify signatures of Docker MCP server images
       deprecated: false
       hidden: false
       experimental: false

@@ -223,7 +223,7 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 		// Validate that Docker image can be pulled
 		if serverConfig.Image != "" {
 			log.Log(fmt.Sprintf("Validating image for server '%s': %s", serverName, serverConfig.Image))
-			if err := g.docker.PullImage(ctx, serverConfig.Image); err != nil {
+			if err := g.pullAndVerifyImage(ctx, serverConfig.Image); err != nil {
 				validation.imagePullError = err
 			}
 		}
