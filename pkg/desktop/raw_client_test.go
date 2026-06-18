@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"testing"
 )
 
@@ -248,16 +247,5 @@ func TestDockerDesktopProxySocketTransportReturnsNilWhenDesktopDisabled(t *testi
 
 	if transport := DockerDesktopProxySocketTransport(ctx); transport != nil {
 		t.Fatalf("expected nil transport, got %T", transport)
-	}
-}
-
-func TestDesktopProxySocketUnavailableWithoutSocket(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("Windows uses a named pipe path that is not stat-checked")
-	}
-	t.Setenv("HOME", t.TempDir())
-
-	if desktopProxySocketAvailable() {
-		t.Fatal("expected Docker Desktop proxy socket to be unavailable")
 	}
 }

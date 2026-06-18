@@ -2,6 +2,7 @@ package embeddings_test
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -11,9 +12,7 @@ import (
 
 // TestCloseStopsContainer verifies that Close() stops the Docker container
 func TestCloseStopsContainer(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping long-running test in short mode")
-	}
+	requireVectorDBIntegration(t)
 
 	ctx := context.Background()
 
@@ -82,9 +81,7 @@ func TestCloseStopsContainer(t *testing.T) {
 
 // TestCloseIdempotent verifies that calling Close() multiple times is safe
 func TestCloseIdempotent(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping long-running test in short mode")
-	}
+	requireVectorDBIntegration(t)
 
 	ctx := context.Background()
 	tmpDir := t.TempDir()
@@ -110,9 +107,7 @@ func TestCloseIdempotent(t *testing.T) {
 
 // TestDimensionParameter verifies that different dimension values work correctly
 func TestDimensionParameter(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping long-running test in short mode")
-	}
+	requireVectorDBIntegration(t)
 
 	testCases := []struct {
 		name      string
@@ -147,5 +142,18 @@ func TestDimensionParameter(t *testing.T) {
 
 			t.Logf("Successfully created client with dimension %d (expected: %d)", tc.dimension, tc.expected)
 		})
+	}
+}
+
+func requireVectorDBIntegration(t *testing.T) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("Skipping long-running test in short mode")
+	}
+	if os.Getenv("INTEGRATION_TEST") == "" {
+		t.Skip("Skipping Docker integration test - set INTEGRATION_TEST=1 to run")
+	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skipf("Skipping Docker integration test - docker not found: %v", err)
 	}
 }

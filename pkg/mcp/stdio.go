@@ -38,7 +38,7 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	}
 
 	cmd := exec.CommandContext(ctx, c.command, c.args...)
-	cmd.Env = c.env
+	cmd.Env = commandEnv(c.env)
 
 	if debug {
 		cmd.Stderr = logs.NewPrefixer(os.Stderr, "- "+c.name+": ")
@@ -61,6 +61,13 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	c.initialized.Store(true)
 
 	return nil
+}
+
+func commandEnv(env []string) []string {
+	if len(env) == 0 {
+		return os.Environ()
+	}
+	return append(os.Environ(), env...)
 }
 
 func (c *stdioMCPClient) AddRoots(roots []*mcp.Root) {
