@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/distribution/reference"
+
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/signatures"
 )
@@ -87,9 +89,17 @@ func (g *Gateway) verifyImages(ctx context.Context, images []string) error {
 }
 
 func isDockerMCPImage(image string) bool {
-	image = strings.TrimPrefix(image, "docker.io/")
-	image = strings.TrimPrefix(image, "registry-1.docker.io/")
-	return strings.HasPrefix(image, "mcp/")
+	named, err := reference.ParseNormalizedNamed(image)
+	if err != nil {
+		return false
+	}
+
+	switch reference.Domain(named) {
+	case "docker.io", "registry-1.docker.io":
+		return strings.HasPrefix(reference.Path(named), "mcp/")
+	default:
+		return false
+	}
 }
 
 func imageBaseNames(names []string) []string {

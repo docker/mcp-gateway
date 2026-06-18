@@ -41,17 +41,19 @@ func TestPullAndVerifyVerifiesMCPImagesBeforePull(t *testing.T) {
 	}
 
 	err := g.pullAndVerify(context.Background(), Configuration{
-		serverNames: []string{"custom", "signed"},
+		serverNames: []string{"custom", "signed", "legacy"},
 		servers: map[string]catalog.Server{
 			"custom": {Image: "ghcr.io/acme/server:latest"},
 			"signed": {Image: "mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf"},
+			"legacy": {Image: "index.docker.io/mcp/github@sha256:756e73c2bd3777032dff922f4a8768135b5446b42619fe9239a190e20eb61757"},
 		},
 	})
 
 	require.NoError(t, err)
 	require.Equal(t, []string{
-		"verify:mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf",
+		"verify:index.docker.io/mcp/github@sha256:756e73c2bd3777032dff922f4a8768135b5446b42619fe9239a190e20eb61757,mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf",
 		"pull:ghcr.io/acme/server:latest",
+		"pull:index.docker.io/mcp/github@sha256:756e73c2bd3777032dff922f4a8768135b5446b42619fe9239a190e20eb61757",
 		"pull:mcp/time@sha256:9c46a918633fb474bf8035e3ee90ebac6bcf2b18ccb00679ac4c179cba0ebfcf",
 	}, events)
 }
