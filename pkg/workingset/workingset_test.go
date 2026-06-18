@@ -16,7 +16,6 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
-	"github.com/docker/mcp-gateway/pkg/remoteurl"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
 
@@ -957,8 +956,6 @@ func TestCreateWorkingSetID(t *testing.T) {
 }
 
 func TestResolveServerFromString(t *testing.T) {
-	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
-
 	tests := []struct {
 		name            string
 		input           string
@@ -1377,8 +1374,6 @@ func TestResolveFileRejectsUntrustedPaths(t *testing.T) {
 }
 
 func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
-	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
-
 	dao := setupTestDB(t)
 
 	serverResponse := v0.ServerResponse{

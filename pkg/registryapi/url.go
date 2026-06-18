@@ -1,7 +1,6 @@
 package registryapi
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -24,12 +23,12 @@ type ServerURL struct {
 }
 
 // ParseServerURL parses an MCP registry URL into its components
-func ParseServerURL(ctx context.Context, rawURL string) (*ServerURL, error) {
+func ParseServerURL(rawURL string) (*ServerURL, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
-	if err := remoteurl.DefaultValidator().ValidateURL(ctx, parsedURL); err != nil {
+	if err := remoteurl.DefaultValidator().ValidateURLWithoutResolution(parsedURL); err != nil {
 		return nil, err
 	}
 

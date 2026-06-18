@@ -656,7 +656,7 @@ func ConvertRegistryServerToCatalog(ctx context.Context, serverResp *v0.ServerRe
 }
 
 func ResolveRegistry(ctx context.Context, registryClient registryapi.Client, value string) (Server, error) {
-	url, err := registryapi.ParseServerURL(ctx, value)
+	url, err := registryapi.ParseServerURL(value)
 	if err != nil {
 		return Server{}, fmt.Errorf("failed to parse server URL %s: %w", value, err)
 	}
