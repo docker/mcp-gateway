@@ -14,7 +14,7 @@ import (
 )
 
 // MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS adds trusted host-path roots to the
-// default temp-only allowlist. Use the OS path-list separator.
+// default read-only temp-root allowlist. Use the OS path-list separator.
 const dockerBindAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS"
 
 type dockerVolumeBind struct {
@@ -128,6 +128,10 @@ func isASCIIAlpha(r rune) bool {
 	return r <= unicode.MaxASCII && unicode.IsLetter(r)
 }
 
+func isASCIIDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
 func dockerVolumeModeReadOnly(mode string) bool {
 	mode = strings.TrimSpace(mode)
 	if mode == "" {
@@ -151,14 +155,25 @@ func dockerVolumeSourceIsHostPath(source string) bool {
 	if source == "" {
 		return false
 	}
-	return strings.HasPrefix(source, "/") ||
-		strings.HasPrefix(source, "\\\\") ||
-		strings.HasPrefix(source, "./") ||
-		strings.HasPrefix(source, "../") ||
-		source == "." ||
-		source == ".." ||
-		strings.HasPrefix(source, "~/") ||
-		isWindowsAbsPath(source)
+	return !dockerVolumeSourceIsNamedVolume(source)
+}
+
+func dockerVolumeSourceIsNamedVolume(source string) bool {
+	if source == "" {
+		return false
+	}
+	for i, r := range source {
+		if i == 0 {
+			if !isASCIIAlpha(r) && !isASCIIDigit(r) {
+				return false
+			}
+			continue
+		}
+		if !isASCIIAlpha(r) && !isASCIIDigit(r) && r != '_' && r != '.' && r != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 func isWindowsAbsPath(p string) bool {

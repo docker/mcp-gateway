@@ -303,7 +303,7 @@ func TestIsSafeFlagValue(t *testing.T) {
 
 func TestValidateDockerVolumeBinds(t *testing.T) {
 	t.Run("allows named volumes", func(t *testing.T) {
-		require.NoError(t, validateDockerVolumeBinds([]string{"mcp-cache:/cache"}))
+		require.NoError(t, validateDockerVolumeBinds([]string{"mcp-cache_1.cache:/cache"}))
 	})
 
 	t.Run("allows read-only binds from allowed roots", func(t *testing.T) {
@@ -332,6 +332,22 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 
 	t.Run("rejects host paths outside allowed roots", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{"/opt/mcp-data:/data:ro"})
+		require.ErrorContains(t, err, "outside allowed roots")
+	})
+
+	t.Run("rejects relative host paths with slash", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"foo/bar:/data"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+
+		err = validateDockerVolumeBinds([]string{"foo/bar:/data:ro"})
+		require.ErrorContains(t, err, "outside allowed roots")
+	})
+
+	t.Run("rejects relative host paths escaping upward", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{"subdir/../../../etc:/data"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+
+		err = validateDockerVolumeBinds([]string{"subdir/../../../etc:/data:ro"})
 		require.ErrorContains(t, err, "outside allowed roots")
 	})
 
