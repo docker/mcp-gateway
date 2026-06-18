@@ -1,9 +1,14 @@
 package interceptors
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
+	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -202,4 +207,74 @@ func TestCallbacksOAuthInterceptorWithOtherMiddleware(t *testing.T) {
 	// With OAuth disabled but logCalls enabled
 	middlewares = Callbacks(true, false, false, nil)
 	assert.Len(t, middlewares, 2, "should have telemetry and log calls middleware")
+}
+
+func TestCallbacksBlockSecretsRunsBeforeLogCalls(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetLogWriter(&buf)
+	defer log.SetLogWriter(os.Stderr)
+
+	secret := "ghp_" + strings.Repeat("T", 36)
+	arguments, err := json.Marshal(map[string]any{"token": secret})
+	require.NoError(t, err)
+
+	req := &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{
+			Name:      "dangerous",
+			Arguments: arguments,
+		},
+	}
+
+	var handlerCalled bool
+	handler := func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+		handlerCalled = true
+		return &mcp.CallToolResult{}, nil
+	}
+
+	for _, middleware := range reverseMiddlewares(Callbacks(true, true, false, nil)) {
+		handler = middleware(handler)
+	}
+
+	result, err := handler(context.Background(), "tools/call", req)
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.False(t, handlerCalled, "secret-containing calls should be blocked before reaching the tool")
+	assert.NotContains(t, buf.String(), secret)
+	assert.NotContains(t, buf.String(), "Calling tool dangerous")
+}
+
+func TestLogCallsMiddlewareDoesNotLogRawArguments(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetLogWriter(&buf)
+	defer log.SetLogWriter(os.Stderr)
+
+	secret := "ghp_" + strings.Repeat("T", 36)
+	arguments, err := json.Marshal(map[string]any{"token": secret})
+	require.NoError(t, err)
+
+	req := &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{
+			Name:      "metadata-only",
+			Arguments: arguments,
+		},
+	}
+
+	handler := LogCallsMiddleware()(func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+		return &mcp.CallToolResult{}, nil
+	})
+
+	result, err := handler(context.Background(), "tools/call", req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Contains(t, buf.String(), "Calling tool metadata-only with arguments: object with 1 field(s)")
+	assert.NotContains(t, buf.String(), secret)
+	assert.NotContains(t, buf.String(), "token")
+}
+
+func reverseMiddlewares(middlewares []mcp.Middleware) []mcp.Middleware {
+	reversed := make([]mcp.Middleware, 0, len(middlewares))
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		reversed = append(reversed, middlewares[i])
+	}
+	return reversed
 }
