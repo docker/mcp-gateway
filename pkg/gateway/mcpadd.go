@@ -222,7 +222,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		// Pull the Docker image before trying to use the server
 		if serverConfig.Spec.Image != "" {
 			log.Log(fmt.Sprintf("Pulling image for server '%s': %s", serverName, serverConfig.Spec.Image))
-			if err := g.docker.PullImage(ctx, serverConfig.Spec.Image); err != nil {
+			if err := g.pullAndVerifyImage(ctx, serverConfig.Spec.Image); err != nil {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
 						Text: fmt.Sprintf("Error: Failed to pull image '%s' for server '%s'.\n\nDetails: %v\n\nThe server was not added. Please check the image name and your network connection.",

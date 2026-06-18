@@ -107,7 +107,7 @@ Flags:
       --tools strings             List of tools to enable
       --transport string          stdio, sse or streaming (default is stdio) (default "stdio")
       --verbose                   Verbose output
-      --verify-signatures         Verify signatures of the server images
+      --verify-signatures         Verify signatures of Docker MCP server images (default true)
       --watch                     Watch for changes and reconfigure the gateway (default true)
       --profile string            Profile ID to use (requires working-sets feature, mutually exclusive with --servers and --enable-all-servers)
 ```

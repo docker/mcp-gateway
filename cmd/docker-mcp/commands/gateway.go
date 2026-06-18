@@ -36,12 +36,13 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 		options = gateway.Config{
 			SecretsPath: "docker-desktop:/run/secrets/mcp_secret:/.env",
 			Options: gateway.Options{
-				Cpus:         1,
-				Memory:       "2Gb",
-				Transport:    "stdio",
-				LogCalls:     true,
-				BlockSecrets: true,
-				Verbose:      true,
+				Cpus:             1,
+				Memory:           "2Gb",
+				Transport:        "stdio",
+				LogCalls:         true,
+				BlockSecrets:     true,
+				Verbose:          true,
+				VerifySignatures: true,
 			},
 		}
 	} else {
@@ -49,12 +50,13 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 		options = gateway.Config{
 			SecretsPath: "docker-desktop",
 			Options: gateway.Options{
-				Cpus:         1,
-				Memory:       "2Gb",
-				Transport:    "stdio",
-				LogCalls:     true,
-				BlockSecrets: true,
-				Watch:        true,
+				Cpus:             1,
+				Memory:           "2Gb",
+				Transport:        "stdio",
+				LogCalls:         true,
+				BlockSecrets:     true,
+				Watch:            true,
+				VerifySignatures: true,
 			},
 		}
 	}
@@ -209,7 +211,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
 	runCmd.Flags().BoolVar(&options.BlockSecrets, "block-secrets", options.BlockSecrets, "Block secrets from being/received sent to/from tools")
 	runCmd.Flags().BoolVar(&options.BlockNetwork, "block-network", options.BlockNetwork, "Block tools from accessing forbidden network resources")
-	runCmd.Flags().BoolVar(&options.VerifySignatures, "verify-signatures", options.VerifySignatures, "Verify signatures of the server images")
+	runCmd.Flags().BoolVar(&options.VerifySignatures, "verify-signatures", options.VerifySignatures, "Verify signatures of Docker MCP server images")
 	runCmd.Flags().BoolVar(&options.DryRun, "dry-run", options.DryRun, "Start the gateway but do not listen for connections (useful for testing the configuration)")
 	runCmd.Flags().BoolVar(&options.Verbose, "verbose", options.Verbose, "Verbose output")
 	runCmd.Flags().BoolVar(&options.LongLived, "long-lived", options.LongLived, "Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers")
