@@ -1,8 +1,10 @@
 package gateway
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	gatewaylog "github.com/docker/mcp-gateway/pkg/log"
 )
 
 func TestPullAndVerifyVerifiesMCPImagesBeforePull(t *testing.T) {
@@ -79,6 +82,8 @@ func TestPullAndVerifyImageRejectsMutableMCPReference(t *testing.T) {
 	err := g.pullAndVerifyImage(context.Background(), "mcp/time:latest")
 
 	require.ErrorContains(t, err, "must be referenced by digest")
+	require.ErrorContains(t, err, "pin the MCP image to a sha256 digest")
+	require.ErrorContains(t, err, "--verify-signatures=false")
 	require.False(t, verifierCalled)
 	require.Empty(t, docker.pulledImages)
 }
@@ -130,6 +135,25 @@ func TestPullAndVerifyImageCanSkipVerificationWhenDisabled(t *testing.T) {
 
 	require.NoError(t, err)
 	require.False(t, verifierCalled)
+	require.Equal(t, []string{"mcp/time:latest"}, docker.pulledImages)
+}
+
+func TestPullAndVerifyImageWarnsWhenVerificationDisabled(t *testing.T) {
+	var output bytes.Buffer
+	gatewaylog.SetLogWriter(&output)
+	defer gatewaylog.SetLogWriter(os.Stderr)
+
+	docker := &recordingDockerClient{}
+	g := &Gateway{
+		Options: Options{VerifySignatures: false},
+		docker:  docker,
+	}
+
+	err := g.pullAndVerifyImage(context.Background(), "mcp/time:latest")
+
+	require.NoError(t, err)
+	require.Contains(t, output.String(), "Warning: signature verification is disabled")
+	require.Contains(t, output.String(), "MCP server images will not be verified")
 	require.Equal(t, []string{"mcp/time:latest"}, docker.pulledImages)
 }
 

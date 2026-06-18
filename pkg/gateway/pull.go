@@ -67,13 +67,18 @@ func (g *Gateway) pullImages(ctx context.Context, images []string) error {
 }
 
 func (g *Gateway) verifyImages(ctx context.Context, images []string) error {
-	if !g.VerifySignatures || len(images) == 0 {
+	if len(images) == 0 {
+		return nil
+	}
+
+	if !g.VerifySignatures {
+		log.Log("Warning: signature verification is disabled; MCP server images will not be verified and may use mutable tags")
 		return nil
 	}
 
 	for _, image := range images {
 		if !strings.Contains(image, "@sha256:") {
-			return fmt.Errorf("verifying docker image %s: image must be referenced by digest", image)
+			return fmt.Errorf("verifying docker image %s: image must be referenced by digest; pin the MCP image to a sha256 digest or disable signature verification with --verify-signatures=false", image)
 		}
 	}
 
