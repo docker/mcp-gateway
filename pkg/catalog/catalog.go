@@ -11,10 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 	"github.com/docker/mcp-gateway/pkg/user"
 )
 
@@ -86,9 +87,7 @@ func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 			return nil, err
 		}
 
-		client := &http.Client{
-			Transport: desktop.ProxyTransport(),
-		}
+		client := remoteurl.NewDirectHTTPClient(30 * time.Second)
 
 		resp, err := client.Do(req)
 		if err != nil {

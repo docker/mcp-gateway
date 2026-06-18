@@ -4,9 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 func TestParseServerURL(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	tests := []struct {
 		name            string
 		url             string
@@ -81,7 +85,7 @@ func TestParseServerURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParseServerURL(tt.url)
+			got, err := ParseServerURL(t.Context(), tt.url)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -94,6 +98,12 @@ func TestParseServerURL(t *testing.T) {
 			require.Equal(t, tt.wantVersion, got.Version)
 		})
 	}
+}
+
+func TestParseServerURLRejectsUnsafeHost(t *testing.T) {
+	_, err := ParseServerURL(t.Context(), "https://127.0.0.1/v0/servers/test")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not allowed")
 }
 
 func TestServerURL_String(t *testing.T) {

@@ -5,22 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
+	"time"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
-	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 func runMcpregistryImport(ctx context.Context, serverURL string, servers *[]catalog.Server) error {
-	// Validate URL
-	parsedURL, err := url.Parse(serverURL)
-	if err != nil {
+	if err := remoteurl.Validate(ctx, serverURL); err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
-	}
-
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return fmt.Errorf("URL must use http or https protocol")
 	}
 
 	// Fetch the server definition
@@ -31,9 +25,7 @@ func runMcpregistryImport(ctx context.Context, serverURL string, servers *[]cata
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	client := &http.Client{
-		Transport: desktop.ProxyTransport(),
-	}
+	client := remoteurl.NewDirectHTTPClient(30 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to fetch server definition: %w", err)

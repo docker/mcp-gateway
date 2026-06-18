@@ -1,9 +1,12 @@
 package registryapi
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 // ServerURL represents a parsed MCP registry URL
@@ -21,10 +24,13 @@ type ServerURL struct {
 }
 
 // ParseServerURL parses an MCP registry URL into its components
-func ParseServerURL(rawURL string) (*ServerURL, error) {
+func ParseServerURL(ctx context.Context, rawURL string) (*ServerURL, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+	if err := remoteurl.DefaultValidator().ValidateURL(ctx, parsedURL); err != nil {
+		return nil, err
 	}
 
 	// Extract base URL (scheme + host)
