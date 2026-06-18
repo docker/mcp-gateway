@@ -133,16 +133,23 @@ func addCodemodeHandler(g *Gateway) mcp.ToolHandler {
 		// Customize the tool name and description
 		customTool.Tool.Name = toolName
 
-		// Add the tool to the gateway's MCP server
-		g.mcpServer.AddTool(customTool.Tool, customTool.Handler)
-
 		// Track the tool registration for capabilities and mcp-exec
-		g.capabilitiesMu.Lock()
-		g.toolRegistrations[toolName] = ToolRegistration{
+		registration := ToolRegistration{
 			ServerName: "code-mode",
 			Tool:       customTool.Tool,
 			Handler:    customTool.Handler,
 		}
+		g.capabilitiesMu.Lock()
+		if err := validateToolNameCollisions([]ToolRegistration{registration}, g.toolRegistrations, false); err != nil {
+			g.capabilitiesMu.Unlock()
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{
+					Text: fmt.Sprintf("Error: Cannot create code-mode tool '%s'. %s", toolName, err),
+				}},
+			}, nil
+		}
+		g.mcpServer.AddTool(customTool.Tool, customTool.Handler)
+		g.toolRegistrations[toolName] = registration
 		g.capabilitiesMu.Unlock()
 
 		// Build detailed response with tool information

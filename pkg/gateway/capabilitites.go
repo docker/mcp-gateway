@@ -265,8 +265,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				}
 
 				capabilities.Tools = append(capabilities.Tools, ToolRegistration{
-					Tool:    &mcpTool,
-					Handler: g.mcpToolHandler(tool),
+					ServerName: serverName,
+					Tool:       &mcpTool,
+					Handler:    g.mcpToolHandler(tool),
 				})
 			}
 

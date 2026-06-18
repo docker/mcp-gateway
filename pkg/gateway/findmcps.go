@@ -307,6 +307,7 @@ func bm25Strategy(g *Gateway) mcp.ToolHandler {
 			serverInfo := map[string]any{
 				"name": s.doc.serverName,
 			}
+			g.addCatalogToolNameDiagnostics(serverInfo, s.doc.serverName, s.doc.server)
 
 			if s.doc.server.Description != "" {
 				serverInfo["description"] = s.doc.server.Description
@@ -449,6 +450,7 @@ func (g *Gateway) findServersByEmbedding(ctx context.Context, query string, limi
 		serverInfo := map[string]any{
 			"name": serverName,
 		}
+		g.addCatalogToolNameDiagnostics(serverInfo, serverName, server.Spec)
 
 		if server.Spec.Description != "" {
 			serverInfo["description"] = server.Spec.Description

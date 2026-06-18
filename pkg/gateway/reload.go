@@ -35,6 +35,10 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	}
 	log.Log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
+	if err := validateExternalToolNameCollisions(capabilities.Tools, nil); err != nil {
+		return err
+	}
+
 	// Update capabilities
 	// Clear existing capabilities per server and register new ones
 
@@ -338,6 +342,18 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 		oldCaps = &ServerCapabilities{}
 	}
 
+	existingToolRegistrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
+	for toolName, registration := range g.toolRegistrations {
+		if registration.ServerName == serverName {
+			continue
+		}
+		existingToolRegistrations[toolName] = registration
+	}
+
+	if err := validateExternalToolNameCollisions(newServerCaps.Tools, existingToolRegistrations); err != nil {
+		return nil, err
+	}
+
 	// Store the full capabilities
 	g.serverAvailableCapabilities[serverName] = newServerCaps
 
@@ -533,6 +549,14 @@ func (g *Gateway) removeServerConfiguration(_ context.Context, serverName string
 	if len(oldCaps.ToolNames) > 0 {
 		g.mcpServer.RemoveTools(oldCaps.ToolNames...)
 		log.Log("  - Removed", len(oldCaps.ToolNames), "tools for", serverName)
+		for _, toolName := range oldCaps.ToolNames {
+			delete(g.toolRegistrations, toolName)
+		}
+	}
+	for toolName, registration := range g.toolRegistrations {
+		if registration.ServerName == serverName {
+			delete(g.toolRegistrations, toolName)
+		}
 	}
 
 	if len(oldCaps.PromptNames) > 0 {
@@ -552,6 +576,7 @@ func (g *Gateway) removeServerConfiguration(_ context.Context, serverName string
 
 	// Update tracking with new capabilities
 	delete(g.serverCapabilities, serverName)
+	delete(g.serverAvailableCapabilities, serverName)
 
 	return nil
 }

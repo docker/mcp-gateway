@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -90,8 +91,8 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		}
 
 		// Append the new server to the current serverNames if not already present
-		found = slices.Contains(g.configuration.serverNames, serverName)
-		if !found {
+		alreadyEnabled := slices.Contains(g.configuration.serverNames, serverName)
+		if !alreadyEnabled {
 			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
@@ -234,6 +235,18 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		oldCaps, err := g.reloadServerCapabilities(ctx, serverName, clientConfig)
 		if err != nil {
+			if !alreadyEnabled {
+				g.configuration.serverNames = slices.DeleteFunc(g.configuration.serverNames, func(name string) bool {
+					return name == serverName
+				})
+			}
+			if errors.Is(err, errToolNameCollision) {
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Cannot add server '%s'. %s", serverName, err),
+					}},
+				}, nil
+			}
 			return nil, fmt.Errorf("failed to reload configuration: %w", err)
 		}
 
