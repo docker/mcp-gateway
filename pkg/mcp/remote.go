@@ -116,8 +116,8 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 	var err error
 
 	baseTransport := remoteurl.GuardDirectTransport()
-	if proxyTransport := desktop.DockerDesktopProxySocketTransport(ctx); proxyTransport != nil {
-		baseTransport = remoteurl.GuardTrustedProxyTransport(proxyTransport)
+	if proxyDialer := desktop.DockerDesktopProxySocketDialer(ctx); proxyDialer != nil {
+		baseTransport = remoteurl.GuardTrustedProxyDialer(proxyDialer)
 	}
 
 	// Create HTTP client with custom headers

@@ -53,10 +53,8 @@ func ProxyTransport() http.RoundTripper {
 // HTTP_PROXY/HTTPS_PROXY environment variables so callers can opt into the
 // trusted Desktop socket without permitting arbitrary forward proxies.
 func DockerDesktopProxySocketTransport(ctx context.Context) http.RoundTripper {
-	if !IsRunningInDockerDesktop(ctx) {
-		return nil
-	}
-	if !desktopProxySocketAvailable(ctx) {
+	dialer := DockerDesktopProxySocketDialer(ctx)
+	if dialer == nil {
 		return nil
 	}
 
@@ -65,9 +63,24 @@ func DockerDesktopProxySocketTransport(ctx context.Context) http.RoundTripper {
 			Scheme: "http",
 		}),
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return dialHTTPProxy(ctx)
+			return dialer(ctx)
 		},
 	}
+}
+
+// DockerDesktopProxySocketDialer returns a dialer for Docker Desktop's local
+// HTTP proxy socket only. It intentionally ignores HTTP_PROXY/HTTPS_PROXY
+// environment variables so guarded callers can opt into the trusted Desktop
+// socket without permitting arbitrary forward proxies.
+func DockerDesktopProxySocketDialer(ctx context.Context) func(context.Context) (net.Conn, error) {
+	if !IsRunningInDockerDesktop(ctx) {
+		return nil
+	}
+	if !desktopProxySocketAvailable(ctx) {
+		return nil
+	}
+
+	return dialHTTPProxy
 }
 
 // hasEnvProxyVars returns true if any HTTP proxy environment variables are set.

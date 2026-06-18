@@ -145,7 +145,7 @@ func TestGuardTransportRejectsUnexpectedProxyDial(t *testing.T) {
 	assert.False(t, calledDialer)
 }
 
-func TestGuardTrustedProxyTransportAllowsExplicitProxyDial(t *testing.T) {
+func TestGuardTrustedProxyDialerAllowsExplicitProxyDial(t *testing.T) {
 	validator := NewValidator(Options{
 		Resolver: fakeResolver{
 			"public.example.test": {netip.MustParseAddr("8.8.8.8")},
@@ -153,18 +153,11 @@ func TestGuardTrustedProxyTransportAllowsExplicitProxyDial(t *testing.T) {
 	})
 
 	calledDialer := false
-	base := &http.Transport{
-		Proxy: http.ProxyURL(&url.URL{
-			Scheme: "http",
-			Host:   "proxy.example.test:8080",
-		}),
-		DialContext: func(context.Context, string, string) (net.Conn, error) {
+	client := &http.Client{
+		Transport: validator.GuardTrustedProxyDialer(func(context.Context) (net.Conn, error) {
 			calledDialer = true
 			return nil, fmt.Errorf("trusted proxy dial")
-		},
-	}
-	client := &http.Client{
-		Transport: validator.GuardTrustedProxyTransport(base),
+		}),
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://public.example.test/mcp", http.NoBody)
@@ -174,6 +167,30 @@ func TestGuardTrustedProxyTransportAllowsExplicitProxyDial(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "trusted proxy dial")
 	assert.True(t, calledDialer)
+}
+
+func TestGuardTrustedProxyDialerRejectsUnsafeBeforeProxyDial(t *testing.T) {
+	validator := NewValidator(Options{
+		Resolver: fakeResolver{
+			"metadata.example.test": {netip.MustParseAddr("169.254.169.254")},
+		},
+	})
+
+	calledDialer := false
+	client := &http.Client{
+		Transport: validator.GuardTrustedProxyDialer(func(context.Context) (net.Conn, error) {
+			calledDialer = true
+			return nil, fmt.Errorf("unexpected trusted proxy dial")
+		}),
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://metadata.example.test/mcp", http.NoBody)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "resolved to disallowed address")
+	assert.False(t, calledDialer)
 }
 
 func TestGuardTransportRejectsUnsafeRedirects(t *testing.T) {

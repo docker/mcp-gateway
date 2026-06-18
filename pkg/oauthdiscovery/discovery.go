@@ -365,8 +365,8 @@ func validateRedirectURI(redirectURI string) error {
 }
 
 func newGuardedHTTPClient(ctx context.Context, timeout time.Duration) *http.Client {
-	if proxyTransport := desktop.DockerDesktopProxySocketTransport(ctx); proxyTransport != nil {
-		return remoteurl.NewTrustedProxyHTTPClient(timeout, proxyTransport)
+	if proxyDialer := desktop.DockerDesktopProxySocketDialer(ctx); proxyDialer != nil {
+		return remoteurl.NewTrustedProxyHTTPClient(timeout, proxyDialer)
 	}
 	return remoteurl.NewDirectHTTPClient(timeout)
 }
