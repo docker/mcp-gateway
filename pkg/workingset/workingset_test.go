@@ -998,27 +998,6 @@ func TestResolveServerFromString(t *testing.T) {
 			expectedVersion: "latest",
 		},
 		{
-			name:  "http registry",
-			input: "http://example.com/v0/servers/my-server",
-			expected: []Server{{
-				Type:    ServerTypeRegistry,
-				Source:  "http://example.com/v0/servers/my-server/versions/latest",
-				Secrets: "default",
-				Snapshot: &ServerSnapshot{
-					Server: catalog.Server{
-						Name:        "io-example-my-server",
-						Type:        "server",
-						Image:       "ghcr.io/example/my-server:latest",
-						Description: "Test MCP server",
-						Metadata: &catalog.Metadata{
-							RegistryURL: "https://registry.modelcontextprotocol.io/v0/servers/io.example%2Fmy-server/versions/latest",
-						},
-					},
-				},
-			}},
-			expectedVersion: "latest",
-		},
-		{
 			name:  "https registry",
 			input: "https://example.com/v0/servers/my-server",
 			expected: []Server{{
@@ -1093,14 +1072,11 @@ func TestResolveServerFromString(t *testing.T) {
 				},
 			}
 			registryClient := mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
-				"http://example.com/v0/servers/my-server/versions": {
-					Servers: []v0.ServerResponse{serverResponse},
-				},
 				"https://example.com/v0/servers/my-server/versions": {
 					Servers: []v0.ServerResponse{serverResponse},
 				},
 			}), mocks.WithServerResponses(map[string]v0.ServerResponse{
-				"http://example.com/v0/servers/my-server/versions/" + tt.expectedVersion: serverResponse,
+				"https://example.com/v0/servers/my-server/versions/" + tt.expectedVersion: serverResponse,
 			}))
 
 			ociService := mocks.NewMockOCIService(
@@ -1132,6 +1108,14 @@ func TestResolveServerFromString(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResolveServerFromStringRejectsHTTPRegistryByDefault(t *testing.T) {
+	dao := setupTestDB(t)
+
+	_, err := ResolveServersFromString(t.Context(), mocks.NewMockRegistryAPIClient(), mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "remote URL must use https")
 }
 
 func TestResolveFile(t *testing.T) {
@@ -1435,17 +1419,17 @@ func TestResolveServerFromStringResolvesLatestVersion(t *testing.T) {
 		},
 	}
 	registryClient := mocks.NewMockRegistryAPIClient(mocks.WithServerListResponses(map[string]v0.ServerListResponse{
-		"http://example.com/v0/servers/my-server/versions": {
+		"https://example.com/v0/servers/my-server/versions": {
 			Servers: []v0.ServerResponse{serverResponse, oldServerResponse},
 		},
 	}), mocks.WithServerResponses(map[string]v0.ServerResponse{
-		"http://example.com/v0/servers/my-server/versions/0.1.0": oldServerResponse,
-		"http://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
+		"https://example.com/v0/servers/my-server/versions/0.1.0": oldServerResponse,
+		"https://example.com/v0/servers/my-server/versions/0.2.0": serverResponse,
 	}))
 
-	server, err := ResolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "http://example.com/v0/servers/my-server")
+	server, err := ResolveServersFromString(t.Context(), registryClient, mocks.NewMockOCIService(), dao, "https://example.com/v0/servers/my-server")
 	require.NoError(t, err)
-	assert.Equal(t, "http://example.com/v0/servers/my-server/versions/0.2.0", server[0].Source)
+	assert.Equal(t, "https://example.com/v0/servers/my-server/versions/0.2.0", server[0].Source)
 }
 
 func TestResolveSnapshot(t *testing.T) {

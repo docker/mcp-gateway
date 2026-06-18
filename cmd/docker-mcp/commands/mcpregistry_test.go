@@ -5,9 +5,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 func TestMcpregistryImportCommand(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	// Test server that serves the Garmin MCP example JSON
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -92,6 +99,8 @@ func TestMcpregistryImportCommand_InvalidURL(t *testing.T) {
 }
 
 func TestMcpregistryImportCommand_HTTPError(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	// Test server that returns 404
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
@@ -106,6 +115,8 @@ func TestMcpregistryImportCommand_HTTPError(t *testing.T) {
 }
 
 func TestMcpregistryImportCommand_InvalidJSON(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	// Test server that returns invalid JSON
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -122,4 +133,10 @@ func TestMcpregistryImportCommand_InvalidJSON(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for invalid JSON, got none")
 	}
+}
+
+func TestMcpregistryImportCommand_RejectsUnsafeURL(t *testing.T) {
+	err := runMcpregistryImport(context.Background(), "https://127.0.0.1/v0/servers/test", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
 }

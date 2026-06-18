@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 // ServerURL represents a parsed MCP registry URL
@@ -25,6 +27,9 @@ func ParseServerURL(rawURL string) (*ServerURL, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+	if err := remoteurl.DefaultValidator().ValidateURLWithoutResolution(parsedURL); err != nil {
+		return nil, err
 	}
 
 	// Extract base URL (scheme + host)

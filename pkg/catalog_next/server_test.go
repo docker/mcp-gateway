@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
@@ -98,6 +99,8 @@ func TestInspectServer(t *testing.T) {
 }
 
 func TestInspectServerWithReadme(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
 	readmeContent := "# Notion Remote\n\nThis is a remote server"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

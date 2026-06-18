@@ -96,6 +96,18 @@ func TestParseServerURL(t *testing.T) {
 	}
 }
 
+func TestParseServerURLRejectsUnsafeHost(t *testing.T) {
+	_, err := ParseServerURL("https://127.0.0.1/v0/servers/test")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not allowed")
+}
+
+func TestParseServerURLDoesNotResolveHost(t *testing.T) {
+	got, err := ParseServerURL("https://not-resolvable.invalid/v0/servers/test")
+	require.NoError(t, err)
+	require.Equal(t, "https://not-resolvable.invalid", got.BaseURL)
+}
+
 func TestServerURL_String(t *testing.T) {
 	tests := []struct {
 		name string

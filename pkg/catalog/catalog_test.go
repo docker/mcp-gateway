@@ -2,12 +2,16 @@ package catalog
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 func TestCatalogGetWithConfigured(t *testing.T) {
@@ -193,6 +197,25 @@ func TestReadOneRejectsCatalogPathTraversal(t *testing.T) {
 			require.ErrorIs(t, err, errUntrustedLocalPath)
 		})
 	}
+}
+
+func TestReadOneRejectsUnsafeRemoteCatalogURL(t *testing.T) {
+	_, _, _, err := ReadOne(t.Context(), "https://127.0.0.1/docker-mcp.yaml")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestReadOneAllowsLocalHTTPRemoteCatalogWithOptIn(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("registry: {}\n"))
+	}))
+	t.Cleanup(server.Close)
+
+	catalog, _, _, err := ReadOne(t.Context(), server.URL)
+	require.NoError(t, err)
+	assert.Empty(t, catalog.Servers)
 }
 
 func TestReadOneRejectsSymlinkEscape(t *testing.T) {

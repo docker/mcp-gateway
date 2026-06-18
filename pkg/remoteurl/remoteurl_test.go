@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,6 +72,37 @@ func TestValidateAllowsPublicHTTPS(t *testing.T) {
 	})
 
 	require.NoError(t, validator.Validate(context.Background(), "https://public.example.test/mcp"))
+}
+
+func TestValidateURLWithoutResolutionDoesNotResolveHost(t *testing.T) {
+	validator := NewValidator(Options{
+		Resolver: fakeResolver{},
+	})
+	u, err := url.Parse("https://not-in-resolver.example.test/mcp")
+	require.NoError(t, err)
+
+	require.NoError(t, validator.ValidateURLWithoutResolution(u))
+}
+
+func TestValidateURLWithoutResolutionRejectsUnsafeLiterals(t *testing.T) {
+	validator := NewValidator(Options{})
+
+	tests := []string{
+		"http://example.com/mcp",
+		"https://localhost/mcp",
+		"https://127.0.0.1/mcp",
+		"https://[::1]/mcp",
+		"https://user@example.com/mcp",
+	}
+
+	for _, rawURL := range tests {
+		t.Run(rawURL, func(t *testing.T) {
+			u, err := url.Parse(rawURL)
+			require.NoError(t, err)
+
+			require.Error(t, validator.ValidateURLWithoutResolution(u))
+		})
+	}
 }
 
 func TestValidateAllowsInsecureDevURLsWhenOptedIn(t *testing.T) {

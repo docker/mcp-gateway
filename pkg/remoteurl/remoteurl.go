@@ -68,47 +68,11 @@ func (v Validator) Validate(ctx context.Context, rawURL string) error {
 }
 
 func (v Validator) ValidateURL(ctx context.Context, u *url.URL) error {
-	if u == nil {
-		return fmt.Errorf("remote URL is empty")
+	host, needsResolution, err := v.validateURLWithoutResolution(u)
+	if err != nil {
+		return err
 	}
-	if u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("remote URL must be absolute")
-	}
-	if u.User != nil {
-		return fmt.Errorf("remote URL must not include userinfo")
-	}
-
-	scheme := strings.ToLower(u.Scheme)
-	switch scheme {
-	case "https":
-	case "http":
-		if !v.allowInsecure {
-			return fmt.Errorf("remote URL must use https")
-		}
-	default:
-		return fmt.Errorf("remote URL must use http or https")
-	}
-
-	host := u.Hostname()
-	if host == "" {
-		return fmt.Errorf("remote URL host is empty")
-	}
-	if strings.ContainsAny(host, "\x00%") {
-		return fmt.Errorf("remote URL host is malformed")
-	}
-
-	if v.allowInsecure {
-		return nil
-	}
-
-	if isBlockedHostname(host) {
-		return fmt.Errorf("remote URL host %q is not allowed", host)
-	}
-
-	if ip, err := netip.ParseAddr(host); err == nil {
-		if err := validateAddr(ip); err != nil {
-			return fmt.Errorf("remote URL host %q is not allowed: %w", host, err)
-		}
+	if !needsResolution {
 		return nil
 	}
 
@@ -126,6 +90,62 @@ func (v Validator) ValidateURL(ctx context.Context, u *url.URL) error {
 	}
 
 	return nil
+}
+
+// ValidateURLWithoutResolution applies URL safety checks that do not require DNS.
+// It rejects unsafe schemes, userinfo, unsafe hostname forms, and disallowed IP
+// literals. Call ValidateURL or use a guarded transport before network access.
+func (v Validator) ValidateURLWithoutResolution(u *url.URL) error {
+	_, _, err := v.validateURLWithoutResolution(u)
+	return err
+}
+
+func (v Validator) validateURLWithoutResolution(u *url.URL) (string, bool, error) {
+	if u == nil {
+		return "", false, fmt.Errorf("remote URL is empty")
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return "", false, fmt.Errorf("remote URL must be absolute")
+	}
+	if u.User != nil {
+		return "", false, fmt.Errorf("remote URL must not include userinfo")
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+	switch scheme {
+	case "https":
+	case "http":
+		if !v.allowInsecure {
+			return "", false, fmt.Errorf("remote URL must use https")
+		}
+	default:
+		return "", false, fmt.Errorf("remote URL must use http or https")
+	}
+
+	host := u.Hostname()
+	if host == "" {
+		return "", false, fmt.Errorf("remote URL host is empty")
+	}
+	if strings.ContainsAny(host, "\x00%") {
+		return "", false, fmt.Errorf("remote URL host is malformed")
+	}
+
+	if v.allowInsecure {
+		return host, false, nil
+	}
+
+	if isBlockedHostname(host) {
+		return "", false, fmt.Errorf("remote URL host %q is not allowed", host)
+	}
+
+	if ip, err := netip.ParseAddr(host); err == nil {
+		if err := validateAddr(ip); err != nil {
+			return "", false, fmt.Errorf("remote URL host %q is not allowed: %w", host, err)
+		}
+		return host, false, nil
+	}
+
+	return host, true, nil
 }
 
 func GuardTransport(base http.RoundTripper) http.RoundTripper {

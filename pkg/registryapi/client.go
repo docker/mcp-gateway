@@ -10,7 +10,7 @@ import (
 
 	registryapi "github.com/modelcontextprotocol/registry/pkg/api/v0"
 
-	"github.com/docker/mcp-gateway/pkg/desktop"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 // CommunityRegistryBaseURL is the base URL for the community MCP registry
@@ -35,10 +35,7 @@ type client struct {
 
 func NewClient() Client {
 	return &client{
-		client: &http.Client{
-			Transport: desktop.ProxyTransport(),
-			Timeout:   20 * time.Second,
-		},
+		client: remoteurl.NewDirectHTTPClient(20 * time.Second),
 	}
 }
 
