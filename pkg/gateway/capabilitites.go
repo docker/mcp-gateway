@@ -48,6 +48,24 @@ type ResourceTemplateRegistration struct {
 	Handler          mcp.ResourceHandler
 }
 
+func filterCapabilitiesByAllowedTools(caps *Capabilities, toolAllowed []bool) *Capabilities {
+	if caps == nil {
+		return &Capabilities{}
+	}
+
+	filtered := &Capabilities{
+		Prompts:           caps.Prompts,
+		Resources:         caps.Resources,
+		ResourceTemplates: caps.ResourceTemplates,
+	}
+	for i, tool := range caps.Tools {
+		if i < len(toolAllowed) && toolAllowed[i] {
+			filtered.Tools = append(filtered.Tools, tool)
+		}
+	}
+	return filtered
+}
+
 func (caps *Capabilities) getToolByName(toolName string) (ToolRegistration, error) {
 	for _, tool := range caps.Tools {
 		if tool.Tool.Name == toolName {
@@ -265,8 +283,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				}
 
 				capabilities.Tools = append(capabilities.Tools, ToolRegistration{
-					Tool:    &mcpTool,
-					Handler: g.mcpToolHandler(tool),
+					ServerName: serverName,
+					Tool:       &mcpTool,
+					Handler:    g.mcpToolHandler(tool),
 				})
 			}
 
