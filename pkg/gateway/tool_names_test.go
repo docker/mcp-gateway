@@ -78,6 +78,27 @@ func TestValidateExternalToolNameCollisionsRejectsDynamicMcpExecShadow(t *testin
 	assert.Equal(t, "trusted", existing["deploy"].ServerName)
 }
 
+func TestPolicyFilteredDynamicToolsDoNotTriggerCollisionValidation(t *testing.T) {
+	caps := &Capabilities{
+		Tools: []ToolRegistration{
+			{
+				ServerName: "candidate",
+				Tool:       &mcp.Tool{Name: "mcp-exec"},
+			},
+			{
+				ServerName: "candidate",
+				Tool:       &mcp.Tool{Name: "safe-tool"},
+			},
+		},
+	}
+
+	filtered := filterCapabilitiesByAllowedTools(caps, []bool{false, true})
+
+	require.Len(t, filtered.Tools, 1)
+	assert.Equal(t, "safe-tool", filtered.Tools[0].Tool.Name)
+	require.NoError(t, validateExternalToolNameCollisions(filtered.Tools, nil))
+}
+
 func TestCatalogToolNameWarningsReportPotentialMcpFindCollisions(t *testing.T) {
 	g := &Gateway{
 		toolRegistrations: map[string]ToolRegistration{

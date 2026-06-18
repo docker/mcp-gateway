@@ -342,29 +342,6 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 		oldCaps = &ServerCapabilities{}
 	}
 
-	existingToolRegistrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
-	for toolName, registration := range g.toolRegistrations {
-		if registration.ServerName == serverName {
-			continue
-		}
-		existingToolRegistrations[toolName] = registration
-	}
-
-	if err := validateExternalToolNameCollisions(newServerCaps.Tools, existingToolRegistrations); err != nil {
-		return nil, err
-	}
-
-	// Store the full capabilities
-	g.serverAvailableCapabilities[serverName] = newServerCaps
-
-	// Update tool registrations for this server
-	// This happens regardless of activation so tools can be called via mcp-exec
-	if oldCaps != nil {
-		// Remove old tool registrations for this server
-		for _, toolName := range oldCaps.ToolNames {
-			delete(g.toolRegistrations, toolName)
-		}
-	}
 	// Evaluate tool policies in batch if policy client is available.
 	toolAllowed := make([]bool, len(newServerCaps.Tools))
 	if g.policyClient != nil && len(newServerCaps.Tools) > 0 {
@@ -406,11 +383,35 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 		}
 	}
 
-	// Add new tool registrations from the server (with policy filtering).
-	for i, tool := range newServerCaps.Tools {
-		if !toolAllowed[i] {
+	allowedServerCaps := filterCapabilitiesByAllowedTools(newServerCaps, toolAllowed)
+
+	existingToolRegistrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
+	for toolName, registration := range g.toolRegistrations {
+		if registration.ServerName == serverName {
 			continue
 		}
+		existingToolRegistrations[toolName] = registration
+	}
+
+	if err := validateExternalToolNameCollisions(allowedServerCaps.Tools, existingToolRegistrations); err != nil {
+		return nil, err
+	}
+
+	// Store the policy-filtered capabilities. updateServerCapabilities reads
+	// from this map, so denied tools must not remain here.
+	g.serverAvailableCapabilities[serverName] = allowedServerCaps
+
+	// Update tool registrations for this server
+	// This happens regardless of activation so tools can be called via mcp-exec
+	if oldCaps != nil {
+		// Remove old tool registrations for this server
+		for _, toolName := range oldCaps.ToolNames {
+			delete(g.toolRegistrations, toolName)
+		}
+	}
+
+	// Add new tool registrations from the server (with policy filtering).
+	for _, tool := range allowedServerCaps.Tools {
 		g.toolRegistrations[tool.Tool.Name] = tool
 	}
 
