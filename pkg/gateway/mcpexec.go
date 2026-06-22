@@ -68,7 +68,7 @@ func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
 		}
 
 		// Create a new CallToolRequest with the provided arguments
-		log.Logf("calling tool %s with %s", toolName, toolArguments)
+		log.Logf("calling tool %s", toolName)
 		toolCallRequest := &mcp.CallToolRequest{
 			Session: req.Session,
 			Params: &mcp.CallToolParamsRaw{
