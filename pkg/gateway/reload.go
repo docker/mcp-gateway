@@ -507,6 +507,10 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 		return nil
 	}
 
+	if err := validateExternalCapabilityNameCollisions(newServerCaps, g.registeredCapabilityNameIndexes(serverName), g.DynamicTools); err != nil {
+		return err
+	}
+
 	// Remove old capabilities that are no longer present
 	if len(removedTools) > 0 {
 		g.mcpServer.RemoveTools(removedTools...)

@@ -177,25 +177,24 @@ func validateCapabilityIdentityCollisions(kind string, registrations []capabilit
 	seen := make(map[string]capabilityIdentityRegistration, len(registrations))
 
 	for _, registration := range sortedCapabilityIdentityRegistrations(registrations) {
-		identifier := strings.TrimSpace(registration.identifier)
-		if identifier == "" {
+		if strings.TrimSpace(registration.identifier) == "" {
 			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s exposes an empty %s", kind, capabilityOwner(registration.serverName), kind)}
 		}
 
-		if _, ok := reserved[identifier]; ok {
-			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s exposes reserved gateway %s %q; %s", kind, capabilityOwner(registration.serverName), kind, identifier, mitigation)}
+		if _, ok := reserved[registration.identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s exposes reserved gateway %s %q; %s", kind, capabilityOwner(registration.serverName), kind, registration.identifier, mitigation)}
 		}
 
-		if previous, ok := seen[identifier]; ok {
-			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s and %s both expose %s %q; %s", kind, capabilityOwner(previous.serverName), capabilityOwner(registration.serverName), kind, identifier, mitigation)}
+		if previous, ok := seen[registration.identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s and %s both expose %s %q; %s", kind, capabilityOwner(previous.serverName), capabilityOwner(registration.serverName), kind, registration.identifier, mitigation)}
 		}
-		seen[identifier] = registration
+		seen[registration.identifier] = registration
 
 		if existing == nil {
 			continue
 		}
-		if previousServerName, ok := existing[identifier]; ok {
-			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s would shadow %s for %s %q; %s", kind, capabilityOwner(registration.serverName), capabilityOwner(previousServerName), kind, identifier, mitigation)}
+		if previousServerName, ok := existing[registration.identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s would shadow %s for %s %q; %s", kind, capabilityOwner(registration.serverName), capabilityOwner(previousServerName), kind, registration.identifier, mitigation)}
 		}
 	}
 

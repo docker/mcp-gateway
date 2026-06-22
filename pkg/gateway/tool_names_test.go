@@ -118,6 +118,27 @@ func TestValidateExternalCapabilityNameCollisionsRejectsReservedDynamicPromptNam
 	require.NoError(t, validateExternalCapabilityNameCollisions(caps, capabilityNameIndexes{}, false))
 }
 
+func TestValidateExternalCapabilityNameCollisionsUsesRawIdentifiersForComparison(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Prompts: []PromptRegistration{
+			{
+				ServerName: "alpha",
+				Prompt:     &mcp.Prompt{Name: "summarize"},
+			},
+			{
+				ServerName: "beta",
+				Prompt:     &mcp.Prompt{Name: " summarize "},
+			},
+			{
+				ServerName: "gamma",
+				Prompt:     &mcp.Prompt{Name: " mcp-discover "},
+			},
+		},
+	}, capabilityNameIndexes{}, true)
+
+	require.NoError(t, err)
+}
+
 func TestValidateExternalCapabilityNameCollisionsRejectsPromptShadow(t *testing.T) {
 	err := validateExternalCapabilityNameCollisions(&Capabilities{
 		Prompts: []PromptRegistration{
@@ -209,6 +230,39 @@ func TestValidateExternalCapabilityNameCollisionsRejectsResourceTemplateShadow(t
 	require.ErrorIs(t, err, errCapabilityNameCollision)
 	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
 	assert.Contains(t, err.Error(), "file://shared/{name}")
+}
+
+func TestUpdateServerCapabilitiesRevalidatesCapabilityCollisionsUnderLock(t *testing.T) {
+	g := &Gateway{
+		serverCapabilities: map[string]*ServerCapabilities{
+			"trusted": {
+				PromptNames: []string{"summarize"},
+			},
+		},
+		serverAvailableCapabilities: map[string]*Capabilities{
+			"candidate": {
+				Prompts: []PromptRegistration{
+					{
+						ServerName: "candidate",
+						Prompt:     &mcp.Prompt{Name: "summarize"},
+					},
+				},
+			},
+		},
+	}
+
+	g.capabilitiesMu.Lock()
+	err := g.updateServerCapabilities(
+		"candidate",
+		&ServerCapabilities{},
+		&ServerCapabilities{PromptNames: []string{"summarize"}},
+		nil,
+	)
+	g.capabilitiesMu.Unlock()
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
+	assert.Nil(t, g.serverCapabilities["candidate"])
 }
 
 func TestPolicyFilteredDynamicToolsDoNotTriggerCollisionValidation(t *testing.T) {
