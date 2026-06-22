@@ -10,6 +10,7 @@ import (
 )
 
 var errToolNameCollision = errors.New("tool name collision")
+var errCapabilityNameCollision = errors.New("capability name collision")
 
 type toolNameCollisionError struct {
 	message string
@@ -23,6 +24,22 @@ func (e toolNameCollisionError) Is(target error) bool {
 	return target == errToolNameCollision
 }
 
+type capabilityNameCollisionError struct {
+	message string
+}
+
+func (e capabilityNameCollisionError) Error() string {
+	return e.message
+}
+
+func (e capabilityNameCollisionError) Is(target error) bool {
+	return target == errCapabilityNameCollision
+}
+
+func isCapabilityNameCollision(err error) bool {
+	return errors.Is(err, errToolNameCollision) || errors.Is(err, errCapabilityNameCollision)
+}
+
 var reservedGatewayToolNames = map[string]struct{}{
 	"code-mode":            {},
 	"find-tools":           {},
@@ -34,6 +51,10 @@ var reservedGatewayToolNames = map[string]struct{}{
 	"mcp-find":             {},
 	"mcp-registry-import":  {},
 	"mcp-remove":           {},
+}
+
+var reservedGatewayPromptNames = map[string]struct{}{
+	"mcp-discover": {},
 }
 
 func validateExternalToolNameCollisions(registrations []ToolRegistration, existing map[string]ToolRegistration) error {
@@ -99,6 +120,144 @@ func toolOwner(registration ToolRegistration) string {
 		return "gateway internal tools"
 	}
 	return fmt.Sprintf("server %q", registration.ServerName)
+}
+
+type capabilityNameIndexes struct {
+	Prompts           map[string]string
+	Resources         map[string]string
+	ResourceTemplates map[string]string
+}
+
+type capabilityIdentityRegistration struct {
+	serverName string
+	identifier string
+}
+
+func validateExternalCapabilityNameCollisions(caps *Capabilities, existing capabilityNameIndexes, rejectReservedPrompts bool) error {
+	if caps == nil {
+		return nil
+	}
+
+	var reservedPrompts map[string]struct{}
+	if rejectReservedPrompts {
+		reservedPrompts = reservedGatewayPromptNames
+	}
+	if err := validateCapabilityIdentityCollisions(
+		"prompt name",
+		promptIdentities(caps.Prompts),
+		existing.Prompts,
+		reservedPrompts,
+		"disable one server or expose unique prompt names",
+	); err != nil {
+		return err
+	}
+	if err := validateCapabilityIdentityCollisions(
+		"resource URI",
+		resourceIdentities(caps.Resources),
+		existing.Resources,
+		nil,
+		"disable one server or expose unique resource URIs",
+	); err != nil {
+		return err
+	}
+	if err := validateCapabilityIdentityCollisions(
+		"resource template URI template",
+		resourceTemplateIdentities(caps.ResourceTemplates),
+		existing.ResourceTemplates,
+		nil,
+		"disable one server or expose unique resource template URI templates",
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateCapabilityIdentityCollisions(kind string, registrations []capabilityIdentityRegistration, existing map[string]string, reserved map[string]struct{}, mitigation string) error {
+	seen := make(map[string]capabilityIdentityRegistration, len(registrations))
+
+	for _, registration := range sortedCapabilityIdentityRegistrations(registrations) {
+		identifier := strings.TrimSpace(registration.identifier)
+		if identifier == "" {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s exposes an empty %s", kind, capabilityOwner(registration.serverName), kind)}
+		}
+
+		if _, ok := reserved[identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s exposes reserved gateway %s %q; %s", kind, capabilityOwner(registration.serverName), kind, identifier, mitigation)}
+		}
+
+		if previous, ok := seen[identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s and %s both expose %s %q; %s", kind, capabilityOwner(previous.serverName), capabilityOwner(registration.serverName), kind, identifier, mitigation)}
+		}
+		seen[identifier] = registration
+
+		if existing == nil {
+			continue
+		}
+		if previousServerName, ok := existing[identifier]; ok {
+			return capabilityNameCollisionError{message: fmt.Sprintf("%s collision: %s would shadow %s for %s %q; %s", kind, capabilityOwner(registration.serverName), capabilityOwner(previousServerName), kind, identifier, mitigation)}
+		}
+	}
+
+	return nil
+}
+
+func promptIdentities(registrations []PromptRegistration) []capabilityIdentityRegistration {
+	identities := make([]capabilityIdentityRegistration, 0, len(registrations))
+	for _, registration := range registrations {
+		if registration.Prompt == nil {
+			continue
+		}
+		identities = append(identities, capabilityIdentityRegistration{
+			serverName: registration.ServerName,
+			identifier: registration.Prompt.Name,
+		})
+	}
+	return identities
+}
+
+func resourceIdentities(registrations []ResourceRegistration) []capabilityIdentityRegistration {
+	identities := make([]capabilityIdentityRegistration, 0, len(registrations))
+	for _, registration := range registrations {
+		if registration.Resource == nil {
+			continue
+		}
+		identities = append(identities, capabilityIdentityRegistration{
+			serverName: registration.ServerName,
+			identifier: registration.Resource.URI,
+		})
+	}
+	return identities
+}
+
+func resourceTemplateIdentities(registrations []ResourceTemplateRegistration) []capabilityIdentityRegistration {
+	identities := make([]capabilityIdentityRegistration, 0, len(registrations))
+	for _, registration := range registrations {
+		identities = append(identities, capabilityIdentityRegistration{
+			serverName: registration.ServerName,
+			identifier: registration.ResourceTemplate.URITemplate,
+		})
+	}
+	return identities
+}
+
+func sortedCapabilityIdentityRegistrations(registrations []capabilityIdentityRegistration) []capabilityIdentityRegistration {
+	sorted := append([]capabilityIdentityRegistration(nil), registrations...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		left, right := sorted[i], sorted[j]
+		if left.serverName != right.serverName {
+			return left.serverName < right.serverName
+		}
+		return left.identifier < right.identifier
+	})
+	return sorted
+}
+
+func capabilityOwner(serverName string) string {
+	if serverName == "" {
+		return "gateway internal capabilities"
+	}
+	return fmt.Sprintf("server %q", serverName)
 }
 
 func (g *Gateway) addCatalogToolNameDiagnostics(serverInfo map[string]any, serverName string, server catalog.Server) {

@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -240,7 +239,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 					return name == serverName
 				})
 			}
-			if errors.Is(err, errToolNameCollision) {
+			if isCapabilityNameCollision(err) {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
 						Text: fmt.Sprintf("Error: Cannot add server '%s'. %s", serverName, err),
