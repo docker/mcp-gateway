@@ -36,8 +36,12 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 	log.Log(">", len(capabilities.Tools), "tools listed in", time.Since(startList))
 
 	capabilities = g.filterToolCapabilitiesByPolicy(ctx, configuration, capabilities, "tool")
+	capabilities = g.filterPromptCapabilitiesByPolicy(ctx, configuration, capabilities)
 
 	if err := validateExternalToolNameCollisions(capabilities.Tools, nil); err != nil {
+		return err
+	}
+	if err := validateExternalCapabilityNameCollisions(capabilities, capabilityNameIndexes{}, g.DynamicTools); err != nil {
 		return err
 	}
 
@@ -164,51 +168,7 @@ func (g *Gateway) reloadConfiguration(ctx context.Context, configuration Configu
 		log.Log("  > mcp-discover: prompt for learning about dynamic server management")
 	}
 
-	// Evaluate prompt policies in batch if policy client is available.
-	promptAllowed := make([]bool, len(capabilities.Prompts))
-	if g.policyClient != nil && len(capabilities.Prompts) > 0 {
-		requests := make([]policy.Request, len(capabilities.Prompts))
-		for i, prompt := range capabilities.Prompts {
-			requests[i] = g.configuration.policyRequest(
-				prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt,
-			)
-		}
-		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
-		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
-		for i, req := range requests {
-			event := buildAuditEvent(req, decisions[i], nil, nil)
-			submitAuditEvent(g.policyClient, event)
-		}
-		if err != nil {
-			log.Logf("batch policy check failed for prompts: %v (denying all)", err)
-		} else {
-			for i, dec := range decisions {
-				if dec.Allowed && dec.Error == "" {
-					promptAllowed[i] = true
-					continue
-				}
-				prompt := capabilities.Prompts[i]
-				if dec.Error != "" {
-					log.Logf("policy check failed for prompt %s/%s: %s (denying)",
-						prompt.ServerName, prompt.Prompt.Name, dec.Error)
-					continue
-				}
-				log.Logf("policy denied prompt %s/%s: %s",
-					prompt.ServerName, prompt.Prompt.Name, dec.Reason)
-			}
-		}
-	} else {
-		// No policy client - allow all prompts.
-		for i := range promptAllowed {
-			promptAllowed[i] = true
-		}
-	}
-
-	for i, prompt := range capabilities.Prompts {
-		if !promptAllowed[i] {
-			continue
-		}
-
+	for _, prompt := range capabilities.Prompts {
 		g.mcpServer.AddPrompt(prompt.Prompt, prompt.Handler)
 
 		// Track by server
@@ -338,6 +298,63 @@ func (g *Gateway) filterToolCapabilitiesByPolicy(ctx context.Context, configurat
 	return filterCapabilitiesByAllowedTools(caps, toolAllowed)
 }
 
+func (g *Gateway) filterPromptCapabilitiesByPolicy(ctx context.Context, configuration Configuration, caps *Capabilities) *Capabilities {
+	if caps == nil {
+		return &Capabilities{}
+	}
+
+	promptAllowed := make([]bool, len(caps.Prompts))
+	if g.policyClient != nil && len(caps.Prompts) > 0 {
+		requests := make([]policy.Request, len(caps.Prompts))
+		for i, prompt := range caps.Prompts {
+			requests[i] = configuration.policyRequest(
+				prompt.ServerName, prompt.Prompt.Name, policy.ActionPrompt,
+			)
+		}
+		decisions, err := g.policyClient.EvaluateBatch(ctx, requests)
+		decisions, err = policycli.NormalizeBatchDecisions(requests, decisions, err)
+		for i, req := range requests {
+			event := buildAuditEvent(req, decisions[i], nil, nil)
+			submitAuditEvent(g.policyClient, event)
+		}
+		if err != nil {
+			log.Logf("batch policy check failed for prompts: %v (denying all)", err)
+		} else {
+			for i, dec := range decisions {
+				if dec.Allowed && dec.Error == "" {
+					promptAllowed[i] = true
+					continue
+				}
+				prompt := caps.Prompts[i]
+				if dec.Error != "" {
+					log.Logf("policy check failed for prompt %s/%s: %s (denying)",
+						prompt.ServerName, prompt.Prompt.Name, dec.Error)
+					continue
+				}
+				log.Logf("policy denied prompt %s/%s: %s",
+					prompt.ServerName, prompt.Prompt.Name, dec.Reason)
+			}
+		}
+	} else {
+		// No policy client - allow all prompts.
+		for i := range promptAllowed {
+			promptAllowed[i] = true
+		}
+	}
+
+	filtered := &Capabilities{
+		Tools:             caps.Tools,
+		Resources:         caps.Resources,
+		ResourceTemplates: caps.ResourceTemplates,
+	}
+	for i, prompt := range caps.Prompts {
+		if i < len(promptAllowed) && promptAllowed[i] {
+			filtered.Prompts = append(filtered.Prompts, prompt)
+		}
+	}
+	return filtered
+}
+
 // allCapabilities builds a ServerCapabilities struct from the available capabilities for a server.
 // This function expects g.capabilitiesMu to be locked by the caller.
 func (g *Gateway) allCapabilities(serverName string) *ServerCapabilities {
@@ -393,6 +410,7 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	}
 
 	allowedServerCaps := g.filterToolCapabilitiesByPolicy(ctx, g.configuration, newServerCaps, "dynamic tool")
+	allowedServerCaps = g.filterPromptCapabilitiesByPolicy(ctx, g.configuration, allowedServerCaps)
 
 	existingToolRegistrations := make(map[string]ToolRegistration, len(g.toolRegistrations))
 	for toolName, registration := range g.toolRegistrations {
@@ -403,6 +421,9 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	}
 
 	if err := validateExternalToolNameCollisions(allowedServerCaps.Tools, existingToolRegistrations); err != nil {
+		return nil, err
+	}
+	if err := validateExternalCapabilityNameCollisions(allowedServerCaps, g.registeredCapabilityNameIndexes(serverName), g.DynamicTools); err != nil {
 		return nil, err
 	}
 
@@ -431,6 +452,34 @@ func (g *Gateway) reloadServerCapabilities(ctx context.Context, serverName strin
 	return oldCaps, nil
 }
 
+// registeredCapabilityNameIndexes builds indexes for capabilities currently
+// registered in the MCP server. This function expects g.capabilitiesMu to be
+// locked by the caller.
+func (g *Gateway) registeredCapabilityNameIndexes(excludeServerName string) capabilityNameIndexes {
+	indexes := capabilityNameIndexes{
+		Prompts:           make(map[string]string),
+		Resources:         make(map[string]string),
+		ResourceTemplates: make(map[string]string),
+	}
+
+	for serverName, caps := range g.serverCapabilities {
+		if serverName == excludeServerName || caps == nil {
+			continue
+		}
+		for _, promptName := range caps.PromptNames {
+			indexes.Prompts[promptName] = serverName
+		}
+		for _, resourceURI := range caps.ResourceURIs {
+			indexes.Resources[resourceURI] = serverName
+		}
+		for _, resourceTemplateURI := range caps.ResourceTemplateURIs {
+			indexes.ResourceTemplates[resourceTemplateURI] = serverName
+		}
+	}
+
+	return indexes
+}
+
 // updateServerCapabilities updates g.mcpServer with capabilities from the server.
 // If toolFilter is non-nil, only tools in the filter will be added.
 // This function expects g.capabilitiesMu to be locked by the caller.
@@ -456,6 +505,10 @@ func (g *Gateway) updateServerCapabilities(serverName string, oldCaps, newCaps *
 		len(addedTemplates) == 0 && len(removedTemplates) == 0 {
 		log.Log("  - No capability changes detected for", serverName, "- skipping update")
 		return nil
+	}
+
+	if err := validateExternalCapabilityNameCollisions(newServerCaps, g.registeredCapabilityNameIndexes(serverName), g.DynamicTools); err != nil {
+		return err
 	}
 
 	// Remove old capabilities that are no longer present

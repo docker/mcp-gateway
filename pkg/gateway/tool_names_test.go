@@ -79,6 +79,192 @@ func TestValidateExternalToolNameCollisionsRejectsDynamicMcpExecShadow(t *testin
 	assert.Equal(t, "trusted", existing["deploy"].ServerName)
 }
 
+func TestValidateExternalCapabilityNameCollisionsRejectsDuplicatePrompts(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Prompts: []PromptRegistration{
+			{
+				ServerName: "alpha",
+				Prompt:     &mcp.Prompt{Name: "summarize"},
+			},
+			{
+				ServerName: "beta",
+				Prompt:     &mcp.Prompt{Name: "summarize"},
+			},
+		},
+	}, capabilityNameIndexes{}, true)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), "prompt name collision")
+	assert.Contains(t, err.Error(), `server "alpha"`)
+	assert.Contains(t, err.Error(), `server "beta"`)
+	assert.Contains(t, err.Error(), `"summarize"`)
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsReservedDynamicPromptName(t *testing.T) {
+	caps := &Capabilities{
+		Prompts: []PromptRegistration{
+			{
+				ServerName: "candidate",
+				Prompt:     &mcp.Prompt{Name: "mcp-discover"},
+			},
+		},
+	}
+
+	err := validateExternalCapabilityNameCollisions(caps, capabilityNameIndexes{}, true)
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), "reserved gateway prompt name")
+	assert.Contains(t, err.Error(), "mcp-discover")
+
+	require.NoError(t, validateExternalCapabilityNameCollisions(caps, capabilityNameIndexes{}, false))
+}
+
+func TestValidateExternalCapabilityNameCollisionsUsesRawIdentifiersForComparison(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Prompts: []PromptRegistration{
+			{
+				ServerName: "alpha",
+				Prompt:     &mcp.Prompt{Name: "summarize"},
+			},
+			{
+				ServerName: "beta",
+				Prompt:     &mcp.Prompt{Name: " summarize "},
+			},
+			{
+				ServerName: "gamma",
+				Prompt:     &mcp.Prompt{Name: " mcp-discover "},
+			},
+		},
+	}, capabilityNameIndexes{}, true)
+
+	require.NoError(t, err)
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsPromptShadow(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Prompts: []PromptRegistration{
+			{
+				ServerName: "candidate",
+				Prompt:     &mcp.Prompt{Name: "summarize"},
+			},
+		},
+	}, capabilityNameIndexes{
+		Prompts: map[string]string{"summarize": "trusted"},
+	}, true)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
+	assert.Contains(t, err.Error(), `"summarize"`)
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsDuplicateResourceURIs(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Resources: []ResourceRegistration{
+			{
+				ServerName: "alpha",
+				Resource:   &mcp.Resource{URI: "file://shared/readme"},
+			},
+			{
+				ServerName: "beta",
+				Resource:   &mcp.Resource{URI: "file://shared/readme"},
+			},
+		},
+	}, capabilityNameIndexes{}, false)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), "resource URI collision")
+	assert.Contains(t, err.Error(), `server "alpha"`)
+	assert.Contains(t, err.Error(), `server "beta"`)
+	assert.Contains(t, err.Error(), "file://shared/readme")
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsResourceURIShadow(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		Resources: []ResourceRegistration{
+			{
+				ServerName: "candidate",
+				Resource:   &mcp.Resource{URI: "file://shared/readme"},
+			},
+		},
+	}, capabilityNameIndexes{
+		Resources: map[string]string{"file://shared/readme": "trusted"},
+	}, false)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
+	assert.Contains(t, err.Error(), "file://shared/readme")
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsDuplicateResourceTemplates(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		ResourceTemplates: []ResourceTemplateRegistration{
+			{
+				ServerName:       "alpha",
+				ResourceTemplate: mcp.ResourceTemplate{URITemplate: "file://shared/{name}"},
+			},
+			{
+				ServerName:       "beta",
+				ResourceTemplate: mcp.ResourceTemplate{URITemplate: "file://shared/{name}"},
+			},
+		},
+	}, capabilityNameIndexes{}, false)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), "resource template URI template collision")
+	assert.Contains(t, err.Error(), `server "alpha"`)
+	assert.Contains(t, err.Error(), `server "beta"`)
+	assert.Contains(t, err.Error(), "file://shared/{name}")
+}
+
+func TestValidateExternalCapabilityNameCollisionsRejectsResourceTemplateShadow(t *testing.T) {
+	err := validateExternalCapabilityNameCollisions(&Capabilities{
+		ResourceTemplates: []ResourceTemplateRegistration{
+			{
+				ServerName:       "candidate",
+				ResourceTemplate: mcp.ResourceTemplate{URITemplate: "file://shared/{name}"},
+			},
+		},
+	}, capabilityNameIndexes{
+		ResourceTemplates: map[string]string{"file://shared/{name}": "trusted"},
+	}, false)
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
+	assert.Contains(t, err.Error(), "file://shared/{name}")
+}
+
+func TestUpdateServerCapabilitiesRevalidatesCapabilityCollisionsUnderLock(t *testing.T) {
+	g := &Gateway{
+		serverCapabilities: map[string]*ServerCapabilities{
+			"trusted": {
+				PromptNames: []string{"summarize"},
+			},
+		},
+		serverAvailableCapabilities: map[string]*Capabilities{
+			"candidate": {
+				Prompts: []PromptRegistration{
+					{
+						ServerName: "candidate",
+						Prompt:     &mcp.Prompt{Name: "summarize"},
+					},
+				},
+			},
+		},
+	}
+
+	g.capabilitiesMu.Lock()
+	err := g.updateServerCapabilities(
+		"candidate",
+		&ServerCapabilities{},
+		&ServerCapabilities{PromptNames: []string{"summarize"}},
+		nil,
+	)
+	g.capabilitiesMu.Unlock()
+
+	require.ErrorIs(t, err, errCapabilityNameCollision)
+	assert.Contains(t, err.Error(), `server "candidate" would shadow server "trusted"`)
+	assert.Nil(t, g.serverCapabilities["candidate"])
+}
+
 func TestPolicyFilteredDynamicToolsDoNotTriggerCollisionValidation(t *testing.T) {
 	mock := newMockPolicyClient()
 	mock.deny("candidate", "mcp-exec", policy.ActionLoad, "blocked")

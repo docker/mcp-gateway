@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -240,7 +239,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 					return name == serverName
 				})
 			}
-			if errors.Is(err, errToolNameCollision) {
+			if isCapabilityNameCollision(err) {
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{&mcp.TextContent{
 						Text: fmt.Sprintf("Error: Cannot add server '%s'. %s", serverName, err),
@@ -256,6 +255,18 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			newCaps := g.allCapabilities(serverName)
 			if err := g.updateServerCapabilities(serverName, oldCaps, newCaps, nil); err != nil {
 				g.capabilitiesMu.Unlock()
+				if !alreadyEnabled {
+					g.configuration.serverNames = slices.DeleteFunc(g.configuration.serverNames, func(name string) bool {
+						return name == serverName
+					})
+				}
+				if isCapabilityNameCollision(err) {
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{&mcp.TextContent{
+							Text: fmt.Sprintf("Error: Cannot add server '%s'. %s", serverName, err),
+						}},
+					}, nil
+				}
 				return nil, fmt.Errorf("failed to update server capabilities: %w", err)
 			}
 			g.capabilitiesMu.Unlock()
