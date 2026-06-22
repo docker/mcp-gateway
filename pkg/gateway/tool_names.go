@@ -9,8 +9,10 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 )
 
-var errToolNameCollision = errors.New("tool name collision")
-var errCapabilityNameCollision = errors.New("capability name collision")
+var (
+	errToolNameCollision       = errors.New("tool name collision")
+	errCapabilityNameCollision = errors.New("capability name collision")
+)
 
 type toolNameCollisionError struct {
 	message string
