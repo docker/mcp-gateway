@@ -31,6 +31,23 @@ func TestValidateServerConfigReportsMissingRequiredConfig(t *testing.T) {
 	require.Empty(t, validateServerConfig(server, map[string]any{"config_path": "/home/user/.kube/config"}))
 }
 
+func TestValidateServerConfigAllowsEmptyObjectValue(t *testing.T) {
+	server := catalog.Server{
+		Config: []any{
+			map[string]any{
+				"properties": map[string]any{
+					"headers": map[string]any{
+						"type": "object",
+					},
+				},
+				"required": []any{"headers"},
+			},
+		},
+	}
+
+	require.Empty(t, validateServerConfig(server, map[string]any{"headers": map[string]any{}}))
+}
+
 func TestWorkingSetConfigurationReadRejectsMissingRequiredConfig(t *testing.T) {
 	dao, err := db.New(db.WithDatabaseFile(filepath.Join(t.TempDir(), "test.db")))
 	require.NoError(t, err)

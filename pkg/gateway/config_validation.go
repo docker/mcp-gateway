@@ -136,9 +136,6 @@ func isEmptyConfigValue(v any) bool {
 	if s, ok := v.(string); ok {
 		return s == ""
 	}
-	if m, ok := v.(map[string]any); ok {
-		return len(m) == 0
-	}
 	return false
 }
 
