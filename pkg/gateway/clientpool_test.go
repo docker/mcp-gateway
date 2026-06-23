@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -157,6 +158,36 @@ volumes:
 	assert.Empty(t, env)
 }
 
+func TestApplyConfigVolumeFilterDefaultsHostBindsToReadOnly(t *testing.T) {
+	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
+	catalogYAML := `
+volumes:
+  - '{{filesystem.paths|volume|into}}'
+  `
+	configYAML := fmt.Sprintf(`
+filesystem:
+  paths:
+    - %s
+`, hostPath)
+
+	args, env := argsAndEnv(t, "filesystem", catalogYAML, configYAML, nil)
+
+	mountIndex := -1
+	for i, arg := range args {
+		if arg == "-v" {
+			mountIndex = i + 1
+			break
+		}
+	}
+	require.NotEqual(t, -1, mountIndex)
+	require.Less(t, mountIndex, len(args))
+	assert.True(t, strings.HasPrefix(args[mountIndex], expectedHostPath+":"))
+	assert.True(t, strings.HasSuffix(args[mountIndex], ":ro"))
+	assert.Empty(t, env)
+}
+
 func TestApplyConfigMountAsReadOnly(t *testing.T) {
 	hostPath := t.TempDir()
 	expectedHostPath, err := cleanDockerHostPath(hostPath)
@@ -222,7 +253,7 @@ func TestApplyConfigLongLivedRejectsWritableHostBind(t *testing.T) {
 	catalogYAML := `
 longLived: true
 volumes:
-  - '/local/data:/data'
+  - '/local/data:/data:rw'
   `
 
 	_, _, err := argsAndEnvErr(t, "longlived", catalogYAML, "", nil)
@@ -232,7 +263,7 @@ volumes:
 func TestApplyConfigShortLivedRejectsWritableHostBind(t *testing.T) {
 	catalogYAML := `
 volumes:
-  - '/local/data:/data'
+  - '/local/data:/data:rw'
   `
 
 	_, _, err := argsAndEnvErr(t, "shortlived", catalogYAML, "", nil)
@@ -310,6 +341,16 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		require.NoError(t, validateDockerVolumeBinds([]string{t.TempDir() + ":/data:ro"}))
 	})
 
+	t.Run("defaults host binds without mode to read-only", func(t *testing.T) {
+		hostPath := t.TempDir()
+		expectedSource, err := cleanDockerHostPath(hostPath)
+		require.NoError(t, err)
+
+		normalized, err := normalizeDockerVolumeBind(hostPath + ":/data")
+		require.NoError(t, err)
+		require.Equal(t, expectedSource+":/data:ro", normalized)
+	})
+
 	t.Run("allows read-only binds from configured roots", func(t *testing.T) {
 		t.Setenv(dockerBindAllowedPathsEnv, "/opt/mcp-data")
 		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:ro"}))
@@ -337,7 +378,7 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 
 	t.Run("rejects relative host paths with slash", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{"foo/bar:/data"})
-		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+		require.ErrorContains(t, err, "outside allowed roots")
 
 		err = validateDockerVolumeBinds([]string{"foo/bar:/data:ro"})
 		require.ErrorContains(t, err, "outside allowed roots")
@@ -345,14 +386,14 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 
 	t.Run("rejects relative host paths escaping upward", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{"subdir/../../../etc:/data"})
-		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+		require.ErrorContains(t, err, "outside allowed roots")
 
 		err = validateDockerVolumeBinds([]string{"subdir/../../../etc:/data:ro"})
 		require.ErrorContains(t, err, "outside allowed roots")
 	})
 
-	t.Run("rejects writable host path binds", func(t *testing.T) {
-		err := validateDockerVolumeBinds([]string{t.TempDir() + ":/data"})
+	t.Run("rejects explicitly writable host path binds", func(t *testing.T) {
+		err := validateDockerVolumeBinds([]string{t.TempDir() + ":/data:rw"})
 		require.ErrorContains(t, err, "host path bind mounts must be read-only")
 	})
 

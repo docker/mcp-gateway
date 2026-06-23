@@ -49,6 +49,10 @@ func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots []string) (stri
 	if !bind.hostPath {
 		return bind.raw, nil
 	}
+	if bind.mode == "" {
+		bind.mode = "ro"
+		bind.readOnly = true
+	}
 	if !bind.readOnly {
 		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only", bind.raw)
 	}
