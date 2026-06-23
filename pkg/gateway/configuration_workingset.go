@@ -74,6 +74,9 @@ func (c *WorkingSetConfiguration) readOnce(ctx context.Context, dao db.DAO) (Con
 	if err := workingSet.EnsureSnapshotsResolved(ctx, c.ociService); err != nil {
 		return Configuration{}, fmt.Errorf("failed to resolve snapshots: %w", err)
 	}
+	if validationErrors := validateWorkingSetServerConfigs(workingSet); len(validationErrors) > 0 {
+		return Configuration{}, formatProfileValidationError(workingSet.Name, validationErrors)
+	}
 
 	cfg := make(map[string]map[string]any)
 

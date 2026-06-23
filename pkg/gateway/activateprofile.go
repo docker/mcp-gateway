@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -143,81 +142,7 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 
 		// Check if all required config values are set and validate against schema
 		if len(serverConfig.Config) > 0 {
-			// Get config from profile
-			serverConfigMap := profileConfig.config[serverName]
-
-			for _, configItem := range serverConfig.Config {
-				// Config items are object schemas with a "properties" map.
-				// The "name" field is just an identifier, not a key in serverConfigMap.
-				schemaMap, ok := configItem.(map[string]any)
-				if !ok {
-					continue
-				}
-
-				properties, ok := schemaMap["properties"].(map[string]any)
-				if !ok {
-					continue
-				}
-
-				// Build a set of required property names
-				requiredProps := make(map[string]bool)
-				if requiredList, ok := schemaMap["required"].([]any); ok {
-					for _, r := range requiredList {
-						if s, ok := r.(string); ok {
-							requiredProps[s] = true
-						}
-					}
-				}
-
-				// Validate each property individually
-				for propName, propSchema := range properties {
-					propSchemaMap, ok := propSchema.(map[string]any)
-					if !ok {
-						continue
-					}
-
-					// Get the value from the user-provided config
-					configValue, exists := serverConfigMap[propName]
-					if !exists {
-						// If the property has a default, the server will use it
-						if _, hasDefault := propSchemaMap["default"]; hasDefault {
-							continue
-						}
-						// Only flag as missing if explicitly required
-						if requiredProps[propName] {
-							validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (missing)", propName))
-						}
-						continue
-					}
-
-					// Validate the value against the property schema
-					schemaBytes, err := json.Marshal(propSchemaMap)
-					if err != nil {
-						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", propName))
-						continue
-					}
-
-					var propSchemaObj jsonschema.Schema
-					if err := json.Unmarshal(schemaBytes, &propSchemaObj); err != nil {
-						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (invalid schema)", propName))
-						continue
-					}
-
-					resolved, err := propSchemaObj.Resolve(nil)
-					if err != nil {
-						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (schema resolution failed)", propName))
-						continue
-					}
-
-					if err := resolved.Validate(configValue); err != nil {
-						errMsg := err.Error()
-						if len(errMsg) > 100 {
-							errMsg = errMsg[:97] + "..."
-						}
-						validation.missingConfig = append(validation.missingConfig, fmt.Sprintf("%s (%s)", propName, errMsg))
-					}
-				}
-			}
+			validation.missingConfig = append(validation.missingConfig, validateServerConfig(serverConfig, profileConfig.config[serverName])...)
 		}
 
 		// Validate that Docker image can be pulled
@@ -236,26 +161,7 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 
 	// If any validation errors, return detailed error message
 	if len(validationErrors) > 0 {
-		var errorMessages []string
-		errorMessages = append(errorMessages, fmt.Sprintf("Cannot activate profile '%s'. Validation failed for %d server(s):", ws.Name, len(validationErrors)))
-
-		for _, validation := range validationErrors {
-			errorMessages = append(errorMessages, fmt.Sprintf("\nServer '%s':", validation.serverName))
-
-			if len(validation.missingSecrets) > 0 {
-				errorMessages = append(errorMessages, fmt.Sprintf("  Missing secrets: %s", strings.Join(validation.missingSecrets, ", ")))
-			}
-
-			if len(validation.missingConfig) > 0 {
-				errorMessages = append(errorMessages, fmt.Sprintf("  Missing/invalid config: %s", strings.Join(validation.missingConfig, ", ")))
-			}
-
-			if validation.imagePullError != nil {
-				errorMessages = append(errorMessages, fmt.Sprintf("  Image pull failed: %v", validation.imagePullError))
-			}
-		}
-
-		return fmt.Errorf("%s", strings.Join(errorMessages, "\n"))
+		return formatProfileValidationError(ws.Name, validationErrors)
 	}
 
 	// All validations passed - merge configuration into current gateway
@@ -334,14 +240,6 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 	}
 
 	return nil
-}
-
-// serverValidation holds validation results for a single server
-type serverValidation struct {
-	serverName     string
-	missingSecrets []string
-	missingConfig  []string
-	imagePullError error
 }
 
 func activateProfileHandler(g *Gateway, _ *clientConfig) mcp.ToolHandler {
