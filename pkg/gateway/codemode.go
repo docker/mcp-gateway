@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/codemode"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 // serverToolSetAdapter adapts a gateway server to the codemode.ToolSet interface
@@ -44,6 +45,9 @@ func (a *serverToolSetAdapter) Tools(ctx context.Context) ([]*codemode.ToolWithH
 		// Create a handler that calls the tool on the remote server
 		handler := func(tool *mcp.Tool) mcp.ToolHandler {
 			return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				if err := a.checkInvokePolicy(ctx, tool.Name, req.Session); err != nil {
+					return nil, err
+				}
 				// Forward the tool call to the actual server
 				return client.Session().CallTool(ctx, &mcp.CallToolParams{
 					Name:      tool.Name,
@@ -59,6 +63,26 @@ func (a *serverToolSetAdapter) Tools(ctx context.Context) ([]*codemode.ToolWithH
 	}
 
 	return result, nil
+}
+
+// checkInvokePolicy enforces the ActionInvoke policy for a backend tool before
+// code-mode dispatches it, matching the gate applied on the direct tool-call and
+// mcp-exec paths so code-mode cannot bypass an operator-configured policy.
+func (a *serverToolSetAdapter) checkInvokePolicy(ctx context.Context, toolName string, session *mcp.ServerSession) error {
+	if a.gateway.policyClient == nil {
+		return nil
+	}
+	policyReq := a.gateway.configuration.policyRequest(a.serverConfig.Name, toolName, policy.ActionInvoke)
+	decision, err := a.gateway.policyClient.Evaluate(ctx, policyReq)
+	event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(session))
+	submitAuditEvent(a.gateway.policyClient, event)
+	if err != nil {
+		return fmt.Errorf("policy check failed for %s/%s: %w", a.serverConfig.Name, toolName, err)
+	}
+	if !decision.Allowed {
+		return fmt.Errorf("policy denied tool %s on server %s: %s", toolName, a.serverConfig.Name, decision.Reason)
+	}
+	return nil
 }
 
 func addCodemodeHandler(g *Gateway) mcp.ToolHandler {
