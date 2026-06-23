@@ -188,6 +188,36 @@ filesystem:
 	assert.Empty(t, env)
 }
 
+func TestApplyConfigVolumeFilterAllowsWritableHostBindOverride(t *testing.T) {
+	hostPath := t.TempDir()
+	expectedHostPath, err := cleanDockerHostPath(hostPath)
+	require.NoError(t, err)
+	t.Setenv(dockerBindWritableAllowedPathsEnv, hostPath)
+	catalogYAML := `
+volumes:
+  - '{{filesystem.paths|volume|into}}'
+  `
+	configYAML := fmt.Sprintf(`
+filesystem:
+  paths:
+    - %s
+`, hostPath)
+
+	args, env := argsAndEnv(t, "filesystem", catalogYAML, configYAML, nil)
+
+	mountIndex := -1
+	for i, arg := range args {
+		if arg == "-v" {
+			mountIndex = i + 1
+			break
+		}
+	}
+	require.NotEqual(t, -1, mountIndex)
+	require.Less(t, mountIndex, len(args))
+	assert.Equal(t, expectedHostPath+":"+filepath.ToSlash(hostPath)+":rw", args[mountIndex])
+	assert.Empty(t, env)
+}
+
 func TestApplyConfigMountAsReadOnly(t *testing.T) {
 	hostPath := t.TempDir()
 	expectedHostPath, err := cleanDockerHostPath(hostPath)
@@ -356,6 +386,28 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:ro"}))
 	})
 
+	t.Run("allows writable binds from configured writable roots", func(t *testing.T) {
+		hostPath := t.TempDir()
+		expectedSource, err := cleanDockerHostPath(hostPath)
+		require.NoError(t, err)
+		t.Setenv(dockerBindWritableAllowedPathsEnv, hostPath)
+
+		require.NoError(t, validateDockerVolumeBinds([]string{hostPath + ":/data:rw"}))
+
+		normalized, err := normalizeDockerVolumeBind(hostPath + ":/data")
+		require.NoError(t, err)
+		require.Equal(t, expectedSource+":/data:rw", normalized)
+
+		normalized, err = normalizeDockerVolumeBind(hostPath + ":/data:rw")
+		require.NoError(t, err)
+		require.Equal(t, expectedSource+":/data:rw", normalized)
+	})
+
+	t.Run("writable roots also allow host paths", func(t *testing.T) {
+		t.Setenv(dockerBindWritableAllowedPathsEnv, "/opt/mcp-data")
+		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:rw"}))
+	})
+
 	t.Run("allows home paths from configured roots", func(t *testing.T) {
 		home := t.TempDir()
 		project := filepath.Join(home, "trusted", "project")
@@ -375,6 +427,7 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{"/opt/mcp-data:/data:ro"})
 		require.ErrorContains(t, err, "outside allowed roots")
 		require.ErrorContains(t, err, "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS=/opt/mcp-data")
+		require.ErrorContains(t, err, "MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS=/opt/mcp-data")
 	})
 
 	t.Run("rejects relative host paths with slash", func(t *testing.T) {
@@ -396,6 +449,7 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 	t.Run("rejects explicitly writable host path binds", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{t.TempDir() + ":/data:rw"})
 		require.ErrorContains(t, err, "host path bind mounts must be read-only")
+		require.ErrorContains(t, err, "MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS=")
 	})
 
 	t.Run("rejects docker socket binds", func(t *testing.T) {

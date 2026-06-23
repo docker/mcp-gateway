@@ -17,6 +17,10 @@ import (
 // default read-only temp-root allowlist. Use the OS path-list separator.
 const dockerBindAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS"
 
+// MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS adds trusted host-path roots
+// that may be mounted writable. Use the OS path-list separator.
+const dockerBindWritableAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS"
+
 type dockerVolumeBind struct {
 	raw        string
 	source     string
@@ -29,8 +33,9 @@ type dockerVolumeBind struct {
 
 func validateDockerVolumeBinds(volumes []string) error {
 	allowedRoots := dockerBindAllowedRoots()
+	writableAllowedRoots := dockerBindWritableAllowedRoots()
 	for _, raw := range volumes {
-		if _, err := normalizeDockerVolumeBindWithRoots(raw, allowedRoots); err != nil {
+		if _, err := normalizeDockerVolumeBindWithRoots(raw, allowedRoots, writableAllowedRoots); err != nil {
 			return err
 		}
 	}
@@ -38,10 +43,10 @@ func validateDockerVolumeBinds(volumes []string) error {
 }
 
 func normalizeDockerVolumeBind(raw string) (string, error) {
-	return normalizeDockerVolumeBindWithRoots(raw, dockerBindAllowedRoots())
+	return normalizeDockerVolumeBindWithRoots(raw, dockerBindAllowedRoots(), dockerBindWritableAllowedRoots())
 }
 
-func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots []string) (string, error) {
+func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots, writableAllowedRoots []string) (string, error) {
 	bind, err := parseDockerVolumeBind(raw)
 	if err != nil {
 		return "", err
@@ -49,19 +54,25 @@ func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots []string) (stri
 	if !bind.hostPath {
 		return bind.raw, nil
 	}
-	if bind.mode == "" {
-		bind.mode = "ro"
-		bind.readOnly = true
-	}
-	if !bind.readOnly {
-		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only", bind.raw)
-	}
 	if disallowed, reason := disallowedDockerHostPath(bind.sourcePath); disallowed {
 		return "", fmt.Errorf("unsafe docker volume %q: host path %q is blocked (%s)", bind.raw, bind.source, reason)
 	}
-	if !isPathUnderAnyRoot(bind.sourcePath, allowedRoots) {
-		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s. To allow this host path, run with %s=%s or another trusted parent directory",
-			bind.raw, bind.source, strings.Join(allowedRoots, ", "), dockerBindAllowedPathsEnv, bind.source)
+	writableAllowed := isPathUnderAnyRoot(bind.sourcePath, writableAllowedRoots)
+	if bind.mode == "" {
+		if writableAllowed {
+			bind.mode = "rw"
+		} else {
+			bind.mode = "ro"
+			bind.readOnly = true
+		}
+	}
+	if !bind.readOnly && !writableAllowed {
+		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only unless the host path is allowed for writable binds. To allow this writable host path, run with %s=%s or another trusted parent directory",
+			bind.raw, dockerBindWritableAllowedPathsEnv, bind.source)
+	}
+	if !isPathUnderAnyRoot(bind.sourcePath, append(allowedRoots, writableAllowedRoots...)) {
+		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s. To allow read-only access, run with %s=%s. To allow writable access, run with %s=%s",
+			bind.raw, bind.source, strings.Join(allowedRoots, ", "), dockerBindAllowedPathsEnv, bind.source, dockerBindWritableAllowedPathsEnv, bind.source)
 	}
 	return bind.sourcePath + ":" + bind.target + ":" + bind.mode, nil
 }
@@ -262,7 +273,17 @@ func dockerBindAllowedRoots() []string {
 	if env := os.Getenv(dockerBindAllowedPathsEnv); env != "" {
 		roots = append(roots, filepath.SplitList(env)...)
 	}
+	return cleanDockerBindRoots(roots)
+}
 
+func dockerBindWritableAllowedRoots() []string {
+	if env := os.Getenv(dockerBindWritableAllowedPathsEnv); env != "" {
+		return cleanDockerBindRoots(filepath.SplitList(env))
+	}
+	return nil
+}
+
+func cleanDockerBindRoots(roots []string) []string {
 	out := make([]string, 0, len(roots))
 	for _, root := range roots {
 		root = strings.TrimSpace(root)
