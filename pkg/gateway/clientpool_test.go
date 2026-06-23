@@ -374,6 +374,7 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 	t.Run("rejects host paths outside allowed roots", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{"/opt/mcp-data:/data:ro"})
 		require.ErrorContains(t, err, "outside allowed roots")
+		require.ErrorContains(t, err, "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS=/opt/mcp-data")
 	})
 
 	t.Run("rejects relative host paths with slash", func(t *testing.T) {

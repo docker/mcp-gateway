@@ -60,8 +60,8 @@ func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots []string) (stri
 		return "", fmt.Errorf("unsafe docker volume %q: host path %q is blocked (%s)", bind.raw, bind.source, reason)
 	}
 	if !isPathUnderAnyRoot(bind.sourcePath, allowedRoots) {
-		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s",
-			bind.raw, bind.source, strings.Join(allowedRoots, ", "))
+		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s. To allow this host path, run with %s=%s or another trusted parent directory",
+			bind.raw, bind.source, strings.Join(allowedRoots, ", "), dockerBindAllowedPathsEnv, bind.source)
 	}
 	return bind.sourcePath + ":" + bind.target + ":" + bind.mode, nil
 }
