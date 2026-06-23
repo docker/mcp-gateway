@@ -131,6 +131,9 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 	var validationErrors []serverValidation
 
 	for _, serverName := range serversToActivate {
+		if err := g.checkServerLoadPolicy(ctx, serverName, nil); err != nil {
+			return err
+		}
 		serverConfig := profileConfig.servers[serverName]
 		validation := serverValidation{serverName: serverName}
 
