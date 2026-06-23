@@ -1,9 +1,8 @@
 package catalognext
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/goccy/go-yaml"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/desktop"
-	"github.com/docker/mcp-gateway/pkg/remoteurl"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 	"github.com/docker/mcp-gateway/test/mocks"
 )
@@ -99,20 +97,8 @@ func TestInspectServer(t *testing.T) {
 }
 
 func TestInspectServerWithReadme(t *testing.T) {
-	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
-
 	readmeContent := "# Notion Remote\n\nThis is a remote server"
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/readme.md":
-			w.Header().Set("Content-Type", "text/markdown")
-			_, _ = w.Write([]byte(readmeContent))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	t.Cleanup(func() { server.Close() })
+	readmeURL := "https://desktop.docker.com/mcp/catalog/v3/readme/notion.md"
 
 	dao := setupTestDB(t)
 	ctx := t.Context()
@@ -130,7 +116,7 @@ func TestInspectServerWithReadme(t *testing.T) {
 						Server: catalog.Server{
 							Name:        "my-server",
 							Description: "My test server",
-							ReadmeURL:   server.URL + "/readme.md",
+							ReadmeURL:   readmeURL,
 						},
 					},
 				},
@@ -144,7 +130,10 @@ func TestInspectServerWithReadme(t *testing.T) {
 	require.NoError(t, err)
 
 	output := captureStdout(t, func() {
-		err := InspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON)
+		err := inspectServer(ctx, dao, catalogObj.Ref, "my-server", workingset.OutputFormatJSON, func(_ context.Context, url string) ([]byte, error) {
+			assert.Equal(t, readmeURL, url)
+			return []byte(readmeContent), nil
+		})
 		require.NoError(t, err)
 	})
 

@@ -14,6 +14,8 @@ import (
 // The body is limited to 5MB to prevent abuse.
 // The timeout is 30 seconds.
 func Untrusted(ctx context.Context, url string) ([]byte, error) {
+	url = remoteurl.UpgradeKnownHTTPURLToHTTPS(url)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

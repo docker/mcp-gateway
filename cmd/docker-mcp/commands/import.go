@@ -13,6 +13,8 @@ import (
 )
 
 func runMcpregistryImport(ctx context.Context, serverURL string, servers *[]catalog.Server) error {
+	serverURL = remoteurl.UpgradeKnownHTTPURLToHTTPS(serverURL)
+
 	if err := remoteurl.Validate(ctx, serverURL); err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
 	}

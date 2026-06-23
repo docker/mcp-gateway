@@ -82,6 +82,8 @@ func readMCPServers(ctx context.Context, fileOrURL string) (map[string]Server, s
 func readFileOrURL(ctx context.Context, fileOrURL string) ([]byte, error) {
 	switch {
 	case isURL(fileOrURL):
+		fileOrURL = remoteurl.UpgradeKnownHTTPURLToHTTPS(fileOrURL)
+
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileOrURL, nil)
 		if err != nil {
 			return nil, err

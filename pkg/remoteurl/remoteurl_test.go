@@ -74,6 +74,46 @@ func TestValidateAllowsPublicHTTPS(t *testing.T) {
 	require.NoError(t, validator.Validate(context.Background(), "https://public.example.test/mcp"))
 }
 
+func TestUpgradeKnownHTTPURLToHTTPS(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "docker desktop catalog asset",
+			in:   "http://desktop.docker.com/mcp/catalog/v3/readme/aws.md",
+			want: "https://desktop.docker.com/mcp/catalog/v3/readme/aws.md",
+		},
+		{
+			name: "docker desktop default HTTP port",
+			in:   "http://desktop.docker.com:80/mcp/catalog/v3/catalog.yaml",
+			want: "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml",
+		},
+		{
+			name: "already HTTPS",
+			in:   "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml",
+			want: "https://desktop.docker.com/mcp/catalog/v3/catalog.yaml",
+		},
+		{
+			name: "arbitrary HTTP remains HTTP",
+			in:   "http://example.com/readme.md",
+			want: "http://example.com/readme.md",
+		},
+		{
+			name: "non-default port is not rewritten",
+			in:   "http://desktop.docker.com:8080/mcp/catalog/v3/catalog.yaml",
+			want: "http://desktop.docker.com:8080/mcp/catalog/v3/catalog.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, UpgradeKnownHTTPURLToHTTPS(tt.in))
+		})
+	}
+}
+
 func TestValidateURLWithoutResolutionDoesNotResolveHost(t *testing.T) {
 	validator := NewValidator(Options{
 		Resolver: fakeResolver{},

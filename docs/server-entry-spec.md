@@ -4,7 +4,7 @@ This document defines the specification for MCP server entries in the Docker MCP
 
 Server entries can be defined for an mcp server by writing a yaml file and using it as a CLI flag for profiles or catalogs via `--server file://my-server.yaml`.
 
-**A note about legacy catalogs:** Legacy catalogs such as `.docker/mcp/catalogs/docker-mcp.yaml` or http://desktop.docker.com/mcp/catalog/v3/catalog.yaml use a similar schema for servers under the `registry` property. However, this spec is intended for defining server configurations for MCP Profiles and OCI Catalogs. Thus, it's expected that this spec will drift from what exists in legacy catalogs.
+**A note about legacy catalogs:** Legacy catalogs such as `.docker/mcp/catalogs/docker-mcp.yaml` or https://desktop.docker.com/mcp/catalog/v3/catalog.yaml use a similar schema for servers under the `registry` property. However, this spec is intended for defining server configurations for MCP Profiles and OCI Catalogs. Thus, it's expected that this spec will drift from what exists in legacy catalogs.
 
 
 ## Example Server Entry YAML

@@ -402,6 +402,7 @@ registry:
     type: "server"
     image: "docker/test-server:latest"
     description: "A test server"
+    readme: "http://desktop.docker.com/mcp/catalog/v3/readme/test-server.md"
   server2:
     title: "Test Server 2"
     type: "server"
@@ -439,6 +440,7 @@ registry:
 	assert.Equal(t, workingset.ServerTypeImage, catalog.Servers[0].Type)
 	assert.Equal(t, "docker/test-server:latest", catalog.Servers[0].Image)
 	assert.Equal(t, "A test server", catalog.Servers[0].Snapshot.Server.Description)
+	assert.Equal(t, "https://desktop.docker.com/mcp/catalog/v3/readme/test-server.md", catalog.Servers[0].Snapshot.Server.ReadmeURL)
 
 	assert.Equal(t, "server2", catalog.Servers[1].Snapshot.Server.Name)
 	assert.Equal(t, "Test Server 2", catalog.Servers[1].Snapshot.Server.Title)
