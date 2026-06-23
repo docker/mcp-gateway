@@ -15,6 +15,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
 // Function pointers for testability (same pattern as pkg/workingset/oauth.go).
@@ -324,7 +325,8 @@ func authorizeCommunityMode(ctx context.Context, serverName string, scopes strin
 		exchangeOpts = append(exchangeOpts, oauth2.SetAuthURLParam("resource", provider.ResourceURL()))
 	}
 
-	token, err := config.Exchange(ctx, code, exchangeOpts...)
+	exchangeCtx := context.WithValue(ctx, oauth2.HTTPClient, remoteurl.NewHTTPClient(0, nil))
+	token, err := config.Exchange(exchangeCtx, code, exchangeOpts...)
 	if err != nil {
 		return fmt.Errorf("token exchange failed: %w", err)
 	}
