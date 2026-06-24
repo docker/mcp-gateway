@@ -38,9 +38,15 @@ allowHosts:
 |-------|------|----------|-------------|
 | `image` | string | Yes* | Docker image reference (can be SHA256 digest or tag). Required for `server` type. |
 | `command` | []string | No | Command-line arguments to pass to the container. |
-| `volumes` | []string | No | Volume mount specifications (format: `host:container` or `host:container:ro`). |
+| `volumes` | []string | No | Volume mount specifications (format: `host:container`, `host:container:ro`, or `host:container:rw`). |
 | `user` | string | No | User to run the container as (e.g., `1000:1000`). |
 | `longLived` | boolean | No | Whether the server should remain running (true) or start on-demand (false). Default: false. |
+
+#### Host Bind Mount Safety
+
+Host path bind mounts default to read-only when no mode is specified. Explicit writable host path bind mounts, and no-mode bind mounts that should become writable, are rejected unless the resolved host source exactly matches an entry in `MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS`. Use the OS path-list separator when setting multiple entries.
+
+Setting `MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS` means any catalog or profile you load can request that exact host path as writable. Scope writable entries to dedicated data directories, not source trees or broad project directories.
 
 ### Remote Configuration (for type: "remote")
 
@@ -369,4 +375,3 @@ icon: https://www.cloudflare.com/favicon.ico
    - Use `allowHosts` to restrict network access
    - Use `disableNetwork: true` for tools that don't need network
    - Always use secrets for credentials, never hardcode in `env`
-

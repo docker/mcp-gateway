@@ -386,7 +386,7 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:ro"}))
 	})
 
-	t.Run("allows writable binds from configured writable roots", func(t *testing.T) {
+	t.Run("allows writable binds from configured writable paths", func(t *testing.T) {
 		hostPath := t.TempDir()
 		expectedSource, err := cleanDockerHostPath(hostPath)
 		require.NoError(t, err)
@@ -403,9 +403,14 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 		require.Equal(t, expectedSource+":/data:rw", normalized)
 	})
 
-	t.Run("writable roots also allow host paths", func(t *testing.T) {
-		t.Setenv(dockerBindWritableAllowedPathsEnv, "/opt/mcp-data")
-		require.NoError(t, validateDockerVolumeBinds([]string{"/opt/mcp-data/project:/data:rw"}))
+	t.Run("configured writable paths do not allow child paths", func(t *testing.T) {
+		root := t.TempDir()
+		project := filepath.Join(root, "project")
+		require.NoError(t, os.MkdirAll(project, 0o755))
+		t.Setenv(dockerBindWritableAllowedPathsEnv, root)
+
+		err := validateDockerVolumeBinds([]string{project + ":/data:rw"})
+		require.ErrorContains(t, err, "host path bind mounts must be read-only")
 	})
 
 	t.Run("allows home paths from configured roots", func(t *testing.T) {
@@ -471,6 +476,33 @@ func TestValidateDockerVolumeBinds(t *testing.T) {
 	t.Run("rejects credential paths even under allowed roots", func(t *testing.T) {
 		err := validateDockerVolumeBinds([]string{filepath.Join(t.TempDir(), ".ssh") + ":/ssh:ro"})
 		require.ErrorContains(t, err, "credential path")
+	})
+
+	t.Run("rejects credential paths even under writable paths", func(t *testing.T) {
+		sshPath := filepath.Join(t.TempDir(), ".ssh")
+		t.Setenv(dockerBindWritableAllowedPathsEnv, sshPath)
+
+		err := validateDockerVolumeBinds([]string{sshPath + ":/ssh:rw"})
+		require.ErrorContains(t, err, "credential path")
+	})
+
+	t.Run("rejects symlink system paths even under writable paths", func(t *testing.T) {
+		root := t.TempDir()
+		link := filepath.Join(root, "etc-link")
+		if err := os.Symlink("/etc", link); err != nil {
+			t.Skipf("cannot create symlink: %v", err)
+		}
+		t.Setenv(dockerBindWritableAllowedPathsEnv, link)
+
+		err := validateDockerVolumeBinds([]string{filepath.ToSlash(link) + ":/data:rw"})
+		require.ErrorContains(t, err, "sensitive system path")
+	})
+
+	t.Run("rejects docker socket even under writable paths", func(t *testing.T) {
+		t.Setenv(dockerBindWritableAllowedPathsEnv, "/var/run/docker.sock")
+
+		err := validateDockerVolumeBinds([]string{"/var/run/docker.sock:/var/run/docker.sock:rw"})
+		require.ErrorContains(t, err, "blocked")
 	})
 }
 

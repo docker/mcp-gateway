@@ -17,8 +17,8 @@ import (
 // default read-only temp-root allowlist. Use the OS path-list separator.
 const dockerBindAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS"
 
-// MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS adds trusted host-path roots
-// that may be mounted writable. Use the OS path-list separator.
+// MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS adds trusted host paths that may
+// be mounted writable. Use the OS path-list separator.
 const dockerBindWritableAllowedPathsEnv = "MCP_GATEWAY_DOCKER_BIND_ALLOW_WRITABLE_PATHS"
 
 type dockerVolumeBind struct {
@@ -33,9 +33,9 @@ type dockerVolumeBind struct {
 
 func validateDockerVolumeBinds(volumes []string) error {
 	allowedRoots := dockerBindAllowedRoots()
-	writableAllowedRoots := dockerBindWritableAllowedRoots()
+	writableAllowedPaths := dockerBindWritableAllowedPaths()
 	for _, raw := range volumes {
-		if _, err := normalizeDockerVolumeBindWithRoots(raw, allowedRoots, writableAllowedRoots); err != nil {
+		if _, err := normalizeDockerVolumeBindWithRoots(raw, allowedRoots, writableAllowedPaths); err != nil {
 			return err
 		}
 	}
@@ -43,10 +43,10 @@ func validateDockerVolumeBinds(volumes []string) error {
 }
 
 func normalizeDockerVolumeBind(raw string) (string, error) {
-	return normalizeDockerVolumeBindWithRoots(raw, dockerBindAllowedRoots(), dockerBindWritableAllowedRoots())
+	return normalizeDockerVolumeBindWithRoots(raw, dockerBindAllowedRoots(), dockerBindWritableAllowedPaths())
 }
 
-func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots, writableAllowedRoots []string) (string, error) {
+func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots, writableAllowedPaths []string) (string, error) {
 	bind, err := parseDockerVolumeBind(raw)
 	if err != nil {
 		return "", err
@@ -57,7 +57,7 @@ func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots, writableAllowe
 	if disallowed, reason := disallowedDockerHostPath(bind.sourcePath); disallowed {
 		return "", fmt.Errorf("unsafe docker volume %q: host path %q is blocked (%s)", bind.raw, bind.source, reason)
 	}
-	writableAllowed := isPathUnderAnyRoot(bind.sourcePath, writableAllowedRoots)
+	writableAllowed := slices.Contains(writableAllowedPaths, bind.sourcePath)
 	if bind.mode == "" {
 		if writableAllowed {
 			bind.mode = "rw"
@@ -67,11 +67,11 @@ func normalizeDockerVolumeBindWithRoots(raw string, allowedRoots, writableAllowe
 		}
 	}
 	if !bind.readOnly && !writableAllowed {
-		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only unless the host path is allowed for writable binds. To allow this writable host path, run with %s=%s or another trusted parent directory",
+		return "", fmt.Errorf("unsafe docker volume %q: host path bind mounts must be read-only unless the exact host path is allowed for writable binds. To allow this writable host path, run with %s=%s",
 			bind.raw, dockerBindWritableAllowedPathsEnv, bind.source)
 	}
-	if !isPathUnderAnyRoot(bind.sourcePath, append(allowedRoots, writableAllowedRoots...)) {
-		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s. To allow read-only access, run with %s=%s. To allow writable access, run with %s=%s",
+	if !isPathUnderAnyRoot(bind.sourcePath, allowedRoots) && !slices.Contains(writableAllowedPaths, bind.sourcePath) {
+		return "", fmt.Errorf("unsafe docker volume %q: host path %q is outside allowed roots %s. To allow read-only access, run with %s=%s or another trusted parent directory. To allow writable access, run with %s=%s",
 			bind.raw, bind.source, strings.Join(allowedRoots, ", "), dockerBindAllowedPathsEnv, bind.source, dockerBindWritableAllowedPathsEnv, bind.source)
 	}
 	return bind.sourcePath + ":" + bind.target + ":" + bind.mode, nil
@@ -276,7 +276,7 @@ func dockerBindAllowedRoots() []string {
 	return cleanDockerBindRoots(roots)
 }
 
-func dockerBindWritableAllowedRoots() []string {
+func dockerBindWritableAllowedPaths() []string {
 	if env := os.Getenv(dockerBindWritableAllowedPathsEnv); env != "" {
 		return cleanDockerBindRoots(filepath.SplitList(env))
 	}
