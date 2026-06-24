@@ -193,7 +193,7 @@ func serveEmptySecretsEngine(t *testing.T) {
 	socketPath := filepath.Join(cacheDir, "docker-secrets-engine", "engine.sock")
 	require.NoError(t, os.MkdirAll(filepath.Dir(socketPath), 0o755))
 
-	listener, err := net.Listen("unix", socketPath)
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "unix", socketPath)
 	require.NoError(t, err)
 
 	server := &http.Server{
