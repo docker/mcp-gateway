@@ -73,8 +73,8 @@ func createClickhouseCatalogFile(t *testing.T) string {
     dateAdded: "2025-06-12T18:00:16Z"
     image: mcp/clickhouse@sha256:3a18fb4687c2f08364fd27be4bb3a7f33e2c77b22d3bca2760d22dcb73e47108
     ref: ""
-    readme: http://desktop.docker.com/mcp/catalog/v2/readme/clickhouse.md
-    toolsUrl: http://desktop.docker.com/mcp/catalog/v2/tools/clickhouse.json
+    readme: https://desktop.docker.com/mcp/catalog/v2/readme/clickhouse.md
+    toolsUrl: https://desktop.docker.com/mcp/catalog/v2/tools/clickhouse.json
     source: https://github.com/ClickHouse/mcp-clickhouse/tree/main
     upstream: https://github.com/ClickHouse/mcp-clickhouse
     icon: https://avatars.githubusercontent.com/u/54801242?v=4

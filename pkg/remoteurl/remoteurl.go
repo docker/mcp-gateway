@@ -54,6 +54,32 @@ func Validate(ctx context.Context, rawURL string) error {
 	return DefaultValidator().Validate(ctx, rawURL)
 }
 
+// UpgradeKnownHTTPURLToHTTPS rewrites legacy public HTTP URLs that are known to
+// serve the same content over HTTPS. It deliberately does not relax validation
+// for arbitrary HTTP URLs.
+func UpgradeKnownHTTPURLToHTTPS(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	if !strings.EqualFold(u.Scheme, "http") {
+		return rawURL
+	}
+	if !strings.EqualFold(u.Hostname(), "desktop.docker.com") {
+		return rawURL
+	}
+	switch u.Port() {
+	case "":
+		u.Scheme = "https"
+	case "80":
+		u.Scheme = "https"
+		u.Host = u.Hostname()
+	default:
+		return rawURL
+	}
+	return u.String()
+}
+
 func (v Validator) Validate(ctx context.Context, rawURL string) error {
 	rawURL = strings.TrimSpace(rawURL)
 	if rawURL == "" {

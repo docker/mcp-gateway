@@ -19,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/oci"
 	"github.com/docker/mcp-gateway/pkg/registryapi"
+	"github.com/docker/mcp-gateway/pkg/remoteurl"
 	"github.com/docker/mcp-gateway/pkg/telemetry"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
@@ -162,6 +163,7 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 
 	servers := make([]Server, 0, len(legacyCatalog.Servers))
 	for name, server := range legacyCatalog.Servers {
+		server = normalizeCatalogServerURLs(server)
 		if server.Type == "server" && server.Image != "" {
 			s := Server{
 				Type:  workingset.ServerTypeImage,
@@ -203,14 +205,26 @@ func createCatalogFromLegacyCatalog(ctx context.Context, legacyCatalogURL string
 }
 
 func workingSetServerToCatalogServer(server workingset.Server) Server {
+	snapshot := server.Snapshot
+	if snapshot != nil {
+		snapshotCopy := *snapshot
+		snapshotCopy.Server = normalizeCatalogServerURLs(snapshotCopy.Server)
+		snapshot = &snapshotCopy
+	}
+
 	return Server{
 		Type:     server.Type,
 		Tools:    server.Tools,
 		Source:   server.Source,
 		Image:    server.Image,
 		Endpoint: server.Endpoint,
-		Snapshot: server.Snapshot,
+		Snapshot: snapshot,
 	}
+}
+
+func normalizeCatalogServerURLs(server legacycatalog.Server) legacycatalog.Server {
+	server.ReadmeURL = remoteurl.UpgradeKnownHTTPURLToHTTPS(server.ReadmeURL)
+	return server
 }
 
 type communityRegistryResult struct {

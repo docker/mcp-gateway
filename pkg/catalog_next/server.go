@@ -30,6 +30,10 @@ type serverFilter struct {
 }
 
 func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat) error {
+	return inspectServer(ctx, dao, catalogRef, serverName, format, fetch.Untrusted)
+}
+
+func inspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverName string, format workingset.OutputFormat, fetchReadme func(context.Context, string) ([]byte, error)) error {
 	ref, err := name.ParseReference(catalogRef)
 	if err != nil {
 		return fmt.Errorf("failed to parse oci-reference %s: %w", catalogRef, err)
@@ -58,7 +62,7 @@ func InspectServer(ctx context.Context, dao db.DAO, catalogRef string, serverNam
 	}
 
 	if server.Snapshot != nil && server.Snapshot.Server.ReadmeURL != "" {
-		readmeContent, err := fetch.Untrusted(ctx, server.Snapshot.Server.ReadmeURL)
+		readmeContent, err := fetchReadme(ctx, server.Snapshot.Server.ReadmeURL)
 		if err != nil {
 			return fmt.Errorf("failed to fetch readme: %w", err)
 		}
