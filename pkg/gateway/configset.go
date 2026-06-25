@@ -59,7 +59,7 @@ func configSetHandler(g *Gateway) mcp.ToolHandler {
 			}, nil
 		}
 
-		if err := g.checkServerLoadPolicy(ctx, serverName, req.Session); err != nil {
+		if err := g.checkServerLoadPolicy(ctx, g.configuration.policyRequest(serverName, "", policy.ActionLoad), req.Session); err != nil {
 			return &mcp.CallToolResult{
 				Content: []mcp.Content{&mcp.TextContent{Text: "Error: " + err.Error()}},
 				IsError: true,
@@ -166,19 +166,24 @@ func configSetHandler(g *Gateway) mcp.ToolHandler {
 // dynamic management tool (mcp-config-set / activate-profile) mutates gateway
 // state for it, mirroring the gate mcp-add already applies. Returns nil when
 // allowed or when no policy client is configured.
-func (g *Gateway) checkServerLoadPolicy(ctx context.Context, serverName string, session *mcp.ServerSession) error {
+//
+// Callers pass an already-built policy.Request so the request carries the full
+// server metadata from the relevant configuration. activate-profile in
+// particular evaluates servers that are not yet merged into g.configuration, so
+// it must build the request from the profile's configuration to avoid the
+// missing-server branch in Configuration.policyRequest.
+func (g *Gateway) checkServerLoadPolicy(ctx context.Context, policyReq policy.Request, session *mcp.ServerSession) error {
 	if g.policyClient == nil {
 		return nil
 	}
-	policyReq := g.configuration.policyRequest(serverName, "", policy.ActionLoad)
 	decision, err := g.policyClient.Evaluate(ctx, policyReq)
 	event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(session))
 	submitAuditEvent(g.policyClient, event)
 	if err != nil {
-		return fmt.Errorf("policy check failed for server %q: %w", serverName, err)
+		return fmt.Errorf("policy check failed for server %q: %w", policyReq.Server, err)
 	}
 	if !decision.Allowed {
-		return fmt.Errorf("server %q is blocked by policy: %s", serverName, decision.Reason)
+		return fmt.Errorf("server %q is blocked by policy: %s", policyReq.Server, decision.Reason)
 	}
 	return nil
 }

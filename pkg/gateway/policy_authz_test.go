@@ -31,26 +31,29 @@ func TestCheckServerLoadPolicy(t *testing.T) {
 	t.Run("blocks_denied_server", func(t *testing.T) {
 		mock := newMockPolicyClient()
 		mock.deny("backend-server", "", policy.ActionLoad, "server blocked by admin")
-		err := newServerLoadPolicyGateway(mock).checkServerLoadPolicy(context.Background(), "backend-server", nil)
+		g := newServerLoadPolicyGateway(mock)
+		err := g.checkServerLoadPolicy(context.Background(), g.configuration.policyRequest("backend-server", "", policy.ActionLoad), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "blocked by policy")
 	})
 	t.Run("denies_on_error", func(t *testing.T) {
 		mock := newMockPolicyClient()
 		mock.failWith("backend-server", "", policy.ActionLoad, errors.New("policy service down"))
-		err := newServerLoadPolicyGateway(mock).checkServerLoadPolicy(context.Background(), "backend-server", nil)
+		g := newServerLoadPolicyGateway(mock)
+		err := g.checkServerLoadPolicy(context.Background(), g.configuration.policyRequest("backend-server", "", policy.ActionLoad), nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "policy")
 	})
 	t.Run("allows_permitted_server", func(t *testing.T) {
-		require.NoError(t, newServerLoadPolicyGateway(newMockPolicyClient()).checkServerLoadPolicy(context.Background(), "backend-server", nil))
+		g := newServerLoadPolicyGateway(newMockPolicyClient())
+		require.NoError(t, g.checkServerLoadPolicy(context.Background(), g.configuration.policyRequest("backend-server", "", policy.ActionLoad), nil))
 	})
 	t.Run("nil_policy_client_allows", func(t *testing.T) {
 		g := &Gateway{configuration: Configuration{
 			serverNames: []string{"backend-server"},
 			servers:     map[string]catalog.Server{"backend-server": {Image: "img"}},
 		}}
-		require.NoError(t, g.checkServerLoadPolicy(context.Background(), "backend-server", nil))
+		require.NoError(t, g.checkServerLoadPolicy(context.Background(), g.configuration.policyRequest("backend-server", "", policy.ActionLoad), nil))
 	})
 }
 
