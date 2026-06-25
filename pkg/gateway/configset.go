@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 )
 
 type configValue struct {
@@ -19,7 +20,7 @@ type configValue struct {
 }
 
 func configSetHandler(g *Gateway) mcp.ToolHandler {
-	return func(_ context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Parse parameters
 		var params configValue
 
@@ -55,6 +56,13 @@ func configSetHandler(g *Gateway) mcp.ToolHandler {
 				Content: []mcp.Content{&mcp.TextContent{
 					Text: fmt.Sprintf("Error: Server '%s' not found in catalog. Use mcp-find to search for available servers.", serverName),
 				}},
+			}, nil
+		}
+
+		if err := g.checkServerLoadPolicy(ctx, g.configuration.policyRequest(serverName, "", policy.ActionLoad), req.Session); err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: "Error: " + err.Error()}},
+				IsError: true,
 			}, nil
 		}
 
@@ -152,4 +160,30 @@ func configSetHandler(g *Gateway) mcp.ToolHandler {
 			}},
 		}, nil
 	}
+}
+
+// checkServerLoadPolicy enforces the ActionLoad policy for a server before a
+// dynamic management tool (mcp-config-set / activate-profile) mutates gateway
+// state for it, mirroring the gate mcp-add already applies. Returns nil when
+// allowed or when no policy client is configured.
+//
+// Callers pass an already-built policy.Request so the request carries the full
+// server metadata from the relevant configuration. activate-profile in
+// particular evaluates servers that are not yet merged into g.configuration, so
+// it must build the request from the profile's configuration to avoid the
+// missing-server branch in Configuration.policyRequest.
+func (g *Gateway) checkServerLoadPolicy(ctx context.Context, policyReq policy.Request, session *mcp.ServerSession) error {
+	if g.policyClient == nil {
+		return nil
+	}
+	decision, err := g.policyClient.Evaluate(ctx, policyReq)
+	event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(session))
+	submitAuditEvent(g.policyClient, event)
+	if err != nil {
+		return fmt.Errorf("policy check failed for server %q: %w", policyReq.Server, err)
+	}
+	if !decision.Allowed {
+		return fmt.Errorf("server %q is blocked by policy: %s", policyReq.Server, decision.Reason)
+	}
+	return nil
 }

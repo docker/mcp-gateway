@@ -17,6 +17,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/gateway/project"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
+	"github.com/docker/mcp-gateway/pkg/policy"
 	"github.com/docker/mcp-gateway/pkg/workingset"
 )
 
@@ -130,6 +131,9 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 	var validationErrors []serverValidation
 
 	for _, serverName := range serversToActivate {
+		if err := g.checkServerLoadPolicy(ctx, profileConfig.policyRequest(serverName, "", policy.ActionLoad), nil); err != nil {
+			return err
+		}
 		serverConfig := profileConfig.servers[serverName]
 		validation := serverValidation{serverName: serverName}
 
