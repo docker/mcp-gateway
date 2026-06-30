@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -344,6 +345,101 @@ func TestManager_CallbackURLParsing(t *testing.T) {
 	}
 }
 
+func TestManager_ExchangeCode_StripsStatePrefix(t *testing.T) {
+	manager := setupTestManager(t)
+	serverName := "test-server"
+
+	setupTestDCRClient(t, manager, serverName)
+
+	// Generate a state via BuildAuthorizationURL with a callback URL,
+	// which produces "mcp-gateway:PORT:UUID" format.
+	_, baseState, _, err := manager.BuildAuthorizationURL(
+		context.Background(),
+		serverName,
+		[]string{"read"},
+		"http://localhost:8080/callback",
+	)
+	require.NoError(t, err)
+
+	// Simulate the prefixed state that would come back from the OAuth callback
+	prefixedState := "mcp-gateway:8080:" + baseState
+
+	// ExchangeCode will fail at token exchange (no real server), but it should
+	// get past state validation — meaning the prefix was correctly stripped.
+	err = manager.ExchangeCode(context.Background(), "test-code", prefixedState)
+	require.Error(t, err)
+	// If prefix stripping failed, we'd get "invalid state parameter".
+	// If it succeeded, we get a token exchange error instead.
+	assert.NotContains(t, err.Error(), "invalid state parameter")
+}
+
+func TestManager_ExchangeCode_PlainStateStillWorks(t *testing.T) {
+	manager := setupTestManager(t)
+	serverName := "test-server"
+
+	setupTestDCRClient(t, manager, serverName)
+
+	// Generate a state without callback URL (no prefix)
+	_, baseState, _, err := manager.BuildAuthorizationURL(
+		context.Background(),
+		serverName,
+		[]string{"read"},
+		"",
+	)
+	require.NoError(t, err)
+
+	// ExchangeCode should still validate plain UUIDs (no prefix to strip)
+	err = manager.ExchangeCode(context.Background(), "test-code", baseState)
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "invalid state parameter")
+}
+
+func TestManager_NewManager_CEModeRedirectURI(t *testing.T) {
+	// Save and restore env vars
+	origCE := os.Getenv("DOCKER_MCP_USE_CE")
+	origURI := os.Getenv("DOCKER_MCP_OAUTH_REDIRECT_URI")
+	defer func() {
+		os.Setenv("DOCKER_MCP_USE_CE", origCE)
+		os.Setenv("DOCKER_MCP_OAUTH_REDIRECT_URI", origURI)
+	}()
+
+	t.Run("default mode uses SaaS redirect", func(t *testing.T) {
+		os.Setenv("DOCKER_MCP_USE_CE", "")
+		os.Setenv("DOCKER_MCP_OAUTH_REDIRECT_URI", "")
+
+		helper := newFakeCredentialHelper()
+		manager := NewManager(helper)
+		assert.Equal(t, DefaultRedirectURI, manager.redirectURI)
+	})
+
+	t.Run("CE mode uses localhost redirect", func(t *testing.T) {
+		os.Setenv("DOCKER_MCP_USE_CE", "true")
+		os.Setenv("DOCKER_MCP_OAUTH_REDIRECT_URI", "")
+
+		helper := newFakeCredentialHelper()
+		manager := NewManager(helper)
+		assert.Equal(t, "http://localhost:5000/callback", manager.redirectURI)
+	})
+
+	t.Run("CE mode with custom redirect URI", func(t *testing.T) {
+		os.Setenv("DOCKER_MCP_USE_CE", "true")
+		os.Setenv("DOCKER_MCP_OAUTH_REDIRECT_URI", "http://localhost:9999/custom")
+
+		helper := newFakeCredentialHelper()
+		manager := NewManager(helper)
+		assert.Equal(t, "http://localhost:9999/custom", manager.redirectURI)
+	})
+
+	t.Run("non-CE mode ignores custom redirect URI", func(t *testing.T) {
+		os.Setenv("DOCKER_MCP_USE_CE", "false")
+		os.Setenv("DOCKER_MCP_OAUTH_REDIRECT_URI", "http://localhost:9999/custom")
+
+		helper := newFakeCredentialHelper()
+		manager := NewManager(helper)
+		assert.Equal(t, DefaultRedirectURI, manager.redirectURI)
+	})
+}
+
 func TestManager_StateFormatWithPort(t *testing.T) {
 	manager := setupTestManager(t)
 	serverName := "test-server"
@@ -371,4 +467,38 @@ func TestManager_StateFormatWithPort(t *testing.T) {
 	// Base state should be just the UUID (no prefix)
 	assert.NotContains(t, baseState, "mcp-gateway")
 	assert.NotContains(t, baseState, ":")
+}
+
+func TestManager_ListDCRClients(t *testing.T) {
+	manager := setupTestManager(t)
+
+	t.Run("empty list", func(t *testing.T) {
+		clients, err := manager.ListDCRClients()
+		require.NoError(t, err)
+		assert.Empty(t, clients)
+	})
+
+	t.Run("returns registered clients", func(t *testing.T) {
+		setupTestDCRClient(t, manager, "server-a")
+		setupTestDCRClient(t, manager, "server-b")
+
+		clients, err := manager.ListDCRClients()
+		require.NoError(t, err)
+		assert.Len(t, clients, 2)
+		assert.Contains(t, clients, "server-a")
+		assert.Contains(t, clients, "server-b")
+	})
+}
+
+func TestManager_HasValidToken(t *testing.T) {
+	manager := setupTestManager(t)
+
+	t.Run("no DCR client returns false", func(t *testing.T) {
+		assert.False(t, manager.HasValidToken("nonexistent"))
+	})
+
+	t.Run("DCR client without token returns false", func(t *testing.T) {
+		setupTestDCRClient(t, manager, "no-token-server")
+		assert.False(t, manager.HasValidToken("no-token-server"))
+	})
 }
