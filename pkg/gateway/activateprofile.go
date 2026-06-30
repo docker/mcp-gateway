@@ -70,9 +70,10 @@ func (g *Gateway) convertWorkingSetToConfiguration(ctx context.Context, ws worki
 		// Build secrets configs
 		namespace := ""
 		configs = append(configs, ServerSecretConfig{
-			Secrets:   server.Snapshot.Server.Secrets,
-			OAuth:     server.Snapshot.Server.OAuth,
-			Namespace: namespace,
+			Secrets:                server.Snapshot.Server.Secrets,
+			OAuth:                  server.Snapshot.Server.OAuth,
+			Namespace:              namespace,
+			RequireVerifiedSecrets: localLongLivedServer(server.Snapshot.Server, g.LongLived),
 		})
 
 		// Add tools
