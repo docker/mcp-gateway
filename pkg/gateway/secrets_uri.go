@@ -33,7 +33,7 @@ func BuildSecretsURIs(ctx context.Context, configs []ServerSecretConfig) map[str
 
 	availableSecrets := make(map[string]string)
 	for _, envelope := range allSecrets {
-		availableSecrets[envelope.ID] = string(envelope.Value)
+		availableSecrets[envelope.ID.String()] = string(envelope.Value)
 	}
 	return buildVerifiedURIs(configs, availableSecrets)
 }

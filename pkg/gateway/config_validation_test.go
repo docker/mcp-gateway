@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/docker/secrets-engine/x/api/resolver"
+	"github.com/docker/secrets-engine/x/api/resolver/v1/resolverv1connect"
+	"github.com/docker/secrets-engine/x/secrets"
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
@@ -196,11 +199,17 @@ func serveEmptySecretsEngine(t *testing.T) {
 	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "unix", socketPath)
 	require.NoError(t, err)
 
-	server := &http.Server{
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.WriteHeader(http.StatusNotFound)
-		}),
-	}
+	// Serve the real Secrets Engine resolver protocol with an empty resolver.
+	// An empty result is encoded by the handler as a connect NotFound error,
+	// which the SDK client maps back to ErrSecretNotFound (engine reachable,
+	// no secrets) rather than a transport error (engine unreachable).
+	mux := http.NewServeMux()
+	mux.Handle(resolverv1connect.NewResolverServiceHandler(
+		resolver.NewResolverHandler(emptyResolverFunc(func(context.Context, secrets.Pattern) ([]secrets.Envelope, error) {
+			return nil, nil
+		})),
+	))
+	server := &http.Server{Handler: mux}
 
 	go func() {
 		_ = server.Serve(listener)
@@ -209,4 +218,11 @@ func serveEmptySecretsEngine(t *testing.T) {
 	t.Cleanup(func() {
 		require.NoError(t, server.Shutdown(context.Background()))
 	})
+}
+
+// emptyResolverFunc adapts a function to the secrets.Resolver interface.
+type emptyResolverFunc func(ctx context.Context, pattern secrets.Pattern) ([]secrets.Envelope, error)
+
+func (f emptyResolverFunc) GetSecrets(ctx context.Context, pattern secrets.Pattern) ([]secrets.Envelope, error) {
+	return f(ctx, pattern)
 }
