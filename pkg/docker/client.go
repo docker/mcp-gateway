@@ -41,6 +41,14 @@ type dockerClient struct {
 	cli       command.Cli
 }
 
+func (c *dockerClient) client() (client.APIClient, error) {
+	cli := c.apiClient()
+	if cli == nil {
+		return nil, fmt.Errorf("docker client is not available. Please ensure Docker Desktop is running.")
+	}
+	return cli, nil
+}
+
 func NewClient(cli command.Cli) Client {
 	return &dockerClient{
 		cli: cli,
