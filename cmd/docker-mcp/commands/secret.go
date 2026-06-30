@@ -91,7 +91,7 @@ func listSecretCommand() *cobra.Command {
 				output := make([]secretListItem, 0, len(l))
 				for _, env := range l {
 					output = append(output, secretListItem{
-						Name:     secret.StripNamespace(env.ID),
+						Name:     secret.StripNamespace(env.ID.String()),
 						Provider: env.Provider,
 					})
 				}
@@ -107,7 +107,7 @@ func listSecretCommand() *cobra.Command {
 			}
 			var rows [][]string
 			for _, v := range l {
-				rows = append(rows, []string{v.ID, v.Provider})
+				rows = append(rows, []string{v.ID.String(), v.Provider})
 			}
 			formatting.PrettyPrintTable(rows, []int{40, 120})
 			return nil

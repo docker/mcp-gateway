@@ -1,12 +1,12 @@
 #syntax=docker/dockerfile:1
 
-ARG GO_VERSION=1.25.5
+ARG GO_VERSION=1.25.11
 ARG DOCS_FORMATS="md,yaml"
 
 FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.8.0-alpine AS lint-base
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
-RUN apk add --no-cache git rsync
+RUN apk add --no-cache git
 WORKDIR /app
 
 # Docs generation and validation targets
@@ -20,10 +20,8 @@ FROM base AS docs-build
 COPY --from=docs-gen /out/docsgen /usr/bin
 ENV DOCKER_CLI_PLUGIN_ORIGINAL_CLI_COMMAND="mcp"
 ARG DOCS_FORMATS
-RUN --mount=target=/context \
-    --mount=target=.,type=tmpfs <<EOT
+RUN --mount=type=bind,target=.,rw <<EOT
   set -e
-  rsync -a /context/. .
   docsgen --formats "$DOCS_FORMATS" --source "docs/generator/reference"
   mkdir /out
   cp -r docs/generator/reference/* /out/
@@ -33,10 +31,8 @@ FROM scratch AS docs-update
 COPY --from=docs-build /out /
 
 FROM docs-build AS docs-validate
-RUN --mount=target=/context \
-    --mount=target=.,type=tmpfs <<EOT
+RUN --mount=type=bind,target=.,rw <<EOT
   set -e
-  rsync -a /context/. .
   git add -A
   rm -rf docs/generator/reference/*
   cp -rf /out/* ./docs/generator/reference/

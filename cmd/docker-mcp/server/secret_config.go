@@ -17,7 +17,7 @@ func getConfiguredSecretNames(ctx context.Context) (map[string]struct{}, error) 
 	configuredSecretNames := make(map[string]struct{})
 	for _, env := range envelopes {
 		// Extract base name from full ID using centralized namespace stripper
-		name := secret.StripNamespace(env.ID)
+		name := secret.StripNamespace(env.ID.String())
 		configuredSecretNames[name] = struct{}{}
 	}
 
