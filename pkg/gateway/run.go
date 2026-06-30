@@ -495,8 +495,9 @@ func (g *Gateway) initializeHTTPAuth() error {
 		if os.Getenv("MCP_GATEWAY_AUTH_TOKEN") != "" {
 			log.Log("Warning: ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set")
 		}
-		if isExternallyReachableHost(g.Host) {
-			log.Logf("WARNING: --allow-unauthenticated is exposing the MCP gateway without authentication on %s. Any client that can reach this listener can execute configured MCP tools. Remove --allow-unauthenticated or bind with --host 127.0.0.1 unless this is intentional.", gatewayListenerDescription(g.Host))
+		log.Logf("WARNING: --allow-unauthenticated is disabling authentication on %s. Any client that can reach this listener can execute configured MCP tools. Remove --allow-unauthenticated to restore the default bearer token unless this is intentional.", gatewayListenerDescription(g.Host))
+		if !isExternallyReachableHost(g.Host) {
+			log.Log("WARNING: binding the unauthenticated listener to loopback is not recommended as it may expose the server to DNS rebinding")
 		}
 		return nil
 	}
