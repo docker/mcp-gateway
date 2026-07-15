@@ -3,25 +3,15 @@ package secret
 import (
 	"testing"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetDefaultSecretKey(t *testing.T) {
-	result := GetDefaultSecretKey("mykey")
-	assert.Equal(t, "docker/mcp/mykey", result)
-}
-
-func TestValidateSecretName(t *testing.T) {
-	valid := []string{"mykey", "postgres_password", "GITHUB_TOKEN", "some-key", "key.with.dots"}
-	for _, name := range valid {
-		require.NoError(t, ValidateSecretName(name), "expected %q to be valid", name)
-	}
-
-	invalid := []string{"**", "*", "docker/mcp/**", "key*", "key?", "key[0]", "key{a}"}
-	for _, name := range invalid {
-		assert.Error(t, ValidateSecretName(name), "expected %q to be invalid", name)
-	}
+	result, err := GetDefaultSecretKey(seclient.MustParseID("mykey"))
+	require.NoError(t, err)
+	assert.Equal(t, "docker/mcp/mykey", result.String())
 }
 
 func TestParseArg(t *testing.T) {

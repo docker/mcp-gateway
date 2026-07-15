@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -140,8 +141,8 @@ func TestRevokeCommunityMode_CleansDesktopEntries(t *testing.T) {
 	})
 
 	// Mock the docker pass operations so the real handler doesn't shell out.
-	deleteOAuthTokenFunc = func(_ context.Context, _ string) error { return nil }
-	deleteDCRClientFunc = func(_ context.Context, _ string) error { return nil }
+	deleteOAuthTokenFunc = func(_ context.Context, _ seclient.ID) error { return nil }
+	deleteDCRClientFunc = func(_ context.Context, _ seclient.ID) error { return nil }
 
 	var desktopCleanupCalled string
 	cleanStaleDesktopEntriesFunc = func(_ context.Context, app string) {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	seclient "github.com/docker/secrets-engine/client"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	pkgoauth "github.com/docker/mcp-gateway/pkg/oauth"
@@ -27,7 +29,11 @@ func Ls(ctx context.Context, outputJSON bool) error {
 		credHelper := pkgoauth.NewOAuthCredentialHelperWithMode(pkgoauth.ModeCommunity)
 		for i, app := range apps {
 			if !app.Authorized {
-				if exists, _ := credHelper.TokenExists(ctx, app.App); exists {
+				appID, err := seclient.ParseID(app.App)
+				if err != nil {
+					continue
+				}
+				if exists, _ := credHelper.TokenExists(ctx, appID); exists {
 					apps[i].Authorized = true
 				}
 			}

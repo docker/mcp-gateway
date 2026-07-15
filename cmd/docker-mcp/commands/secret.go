@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
@@ -42,18 +42,27 @@ func rmSecretCommand() *cobra.Command {
 				return err
 			}
 
-			ids := slices.Clone(args)
+			var errs []error
+			var ids []seclient.ID
 			if all {
-				var err error
-				ids, err = secret.List(cmd.Context())
+				listed, err := secret.List(cmd.Context())
 				if err != nil {
 					return err
 				}
+				ids = listed
+			} else {
+				for _, s := range args {
+					id, err := seclient.ParseID(s)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("invalid secret name %q: %w", s, err))
+						continue
+					}
+					ids = append(ids, id)
+				}
 			}
 
-			var errs []error
-			for _, s := range ids {
-				errs = append(errs, secret.DeleteDefaultSecret(cmd.Context(), s))
+			for _, id := range ids {
+				errs = append(errs, secret.DeleteDefaultSecret(cmd.Context(), id))
 			}
 			return errors.Join(errs...)
 		},

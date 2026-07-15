@@ -3,6 +3,8 @@ package gateway
 import (
 	"context"
 
+	seclient "github.com/docker/secrets-engine/client"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -48,7 +50,8 @@ func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
 		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
-			if err := secret.ValidateSecretName(s.Name); err != nil {
+			id, err := seclient.ParseID(s.Name)
+			if err != nil {
 				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
 				continue
 			}
@@ -56,7 +59,12 @@ func buildFallbackURIs(configs []ServerSecretConfig) map[string]string {
 			if oauthSecretID, ok := secretToOAuthID[s.Name]; ok {
 				secretNameToURI[secretName] = "se://" + oauthSecretID
 			} else {
-				secretNameToURI[secretName] = "se://" + secret.GetDefaultSecretKey(s.Name)
+				key, err := secret.GetDefaultSecretKey(id)
+				if err != nil {
+					log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
+					continue
+				}
+				secretNameToURI[secretName] = "se://" + key.String()
 			}
 		}
 	}
@@ -72,7 +80,8 @@ func buildVerifiedURIs(configs []ServerSecretConfig, availableSecrets map[string
 		secretToOAuthID := oauthMapping(cfg)
 
 		for _, s := range cfg.Secrets {
-			if err := secret.ValidateSecretName(s.Name); err != nil {
+			id, err := seclient.ParseID(s.Name)
+			if err != nil {
 				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
 				continue
 			}
@@ -86,7 +95,12 @@ func buildVerifiedURIs(configs []ServerSecretConfig, availableSecrets map[string
 				}
 			}
 			// Fall back to direct secret (API keys, tokens, etc.)
-			secretID := secret.GetDefaultSecretKey(s.Name)
+			key, err := secret.GetDefaultSecretKey(id)
+			if err != nil {
+				log.Logf("Warning: skipping secret with invalid name %q: %v", s.Name, err)
+				continue
+			}
+			secretID := key.String()
 			if availableSecrets[secretID] != "" {
 				secretNameToURI[secretName] = "se://" + secretID
 			}
@@ -100,7 +114,17 @@ func oauthMapping(cfg ServerSecretConfig) map[string]string {
 	m := make(map[string]string)
 	if cfg.OAuth != nil {
 		for _, p := range cfg.OAuth.Providers {
-			m[p.Secret] = secret.GetOAuthKey(p.Provider)
+			providerID, err := seclient.ParseID(p.Provider)
+			if err != nil {
+				log.Logf("Warning: skipping OAuth provider with invalid name %q: %v", p.Provider, err)
+				continue
+			}
+			key, err := secret.GetOAuthKey(providerID)
+			if err != nil {
+				log.Logf("Warning: skipping OAuth provider with invalid name %q: %v", p.Provider, err)
+				continue
+			}
+			m[p.Secret] = key.String()
 		}
 	}
 	return m

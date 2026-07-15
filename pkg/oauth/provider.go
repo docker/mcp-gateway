@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"golang.org/x/oauth2"
 
 	"github.com/docker/mcp-gateway/pkg/desktop"
@@ -109,7 +110,12 @@ func (p *Provider) Run(ctx context.Context) {
 
 	for {
 		// Check current token status
-		status, err := p.credHelper.GetTokenStatus(ctx, p.name)
+		serverID, err := seclient.ParseID(p.name)
+		if err != nil {
+			log.Logf("! Invalid server name %q: %v", p.name, err)
+			return
+		}
+		status, err := p.credHelper.GetTokenStatus(ctx, serverID)
 		if err != nil {
 			log.Logf("! Unable to get token status for %s: %v", p.name, err)
 			log.Logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)

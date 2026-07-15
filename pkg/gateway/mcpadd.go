@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -566,12 +567,14 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 	// Check if user is already authorized by checking if token exists (only if provider exists)
 	if providerExists {
 		credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
-		exists, err := credHelper.TokenExists(ctx, serverName)
-		if err == nil && exists {
-			if shouldSendTools {
-				return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
+		if serverID, parseErr := seclient.ParseID(serverName); parseErr == nil {
+			exists, err := credHelper.TokenExists(ctx, serverID)
+			if err == nil && exists {
+				if shouldSendTools {
+					return true, fmt.Sprintf("You will need to authorize this server with: docker mcp oauth authorize %s.\n  After authorizing, reconnect your agent to the MCP gateway.", serverName)
+				}
+				return true, fmt.Sprintf("Successfully added server '%s'. Server is authorized.", serverName)
 			}
-			return true, fmt.Sprintf("Successfully added server '%s'. Server is authorized.", serverName)
 		}
 	}
 
