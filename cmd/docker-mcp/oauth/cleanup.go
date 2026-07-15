@@ -3,6 +3,8 @@ package oauth
 import (
 	"context"
 
+	seclient "github.com/docker/secrets-engine/client"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/desktop"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -38,16 +40,29 @@ func cleanStaleDockerPassEntries(ctx context.Context, app string) {
 	if err != nil {
 		return
 	}
-	oauthKey := secret.GetOAuthKey(app)
-	dcrKey := secret.GetDCRKey(app)
+	appID, err := seclient.ParseID(app)
+	if err != nil {
+		log.Logf("Warning: skipping stale docker pass cleanup for invalid app name %q: %v", app, err)
+		return
+	}
+	oauthKey, err := secret.GetOAuthKey(appID)
+	if err != nil {
+		log.Logf("Warning: failed to build OAuth key for %s: %v", app, err)
+		return
+	}
+	dcrKey, err := secret.GetDCRKey(appID)
+	if err != nil {
+		log.Logf("Warning: failed to build DCR key for %s: %v", app, err)
+		return
+	}
 	for _, k := range keys {
 		if k == oauthKey {
-			if err := secret.DeleteOAuthToken(ctx, app); err != nil {
+			if err := secret.DeleteOAuthToken(ctx, appID); err != nil {
 				log.Logf("Warning: failed to clean stale docker pass OAuth token for %s: %v", app, err)
 			}
 		}
 		if k == dcrKey {
-			if err := secret.DeleteDCRClient(ctx, app); err != nil {
+			if err := secret.DeleteDCRClient(ctx, appID); err != nil {
 				log.Logf("Warning: failed to clean stale docker pass DCR client for %s: %v", app, err)
 			}
 		}

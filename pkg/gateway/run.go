@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 
@@ -393,7 +394,10 @@ func (g *Gateway) Run(ctx context.Context) error {
 			} else if serverConfig.IsRemote() {
 				// Community/remote servers: start provider if they have a stored OAuth token
 				// from dynamic discovery (DCR without explicit OAuth metadata)
-				if exists, err := credHelper.TokenExists(ctx, serverName); err != nil {
+				serverID, parseErr := seclient.ParseID(serverName)
+				if parseErr != nil {
+					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, parseErr)
+				} else if exists, err := credHelper.TokenExists(ctx, serverID); err != nil {
 					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
 				} else if exists {
 					log.Logf("- Starting OAuth provider for remote server: %s (mode=%s)", serverName, mode)

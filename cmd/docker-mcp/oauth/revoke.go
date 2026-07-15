@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	seclient "github.com/docker/secrets-engine/client"
+
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/desktop"
@@ -102,15 +104,20 @@ func revokeCEMode(ctx context.Context, app string) error {
 // any stale Desktop Secrets Engine entries left from prior Desktop OAuth
 // authorizations.
 func revokeCommunityMode(ctx context.Context, app string) error {
+	appID, err := seclient.ParseID(app)
+	if err != nil {
+		return fmt.Errorf("invalid server name %q: %w", app, err)
+	}
+
 	// Delete OAuth token from docker pass
-	if err := deleteOAuthTokenFunc(ctx, app); err != nil {
+	if err := deleteOAuthTokenFunc(ctx, appID); err != nil {
 		// Token might not exist, continue to DCR deletion
 		fmt.Printf("Note: %v\n", err)
 	}
 
 	// Delete DCR client from docker pass (soft failure -- entry may not exist
 	// if authorize was never completed or was already revoked)
-	if err := deleteDCRClientFunc(ctx, app); err != nil {
+	if err := deleteDCRClientFunc(ctx, appID); err != nil {
 		fmt.Printf("Note: %v\n", err)
 	}
 

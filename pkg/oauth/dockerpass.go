@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"golang.org/x/oauth2"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
@@ -38,7 +39,14 @@ import (
 // server stored in docker pass. The Secrets Engine's docker-pass plugin
 // returns the raw stored value at docker/mcp/oauth/{server}.
 func (h *CredentialHelper) getOAuthTokenDockerPass(ctx context.Context, serverName string) (string, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return "", fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return "", err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
@@ -75,14 +83,17 @@ func (h *CredentialHelper) getOAuthTokenDockerPass(ctx context.Context, serverNa
 
 // tokenExistsDockerPass checks whether a token exists in docker pass for a
 // community server. Reads via the Secrets Engine.
-func (h *CredentialHelper) tokenExistsDockerPass(ctx context.Context, serverName string) (bool, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+func (h *CredentialHelper) tokenExistsDockerPass(ctx context.Context, serverID seclient.ID) (bool, error) {
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return false, err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("failed to query Secrets Engine for %s: %w", serverName, err)
+		return false, fmt.Errorf("failed to query Secrets Engine for %s: %w", serverID.String(), err)
 	}
 	return string(env.Value) != "", nil
 }
@@ -90,8 +101,12 @@ func (h *CredentialHelper) tokenExistsDockerPass(ctx context.Context, serverName
 // getTokenStatusDockerPass retrieves token validity and expiry from docker
 // pass for a community server. The stored value is base64-encoded JSON
 // containing the expiry field.
-func (h *CredentialHelper) getTokenStatusDockerPass(ctx context.Context, serverName string) (TokenStatus, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+func (h *CredentialHelper) getTokenStatusDockerPass(ctx context.Context, serverID seclient.ID) (TokenStatus, error) {
+	serverName := serverID.String()
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return TokenStatus{Valid: false}, err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
@@ -158,7 +173,14 @@ func (h *CredentialHelper) getTokenStatusDockerPass(ctx context.Context, serverN
 // the Secrets Engine. Used by the refresh loop to get the current token
 // (including refresh_token) before refreshing.
 func GetTokenFromDockerPass(ctx context.Context, serverName string) (*oauth2.Token, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return nil, err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return nil, fmt.Errorf("OAuth token not found for %s", serverName)
@@ -189,6 +211,10 @@ func GetTokenFromDockerPass(ctx context.Context, serverName string) (*oauth2.Tok
 // JSON at docker/mcp/oauth/{serverName}. Used by the authorize flow and the
 // refresh loop for community servers in Desktop mode.
 func SaveTokenToDockerPass(ctx context.Context, serverName string, token *oauth2.Token) error {
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
 	tokenJSON, err := json.Marshal(token)
 	if err != nil {
 		return fmt.Errorf("marshalling token for %s: %w", serverName, err)
@@ -196,7 +222,7 @@ func SaveTokenToDockerPass(ctx context.Context, serverName string, token *oauth2
 
 	encoded := base64.StdEncoding.EncodeToString(tokenJSON)
 
-	if err := secret.SetOAuthToken(ctx, serverName, encoded); err != nil {
+	if err := secret.SetOAuthToken(ctx, serverID, encoded); err != nil {
 		return fmt.Errorf("storing OAuth token for %s: %w", serverName, err)
 	}
 
@@ -208,7 +234,14 @@ func SaveTokenToDockerPass(ctx context.Context, serverName string, token *oauth2
 // Secrets Engine. The value is base64-encoded JSON of dcr.Client stored at
 // docker/mcp/oauth-dcr/{serverName}.
 func GetDCRClientFromDockerPass(ctx context.Context, serverName string) (dcr.Client, error) {
-	dcrID := secret.GetDCRKey(serverName)
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return dcr.Client{}, fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
+	dcrID, err := secret.GetDCRKey(serverID)
+	if err != nil {
+		return dcr.Client{}, err
+	}
 	env, err := secret.GetSecret(ctx, dcrID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return dcr.Client{}, fmt.Errorf("DCR client not found for %s", serverName)
@@ -239,6 +272,10 @@ func GetDCRClientFromDockerPass(ctx context.Context, serverName string) (dcr.Cli
 // JSON at docker/mcp/oauth-dcr/{serverName}. Used by the authorize flow for
 // community servers in Desktop mode.
 func SaveDCRClientToDockerPass(ctx context.Context, serverName string, client dcr.Client) error {
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
 	jsonData, err := json.Marshal(client)
 	if err != nil {
 		return fmt.Errorf("marshalling DCR client for %s: %w", serverName, err)
@@ -246,7 +283,7 @@ func SaveDCRClientToDockerPass(ctx context.Context, serverName string, client dc
 
 	encoded := base64.StdEncoding.EncodeToString(jsonData)
 
-	if err := secret.SetDCRClient(ctx, serverName, encoded); err != nil {
+	if err := secret.SetDCRClient(ctx, serverID, encoded); err != nil {
 		return fmt.Errorf("storing DCR client for %s: %w", serverName, err)
 	}
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
@@ -70,7 +71,7 @@ func (c *remoteMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParam
 		} else {
 			// Fall back to secrets engine (Docker Desktop direct API)
 			if verbose {
-				log.Logf("    - Fetching secret: %s", secret.GetDefaultSecretKey(s.Name))
+				log.Logf("    - Fetching secret: %s", s.Name)
 			}
 			env[s.Env] = getSecretValue(ctx, s.Name)
 			if verbose {
@@ -180,12 +181,17 @@ func (c *remoteMCPClient) AddRoots(roots []*mcp.Root) {
 }
 
 func getSecretValue(ctx context.Context, secretName string) string {
-	if err := secret.ValidateSecretName(secretName); err != nil {
+	id, err := seclient.ParseID(secretName)
+	if err != nil {
 		log.Logf("Warning: skipping secret with invalid name %q: %v", secretName, err)
 		return ""
 	}
-	fullID := secret.GetDefaultSecretKey(secretName)
-	env, err := secret.GetSecret(ctx, fullID)
+	key, err := secret.GetDefaultSecretKey(id)
+	if err != nil {
+		log.Logf("Warning: skipping secret with invalid name %q: %v", secretName, err)
+		return ""
+	}
+	env, err := secret.GetSecret(ctx, key)
 	if err != nil {
 		return ""
 	}

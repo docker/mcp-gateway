@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/secrets-engine/client"
+
 	"github.com/docker/mcp-gateway/pkg/tui"
 )
 
@@ -56,5 +58,9 @@ func isDirectValueProvider(provider string) bool {
 }
 
 func Set(ctx context.Context, s Secret, _ SetOpts) error {
-	return setDefaultSecret(ctx, s.key, s.val)
+	id, err := client.ParseID(s.key)
+	if err != nil {
+		return fmt.Errorf("invalid secret name %q: %w", s.key, err)
+	}
+	return setDefaultSecret(ctx, id, s.val)
 }

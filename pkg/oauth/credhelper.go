@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
+	seclient "github.com/docker/secrets-engine/client"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/secret"
 	"github.com/docker/mcp-gateway/pkg/log"
@@ -134,7 +135,14 @@ func (h *CredentialHelper) getOAuthTokenCE(serverName string) (string, error) {
 // getOAuthTokenDesktop retrieves OAuth token in Desktop mode using Secrets Engine.
 // The Secrets Engine returns the raw access token directly (Go auto-decodes base64 into []byte).
 func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName string) (string, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+	serverID, err := seclient.ParseID(serverName)
+	if err != nil {
+		return "", fmt.Errorf("invalid server name %q: %w", serverName, err)
+	}
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return "", err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return "", fmt.Errorf("OAuth token not found for %s. Run 'docker mcp oauth authorize %s' to authenticate", serverName, serverName)
@@ -152,19 +160,20 @@ func (h *CredentialHelper) getOAuthTokenDesktop(ctx context.Context, serverName 
 
 // TokenExists checks if an OAuth token exists for the specified server.
 // Routes to the appropriate storage backend based on the resolved mode.
-func (h *CredentialHelper) TokenExists(ctx context.Context, serverName string) (bool, error) {
+func (h *CredentialHelper) TokenExists(ctx context.Context, serverID seclient.ID) (bool, error) {
 	switch h.resolveMode() {
 	case ModeCE:
-		return h.tokenExistsCE(serverName)
+		return h.tokenExistsCE(serverID)
 	case ModeCommunity:
-		return h.tokenExistsDockerPass(ctx, serverName)
+		return h.tokenExistsDockerPass(ctx, serverID)
 	default:
-		return h.tokenExistsDesktop(ctx, serverName)
+		return h.tokenExistsDesktop(ctx, serverID)
 	}
 }
 
 // tokenExistsCE checks if a token exists in the credential helper (CE mode).
-func (h *CredentialHelper) tokenExistsCE(serverName string) (bool, error) {
+func (h *CredentialHelper) tokenExistsCE(serverID seclient.ID) (bool, error) {
+	serverName := serverID.String()
 	dcrMgr := dcr.NewManager(h.credentialHelper, "")
 	client, err := dcrMgr.GetDCRClient(serverName)
 	if err != nil {
@@ -179,8 +188,11 @@ func (h *CredentialHelper) tokenExistsCE(serverName string) (bool, error) {
 }
 
 // tokenExistsDesktop checks if a token exists in the Secrets Engine (Desktop mode).
-func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverName string) (bool, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverID seclient.ID) (bool, error) {
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return false, err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return false, nil
@@ -196,22 +208,26 @@ func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverName st
 //   - CE: reads token JSON from credential helper, parses expiry
 //   - Desktop: queries Secrets Engine, reads ExpiryAt from response metadata
 //   - Community: reads token JSON from docker pass via Secrets Engine, parses expiry
-func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverName string) (TokenStatus, error) {
+func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverID seclient.ID) (TokenStatus, error) {
 	switch h.resolveMode() {
 	case ModeCE:
-		return h.getTokenStatusCE(serverName)
+		return h.getTokenStatusCE(serverID)
 	case ModeCommunity:
-		return h.getTokenStatusDockerPass(ctx, serverName)
+		return h.getTokenStatusDockerPass(ctx, serverID)
 	default:
-		return h.getTokenStatusDesktop(ctx, serverName)
+		return h.getTokenStatusDesktop(ctx, serverID)
 	}
 }
 
 // getTokenStatusDesktop retrieves token status in Desktop mode using Secrets Engine metadata.
 // The Secrets Engine response includes ExpiryAt and ExpiresIn in the metadata map,
 // added by Docker Desktop's OAuthCredential.Metadata() method.
-func (h *CredentialHelper) getTokenStatusDesktop(ctx context.Context, serverName string) (TokenStatus, error) {
-	oauthID := secret.GetOAuthKey(serverName)
+func (h *CredentialHelper) getTokenStatusDesktop(ctx context.Context, serverID seclient.ID) (TokenStatus, error) {
+	serverName := serverID.String()
+	oauthID, err := secret.GetOAuthKey(serverID)
+	if err != nil {
+		return TokenStatus{Valid: false}, err
+	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
 		return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
@@ -258,7 +274,8 @@ func (h *CredentialHelper) getTokenStatusDesktop(ctx context.Context, serverName
 
 // getTokenStatusCE retrieves token status in CE mode using the credential helper.
 // Reads the base64-encoded JSON token and parses the expiry field.
-func (h *CredentialHelper) getTokenStatusCE(serverName string) (TokenStatus, error) {
+func (h *CredentialHelper) getTokenStatusCE(serverID seclient.ID) (TokenStatus, error) {
+	serverName := serverID.String()
 	dcrMgr := dcr.NewManager(h.credentialHelper, "")
 	client, err := dcrMgr.GetDCRClient(serverName)
 	if err != nil {

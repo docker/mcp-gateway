@@ -35,10 +35,10 @@ func GetSecrets(ctx context.Context) ([]client.Envelope, error) {
 	return envelopes, nil
 }
 
-// GetSecret retrieves a single secret by its full key (e.g., "docker/mcp/oauth/github").
+// GetSecret retrieves a single secret by its full ID (e.g., "docker/mcp/oauth/github").
 // Returns ErrSecretNotFound if the secret does not exist.
-func GetSecret(ctx context.Context, key string) (*client.Envelope, error) {
-	pattern, err := client.ParsePattern(key)
+func GetSecret(ctx context.Context, id client.ID) (*client.Envelope, error) {
+	pattern, err := client.ParsePattern(id.String())
 	if err != nil {
 		return nil, err
 	}
