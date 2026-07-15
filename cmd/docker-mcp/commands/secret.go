@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	seclient "github.com/docker/secrets-engine/client"
+	"github.com/docker/secrets-engine/client/realms"
 	"github.com/spf13/cobra"
 
 	"github.com/docker/mcp-gateway/cmd/docker-mcp/secret-management/formatting"
@@ -43,25 +44,23 @@ func rmSecretCommand() *cobra.Command {
 			}
 
 			var errs []error
-			var ids []seclient.ID
 			if all {
 				listed, err := secret.List(cmd.Context())
 				if err != nil {
 					return err
 				}
-				ids = listed
-			} else {
-				for _, s := range args {
-					id, err := seclient.ParseID(s)
-					if err != nil {
-						errs = append(errs, fmt.Errorf("invalid secret name %q: %w", s, err))
-						continue
-					}
-					ids = append(ids, id)
+				for _, id := range filterAllDockerMCP(listed) {
+					errs = append(errs, secret.DeleteByID(cmd.Context(), id))
 				}
+				return errors.Join(errs...)
 			}
 
-			for _, id := range ids {
+			for _, s := range args {
+				id, err := seclient.ParseID(s)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("invalid secret name %q: %w", s, err))
+					continue
+				}
 				errs = append(errs, secret.DeleteDefaultSecret(cmd.Context(), id))
 			}
 			return errors.Join(errs...)
@@ -70,6 +69,17 @@ func rmSecretCommand() *cobra.Command {
 	flags := cmd.Flags()
 	flags.BoolVar(&all, "all", false, "Remove all secrets")
 	return cmd
+}
+
+// filterAllDockerMCP returns only the IDs within the default MCP realm (docker/mcp/**)
+func filterAllDockerMCP(ids []seclient.ID) []seclient.ID {
+	var out []seclient.ID
+	for _, id := range ids {
+		if id.Match(realms.DockerMCPDefault) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func validateRmArgs(args []string, all bool) error {

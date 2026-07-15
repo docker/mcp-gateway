@@ -89,6 +89,15 @@ func setDefaultSecret(ctx context.Context, id client.ID, value string) error {
 	return nil
 }
 
+// DeleteByID removes a secret from docker pass by its full ID, without any realm expansion.
+func DeleteByID(ctx context.Context, id client.ID) error {
+	out, err := cmd(ctx, "rm", id.String()).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("could not delete secret: %s\n%s\n%s", id.String(), bytes.TrimSpace(out), err)
+	}
+	return nil
+}
+
 // DeleteDefaultSecret removes a secret from the default realm (docker/mcp/**).
 func DeleteDefaultSecret(ctx context.Context, id client.ID) error {
 	key, err := GetDefaultSecretKey(id)
