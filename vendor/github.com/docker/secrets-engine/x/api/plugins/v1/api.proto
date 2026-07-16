@@ -16,9 +16,43 @@ edition = "2023";
 
 package plugins.v1;
 
+import "google/protobuf/duration.proto";
+
 option go_package = "github.com/docker/secrets-engine/x/api/plugins/v1;pluginsv1";
 
+service RegisterService {
+  // RegisterPlugin registers the plugin with the engine.
+  rpc RegisterPlugin(RegisterPluginRequest) returns (RegisterPluginResponse);
+}
 
+message RegisterPluginRequest {
+  // Name of the plugin to register.
+  string name = 1;
+  // Version of the plugin.
+  string version = 2;
+  // Type-specific fields
+  oneof metadata {
+    SecretsProvider secrets_provider = 3;
+  }
+}
+
+message RegisterPluginResponse {
+  // Name of the secrets engine is running in.
+  string engine_name = 1;
+  // Version of the runtime engine is running in.
+  string engine_version = 2;
+  // Configured request processing timeout in milliseconds.
+  google.protobuf.Duration request_timeout = 3;
+}
+
+service PluginService {
+  // Shutdown a plugin (let it know the runtime is going down).
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+}
+
+message ShutdownRequest {}
+
+message ShutdownResponse {}
 
 service PluginManagementService {
   // ListPlugins returns all plugins registered with the engine.

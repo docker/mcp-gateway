@@ -21,6 +21,10 @@ import (
 const _ = connect.IsAtLeastVersion1_13_0
 
 const (
+	// RegisterServiceName is the fully-qualified name of the RegisterService service.
+	RegisterServiceName = "plugins.v1.RegisterService"
+	// PluginServiceName is the fully-qualified name of the PluginService service.
+	PluginServiceName = "plugins.v1.PluginService"
 	// PluginManagementServiceName is the fully-qualified name of the PluginManagementService service.
 	PluginManagementServiceName = "plugins.v1.PluginManagementService"
 )
@@ -33,6 +37,11 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// RegisterServiceRegisterPluginProcedure is the fully-qualified name of the RegisterService's
+	// RegisterPlugin RPC.
+	RegisterServiceRegisterPluginProcedure = "/plugins.v1.RegisterService/RegisterPlugin"
+	// PluginServiceShutdownProcedure is the fully-qualified name of the PluginService's Shutdown RPC.
+	PluginServiceShutdownProcedure = "/plugins.v1.PluginService/Shutdown"
 	// PluginManagementServiceListPluginsProcedure is the fully-qualified name of the
 	// PluginManagementService's ListPlugins RPC.
 	PluginManagementServiceListPluginsProcedure = "/plugins.v1.PluginManagementService/ListPlugins"
@@ -43,6 +52,150 @@ const (
 	// PluginManagementService's DisablePlugin RPC.
 	PluginManagementServiceDisablePluginProcedure = "/plugins.v1.PluginManagementService/DisablePlugin"
 )
+
+// RegisterServiceClient is a client for the plugins.v1.RegisterService service.
+type RegisterServiceClient interface {
+	// RegisterPlugin registers the plugin with the engine.
+	RegisterPlugin(context.Context, *connect.Request[v1.RegisterPluginRequest]) (*connect.Response[v1.RegisterPluginResponse], error)
+}
+
+// NewRegisterServiceClient constructs a client for the plugins.v1.RegisterService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewRegisterServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RegisterServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	registerServiceMethods := v1.File_plugins_v1_api_proto.Services().ByName("RegisterService").Methods()
+	return &registerServiceClient{
+		registerPlugin: connect.NewClient[v1.RegisterPluginRequest, v1.RegisterPluginResponse](
+			httpClient,
+			baseURL+RegisterServiceRegisterPluginProcedure,
+			connect.WithSchema(registerServiceMethods.ByName("RegisterPlugin")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// registerServiceClient implements RegisterServiceClient.
+type registerServiceClient struct {
+	registerPlugin *connect.Client[v1.RegisterPluginRequest, v1.RegisterPluginResponse]
+}
+
+// RegisterPlugin calls plugins.v1.RegisterService.RegisterPlugin.
+func (c *registerServiceClient) RegisterPlugin(ctx context.Context, req *connect.Request[v1.RegisterPluginRequest]) (*connect.Response[v1.RegisterPluginResponse], error) {
+	return c.registerPlugin.CallUnary(ctx, req)
+}
+
+// RegisterServiceHandler is an implementation of the plugins.v1.RegisterService service.
+type RegisterServiceHandler interface {
+	// RegisterPlugin registers the plugin with the engine.
+	RegisterPlugin(context.Context, *connect.Request[v1.RegisterPluginRequest]) (*connect.Response[v1.RegisterPluginResponse], error)
+}
+
+// NewRegisterServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewRegisterServiceHandler(svc RegisterServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	registerServiceMethods := v1.File_plugins_v1_api_proto.Services().ByName("RegisterService").Methods()
+	registerServiceRegisterPluginHandler := connect.NewUnaryHandler(
+		RegisterServiceRegisterPluginProcedure,
+		svc.RegisterPlugin,
+		connect.WithSchema(registerServiceMethods.ByName("RegisterPlugin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/plugins.v1.RegisterService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case RegisterServiceRegisterPluginProcedure:
+			registerServiceRegisterPluginHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedRegisterServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedRegisterServiceHandler struct{}
+
+func (UnimplementedRegisterServiceHandler) RegisterPlugin(context.Context, *connect.Request[v1.RegisterPluginRequest]) (*connect.Response[v1.RegisterPluginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("plugins.v1.RegisterService.RegisterPlugin is not implemented"))
+}
+
+// PluginServiceClient is a client for the plugins.v1.PluginService service.
+type PluginServiceClient interface {
+	// Shutdown a plugin (let it know the runtime is going down).
+	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
+}
+
+// NewPluginServiceClient constructs a client for the plugins.v1.PluginService service. By default,
+// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
+// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
+// or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewPluginServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PluginServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	pluginServiceMethods := v1.File_plugins_v1_api_proto.Services().ByName("PluginService").Methods()
+	return &pluginServiceClient{
+		shutdown: connect.NewClient[v1.ShutdownRequest, v1.ShutdownResponse](
+			httpClient,
+			baseURL+PluginServiceShutdownProcedure,
+			connect.WithSchema(pluginServiceMethods.ByName("Shutdown")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// pluginServiceClient implements PluginServiceClient.
+type pluginServiceClient struct {
+	shutdown *connect.Client[v1.ShutdownRequest, v1.ShutdownResponse]
+}
+
+// Shutdown calls plugins.v1.PluginService.Shutdown.
+func (c *pluginServiceClient) Shutdown(ctx context.Context, req *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
+	return c.shutdown.CallUnary(ctx, req)
+}
+
+// PluginServiceHandler is an implementation of the plugins.v1.PluginService service.
+type PluginServiceHandler interface {
+	// Shutdown a plugin (let it know the runtime is going down).
+	Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error)
+}
+
+// NewPluginServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewPluginServiceHandler(svc PluginServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	pluginServiceMethods := v1.File_plugins_v1_api_proto.Services().ByName("PluginService").Methods()
+	pluginServiceShutdownHandler := connect.NewUnaryHandler(
+		PluginServiceShutdownProcedure,
+		svc.Shutdown,
+		connect.WithSchema(pluginServiceMethods.ByName("Shutdown")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/plugins.v1.PluginService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case PluginServiceShutdownProcedure:
+			pluginServiceShutdownHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedPluginServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedPluginServiceHandler struct{}
+
+func (UnimplementedPluginServiceHandler) Shutdown(context.Context, *connect.Request[v1.ShutdownRequest]) (*connect.Response[v1.ShutdownResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("plugins.v1.PluginService.Shutdown is not implemented"))
+}
 
 // PluginManagementServiceClient is a client for the plugins.v1.PluginManagementService service.
 type PluginManagementServiceClient interface {
