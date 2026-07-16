@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !windows
+//go:build linux
 
 package api
 
 import (
+	"fmt"
 	"os"
-	"path/filepath"
 )
 
+// DaemonSocketPath returns the address of the daemon's listening socket.
+//
+// On Linux it is an abstract Unix domain socket: the address has a leading
+// "@", which Go's net package maps to a NUL byte, placing the socket in the
+// abstract namespace instead of on the filesystem.
+//
+// The address is namespaced by the user's UID so daemons run by different
+// users on the same host do not collide (the abstract namespace is shared per
+// network namespace, not per user as a filesystem path would be).
 func DaemonSocketPath() string {
-	if dir, err := os.UserCacheDir(); err == nil {
-		return filepath.Join(dir, "docker-secrets-engine", "daemon.sock")
-	}
-	return filepath.Join(os.TempDir(), "docker-secrets-engine", "daemon.sock")
+	return fmt.Sprintf("@docker-secrets-engine/%d/daemon.sock", os.Getuid())
 }
