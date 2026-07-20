@@ -35,7 +35,7 @@ group all {
 target "docker-metadata-action" {}
 
 target _base {
-  inherits = ["docker-metadata-action"]
+  inherits = ["_common", "docker-metadata-action"]
   output = ["type=docker"]
   platforms = ["linux/arm64", "linux/amd64"]
   attest = [

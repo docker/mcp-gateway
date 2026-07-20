@@ -1,4 +1,5 @@
 MODULE := $(shell sh -c "awk '/^module/ { print \$$2 }' go.mod")
+GO_VERSION := $(shell sh -c "awk '/^go / { print \$$2 }' go.mod")
 GIT_TAG ?= $(shell git describe --tags --exact-match HEAD 2>/dev/null || git rev-parse HEAD)
 DEV_VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")-dev
 GO_LDFLAGS = -X $(MODULE)/cmd/docker-mcp/version.Version=$(GIT_TAG)
@@ -14,7 +15,8 @@ else
 endif
 
 export GO_LDFLAGS
-DOCKER_BUILD_ARGS := --build-arg GO_LDFLAGS --build-arg DOCKER_MCP_PLUGIN_BINARY
+export GO_VERSION
+DOCKER_BUILD_ARGS := --build-arg GO_LDFLAGS --build-arg DOCKER_MCP_PLUGIN_BINARY --build-arg GO_VERSION
 
 format:
 	docker buildx build $(DOCKER_BUILD_ARGS) --target=format -o . .
