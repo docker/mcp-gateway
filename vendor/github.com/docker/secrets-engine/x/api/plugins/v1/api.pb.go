@@ -136,6 +136,15 @@ func (x *RegisterPluginRequest) GetSecretsProvider() *SecretsProvider {
 	return nil
 }
 
+func (x *RegisterPluginRequest) GetAccessControlModule() *AccessControlModule {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Metadata.(*registerPluginRequest_AccessControlModule); ok {
+			return x.AccessControlModule
+		}
+	}
+	return nil
+}
+
 func (x *RegisterPluginRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
@@ -152,6 +161,14 @@ func (x *RegisterPluginRequest) SetSecretsProvider(v *SecretsProvider) {
 		return
 	}
 	x.xxx_hidden_Metadata = &registerPluginRequest_SecretsProvider{v}
+}
+
+func (x *RegisterPluginRequest) SetAccessControlModule(v *AccessControlModule) {
+	if v == nil {
+		x.xxx_hidden_Metadata = nil
+		return
+	}
+	x.xxx_hidden_Metadata = &registerPluginRequest_AccessControlModule{v}
 }
 
 func (x *RegisterPluginRequest) HasName() bool {
@@ -183,6 +200,14 @@ func (x *RegisterPluginRequest) HasSecretsProvider() bool {
 	return ok
 }
 
+func (x *RegisterPluginRequest) HasAccessControlModule() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Metadata.(*registerPluginRequest_AccessControlModule)
+	return ok
+}
+
 func (x *RegisterPluginRequest) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -203,8 +228,15 @@ func (x *RegisterPluginRequest) ClearSecretsProvider() {
 	}
 }
 
+func (x *RegisterPluginRequest) ClearAccessControlModule() {
+	if _, ok := x.xxx_hidden_Metadata.(*registerPluginRequest_AccessControlModule); ok {
+		x.xxx_hidden_Metadata = nil
+	}
+}
+
 const RegisterPluginRequest_Metadata_not_set_case case_RegisterPluginRequest_Metadata = 0
 const RegisterPluginRequest_SecretsProvider_case case_RegisterPluginRequest_Metadata = 3
+const RegisterPluginRequest_AccessControlModule_case case_RegisterPluginRequest_Metadata = 4
 
 func (x *RegisterPluginRequest) WhichMetadata() case_RegisterPluginRequest_Metadata {
 	if x == nil {
@@ -213,6 +245,8 @@ func (x *RegisterPluginRequest) WhichMetadata() case_RegisterPluginRequest_Metad
 	switch x.xxx_hidden_Metadata.(type) {
 	case *registerPluginRequest_SecretsProvider:
 		return RegisterPluginRequest_SecretsProvider_case
+	case *registerPluginRequest_AccessControlModule:
+		return RegisterPluginRequest_AccessControlModule_case
 	default:
 		return RegisterPluginRequest_Metadata_not_set_case
 	}
@@ -228,7 +262,8 @@ type RegisterPluginRequest_builder struct {
 	// Type-specific fields
 
 	// Fields of oneof xxx_hidden_Metadata:
-	SecretsProvider *SecretsProvider
+	SecretsProvider     *SecretsProvider
+	AccessControlModule *AccessControlModule
 	// -- end of xxx_hidden_Metadata
 }
 
@@ -246,6 +281,9 @@ func (b0 RegisterPluginRequest_builder) Build() *RegisterPluginRequest {
 	}
 	if b.SecretsProvider != nil {
 		x.xxx_hidden_Metadata = &registerPluginRequest_SecretsProvider{b.SecretsProvider}
+	}
+	if b.AccessControlModule != nil {
+		x.xxx_hidden_Metadata = &registerPluginRequest_AccessControlModule{b.AccessControlModule}
 	}
 	return m0
 }
@@ -268,7 +306,13 @@ type registerPluginRequest_SecretsProvider struct {
 	SecretsProvider *SecretsProvider `protobuf:"bytes,3,opt,name=secrets_provider,json=secretsProvider,oneof"`
 }
 
+type registerPluginRequest_AccessControlModule struct {
+	AccessControlModule *AccessControlModule `protobuf:"bytes,4,opt,name=access_control_module,json=accessControlModule,oneof"`
+}
+
 func (*registerPluginRequest_SecretsProvider) isRegisterPluginRequest_Metadata() {}
+
+func (*registerPluginRequest_AccessControlModule) isRegisterPluginRequest_Metadata() {}
 
 type RegisterPluginResponse struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
@@ -605,6 +649,15 @@ func (x *Plugin) GetSecretsProvider() *SecretsProvider {
 	return nil
 }
 
+func (x *Plugin) GetAccessControlModule() *AccessControlModule {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Metadata.(*plugin_AccessControlModule); ok {
+			return x.AccessControlModule
+		}
+	}
+	return nil
+}
+
 func (x *Plugin) SetName(v string) {
 	x.xxx_hidden_Name = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
@@ -646,6 +699,14 @@ func (x *Plugin) SetSecretsProvider(v *SecretsProvider) {
 		return
 	}
 	x.xxx_hidden_Metadata = &plugin_SecretsProvider{v}
+}
+
+func (x *Plugin) SetAccessControlModule(v *AccessControlModule) {
+	if v == nil {
+		x.xxx_hidden_Metadata = nil
+		return
+	}
+	x.xxx_hidden_Metadata = &plugin_AccessControlModule{v}
 }
 
 func (x *Plugin) HasName() bool {
@@ -712,6 +773,14 @@ func (x *Plugin) HasSecretsProvider() bool {
 	return ok
 }
 
+func (x *Plugin) HasAccessControlModule() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Metadata.(*plugin_AccessControlModule)
+	return ok
+}
+
 func (x *Plugin) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -757,8 +826,15 @@ func (x *Plugin) ClearSecretsProvider() {
 	}
 }
 
+func (x *Plugin) ClearAccessControlModule() {
+	if _, ok := x.xxx_hidden_Metadata.(*plugin_AccessControlModule); ok {
+		x.xxx_hidden_Metadata = nil
+	}
+}
+
 const Plugin_Metadata_not_set_case case_Plugin_Metadata = 0
 const Plugin_SecretsProvider_case case_Plugin_Metadata = 8
+const Plugin_AccessControlModule_case case_Plugin_Metadata = 9
 
 func (x *Plugin) WhichMetadata() case_Plugin_Metadata {
 	if x == nil {
@@ -767,6 +843,8 @@ func (x *Plugin) WhichMetadata() case_Plugin_Metadata {
 	switch x.xxx_hidden_Metadata.(type) {
 	case *plugin_SecretsProvider:
 		return Plugin_SecretsProvider_case
+	case *plugin_AccessControlModule:
+		return Plugin_AccessControlModule_case
 	default:
 		return Plugin_Metadata_not_set_case
 	}
@@ -794,7 +872,8 @@ type Plugin_builder struct {
 	// Type-specific fields
 
 	// Fields of oneof xxx_hidden_Metadata:
-	SecretsProvider *SecretsProvider
+	SecretsProvider     *SecretsProvider
+	AccessControlModule *AccessControlModule
 	// -- end of xxx_hidden_Metadata
 }
 
@@ -833,6 +912,9 @@ func (b0 Plugin_builder) Build() *Plugin {
 	if b.SecretsProvider != nil {
 		x.xxx_hidden_Metadata = &plugin_SecretsProvider{b.SecretsProvider}
 	}
+	if b.AccessControlModule != nil {
+		x.xxx_hidden_Metadata = &plugin_AccessControlModule{b.AccessControlModule}
+	}
 	return m0
 }
 
@@ -854,7 +936,13 @@ type plugin_SecretsProvider struct {
 	SecretsProvider *SecretsProvider `protobuf:"bytes,8,opt,name=secrets_provider,json=secretsProvider,oneof"`
 }
 
+type plugin_AccessControlModule struct {
+	AccessControlModule *AccessControlModule `protobuf:"bytes,9,opt,name=access_control_module,json=accessControlModule,oneof"`
+}
+
 func (*plugin_SecretsProvider) isPlugin_Metadata() {}
+
+func (*plugin_AccessControlModule) isPlugin_Metadata() {}
 
 type SecretsProvider struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
@@ -935,6 +1023,49 @@ func (b0 SecretsProvider_builder) Build() *SecretsProvider {
 	return m0
 }
 
+type AccessControlModule struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccessControlModule) Reset() {
+	*x = AccessControlModule{}
+	mi := &file_plugins_v1_api_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessControlModule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessControlModule) ProtoMessage() {}
+
+func (x *AccessControlModule) ProtoReflect() protoreflect.Message {
+	mi := &file_plugins_v1_api_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type AccessControlModule_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 AccessControlModule_builder) Build() *AccessControlModule {
+	m0 := &AccessControlModule{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
 type ListPluginsRequest struct {
 	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -943,7 +1074,7 @@ type ListPluginsRequest struct {
 
 func (x *ListPluginsRequest) Reset() {
 	*x = ListPluginsRequest{}
-	mi := &file_plugins_v1_api_proto_msgTypes[6]
+	mi := &file_plugins_v1_api_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -955,7 +1086,7 @@ func (x *ListPluginsRequest) String() string {
 func (*ListPluginsRequest) ProtoMessage() {}
 
 func (x *ListPluginsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[6]
+	mi := &file_plugins_v1_api_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -987,7 +1118,7 @@ type ListPluginsResponse struct {
 
 func (x *ListPluginsResponse) Reset() {
 	*x = ListPluginsResponse{}
-	mi := &file_plugins_v1_api_proto_msgTypes[7]
+	mi := &file_plugins_v1_api_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -999,7 +1130,7 @@ func (x *ListPluginsResponse) String() string {
 func (*ListPluginsResponse) ProtoMessage() {}
 
 func (x *ListPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[7]
+	mi := &file_plugins_v1_api_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1048,7 +1179,7 @@ type EnablePluginRequest struct {
 
 func (x *EnablePluginRequest) Reset() {
 	*x = EnablePluginRequest{}
-	mi := &file_plugins_v1_api_proto_msgTypes[8]
+	mi := &file_plugins_v1_api_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1060,7 +1191,7 @@ func (x *EnablePluginRequest) String() string {
 func (*EnablePluginRequest) ProtoMessage() {}
 
 func (x *EnablePluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[8]
+	mi := &file_plugins_v1_api_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1123,7 +1254,7 @@ type EnablePluginResponse struct {
 
 func (x *EnablePluginResponse) Reset() {
 	*x = EnablePluginResponse{}
-	mi := &file_plugins_v1_api_proto_msgTypes[9]
+	mi := &file_plugins_v1_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1266,7 @@ func (x *EnablePluginResponse) String() string {
 func (*EnablePluginResponse) ProtoMessage() {}
 
 func (x *EnablePluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[9]
+	mi := &file_plugins_v1_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1169,7 +1300,7 @@ type DisablePluginRequest struct {
 
 func (x *DisablePluginRequest) Reset() {
 	*x = DisablePluginRequest{}
-	mi := &file_plugins_v1_api_proto_msgTypes[10]
+	mi := &file_plugins_v1_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1181,7 +1312,7 @@ func (x *DisablePluginRequest) String() string {
 func (*DisablePluginRequest) ProtoMessage() {}
 
 func (x *DisablePluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[10]
+	mi := &file_plugins_v1_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1244,7 +1375,7 @@ type DisablePluginResponse struct {
 
 func (x *DisablePluginResponse) Reset() {
 	*x = DisablePluginResponse{}
-	mi := &file_plugins_v1_api_proto_msgTypes[11]
+	mi := &file_plugins_v1_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1256,7 +1387,7 @@ func (x *DisablePluginResponse) String() string {
 func (*DisablePluginResponse) ProtoMessage() {}
 
 func (x *DisablePluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plugins_v1_api_proto_msgTypes[11]
+	mi := &file_plugins_v1_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1284,11 +1415,12 @@ var File_plugins_v1_api_proto protoreflect.FileDescriptor
 const file_plugins_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"\x14plugins/v1/api.proto\x12\n" +
-	"plugins.v1\x1a\x1egoogle/protobuf/duration.proto\"\x9b\x01\n" +
+	"plugins.v1\x1a\x1egoogle/protobuf/duration.proto\"\xf2\x01\n" +
 	"\x15RegisterPluginRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12H\n" +
-	"\x10secrets_provider\x18\x03 \x01(\v2\x1b.plugins.v1.SecretsProviderH\x00R\x0fsecretsProviderB\n" +
+	"\x10secrets_provider\x18\x03 \x01(\v2\x1b.plugins.v1.SecretsProviderH\x00R\x0fsecretsProvider\x12U\n" +
+	"\x15access_control_module\x18\x04 \x01(\v2\x1f.plugins.v1.AccessControlModuleH\x00R\x13accessControlModuleB\n" +
 	"\n" +
 	"\bmetadata\"\xa4\x01\n" +
 	"\x16RegisterPluginResponse\x12\x1f\n" +
@@ -1297,7 +1429,7 @@ const file_plugins_v1_api_proto_rawDesc = "" +
 	"\x0eengine_version\x18\x02 \x01(\tR\rengineVersion\x12B\n" +
 	"\x0frequest_timeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x0erequestTimeout\"\x11\n" +
 	"\x0fShutdownRequest\"\x12\n" +
-	"\x10ShutdownResponse\"\xc5\x02\n" +
+	"\x10ShutdownResponse\"\x9c\x03\n" +
 	"\x06Plugin\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12\x1a\n" +
@@ -1307,11 +1439,13 @@ const file_plugins_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"run_status\x18\x06 \x01(\x0e2\x15.plugins.v1.RunStatusR\trunStatus\x12%\n" +
 	"\x0estatus_message\x18\a \x01(\tR\rstatusMessage\x12H\n" +
-	"\x10secrets_provider\x18\b \x01(\v2\x1b.plugins.v1.SecretsProviderH\x00R\x0fsecretsProviderB\n" +
+	"\x10secrets_provider\x18\b \x01(\v2\x1b.plugins.v1.SecretsProviderH\x00R\x0fsecretsProvider\x12U\n" +
+	"\x15access_control_module\x18\t \x01(\v2\x1f.plugins.v1.AccessControlModuleH\x00R\x13accessControlModuleB\n" +
 	"\n" +
 	"\bmetadata\"+\n" +
 	"\x0fSecretsProvider\x12\x18\n" +
-	"\apattern\x18\x01 \x01(\tR\apattern\"\x14\n" +
+	"\apattern\x18\x01 \x01(\tR\apattern\"\x15\n" +
+	"\x13AccessControlModule\"\x14\n" +
 	"\x12ListPluginsRequest\"C\n" +
 	"\x13ListPluginsResponse\x12,\n" +
 	"\aplugins\x18\x01 \x03(\v2\x12.plugins.v1.PluginR\aplugins\")\n" +
@@ -1340,7 +1474,7 @@ const file_plugins_v1_api_proto_rawDesc = "" +
 	"Plugins\\V1\xe2\x02\x16Plugins\\V1\\GPBMetadata\xea\x02\vPlugins::V1b\beditionsp\xe8\a"
 
 var file_plugins_v1_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_plugins_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_plugins_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_plugins_v1_api_proto_goTypes = []any{
 	(RunStatus)(0),                 // 0: plugins.v1.RunStatus
 	(*RegisterPluginRequest)(nil),  // 1: plugins.v1.RegisterPluginRequest
@@ -1349,35 +1483,38 @@ var file_plugins_v1_api_proto_goTypes = []any{
 	(*ShutdownResponse)(nil),       // 4: plugins.v1.ShutdownResponse
 	(*Plugin)(nil),                 // 5: plugins.v1.Plugin
 	(*SecretsProvider)(nil),        // 6: plugins.v1.SecretsProvider
-	(*ListPluginsRequest)(nil),     // 7: plugins.v1.ListPluginsRequest
-	(*ListPluginsResponse)(nil),    // 8: plugins.v1.ListPluginsResponse
-	(*EnablePluginRequest)(nil),    // 9: plugins.v1.EnablePluginRequest
-	(*EnablePluginResponse)(nil),   // 10: plugins.v1.EnablePluginResponse
-	(*DisablePluginRequest)(nil),   // 11: plugins.v1.DisablePluginRequest
-	(*DisablePluginResponse)(nil),  // 12: plugins.v1.DisablePluginResponse
-	(*durationpb.Duration)(nil),    // 13: google.protobuf.Duration
+	(*AccessControlModule)(nil),    // 7: plugins.v1.AccessControlModule
+	(*ListPluginsRequest)(nil),     // 8: plugins.v1.ListPluginsRequest
+	(*ListPluginsResponse)(nil),    // 9: plugins.v1.ListPluginsResponse
+	(*EnablePluginRequest)(nil),    // 10: plugins.v1.EnablePluginRequest
+	(*EnablePluginResponse)(nil),   // 11: plugins.v1.EnablePluginResponse
+	(*DisablePluginRequest)(nil),   // 12: plugins.v1.DisablePluginRequest
+	(*DisablePluginResponse)(nil),  // 13: plugins.v1.DisablePluginResponse
+	(*durationpb.Duration)(nil),    // 14: google.protobuf.Duration
 }
 var file_plugins_v1_api_proto_depIdxs = []int32{
 	6,  // 0: plugins.v1.RegisterPluginRequest.secrets_provider:type_name -> plugins.v1.SecretsProvider
-	13, // 1: plugins.v1.RegisterPluginResponse.request_timeout:type_name -> google.protobuf.Duration
-	0,  // 2: plugins.v1.Plugin.run_status:type_name -> plugins.v1.RunStatus
-	6,  // 3: plugins.v1.Plugin.secrets_provider:type_name -> plugins.v1.SecretsProvider
-	5,  // 4: plugins.v1.ListPluginsResponse.plugins:type_name -> plugins.v1.Plugin
-	1,  // 5: plugins.v1.RegisterService.RegisterPlugin:input_type -> plugins.v1.RegisterPluginRequest
-	3,  // 6: plugins.v1.PluginService.Shutdown:input_type -> plugins.v1.ShutdownRequest
-	7,  // 7: plugins.v1.PluginManagementService.ListPlugins:input_type -> plugins.v1.ListPluginsRequest
-	9,  // 8: plugins.v1.PluginManagementService.EnablePlugin:input_type -> plugins.v1.EnablePluginRequest
-	11, // 9: plugins.v1.PluginManagementService.DisablePlugin:input_type -> plugins.v1.DisablePluginRequest
-	2,  // 10: plugins.v1.RegisterService.RegisterPlugin:output_type -> plugins.v1.RegisterPluginResponse
-	4,  // 11: plugins.v1.PluginService.Shutdown:output_type -> plugins.v1.ShutdownResponse
-	8,  // 12: plugins.v1.PluginManagementService.ListPlugins:output_type -> plugins.v1.ListPluginsResponse
-	10, // 13: plugins.v1.PluginManagementService.EnablePlugin:output_type -> plugins.v1.EnablePluginResponse
-	12, // 14: plugins.v1.PluginManagementService.DisablePlugin:output_type -> plugins.v1.DisablePluginResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	7,  // 1: plugins.v1.RegisterPluginRequest.access_control_module:type_name -> plugins.v1.AccessControlModule
+	14, // 2: plugins.v1.RegisterPluginResponse.request_timeout:type_name -> google.protobuf.Duration
+	0,  // 3: plugins.v1.Plugin.run_status:type_name -> plugins.v1.RunStatus
+	6,  // 4: plugins.v1.Plugin.secrets_provider:type_name -> plugins.v1.SecretsProvider
+	7,  // 5: plugins.v1.Plugin.access_control_module:type_name -> plugins.v1.AccessControlModule
+	5,  // 6: plugins.v1.ListPluginsResponse.plugins:type_name -> plugins.v1.Plugin
+	1,  // 7: plugins.v1.RegisterService.RegisterPlugin:input_type -> plugins.v1.RegisterPluginRequest
+	3,  // 8: plugins.v1.PluginService.Shutdown:input_type -> plugins.v1.ShutdownRequest
+	8,  // 9: plugins.v1.PluginManagementService.ListPlugins:input_type -> plugins.v1.ListPluginsRequest
+	10, // 10: plugins.v1.PluginManagementService.EnablePlugin:input_type -> plugins.v1.EnablePluginRequest
+	12, // 11: plugins.v1.PluginManagementService.DisablePlugin:input_type -> plugins.v1.DisablePluginRequest
+	2,  // 12: plugins.v1.RegisterService.RegisterPlugin:output_type -> plugins.v1.RegisterPluginResponse
+	4,  // 13: plugins.v1.PluginService.Shutdown:output_type -> plugins.v1.ShutdownResponse
+	9,  // 14: plugins.v1.PluginManagementService.ListPlugins:output_type -> plugins.v1.ListPluginsResponse
+	11, // 15: plugins.v1.PluginManagementService.EnablePlugin:output_type -> plugins.v1.EnablePluginResponse
+	13, // 16: plugins.v1.PluginManagementService.DisablePlugin:output_type -> plugins.v1.DisablePluginResponse
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_plugins_v1_api_proto_init() }
@@ -1387,9 +1524,11 @@ func file_plugins_v1_api_proto_init() {
 	}
 	file_plugins_v1_api_proto_msgTypes[0].OneofWrappers = []any{
 		(*registerPluginRequest_SecretsProvider)(nil),
+		(*registerPluginRequest_AccessControlModule)(nil),
 	}
 	file_plugins_v1_api_proto_msgTypes[4].OneofWrappers = []any{
 		(*plugin_SecretsProvider)(nil),
+		(*plugin_AccessControlModule)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1397,7 +1536,7 @@ func file_plugins_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plugins_v1_api_proto_rawDesc), len(file_plugins_v1_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   3,
 		},

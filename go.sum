@@ -252,8 +252,8 @@ github.com/docker/mcp-gateway-oauth-helpers v0.0.3 h1:TgXk/DFaXFYpDhduN3l7LCjdjo
 github.com/docker/mcp-gateway-oauth-helpers v0.0.3/go.mod h1:IK0jk+ZNYW/yy5yotveLFcU9Jgk3pMpNasX4X1hheZM=
 github.com/docker/secrets-engine/client v0.0.29 h1:p0AiCt0z6hHy8HkIytO6xOvEbjxSIxAkSsVnbDB3buU=
 github.com/docker/secrets-engine/client v0.0.29/go.mod h1:XN+LocEipZjLx4rmH6iJ3Yb3WsURMe4Xm0/bcExgwb8=
-github.com/docker/secrets-engine/x v0.1.0-do.not.use h1:QdU0U0THSiGT+aZx1spWe94x9mpZNnYVRBvZ98Tmric=
-github.com/docker/secrets-engine/x v0.1.0-do.not.use/go.mod h1:DLOw4aFtjHtsvGNR3C0oFFwX7ydODEEdBNcmhyltcDE=
+github.com/docker/secrets-engine/x v0.2.2-do.not.use h1:Xzd+dcp3/3HeWYleAXe+XfgyO276gV4d9Lzjzr1RLsI=
+github.com/docker/secrets-engine/x v0.2.2-do.not.use/go.mod h1:SlDnovWVw6T4E1471sFtsJ/dY1MPqirfsaZVEi2Gd6c=
 github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6 h1:6dE1TmjqkY6tehR4A67gDNhvDtuZ54ocu7ab4K9o540=
 github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6/go.mod h1:MxLav0peU43GgvwVgNbLAj1s/bSGboKkhuULvq/7hx4=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

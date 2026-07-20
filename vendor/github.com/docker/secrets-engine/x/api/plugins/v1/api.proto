@@ -33,6 +33,7 @@ message RegisterPluginRequest {
   // Type-specific fields
   oneof metadata {
     SecretsProvider secrets_provider = 3;
+    AccessControlModule access_control_module = 4;
   }
 }
 
@@ -91,6 +92,7 @@ message Plugin {
   // Type-specific fields
   oneof metadata {
     SecretsProvider secrets_provider = 8;
+    AccessControlModule access_control_module = 9;
   }
 }
 
@@ -98,6 +100,8 @@ message SecretsProvider {
   // Pattern
   string pattern = 1;
 }
+
+message AccessControlModule {}
 
 message ListPluginsRequest {}
 

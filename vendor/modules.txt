@@ -167,8 +167,8 @@ github.com/docker/mcp-gateway-oauth-helpers
 ## explicit; go 1.25.11
 github.com/docker/secrets-engine/client
 github.com/docker/secrets-engine/client/realms
-# github.com/docker/secrets-engine/x v0.1.0-do.not.use
-## explicit; go 1.25.11
+# github.com/docker/secrets-engine/x v0.2.2-do.not.use
+## explicit; go 1.25.12
 github.com/docker/secrets-engine/x/api
 github.com/docker/secrets-engine/x/api/health/v1
 github.com/docker/secrets-engine/x/api/health/v1/healthv1connect
