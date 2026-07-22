@@ -259,12 +259,15 @@ func (c client) ListPlugins(ctx context.Context) ([]PluginInfo, error) {
 			RunStatus:     item.GetRunStatus(),
 			StatusMessage: item.GetStatusMessage(),
 		}
-		if sp := item.GetSecretsProvider(); sp != nil {
-			pattern, err := secrets.ParsePattern(sp.GetPattern())
+		switch item.WhichMetadata() {
+		case pluginsv1.Plugin_SecretsProvider_case:
+			pattern, err := secrets.ParsePattern(item.GetSecretsProvider().GetPattern())
 			if err != nil {
 				continue
 			}
 			info.SecretsProvider = &SecretsProviderMetadata{Pattern: pattern}
+		case pluginsv1.Plugin_AccessControlModule_case:
+			info.AccessControlModule = &AccessControlModuleMetadata{}
 		}
 		result = append(result, info)
 	}
@@ -292,15 +295,18 @@ func (c client) DisablePlugin(ctx context.Context, name string) error {
 }
 
 type PluginInfo struct {
-	Name            api.Name
-	Version         api.Version
-	Disabled        bool
-	External        bool
-	Configurable    bool
-	RunStatus       pluginsv1.RunStatus
-	StatusMessage   string
-	SecretsProvider *SecretsProviderMetadata
+	Name                api.Name
+	Version             api.Version
+	Disabled            bool
+	External            bool
+	Configurable        bool
+	RunStatus           pluginsv1.RunStatus
+	StatusMessage       string
+	SecretsProvider     *SecretsProviderMetadata
+	AccessControlModule *AccessControlModuleMetadata
 }
+
+type AccessControlModuleMetadata struct{}
 
 type SecretsProviderMetadata struct {
 	Pattern secrets.Pattern
