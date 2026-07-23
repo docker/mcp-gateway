@@ -912,3 +912,45 @@ func TestStdioClientInitialization(t *testing.T) {
 
 	t.Logf("Successfully initialized stdio client and retrieved %d tools", len(tools.Tools))
 }
+
+func TestInvalidateKeptClient_RemovesMatchingSession(t *testing.T) {
+	session := &mcp.ServerSession{}
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	getter := &clientGetter{}
+	getter.once.Do(func() {})
+	getter.err = fmt.Errorf("mock: no real client")
+
+	serverConfig := &catalog.ServerConfig{
+		Name: "remote-svc",
+		Spec: catalog.Server{
+			Type:   "remote",
+			Remote: catalog.Remote{URL: "https://mcp.example.com/mcp"},
+		},
+	}
+	key := clientKey{serverName: "remote-svc", session: session}
+	cp.keptClients[key] = keptClient{
+		Name:   "remote-svc",
+		Getter: getter,
+		Config: serverConfig,
+	}
+
+	cp.InvalidateKeptClient(serverConfig, &clientConfig{serverSession: session})
+
+	assert.Empty(t, cp.keptClients)
+}
+
+func TestInvalidateKeptClient_SkipsNilSession(t *testing.T) {
+	cp := &clientPool{
+		keptClients: map[clientKey]keptClient{
+			{serverName: "remote-svc"}: {},
+		},
+	}
+
+	serverConfig := &catalog.ServerConfig{Name: "remote-svc"}
+	cp.InvalidateKeptClient(serverConfig, nil)
+
+	assert.Len(t, cp.keptClients, 1)
+}
