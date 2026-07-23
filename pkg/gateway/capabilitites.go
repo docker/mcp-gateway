@@ -164,6 +164,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 
 					// Determine the prefix to use for this server's tools
 					prefix := g.getToolNamePrefix(serverConfig)
+					exposedToolNames := make(map[string]struct{})
 
 					for _, tool := range tools.Tools {
 						if !isToolEnabled(g.configuration, serverConfig.Name, serverConfig.Spec.Image, tool.Name, g.ToolNames) {
@@ -172,7 +173,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 
 						// Create a copy of the tool and apply prefix to its name
 						prefixedTool := *tool
-						prefixedTool.Name = prefixToolName(prefix, tool.Name)
+						prefixedTool.Name = uniqueExposeToolName(prefix, tool.Name, exposedToolNames)
 
 						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
 							ServerName: serverConfig.Name,
@@ -258,6 +259,8 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				prefix = serverName
 			}
 
+			exposedToolNames := make(map[string]struct{})
+
 			for _, tool := range *toolGroup {
 				if !isToolEnabled(g.configuration, serverName, "", tool.Name, g.ToolNames) {
 					continue
@@ -277,7 +280,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				}
 
 				mcpTool := mcp.Tool{
-					Name:        prefixToolName(prefix, tool.Name),
+					Name:        uniqueExposeToolName(prefix, tool.Name, exposedToolNames),
 					Description: tool.Description,
 					InputSchema: schema,
 				}
