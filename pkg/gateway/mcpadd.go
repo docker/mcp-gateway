@@ -90,11 +90,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}
 		}
 
-		// Append the new server to the current serverNames if not already present
 		alreadyEnabled := slices.Contains(g.configuration.serverNames, serverName)
-		if !alreadyEnabled {
-			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
-		}
 
 		// Check if all required secrets are set
 		var missingSecrets []string
@@ -102,8 +98,9 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		if serverConfig != nil && len(serverConfig.Spec.Secrets) > 0 {
 			// BuildSecretsURIs only includes secrets that exist in Secrets Engine
 			configs := []ServerSecretConfig{{
-				Secrets: serverConfig.Spec.Secrets,
-				OAuth:   serverConfig.Spec.OAuth,
+				Secrets:                serverConfig.Spec.Secrets,
+				OAuth:                  serverConfig.Spec.OAuth,
+				RequireVerifiedSecrets: localLongLivedServer(serverConfig.Spec, g.LongLived),
 			}}
 			availableSecrets = BuildSecretsURIs(ctx, configs)
 
@@ -211,6 +208,12 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 						serverName, strings.Join(missingItems, " and "), strings.Join(instructions, "\n")),
 				}},
 			}, nil
+		}
+
+		// Append the new server after validating required inputs so failed add
+		// attempts do not leave it enabled in memory.
+		if !slices.Contains(g.configuration.serverNames, serverName) {
+			g.configuration.serverNames = append(g.configuration.serverNames, serverName)
 		}
 
 		// Merge available secrets into configuration so container creation can find them.
