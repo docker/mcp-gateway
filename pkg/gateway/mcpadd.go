@@ -176,10 +176,12 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 
 		// If secrets or config are missing, handle based on client type
 		if len(missingSecrets) > 0 || len(missingConfig) > 0 {
-			// Safely determine client name (InitializeParams may be nil for some transports)
+			// Safely determine client name (session or InitializeParams may be nil)
 			clientName := ""
-			if init := req.Session.InitializeParams(); init != nil && init.ClientInfo != nil {
-				clientName = init.ClientInfo.Name
+			if req.Session != nil {
+				if init := req.Session.InitializeParams(); init != nil && init.ClientInfo != nil {
+					clientName = init.ClientInfo.Name
+				}
 			}
 
 			if clientName == "nanobot" && len(missingSecrets) > 0 {
@@ -318,12 +320,15 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		if g.McpOAuthDcrEnabled &&
 			serverConfig != nil &&
 			serverConfig.IsRemote() {
-
-			init := req.Session.InitializeParams()
-			if init != nil &&
-				init.Capabilities != nil &&
-				init.Capabilities.Elicitation != nil {
-
+			shouldHandleOAuth := req.Session == nil
+			if !shouldHandleOAuth {
+				if init := req.Session.InitializeParams(); init != nil &&
+					init.Capabilities != nil &&
+					init.Capabilities.Elicitation != nil {
+					shouldHandleOAuth = true
+				}
+			}
+			if shouldHandleOAuth {
 				authorized, oauthText := g.getRemoteOAuthServerStatus(
 					ctx,
 					serverName,
@@ -516,10 +521,10 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 	}
 
 	// Proceed with elicitation only if the client supports it
-	init := req.Session.InitializeParams()
-	if init != nil &&
-		init.Capabilities != nil &&
-		init.Capabilities.Elicitation != nil {
+	if req.Session != nil {
+		if init := req.Session.InitializeParams(); init != nil &&
+			init.Capabilities != nil &&
+			init.Capabilities.Elicitation != nil {
 		// Elicit a response from the client asking whether to open a browser for authorization
 		elicitResult, err := req.Session.Elicit(ctx, &mcp.ElicitParams{
 			Message: fmt.Sprintf("Would you like to open a browser to authorize the '%s' server?", serverName),
@@ -562,6 +567,7 @@ func (g *Gateway) getRemoteOAuthServerStatus(ctx context.Context, serverName str
 		}
 
 		return true, fmt.Sprintf("Successfully added server '%s'. Authorization completed.", serverName)
+		}
 	}
 
 	// Check if user is already authorized by checking if token exists (only if provider exists)
