@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"sync"
 
@@ -58,6 +59,10 @@ func NewClient(cli command.Cli) Client {
 }
 
 func RunningInDockerCE(ctx context.Context, dockerCli command.Cli) (bool, error) {
+	if os.Getenv("DOCKER_MCP_USE_CE") == "true" {
+		return true, nil
+	}
+
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		return false, nil
 	}

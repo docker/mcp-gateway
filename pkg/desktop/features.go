@@ -157,6 +157,11 @@ func IsRunningInDockerDesktop(ctx context.Context) bool {
 		return false
 	}
 
+	// Allow explicit CE mode override for non-Desktop Docker engines.
+	if os.Getenv("DOCKER_MCP_USE_CE") == "true" {
+		return false
+	}
+
 	// Always running in Docker Desktop on Windows and macOS
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		return true
