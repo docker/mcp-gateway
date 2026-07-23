@@ -163,11 +163,11 @@ github.com/docker/go-units
 # github.com/docker/mcp-gateway-oauth-helpers v0.0.3
 ## explicit; go 1.23.0
 github.com/docker/mcp-gateway-oauth-helpers
-# github.com/docker/secrets-engine/client v0.0.29
-## explicit; go 1.25.11
+# github.com/docker/secrets-engine/client v0.0.30
+## explicit; go 1.25.12
 github.com/docker/secrets-engine/client
 github.com/docker/secrets-engine/client/realms
-# github.com/docker/secrets-engine/x v0.2.1-do.not.use
+# github.com/docker/secrets-engine/x v0.2.2-do.not.use
 ## explicit; go 1.25.12
 github.com/docker/secrets-engine/x/api
 github.com/docker/secrets-engine/x/api/health/v1

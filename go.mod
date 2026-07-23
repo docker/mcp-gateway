@@ -12,8 +12,8 @@ require (
 	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/mcp-gateway-oauth-helpers v0.0.3
-	github.com/docker/secrets-engine/client v0.0.29
-	github.com/docker/secrets-engine/x v0.2.1-do.not.use
+	github.com/docker/secrets-engine/client v0.0.30
+	github.com/docker/secrets-engine/x v0.2.2-do.not.use
 	github.com/dop251/goja v0.0.0-20251008123653-cf18d89f3cf6
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-playground/validator/v10 v10.28.0
