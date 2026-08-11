@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -12,6 +13,34 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/policy"
 )
+
+func TestSanitizeMcpToolNameReplacesInvalidCharacters(t *testing.T) {
+	assert.Equal(t, "Husqvarna_Automowers_Status", sanitizeMcpToolName("Husqvarna Automowers Status"))
+	assert.Equal(t, "foo_bar_baz", sanitizeMcpToolName("foo:bar.baz"))
+	assert.Equal(t, "search", sanitizeMcpToolName("search"))
+}
+
+func TestSanitizeMcpToolNameEnforcesMaxLength(t *testing.T) {
+	longName := strings.Repeat("a", 80)
+	sanitized := sanitizeMcpToolName(longName)
+	require.Len(t, sanitized, maxMcpToolNameLength)
+	assert.Equal(t, strings.Repeat("a", maxMcpToolNameLength), sanitized)
+}
+
+func TestExposeToolNameAppliesPrefixAndSanitization(t *testing.T) {
+	assert.Equal(t, "husqvarna-automower__Husqvarna_Automowers_Status", exposeToolName("husqvarna-automower", "Husqvarna Automowers Status"))
+	assert.Equal(t, "Husqvarna_Automowers_Status", exposeToolName("", "Husqvarna Automowers Status"))
+}
+
+func TestUniqueExposeToolNameDedupesSanitizedCollisions(t *testing.T) {
+	seen := make(map[string]struct{})
+
+	first := uniqueExposeToolName("", "Foo Bar", seen)
+	second := uniqueExposeToolName("", "Foo_Bar", seen)
+
+	assert.Equal(t, "Foo_Bar", first)
+	assert.Equal(t, "Foo_Bar_2", second)
+}
 
 func TestValidateExternalToolNameCollisionsRejectsDuplicateBaseServers(t *testing.T) {
 	err := validateExternalToolNameCollisions([]ToolRegistration{

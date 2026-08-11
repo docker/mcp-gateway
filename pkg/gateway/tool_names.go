@@ -5,9 +5,17 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 )
+
+const maxMcpToolNameLength = 64
+
+var validMcpToolNameRune = map[rune]bool{
+	'_': true,
+	'-': true,
+}
 
 var (
 	errToolNameCollision       = errors.New("tool name collision")
@@ -115,6 +123,68 @@ func sortedToolRegistrations(registrations []ToolRegistration) []ToolRegistratio
 		return leftName < rightName
 	})
 	return sorted
+}
+
+// sanitizeMcpToolName normalizes upstream tool names to the MCP pattern
+// accepted by strict clients (^[a-zA-Z0-9_-]{1,64}$).
+func sanitizeMcpToolName(name string) string {
+	var b strings.Builder
+	b.Grow(len(name))
+
+	prevUnderscore := false
+	for _, r := range name {
+		valid := unicode.IsLetter(r) || unicode.IsDigit(r) || validMcpToolNameRune[r]
+		if valid {
+			b.WriteRune(r)
+			prevUnderscore = false
+			continue
+		}
+		if !prevUnderscore {
+			b.WriteRune('_')
+			prevUnderscore = true
+		}
+	}
+
+	s := strings.Trim(b.String(), "_")
+	if s == "" {
+		return "tool"
+	}
+	if len(s) > maxMcpToolNameLength {
+		s = strings.TrimRight(s[:maxMcpToolNameLength], "_")
+		if s == "" {
+			return "tool"
+		}
+	}
+	return s
+}
+
+// exposeToolName applies the configured prefix and sanitizes the exposed name.
+func exposeToolName(prefix, toolName string) string {
+	return sanitizeMcpToolName(prefixToolName(prefix, toolName))
+}
+
+// uniqueExposeToolName returns a sanitized exposed name that is unique within seen.
+func uniqueExposeToolName(prefix, toolName string, seen map[string]struct{}) string {
+	base := exposeToolName(prefix, toolName)
+	name := base
+	for i := 2; ; i++ {
+		if _, ok := seen[name]; !ok {
+			seen[name] = struct{}{}
+			return name
+		}
+
+		suffix := fmt.Sprintf("_%d", i)
+		maxBase := maxMcpToolNameLength - len(suffix)
+		trimmed := base
+		if len(trimmed) > maxBase {
+			trimmed = strings.TrimRight(trimmed[:maxBase], "_")
+		}
+		if trimmed == "" {
+			name = fmt.Sprintf("tool%s", suffix)
+			continue
+		}
+		name = trimmed + suffix
+	}
 }
 
 func toolOwner(registration ToolRegistration) string {
@@ -294,7 +364,7 @@ func (g *Gateway) catalogToolNameWarnings(serverName string, server catalog.Serv
 			continue
 		}
 
-		exposedName := prefixToolName(prefix, toolName)
+		exposedName := exposeToolName(prefix, toolName)
 		if previousRawName, ok := seen[exposedName]; ok {
 			warnings = append(warnings, fmt.Sprintf("tool %q would be exposed as %q, which duplicates tool %q in this server", toolName, exposedName, previousRawName))
 			continue
