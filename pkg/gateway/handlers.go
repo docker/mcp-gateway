@@ -108,7 +108,7 @@ func (g *Gateway) mcpToolHandler(serverName string, tool catalog.Tool) mcp.ToolH
 	}
 }
 
-func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, _ *mcp.ToolAnnotations, originalToolName string) mcp.ToolHandler {
+func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, annotations *mcp.ToolAnnotations, originalToolName string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Look up server configuration
 		serverConfig, _, ok := g.configuration.Find(serverName)
@@ -196,8 +196,8 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, _ 
 			Arguments: args,
 		}
 
-		// Execute the tool call
-		result, err := client.Session().CallTool(ctx, params)
+		// Execute the tool call, recovering from stale remote sessions when safe.
+		result, err := g.callRemoteTool(ctx, serverConfig, server, annotations, originalToolName, params, req.Session, client)
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()

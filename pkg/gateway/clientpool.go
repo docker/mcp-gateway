@@ -200,6 +200,32 @@ func (cp *clientPool) ReleaseClientsForSession(session *mcp.ServerSession) {
 	}
 }
 
+// InvalidateKeptClient closes and removes the cached client for the given server/session key.
+func (cp *clientPool) InvalidateKeptClient(serverConfig *catalog.ServerConfig, config *clientConfig) {
+	if config == nil || config.serverSession == nil {
+		return
+	}
+
+	key := clientKey{serverName: serverConfig.Name, session: config.serverSession}
+
+	cp.clientLock.Lock()
+	defer cp.clientLock.Unlock()
+
+	kc, exists := cp.keptClients[key]
+	if !exists {
+		return
+	}
+
+	log.Log(fmt.Sprintf("ClientPool: Invalidating kept client for server: %s", serverConfig.Name))
+	if kc.Getter.started.Load() {
+		client, err := kc.Getter.GetClient(context.Background())
+		if err == nil {
+			client.Session().Close()
+		}
+	}
+	delete(cp.keptClients, key)
+}
+
 // InvalidateOAuthClients closes and removes all OAuth client connections for the specified provider
 // This allows clients to reconnect with updated/refreshed tokens
 func (cp *clientPool) InvalidateOAuthClients(provider string) {
