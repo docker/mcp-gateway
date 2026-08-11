@@ -51,6 +51,30 @@ A typical usage looks like this Claude Desktop configuration:
 }
 ```
 
+### OpenAI Codex
+
+Codex uses a TOML client config. On Windows with Docker Desktop, point
+`command` at the Docker CLI the Codex process can actually execute:
+
+CMD / PowerShell (Docker Desktop on Windows):
+
+```toml
+[mcp_servers.docker-mcp-gateway]
+command = "docker.exe"
+args = ["mcp", "gateway", "run"]
+```
+
+Codex running inside WSL, Docker Desktop on the Windows host:
+
+```toml
+[mcp_servers.docker-mcp-gateway]
+command = "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+args = ["mcp", "gateway", "run"]
+```
+
+On Linux or macOS the same shape as Claude Desktop works — `command = "docker"`
+with `args = ["mcp", "gateway", "run"]`.
+
 ## How to run the MCP Gateway with Docker Compose?
 
 The simplest way to tun the MCP Gateway with Docker Compose is with this kind of compose file:
