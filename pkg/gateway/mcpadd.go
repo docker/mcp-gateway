@@ -107,11 +107,16 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}}
 			availableSecrets = BuildSecretsURIs(ctx, configs)
 
-			// Check which secrets are missing
+			// Available if the engine has it or a concrete value was already
+			// provided (e.g. via --secrets).
 			for _, secret := range serverConfig.Spec.Secrets {
-				if _, exists := availableSecrets[secret.Name]; !exists {
-					missingSecrets = append(missingSecrets, secret.Name)
+				if _, exists := availableSecrets[secret.Name]; exists {
+					continue
 				}
+				if v, ok := g.configuration.secrets[secret.Name]; ok && v != "" && !strings.HasPrefix(v, "se://") {
+					continue
+				}
+				missingSecrets = append(missingSecrets, secret.Name)
 			}
 		}
 
@@ -217,7 +222,7 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 		// This is needed because g.configuration.secrets is built at startup and doesn't
 		// include secrets for dynamically added servers.
 		if len(availableSecrets) > 0 {
-			g.configuration.AddSecrets(availableSecrets)
+			g.configuration.mergeResolvedSecrets(availableSecrets)
 		}
 
 		// Pull the Docker image before trying to use the server
