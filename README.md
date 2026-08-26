@@ -32,6 +32,7 @@ Developers face criticial barriers when integrating Model Context Protocol (MCP)
 - 📋 **Server Catalog**: Manage and configure multiple MCP catalogs.
 - 🔍 **Dynamic Discovery**: Automatic tool, prompt, and resource discovery from running servers.
 - 📊 **Monitoring**: Built-in logging and call tracing capabilities.
+- 🗜️ **Compact Output (GCF)**: Opt-in re-encoding of JSON tool results into [GCF (Graph Compact Format)](https://gcformat.com), a lossless, token-efficient wire format, so agents spend fewer tokens reading tool output.
 
 ## Installation
 

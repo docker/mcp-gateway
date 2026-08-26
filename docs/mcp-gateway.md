@@ -96,6 +96,7 @@ Flags:
       --config string             path to the config.yaml (absolute or relative to ~/.docker/mcp/) (default "config.yaml")
       --cpus int                  CPUs allocated to each MCP Server (default is 1) (default 1)
       --dry-run                   Start the gateway but do not listen for connections (useful for testing the configuration)
+      --gcf-output                Re-encode JSON tool results as GCF (Graph Compact Format) when smaller and lossless; falls back to JSON otherwise
       --interceptor stringArray   List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')
       --keep                      Keep stopped containers
       --log-calls                 Log calls to the tools (default true)
@@ -113,6 +114,24 @@ Flags:
 ```
 
 **Note:** The `--profile` flag is only available when the `profiles` feature is enabled via `docker mcp feature enable profiles`.
+
+## Compact tool output with GCF
+
+Agents pay for every token of tool output they read. Many MCP tools return arrays of uniform records (issues, rows, resources), where JSON repeats every field name on every record. The gateway can optionally re-encode those results into [GCF (Graph Compact Format)](https://gcformat.com), a lossless, token-efficient wire format that factors repeated field names into a single header.
+
+```bash
+# Re-encode JSON tool results as GCF when it is smaller and lossless
+docker mcp gateway run --gcf-output
+```
+
+The re-encoding is applied by a receiving middleware to the text of each tool result and is strictly conservative:
+
+- **Opt-in.** Off by default; JSON is unchanged unless you pass `--gcf-output`.
+- **Never larger.** A result is rewritten only when the GCF form is strictly smaller than the JSON; otherwise the JSON is kept.
+- **Never lossy.** A result is rewritten only when it decodes back to the exact same value (order-insensitive, with full integer precision). Anything that does not round-trip is passed through unchanged.
+- **JSON-only.** Prose and non-JSON text are left untouched, as is `structuredContent`.
+
+On representative tool results, GCF is roughly 30 to 46% fewer tokens than compact JSON (for example a list of 30 GitHub issues at about 31% fewer, or 40 database rows at about 46% fewer, measured on the `o200k`/`cl100k` tokenizers), with no change to what the model receives. See the [GCF benchmarks](https://gcformat.com/guide/benchmarks) for methodology. GCF is MIT-licensed and has no runtime dependencies.
 
 ## Troubleshooting
 

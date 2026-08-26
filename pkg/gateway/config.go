@@ -26,6 +26,7 @@ type Options struct {
 	DebugDNS                bool
 	LogCalls                bool
 	BlockSecrets            bool
+	GCFOutput               bool
 	BlockNetwork            bool
 	VerifySignatures        bool
 	DryRun                  bool

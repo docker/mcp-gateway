@@ -18,11 +18,18 @@ import (
 	"github.com/docker/mcp-gateway/pkg/logs"
 )
 
-func Callbacks(logCalls, blockSecrets bool, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware {
+func Callbacks(logCalls, blockSecrets bool, gcfOutput bool, oauthInterceptorEnabled bool, interceptors []Interceptor) []mcp.Middleware {
 	var middleware []mcp.Middleware
 
 	// Add telemetry middleware (always enabled)
 	middleware = append(middleware, TelemetryMiddleware())
+
+	// Add GCF output middleware early so it is the outermost content transform: it
+	// re-encodes the final tool result last, after secret scanning and logging have
+	// observed the original JSON. It only reformats text, never blocks or inspects.
+	if gcfOutput {
+		middleware = append(middleware, GCFOutputMiddleware())
+	}
 
 	// Add GitHub unauthorized interceptor only if the feature is enabled
 	// This ensures GitHub 401 responses are handled with OAuth links when requested

@@ -5,6 +5,7 @@ go 1.25.12
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/PaesslerAG/jsonpath v0.1.1
+	github.com/blackwell-systems/gcf-go v1.7.1
 	github.com/containerd/errdefs v1.0.0
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v28.2.2+incompatible
