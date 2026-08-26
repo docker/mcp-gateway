@@ -24,7 +24,7 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 	defer func() { getGitHubOAuthURL = oldGetOAuthURL }()
 
 	// When oauth-interceptor is enabled
-	middlewares := Callbacks(false, false, true, nil)
+	middlewares := Callbacks(false, false, false, true, nil)
 
 	// Should have telemetry middleware + GitHub interceptor
 	assert.Len(t, middlewares, 2, "should have telemetry and GitHub interceptor when enabled")
@@ -55,7 +55,7 @@ func TestCallbacksWithOAuthInterceptorEnabled(t *testing.T) {
 
 func TestCallbacksWithOAuthInterceptorDisabled(t *testing.T) {
 	// When oauth-interceptor is disabled
-	middlewares := Callbacks(false, false, false, nil)
+	middlewares := Callbacks(false, false, false, false, nil)
 
 	// Should only have telemetry middleware, no GitHub interceptor
 	assert.Len(t, middlewares, 1, "should only have telemetry middleware when oauth disabled")
@@ -86,7 +86,7 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 
 		mockHandler := createMockHandler()
 
-		middlewares := Callbacks(false, false, true, nil) // OAuth enabled
+		middlewares := Callbacks(false, false, false, true, nil) // OAuth enabled
 		require.NotEmpty(t, middlewares)
 
 		wrappedHandler := middlewares[1](mockHandler)
@@ -106,7 +106,7 @@ func TestCallbacksEndToEndWithFeatureToggle(t *testing.T) {
 	t.Run("with feature disabled - should pass through", func(t *testing.T) {
 		mockHandler := createMockHandler()
 
-		middlewares := Callbacks(false, false, false, nil) // OAuth disabled
+		middlewares := Callbacks(false, false, false, false, nil) // OAuth disabled
 
 		// No middleware means the handler runs unchanged
 		if len(middlewares) == 0 {
@@ -141,7 +141,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 		}
 
 		// Get middlewares with OAuth enabled
-		middlewares := Callbacks(true, true, true, nil) // logCalls, blockSecrets, oauthEnabled
+		middlewares := Callbacks(true, true, false, true, nil) // logCalls, blockSecrets, oauthEnabled
 
 		// Apply all middlewares
 		handler := baseHandler
@@ -174,7 +174,7 @@ func TestOAuthInterceptorIntegration(t *testing.T) {
 		}
 
 		// Get middlewares with OAuth disabled
-		middlewares := Callbacks(true, true, false, nil) // logCalls, blockSecrets, oauthDisabled
+		middlewares := Callbacks(true, true, false, false, nil) // logCalls, blockSecrets, oauthDisabled
 
 		// Apply all middlewares (OAuth interceptor won't be in the chain)
 		handler := baseHandler
@@ -202,11 +202,11 @@ func TestCallbacksOAuthInterceptorWithOtherMiddleware(t *testing.T) {
 	// Test that OAuth interceptor plays nicely with other middleware
 
 	// With OAuth enabled and logCalls enabled
-	middlewares := Callbacks(true, false, true, nil)
+	middlewares := Callbacks(true, false, false, true, nil)
 	assert.Len(t, middlewares, 3, "should have telemetry, GitHub interceptor, and log calls middleware")
 
 	// With OAuth disabled but logCalls enabled
-	middlewares = Callbacks(true, false, false, nil)
+	middlewares = Callbacks(true, false, false, false, nil)
 	assert.Len(t, middlewares, 2, "should have telemetry and log calls middleware")
 }
 
@@ -232,7 +232,7 @@ func TestCallbacksBlockSecretsRunsBeforeLogCalls(t *testing.T) {
 		return &mcp.CallToolResult{}, nil
 	}
 
-	for _, middleware := range reverseMiddlewares(Callbacks(true, true, false, nil)) {
+	for _, middleware := range reverseMiddlewares(Callbacks(true, true, false, false, nil)) {
 		handler = middleware(handler)
 	}
 
@@ -278,4 +278,54 @@ func reverseMiddlewares(middlewares []mcp.Middleware) []mcp.Middleware {
 		reversed = append(reversed, middlewares[i])
 	}
 	return reversed
+}
+
+// TestCallbacksGCFOutput exercises the GCF middleware through the fully assembled
+// Callbacks chain (the same chain the gateway registers), so the --gcf-output wiring
+// and its interaction with the other built-in middlewares is covered end to end.
+func TestCallbacksGCFOutput(t *testing.T) {
+	const recordArray = `[` +
+		`{"id":1,"name":"alpha","role":"admin"},` +
+		`{"id":2,"name":"bravo","role":"user"},` +
+		`{"id":3,"name":"charlie","role":"admin"},` +
+		`{"id":4,"name":"delta","role":"user"}` +
+		`]`
+
+	applyChain := func(t *testing.T, mws []mcp.Middleware) string {
+		t.Helper()
+		handler := mcp.MethodHandler(func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+			return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: recordArray}}}, nil
+		})
+		for _, middleware := range reverseMiddlewares(mws) {
+			handler = middleware(handler)
+		}
+		req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "list", Arguments: json.RawMessage(`{}`)}}
+		result, err := handler(context.Background(), "tools/call", req)
+		require.NoError(t, err)
+		callResult, ok := result.(*mcp.CallToolResult)
+		require.True(t, ok)
+		text, ok := callResult.Content[0].(*mcp.TextContent)
+		require.True(t, ok)
+		return text.Text
+	}
+
+	t.Run("gcfOutput=true re-encodes the result to GCF", func(t *testing.T) {
+		got := applyChain(t, Callbacks(false, false, true, false, nil))
+		assert.True(t, strings.HasPrefix(got, "GCF profile=generic"), "result should be GCF-encoded, got: %q", got)
+		assert.Less(t, len(got), len(recordArray))
+	})
+
+	t.Run("gcfOutput=false leaves the JSON unchanged", func(t *testing.T) {
+		got := applyChain(t, Callbacks(false, false, false, false, nil))
+		// Still the original JSON, not re-encoded (GCF output is not valid JSON).
+		assert.JSONEq(t, recordArray, got)
+	})
+
+	t.Run("gcfOutput=true still applies with block-secrets and log-calls enabled", func(t *testing.T) {
+		var buf bytes.Buffer
+		log.SetLogWriter(&buf)
+		defer log.SetLogWriter(os.Stderr)
+		got := applyChain(t, Callbacks(true, true, true, false, nil))
+		assert.True(t, strings.HasPrefix(got, "GCF profile=generic"), "result should still be GCF-encoded through the full chain")
+	})
 }

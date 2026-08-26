@@ -310,7 +310,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 
 	// Add interceptor middleware to the server (includes telemetry)
-	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.OAuthInterceptorEnabled, parsedInterceptors)
+	middlewares := interceptors.Callbacks(g.LogCalls, g.BlockSecrets, g.GCFOutput, g.OAuthInterceptorEnabled, parsedInterceptors)
 
 	// Add profile loading middleware for initialize method
 	if g.UseProfiles {

@@ -210,6 +210,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().BoolVar(&options.AllowUnauthenticated, "allow-unauthenticated", options.AllowUnauthenticated, "Allow unauthenticated HTTP/SSE gateway requests")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
 	runCmd.Flags().BoolVar(&options.BlockSecrets, "block-secrets", options.BlockSecrets, "Block secrets from being/received sent to/from tools")
+	runCmd.Flags().BoolVar(&options.GCFOutput, "gcf-output", options.GCFOutput, "Re-encode JSON tool results as GCF (Graph Compact Format, https://gcformat.com) when smaller and lossless; falls back to JSON otherwise")
 	runCmd.Flags().BoolVar(&options.BlockNetwork, "block-network", options.BlockNetwork, "Block tools from accessing forbidden network resources")
 	runCmd.Flags().BoolVar(&options.VerifySignatures, "verify-signatures", options.VerifySignatures, "Verify signatures of Docker MCP server images")
 	runCmd.Flags().BoolVar(&options.DryRun, "dry-run", options.DryRun, "Start the gateway but do not listen for connections (useful for testing the configuration)")
