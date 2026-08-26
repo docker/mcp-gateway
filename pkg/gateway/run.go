@@ -111,6 +111,7 @@ func NewGateway(config Config, docker docker.Client) *Gateway {
 			OciRef:             config.OciRef,
 			MCPRegistryServers: config.MCPRegistryServers,
 			Watch:              config.Watch,
+			LongLived:          config.LongLived,
 			McpOAuthDcrEnabled: config.McpOAuthDcrEnabled,
 			docker:             docker,
 		}
