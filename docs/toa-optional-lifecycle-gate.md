@@ -29,7 +29,7 @@ from TOA:
 
 Optional, off by default. Before enabling a server in a profile, pushing a
 catalog/profile to an OCI registry, or promoting a Compose stack, require a
-recent TOA attestation and verify it offline with a pinned emitter public key.
+recent TOA attestation and verify it offline with `--require-emitter` and optional `--max-age`.
 
 - Any party can emit if they sign the schema.
 - AgentStatus is one optional emitter.
@@ -40,8 +40,8 @@ recent TOA attestation and verify it offline with a pinned emitter public key.
       - name: Verify tool delivery attestation
         if: hashFiles('toa.json') != ''
         run: |
-          pip install "git+https://github.com/Carmel-Labs-Inc/toa.git@345f24607919b5bdf143719b9ea062543cdfe88e#subdirectory=python"
-          toa-verify toa.json --require-layer functional=pass
+          pip install "git+https://github.com/Carmel-Labs-Inc/toa.git@5a1bf1cf6a15a4864ea809fe7b2a073f2cef4e22#subdirectory=python"
+          toa-verify toa.json --require-emitter agentstatus --require-layer functional=pass --max-age 7d
 ```
 
 Copy-paste workflow: [`examples/toa-after-lifecycle.yml`](../examples/toa-after-lifecycle.yml).
