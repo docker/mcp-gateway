@@ -15,6 +15,14 @@ import (
 var verifyDockerImageSignatures = signatures.Verify
 
 func (g *Gateway) pullAndVerify(ctx context.Context, configuration Configuration) error {
+	for _, name := range configuration.ServerNames() {
+		server, _, found := configuration.Find(name)
+		if found && server != nil {
+			if err := g.validateServerResources(server); err != nil {
+				return err
+			}
+		}
+	}
 	dockerImages := configuration.DockerImages()
 	if len(dockerImages) == 0 {
 		return nil

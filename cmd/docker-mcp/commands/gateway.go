@@ -70,6 +70,9 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 		Short: "Run the gateway",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := options.ValidateResourceOverrides(); err != nil {
+				return err
+			}
 			if features.IsProfilesFeatureEnabled() {
 				if len(options.ServerNames) > 0 || enableAllServers ||
 					len(options.CatalogPath) > 0 || len(options.RegistryPath) > 0 || len(options.ConfigPath) > 0 || len(options.ToolsPath) > 0 ||
@@ -217,6 +220,8 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().BoolVar(&options.LongLived, "long-lived", options.LongLived, "Containers are long-lived and will not be removed until the gateway is stopped, useful for stateful servers")
 	runCmd.Flags().BoolVar(&options.DebugDNS, "debug-dns", options.DebugDNS, "Debug DNS resolution")
 	runCmd.Flags().BoolVar(&options.Watch, "watch", options.Watch, "Watch for changes and reconfigure the gateway")
+	runCmd.Flags().StringToStringVar(&options.ServerCPUs, "server-cpus", nil, "Override CPU limit for a server (name=cpus, repeatable; supports fractional CPUs)")
+	runCmd.Flags().StringToStringVar(&options.ServerMemory, "server-memory", nil, "Override memory limit for a server (name=memory, repeatable)")
 	runCmd.Flags().IntVar(&options.Cpus, "cpus", options.Cpus, "CPUs allocated to each MCP Server (default is 1)")
 	runCmd.Flags().StringVar(&options.Memory, "memory", options.Memory, "Memory allocated to each MCP Server (default is 2Gb)")
 	runCmd.Flags().BoolVar(&options.Static, "static", options.Static, "Enable static mode (aka pre-started servers)")

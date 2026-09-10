@@ -78,6 +78,15 @@ func addServerHandler(g *Gateway, clientConfig *clientConfig) mcp.ToolHandler {
 			}, nil
 		}
 
+		if serverConfig != nil {
+			if err := g.validateServerResources(serverConfig); err != nil {
+				return &mcp.CallToolResult{
+					IsError: true,
+					Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}},
+				}, nil
+			}
+		}
+
 		// Append the new server to the current serverNames if not already present
 		alreadyEnabled := slices.Contains(g.configuration.serverNames, serverName)
 		if !alreadyEnabled {

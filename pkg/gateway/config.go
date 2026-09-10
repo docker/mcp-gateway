@@ -32,6 +32,8 @@ type Options struct {
 	Watch                   bool
 	Cpus                    int
 	Memory                  string
+	ServerCPUs              map[string]string
+	ServerMemory            map[string]string
 	Static                  bool
 	OAuthInterceptorEnabled bool
 	McpOAuthDcrEnabled      bool

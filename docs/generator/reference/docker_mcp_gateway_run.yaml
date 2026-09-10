@@ -250,6 +250,27 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: server-cpus
+      value_type: stringToString
+      default_value: '[]'
+      description: |
+        Override CPU limit for a server (name=cpus, repeatable; supports fractional CPUs)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
+    - option: server-memory
+      value_type: stringToString
+      default_value: '[]'
+      description: Override memory limit for a server (name=memory, repeatable)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: servers
       value_type: stringSlice
       default_value: '[]'
