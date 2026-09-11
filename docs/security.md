@@ -85,6 +85,9 @@ MCP server containers do not receive the user's host environment by default. The
 gateway passes only configured environment variables, server config values, and
 secrets declared for that server. Containers are started with Docker isolation,
 `no-new-privileges`, and configured CPU and memory limits.
+Catalog `resources` values may lower these limits but cannot raise them without
+an explicit operator `--server-cpus` or `--server-memory` override. See
+[per-server resource limits](server-resources.md) for precedence and scope.
 
 Host bind mounts from catalog or profile configuration are validated before they
 are passed to Docker. Named and anonymous Docker volumes are allowed. Host path
