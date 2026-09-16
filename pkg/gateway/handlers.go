@@ -141,7 +141,7 @@ func (g *Gateway) mcpServerToolHandler(serverName string, server *mcp.Server, _ 
 	}
 }
 
-func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) mcp.PromptHandler {
+func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server, originalPromptName string) mcp.PromptHandler {
 	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		// Look up server configuration
 		serverConfig, _, ok := g.configuration.Find(serverName)
@@ -152,17 +152,17 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		if g.policyClient != nil {
 			policyReq := g.configuration.policyRequest(
 				serverConfig.Name,
-				req.Params.Name,
+				originalPromptName,
 				policy.ActionPrompt,
 			)
 			decision, err := g.policyClient.Evaluate(ctx, policyReq)
 			event := buildAuditEvent(policyReq, decision, err, auditClientInfoFromSession(req.Session))
 			submitAuditEvent(g.policyClient, event)
 			if err != nil {
-				return nil, fmt.Errorf("policy check failed for prompt %s on server %s: %w", req.Params.Name, serverConfig.Name, err)
+				return nil, fmt.Errorf("policy check failed for prompt %s on server %s: %w", originalPromptName, serverConfig.Name, err)
 			}
 			if !decision.Allowed {
-				return nil, fmt.Errorf("policy denied prompt %s on server %s: %s", req.Params.Name, serverConfig.Name, decision.Reason)
+				return nil, fmt.Errorf("policy denied prompt %s on server %s: %s", originalPromptName, serverConfig.Name, decision.Reason)
 			}
 		}
 
@@ -206,7 +206,9 @@ func (g *Gateway) mcpServerPromptHandler(serverName string, server *mcp.Server) 
 		}
 		defer g.clientPool.ReleaseClient(client)
 
-		result, err := client.Session().GetPrompt(ctx, req.Params)
+		params := *req.Params
+		params.Name = originalPromptName
+		result, err := client.Session().GetPrompt(ctx, &params)
 
 		// Record duration
 		duration := time.Since(startTime).Milliseconds()

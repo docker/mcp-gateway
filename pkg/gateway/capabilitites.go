@@ -153,6 +153,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				defer g.clientPool.ReleaseClient(client)
 
 				var capabilities Capabilities
+				prefix := g.getToolNamePrefix(serverConfig)
 
 				tools, err := client.Session().ListTools(ctx, &mcp.ListToolsParams{})
 				if err != nil {
@@ -160,9 +161,6 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 				} else {
 					// Record the number of tools discovered from this server
 					telemetry.RecordToolList(ctx, serverConfig.Name, len(tools.Tools))
-
-					// Determine the prefix to use for this server's tools
-					prefix := g.getToolNamePrefix(serverConfig)
 
 					for _, tool := range tools.Tools {
 						if tool == nil {
@@ -202,10 +200,12 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 							log.Logf("  > Ignoring invalid nil prompt from %s", serverConfig.Name)
 							continue
 						}
+						prefixedPrompt := *prompt
+						prefixedPrompt.Name = prefixToolName(prefix, prompt.Name)
 						capabilities.Prompts = append(capabilities.Prompts, PromptRegistration{
 							ServerName: serverConfig.Name,
-							Prompt:     prompt,
-							Handler:    g.mcpServerPromptHandler(serverConfig.Name, g.mcpServer),
+							Prompt:     &prefixedPrompt,
+							Handler:    g.mcpServerPromptHandler(serverConfig.Name, g.mcpServer, prompt.Name),
 						})
 					}
 				}
