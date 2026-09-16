@@ -208,6 +208,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().StringVar(&options.Host, "host", options.Host, "Host or IP address to bind TCP transports to")
 	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming. Uses MCP_GATEWAY_AUTH_TOKEN environment variable for localhost authentication to prevent dns rebinding attacks.")
 	runCmd.Flags().BoolVar(&options.AllowUnauthenticated, "allow-unauthenticated", options.AllowUnauthenticated, "Allow unauthenticated HTTP/SSE gateway requests")
+	runCmd.Flags().BoolVar(&options.PreserveToolSchemaDialect, "preserve-tool-schema-dialect", options.PreserveToolSchemaDialect, "Relay tool schemas with the JSON Schema dialect the server declared, instead of translating pre-2020-12 dialects")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
 	runCmd.Flags().BoolVar(&options.BlockSecrets, "block-secrets", options.BlockSecrets, "Block secrets from being/received sent to/from tools")
 	runCmd.Flags().BoolVar(&options.BlockNetwork, "block-network", options.BlockNetwork, "Block tools from accessing forbidden network resources")

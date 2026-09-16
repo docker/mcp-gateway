@@ -60,6 +60,10 @@ var (
 	// Tool discovery metrics
 	ToolsDiscovered metric.Int64Gauge
 
+	// ToolSchemaDialects tracks tool schemas whose JSON Schema dialect was
+	// translated to 2020-12, and those relayed as the server declared them.
+	ToolSchemaDialects metric.Int64Counter
+
 	// Prompt operation metrics
 	PromptGetCounter   metric.Int64Counter
 	PromptDuration     metric.Float64Histogram
@@ -172,6 +176,16 @@ func Init() {
 		// Log error but don't fail
 		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tools discovered gauge: %v\n", err)
+		}
+	}
+
+	ToolSchemaDialects, err = meter.Int64Counter("mcp.tool.schema_dialects",
+		metric.WithDescription("Tool schemas by what the gateway did with the JSON Schema dialect they declared"),
+		metric.WithUnit("1"))
+	if err != nil {
+		// Log error but don't fail
+		if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Error creating tool schema translations counter: %v\n", err)
 		}
 	}
 
@@ -938,5 +952,27 @@ func RecordTemplateUsage(ctx context.Context, templateID string, source string) 
 		metric.WithAttributes(
 			attribute.String("mcp.template.id", templateID),
 			attribute.String("mcp.template.source", source),
+		))
+}
+
+// RecordToolSchemaDialect records what the gateway did with one tool schema's
+// declared JSON Schema dialect. outcome is "translated" when the schema was
+// converted to 2020-12, or "relayed" when it was passed through as declared
+// because no faithful translation exists.
+func RecordToolSchemaDialect(ctx context.Context, serverName, field, outcome string) {
+	if ToolSchemaDialects == nil {
+		return // Telemetry not initialized
+	}
+
+	if os.Getenv("DOCKER_MCP_TELEMETRY_DEBUG") != "" {
+		fmt.Fprintf(os.Stderr, "[MCP-TELEMETRY] Tool schema dialect %s: %s of a tool from server %s\n",
+			outcome, field, serverName)
+	}
+
+	ToolSchemaDialects.Add(ctx, 1,
+		metric.WithAttributes(
+			attribute.String("mcp.server.origin", serverName),
+			attribute.String("mcp.tool.schema_field", field),
+			attribute.String("mcp.tool.schema_outcome", outcome),
 		))
 }

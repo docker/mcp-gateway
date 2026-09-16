@@ -123,6 +123,18 @@ Gateway policy decisions must apply consistently across direct tool calls,
 dynamic tool execution, `mcp-exec`, and code-mode generated tools. A path that
 invokes a denied or disabled backend tool despite policy is in scope.
 
+### Tool schema translation
+
+A tool schema is a JSON document supplied by a backend server, so the gateway
+treats it as untrusted input. Tool schemas declaring JSON Schema draft-04,
+draft-06 or draft-07 are translated to 2020-12 before being advertised, which
+means the gateway walks a document it previously relayed opaquely. That walk is
+bounded in both depth and node count and leaves the schema untranslated when
+either limit is exceeded; an unbounded walk over a crafted schema would be in
+scope. Translation never widens what a schema accepts -- a construct with no
+faithful 2020-12 equivalent is relayed as declared rather than reinterpreted --
+and `--preserve-tool-schema-dialect` turns the translation off entirely.
+
 ## In-scope report examples
 
 - An untrusted catalog, profile, image label, registry entry, or remote URL causes

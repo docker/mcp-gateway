@@ -496,3 +496,46 @@ func TestRecordGatewayStart(t *testing.T) {
 		})
 	}
 }
+
+func TestRecordToolSchemaDialect(t *testing.T) {
+	_, metricReader := setupTestTelemetry(t)
+	Init()
+
+	ctx := context.Background()
+
+	RecordToolSchemaDialect(ctx, "example-mcp-server", "outputSchema", "translated")
+	RecordToolSchemaDialect(ctx, "example-mcp-server", "inputSchema", "relayed")
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, metricReader.Collect(ctx, &rm))
+
+	// The two outcomes must land on separate series, or "how many schemas did
+	// we have to relay untranslated" is unanswerable.
+	outcomes := map[string]string{}
+	found := false
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != "mcp.tool.schema_dialects" {
+				continue
+			}
+			found = true
+			sum := m.Data.(metricdata.Sum[int64])
+			for _, point := range sum.DataPoints {
+				assert.Equal(t, int64(1), point.Value)
+
+				server, _ := point.Attributes.Value(attribute.Key("mcp.server.origin"))
+				assert.Equal(t, "example-mcp-server", server.AsString())
+
+				field, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_field"))
+				outcome, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_outcome"))
+				outcomes[outcome.AsString()] = field.AsString()
+			}
+		}
+	}
+
+	assert.True(t, found, "tool schema dialect outcome should be recorded")
+	assert.Equal(t, map[string]string{
+		"translated": "outputSchema",
+		"relayed":    "inputSchema",
+	}, outcomes)
+}
