@@ -12,3 +12,5 @@
 + `interceptors` - Configure interceptors on Tool Calls.
 + `health` - Health checks with Compose.
 + `compose-static` - Run the MCP Gateway, with Compose, in `static` mode. (Experimental)
++ `toa-after-lifecycle.yml` - Optional offline TOA verify after health / enable (not per-call).
+

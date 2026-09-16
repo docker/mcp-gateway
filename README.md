@@ -32,6 +32,7 @@ Developers face criticial barriers when integrating Model Context Protocol (MCP)
 - 📋 **Server Catalog**: Manage and configure multiple MCP catalogs.
 - 🔍 **Dynamic Discovery**: Automatic tool, prompt, and resource discovery from running servers.
 - 📊 **Monitoring**: Built-in logging and call tracing capabilities.
+- 🧾 **Optional TOA gate**: Offline delivery-evidence verify before enable/promote ([docs](docs/toa-optional-lifecycle-gate.md)). Distinct from image signatures and audit interceptors.
 
 ## Installation
 
