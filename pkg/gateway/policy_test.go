@@ -449,7 +449,7 @@ func TestMcpPrompts_PolicyEnforcement(t *testing.T) {
 		},
 	}
 
-	h := g.mcpServerPromptHandler("prompt-server", nil)
+	h := g.mcpServerPromptHandler("prompt-server", nil, "summarize")
 	req := &mcp.GetPromptRequest{Params: &mcp.GetPromptParams{Name: "summarize"}}
 
 	_, err := h(context.Background(), req)
