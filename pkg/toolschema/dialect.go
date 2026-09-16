@@ -127,6 +127,12 @@ type Result struct {
 	// a construct with no faithful 2020-12 equivalent, so it was returned
 	// unchanged. Reason says which.
 	Skipped bool
+	// UnsupportedDialect is true when the schema declared a dialect that is
+	// neither 2020-12 nor one this package translates, so it was returned
+	// unchanged. Such a schema is still rejected by a 2020-12-only client, and a
+	// caller sizing the affected surface has to be able to see it -- otherwise
+	// "nothing to report" and "affected but beyond our reach" look identical.
+	UnsupportedDialect bool
 	// Reason explains a Skipped result. Empty otherwise.
 	Reason string
 }
@@ -153,7 +159,7 @@ func Normalize(schema any) (any, Result) {
 	}
 	from, ok := translatableDialects[declared]
 	if !ok {
-		return schema, Result{}
+		return schema, Result{UnsupportedDialect: declared != Dialect202012 && declared != Dialect202012+"#"}
 	}
 
 	if reason := withinBudget(root); reason != "" {

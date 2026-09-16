@@ -80,6 +80,12 @@ func (g *Gateway) normalizeSchemaDialect(
 	case result.Skipped:
 		relayed.record(field, result.Reason)
 		telemetry.RecordToolSchemaDialect(ctx, serverName, field, "relayed")
+	case result.UnsupportedDialect:
+		// Recorded separately from "relayed" because nothing here can fix it:
+		// the schema is affected and beyond this package's reach, so the answer
+		// is a dialect to add or a backend to talk to, not a schema to inspect.
+		relayed.record(field, "the declared dialect is not one the gateway translates")
+		telemetry.RecordToolSchemaDialect(ctx, serverName, field, "unsupported_dialect")
 	case result.Changed:
 		telemetry.RecordToolSchemaDialect(ctx, serverName, field, "translated")
 	}

@@ -68,12 +68,18 @@ A discovered tool schema that declares JSON Schema draft-04, draft-06 or draft-0
 translated into 2020-12, the only dialect MCP requires clients to support:
 - **`mcp.tool.schema_dialects`** - Counter of tool schemas by what the gateway did with the
   dialect they declared. Attributes: `mcp.server.origin`, `mcp.tool.schema_field`
-  (`inputSchema` or `outputSchema`), `mcp.tool.schema_outcome` (`translated`, or `relayed`
-  when no faithful translation exists and the schema was passed through as declared)
+  (`inputSchema` or `outputSchema`) and `mcp.tool.schema_outcome`:
+  - `translated` - a declared draft-04/06/07 schema was converted to 2020-12
+  - `relayed` - a declared draft-04/06/07 schema held a construct with no faithful 2020-12
+    equivalent, so it was passed through as declared
+  - `unsupported_dialect` - the schema declared a dialect the gateway does not translate at
+    all (draft-03, 2019-09, anything unrecognised). Equally rejected by a 2020-12-only
+    client, and not fixable here
 
 This counter is not a census of discovered schemas. A schema that declares no dialect is
 already 2020-12 by default and is never counted, and nothing is recorded at all when the
-gateway runs with `--preserve-tool-schema-dialect`.
+gateway runs with `--preserve-tool-schema-dialect`. A flat zero across all three outcomes
+therefore means no server declares any dialect.
 
 ### Client Operations
 
@@ -161,7 +167,7 @@ All metrics include contextual attributes for filtering and aggregation:
 ### Tool Schema Dialect Attributes
 - **`mcp.tool.schema_field`** - Which schema of the tool (`inputSchema`, `outputSchema`)
 - **`mcp.tool.schema_outcome`** - What the gateway did with the declared dialect
-  (`translated`, `relayed`)
+  (`translated`, `relayed`, `unsupported_dialect`)
 
 ## Distributed Tracing
 

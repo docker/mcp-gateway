@@ -75,7 +75,9 @@ docker mcp tools ls --gateway-arg="--preserve-tool-schema-dialect" --format json
 ```
 
 A schema the gateway cannot translate without changing what it accepts is relayed exactly
-as the server declared it. The gateway reports those once per server and reason on its
+as the server declared it, and so is one declaring a dialect the gateway does not handle at
+all (draft-03, 2019-09) — that second case is counted separately as `unsupported_dialect`,
+because nothing about the schema can be fixed here. The gateway reports those once per server and reason on its
 stderr, which `docker mcp tools ls` surfaces under `--verbose`:
 
 ```console

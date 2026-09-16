@@ -151,3 +151,44 @@ func TestRelayedDialectsReportsOncePerReason(t *testing.T) {
 		absent.report("server")
 	})
 }
+
+// TestToolRegistrationRecordsADialectItCannotTranslate covers the seam for a
+// dialect outside the translatable set. The schema is relayed like any other
+// untranslatable one, but it is reported under its own outcome, because the
+// remedy is different: nothing about the schema can be fixed here.
+func TestToolRegistrationRecordsADialectItCannotTranslate(t *testing.T) {
+	g := &Gateway{}
+	upstream := draft7Tool()
+	upstream.OutputSchema = map[string]any{
+		"$schema": "http://json-schema.org/draft-03/schema#",
+		"type":    "object",
+	}
+	relayed := newRelayedDialects()
+
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "", relayed)
+
+	require.Equal(t, "http://json-schema.org/draft-03/schema#", dialectOf(t, registration.Tool.OutputSchema))
+	require.Equal(t, 1, relayed.counts["outputSchema: the declared dialect is not one the gateway translates"])
+	// The input schema is draft-07 and independent, so it is still translated
+	// and contributes nothing to the relay report.
+	require.Equal(t, toolschema.Dialect202012, dialectOf(t, registration.Tool.InputSchema))
+	require.Len(t, relayed.counts, 1)
+}
+
+// TestToolRegistrationTranslatesTheOutputSchema exists because an earlier
+// version of these tests read only InputSchema, so deleting the OutputSchema
+// line left the whole suite green. outputSchema is half the advertised surface
+// and the field the original bug report named.
+func TestToolRegistrationTranslatesTheOutputSchema(t *testing.T) {
+	g := &Gateway{}
+	upstream := draft7Tool()
+	// Make the two fields distinguishable, so translating only one cannot pass.
+	upstream.InputSchema = map[string]any{"type": "object"}
+
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "", newRelayedDialects())
+
+	require.Equal(t, toolschema.Dialect202012, dialectOf(t, registration.Tool.OutputSchema),
+		"the output schema was not translated")
+	// And the untouched input schema declares nothing, so it must gain nothing.
+	require.Nil(t, dialectOf(t, registration.Tool.InputSchema))
+}

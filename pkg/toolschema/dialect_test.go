@@ -689,3 +689,36 @@ func TestNormalizeGuardsListsInSingleSchemaPositions(t *testing.T) {
 	require.Contains(t, res.Reason, "maxLength")
 	require.Equal(t, in, out)
 }
+
+// TestNormalizeReportsADialectItCannotTranslate closes the gap between "there
+// was nothing to do" and "this schema is affected and beyond our reach". Both
+// come back unchanged, but only the second is a thing an operator sizing the
+// affected surface needs to see: a draft-03 or 2019-09 schema is still rejected
+// by the same 2020-12-only clients this package exists for.
+func TestNormalizeReportsADialectItCannotTranslate(t *testing.T) {
+	for name, tc := range map[string]struct {
+		declared    string
+		unsupported bool
+	}{
+		"draft-03":           {declared: "http://json-schema.org/draft-03/schema#", unsupported: true},
+		"2019-09":            {declared: "https://json-schema.org/draft/2019-09/schema", unsupported: true},
+		"nonsense":           {declared: "https://example.test/dialect", unsupported: true},
+		"2020-12":            {declared: Dialect202012, unsupported: false},
+		"2020-12 with a '#'": {declared: Dialect202012 + "#", unsupported: false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			in := parse(t, `{"$schema": "`+tc.declared+`", "type": "object"}`)
+			out, res := Normalize(in)
+			require.False(t, res.Changed)
+			require.False(t, res.Skipped)
+			require.Equal(t, tc.unsupported, res.UnsupportedDialect)
+			require.Equal(t, in, out)
+		})
+	}
+
+	// A schema declaring nothing is 2020-12 by default, so there is genuinely
+	// nothing to report about it.
+	_, res := Normalize(parse(t, `{"type": "object"}`))
+	require.False(t, res.UnsupportedDialect)
+	require.False(t, res.Changed)
+}
