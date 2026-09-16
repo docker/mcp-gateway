@@ -45,3 +45,36 @@ docker mcp tools call search query=Docker
 # Be verbose and pass additional parameters to the Gateway
 docker mcp tools call --gateway-arg="--servers=duckduckgo" --verbose search query=Docker
 ```
+
+## A client rejects every tool of one server: "unsupported dialect"
+
+Some clients validate tool schemas with a validator configured for JSON Schema 2020-12
+only, and refuse a tool whose schema declares an older dialect. The error names the tool
+but applies to every tool on that server:
+
+```
+Tool 'list_bases' has an invalid outputSchema: JSON Schema declares an unsupported
+dialect ("$schema": "http://json-schema.org/draft-07/schema#").
+```
+
+This is not a broken or stale server image. MCP lets a schema declare any dialect and only
+requires clients to support 2020-12, and servers built on the MCP TypeScript SDK declare
+draft-07 for every tool because its zod converter defaults to that target.
+
+The gateway translates such schemas into 2020-12 before advertising them, so an up to date
+gateway resolves this on its own. To see what a server actually declared, compare:
+
+```console
+# what clients are served
+docker mcp tools ls --format json | jq '.[] | {name, dialect: .inputSchema["$schema"]}'
+
+# what the server declared, with translation turned off
+docker mcp tools ls --gateway-arg="--preserve-tool-schema-dialect" --format json | jq '.[] | {name, dialect: .inputSchema["$schema"]}'
+```
+
+A schema the gateway cannot translate without changing what it accepts is relayed as the
+server declared it, and the reason is logged under `--verbose`:
+
+```
+> Relaying outputSchema of tool "x" from some-server with its declared dialect: ...
+```

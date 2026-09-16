@@ -228,6 +228,17 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: preserve-tool-schema-dialect
+      value_type: bool
+      default_value: "false"
+      description: |
+        Relay tool schemas with the JSON Schema dialect the server declared, instead of translating pre-2020-12 dialects
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: registry
       value_type: stringSlice
       default_value: '[registry.yaml]'

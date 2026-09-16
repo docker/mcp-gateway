@@ -41,4 +41,8 @@ type Options struct {
 	UseEmbeddings           bool
 	UseProfiles             bool
 	AllowUnauthenticated    bool
+	// PreserveToolSchemaDialect relays downstream tool schemas with the JSON
+	// Schema dialect they were declared in, instead of translating pre-2020-12
+	// dialects that 2020-12-only clients reject.
+	PreserveToolSchemaDialect bool
 }

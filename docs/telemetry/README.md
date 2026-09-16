@@ -63,6 +63,14 @@ When the gateway connects to MCP servers, it discovers their capabilities:
 - **`mcp.resources.discovered`** - Number of resources available per server
 - **`mcp.resource_templates.discovered`** - Number of resource templates available per server
 
+#### Tool Schema Dialects
+Discovered tool schemas are translated into JSON Schema 2020-12, which is the only dialect MCP
+requires clients to support:
+- **`mcp.tool.schema.translations`** - Counter of tool schemas whose declared dialect was
+  translated to 2020-12, or relayed as declared because no faithful translation exists.
+  Attributes: `mcp.server.origin`, `mcp.tool.schema.field` (`inputSchema` or `outputSchema`),
+  `mcp.tool.schema.dialect.outcome` (`translated` or `relayed`)
+
 ### Client Operations
 
 #### List Operations

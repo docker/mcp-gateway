@@ -173,22 +173,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 							continue
 						}
 
-						// Create a copy of the tool and apply prefix to its name
-						prefixedTool := *tool
-						prefixedTool.Name = prefixToolName(prefix, tool.Name)
-
-						capabilities.Tools = append(capabilities.Tools, ToolRegistration{
-							ServerName: serverConfig.Name,
-							Tool:       &prefixedTool,
-							Handler: withMCPServerToolTelemetry(
-								serverConfig,
-								g.withInvokePolicy(
-									serverConfig.Name,
-									tool.Name,
-									g.mcpServerToolHandler(serverConfig.Name, g.mcpServer, tool.Annotations, tool.Name),
-								),
-							),
-						})
+						capabilities.Tools = append(capabilities.Tools, g.toolRegistration(ctx, serverConfig, tool, prefix))
 					}
 				}
 
