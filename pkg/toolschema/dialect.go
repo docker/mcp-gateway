@@ -25,10 +25,17 @@
 //
 // Input must be a JSON-decoded document, as every schema on the MCP wire is:
 // containers are map[string]any and []any, and the values inside them are JSON
-// scalars. Normalize deep-copies the containers it returns, so a JSON-decoded
-// input is never mutated and the result aliases none of it. A hand-built schema
-// holding some other container type is copied by reference instead, which is
-// harmless only because nothing in the gateway writes through a tool schema.
+// scalars.
+//
+// Normalize never mutates its input. On the TRANSLATING path it deep-copies the
+// containers it returns, so the result aliases none of the input. On every other
+// path -- no dialect declared, a dialect it does not translate, or a refusal --
+// it returns the input value itself, which therefore does alias. That is the
+// point: those paths are meant to hand back exactly what the server sent, and it
+// is what this package did before it existed. Two caveats on the copying path: a
+// container of some other Go type is copied by reference, and JSON scalars are
+// immutable and shared. Neither matters while nothing in the gateway writes
+// through a tool schema, which nothing does.
 package toolschema
 
 import "strings"
@@ -107,8 +114,14 @@ var (
 	// $id is deliberately NOT here. Under 2020-12 an $id beside a $ref sets the
 	// base URI the $ref resolves against, so it can change which schema the
 	// reference names -- not an annotation, and not safe to wave through.
+	// definitions and $defs are here because neither asserts anything in any
+	// dialect -- they only HOLD subschemas, and a root $ref normally points into
+	// one of them. Treating the container as an unsafe sibling made a schema
+	// whose root is a $ref permanently untranslatable.
 	refAnnotationSiblings = map[string]bool{
 		"$comment":    true,
+		"$defs":       true,
+		"definitions": true,
 		"default":     true,
 		"deprecated":  true,
 		"description": true,
@@ -253,28 +266,43 @@ func untranslatableSchema(node any, from draft, isRoot bool) string {
 			if key == "$ref" || refAnnotationSiblings[key] {
 				continue
 			}
+			// The ROOT dialect declaration is not a sibling in the sense that
+			// matters: it is how the schema says which dialect it is written in,
+			// and every schema this package acts on has one by definition. Without
+			// this exemption a schema whose root IS a $ref could never be
+			// translated at all. The nested case is still refused, above.
+			if isRoot && key == "$schema" {
+				continue
+			}
 			return "$ref carries the assertion keyword " + key +
 				", which pre-2020-12 dialects ignore and 2020-12 enforces"
 		}
 	}
 
-	// A keyword introduced after the declared dialect is inert where the schema
-	// was written and live once it claims 2020-12, so relabelling would start
-	// enforcing something the author's own validator never applied. This also
-	// covers a schema mixing a pre-2020-12 keyword with the 2020-12 keyword the
-	// converter would rewrite it into (dependencies beside dependentRequired, a
-	// tuple items beside prefixItems), which would otherwise collide.
+	// A keyword the declared dialect does not define was an inert unknown where
+	// the schema was written, and becomes live the moment the document claims
+	// 2020-12 -- so relabelling would start enforcing something the author's own
+	// validator never applied. Keyed to the DECLARED dialect, not to a shared
+	// list, because the answer differs per draft: const, contains, propertyNames
+	// and if/then/else are all legal inert extensions in draft-04.
+	//
+	// This also subsumes the collision cases -- a schema mixing a pre-2020-12
+	// keyword with the 2020-12 keyword the converter rewrites it into
+	// (dependencies beside dependentRequired, a tuple items beside prefixItems)
+	// leaves the rewrite nowhere to land.
 	for key := range n {
-		if post202012Keywords[key] {
-			return "schema declares " + key + ", which the declared dialect ignores and 2020-12 enforces"
+		if activatedBy202012(key, from) {
+			return "schema declares " + key + ", which the declared dialect does not define and 2020-12 enforces"
 		}
 	}
 
-	// A plain-name fragment is a legal $id in draft-06 and draft-07 and is
-	// forbidden in 2020-12, which spells the same thing $anchor. Rewriting it
-	// would have to repoint every $ref that names it.
-	if id, ok := n[idKeyword(from)].(string); ok && isPlainNameFragment(id) {
-		return "schema uses a plain-name fragment in " + idKeyword(from) + ", which 2020-12 spells with $anchor"
+	// 2020-12 forbids ANY non-empty fragment in an identifier -- draft-06 and
+	// draft-07 allowed a plain-name one, which 2020-12 spells $anchor instead.
+	// The bail covers every fragment form rather than just a leading "#name":
+	// "#/row" and "https://example.test/s#row" are equally forbidden, and
+	// rewriting any of them would have to repoint every $ref that names it.
+	if id, ok := n[idKeyword(from)].(string); ok && strings.Contains(id, "#") {
+		return "schema uses a URI fragment in " + idKeyword(from) + ", which 2020-12 forbids"
 	}
 
 	if from == draft4 {
@@ -287,7 +315,20 @@ func untranslatableSchema(node any, from draft, isRoot bool) string {
 		}
 		for _, pair := range draft4ExclusiveBounds {
 			exclusive, isBool := n[pair.flag].(bool)
-			if !isBool || !exclusive {
+			if !isBool {
+				if _, present := n[pair.flag]; present {
+					// draft-04 defines this keyword as a BOOLEAN modifier. A
+					// numeric value is the draft-06+ spelling, which draft-04
+					// does not define -- so it asserted nothing where the schema
+					// was written and would become a live bound once the document
+					// claims 2020-12. Carrying it across is the same activation
+					// mistake as any other undefined keyword.
+					return "draft-04 schema gives " + pair.flag +
+						" a non-boolean value, which draft-04 does not define"
+				}
+				continue
+			}
+			if !exclusive {
 				continue
 			}
 			if _, hasBound := n[pair.bound]; !hasBound {
@@ -418,14 +459,10 @@ func convert(node any, from draft) any {
 				out["$id"] = deepCopy(value)
 			case (key == "exclusiveMinimum" || key == "exclusiveMaximum") && from == draft4:
 				// draft-04 spells these as booleans modifying minimum/maximum;
-				// 2020-12 spells them as the bound itself. Only the boolean
-				// form is rewritten, by convertDraft4Bounds below. A numeric
-				// value in a draft-04-declaring schema is already the 2020-12
-				// form, so it is carried across rather than dropped.
-				if _, isBool := value.(bool); isBool {
-					continue
-				}
-				out[key] = deepCopy(value)
+				// 2020-12 spells them as the bound itself. convertDraft4Bounds
+				// below folds the boolean form into the numeric one. Any other
+				// value has already been refused by untranslatableSchema.
+				continue
 			case schemaMapKeywords[key]:
 				out[key] = convertMap(value, from)
 			case schemaListKeywords[key]:
@@ -535,29 +572,106 @@ func deepCopy(value any) any {
 	}
 }
 
-// post202012Keywords are keywords that no dialect this package translates
-// defines, and that 2020-12 (or 2019-09, which 2020-12 inherits) does. In a
-// schema declaring an older dialect they are inert annotations the author's own
-// validator ignored; relabelling the document to 2020-12 would make them live.
+// significantUnder202012 are the keywords 2020-12 treats as assertions,
+// applicators, or identity/reference declarations — everything that can change
+// which instances a schema accepts, or which schema a reference resolves to.
 //
-// prefixItems, dependentRequired and dependentSchemas are here for that reason
-// and for a second one: they are the keywords the converter rewrites tuple
-// items and dependencies into, so a schema already carrying them has nowhere
-// for the rewrite to land.
-var post202012Keywords = map[string]bool{
-	"$anchor":               true,
-	"$dynamicAnchor":        true,
-	"$dynamicRef":           true,
-	"$recursiveAnchor":      true,
-	"$recursiveRef":         true,
-	"$vocabulary":           true,
-	"dependentRequired":     true,
-	"dependentSchemas":      true,
-	"maxContains":           true,
-	"minContains":           true,
-	"prefixItems":           true,
-	"unevaluatedItems":      true,
-	"unevaluatedProperties": true,
+// Taken from the 2020-12 meta-schema's own vocabularies: core (minus $comment
+// and $defs, below), applicator, validation, unevaluated, plus contentSchema.
+// The meta-data vocabulary (title, description, default, examples, deprecated,
+// readOnly, writeOnly) and format are annotations under 2020-12 and cannot
+// change an outcome, so they are deliberately absent — including them would
+// cost needless bail-outs.
+//
+// $defs is absent for the same reason: 2020-12 defines it, but it only holds
+// subschemas and asserts nothing, so a source schema already carrying one is
+// harmless. contentEncoding and contentMediaType are annotation-only under
+// 2020-12 and are absent too. contentSchema is present as the conservative
+// call: the content vocabulary is annotation-only by default, but an
+// implementation may evaluate it, and a bail-out costs only a relay.
+var significantUnder202012 = map[string]bool{
+	// core
+	"$anchor": true, "$dynamicAnchor": true, "$dynamicRef": true,
+	"$id": true, "$ref": true, "$vocabulary": true,
+	// applicator
+	"additionalProperties": true, "allOf": true, "anyOf": true, "contains": true,
+	"dependentSchemas": true, "else": true, "if": true, "items": true,
+	"not": true, "oneOf": true, "patternProperties": true, "prefixItems": true,
+	"properties": true, "propertyNames": true, "then": true,
+	// validation
+	"const": true, "dependentRequired": true, "enum": true,
+	"exclusiveMaximum": true, "exclusiveMinimum": true, "maxContains": true,
+	"maxItems": true, "maxLength": true, "maxProperties": true, "maximum": true,
+	"minContains": true, "minItems": true, "minLength": true,
+	"minProperties": true, "minimum": true, "multipleOf": true, "pattern": true,
+	"required": true, "type": true, "uniqueItems": true,
+	// unevaluated
+	"unevaluatedItems": true, "unevaluatedProperties": true,
+	// content, conservatively
+	"contentSchema": true,
+}
+
+// dialectKeywords is the set of keywords each translatable dialect DEFINES,
+// read from that draft's own meta-schema `properties` (draft-04 additionally
+// defines $ref, which its meta-schema omits because $ref short-circuits).
+//
+// The two maps together answer the question that matters: a keyword 2020-12
+// treats as significant and the SOURCE dialect does not define was an inert
+// unknown where the schema was written, and becomes live the moment the
+// document claims 2020-12. A draft-04 schema carrying `const: "x"` goes from
+// accepting every instance to accepting only "x" — a silent change of meaning,
+// and exactly what this package promises not to do.
+//
+// Derived per dialect rather than as one shared blacklist because the answer
+// genuinely differs: draft-04 does not define const, contains, propertyNames,
+// if/then/else or $id; draft-06 does not define if/then/else; draft-07 defines
+// all of those.
+var dialectKeywords = map[draft]map[string]bool{
+	draft4: keywordSet(
+		"$ref", "$schema", "additionalItems", "additionalProperties", "allOf",
+		"anyOf", "default", "definitions", "dependencies", "description", "enum",
+		"exclusiveMaximum", "exclusiveMinimum", "format", "id", "items",
+		"maxItems", "maxLength", "maxProperties", "maximum", "minItems",
+		"minLength", "minProperties", "minimum", "multipleOf", "not", "oneOf",
+		"pattern", "patternProperties", "properties", "required", "title",
+		"type", "uniqueItems",
+	),
+	draft6: keywordSet(
+		"$id", "$ref", "$schema", "additionalItems", "additionalProperties",
+		"allOf", "anyOf", "const", "contains", "default", "definitions",
+		"dependencies", "description", "enum", "examples", "exclusiveMaximum",
+		"exclusiveMinimum", "format", "items", "maxItems", "maxLength",
+		"maxProperties", "maximum", "minItems", "minLength", "minProperties",
+		"minimum", "multipleOf", "not", "oneOf", "pattern", "patternProperties",
+		"properties", "propertyNames", "required", "title", "type",
+		"uniqueItems",
+	),
+	draft7: keywordSet(
+		"$comment", "$id", "$ref", "$schema", "additionalItems",
+		"additionalProperties", "allOf", "anyOf", "const", "contains",
+		"contentEncoding", "contentMediaType", "default", "definitions",
+		"dependencies", "description", "else", "enum", "examples",
+		"exclusiveMaximum", "exclusiveMinimum", "format", "if", "items",
+		"maxItems", "maxLength", "maxProperties", "maximum", "minItems",
+		"minLength", "minProperties", "minimum", "multipleOf", "not", "oneOf",
+		"pattern", "patternProperties", "properties", "propertyNames",
+		"readOnly", "required", "then", "title", "type", "uniqueItems",
+		"writeOnly",
+	),
+}
+
+func keywordSet(keys ...string) map[string]bool {
+	set := make(map[string]bool, len(keys))
+	for _, key := range keys {
+		set[key] = true
+	}
+	return set
+}
+
+// activatedBy202012 reports whether relabelling a schema written in `from` to
+// 2020-12 would give `key` a meaning it did not have.
+func activatedBy202012(key string, from draft) bool {
+	return significantUnder202012[key] && !dialectKeywords[from][key]
 }
 
 // draft4ExclusiveBounds pairs draft-04's boolean exclusivity flags with the
@@ -575,12 +689,4 @@ func idKeyword(from draft) string {
 		return "id"
 	}
 	return "$id"
-}
-
-// isPlainNameFragment reports whether an identifier is a bare fragment such as
-// "#row", which draft-06 and draft-07 allow as an $id and 2020-12 does not.
-// A fragment that is empty or a JSON Pointer is not a plain name.
-func isPlainNameFragment(id string) bool {
-	rest, ok := strings.CutPrefix(id, "#")
-	return ok && rest != "" && rest[0] != '/'
 }

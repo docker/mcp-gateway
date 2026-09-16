@@ -44,7 +44,7 @@ func dialectOf(t *testing.T, schema any) any {
 }
 
 func testServerConfig() *catalog.ServerConfig {
-	return &catalog.ServerConfig{Name: "airtable-mcp-server"}
+	return &catalog.ServerConfig{Name: "example-mcp-server"}
 }
 
 func TestToolRegistrationTranslatesSchemaDialects(t *testing.T) {
@@ -84,9 +84,9 @@ func TestToolRegistrationStillPrefixesNames(t *testing.T) {
 	g := &Gateway{}
 	upstream := draft7Tool()
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "airtable", newRelayedDialects())
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "example", newRelayedDialects())
 
-	require.Equal(t, "airtable__list_bases", registration.Tool.Name)
+	require.Equal(t, "example__list_bases", registration.Tool.Name)
 	require.Equal(t, "list_bases", upstream.Name, "the upstream tool was renamed in place")
 	require.NotNil(t, registration.Handler)
 }

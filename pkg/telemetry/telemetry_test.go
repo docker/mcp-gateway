@@ -503,8 +503,8 @@ func TestRecordToolSchemaDialect(t *testing.T) {
 
 	ctx := context.Background()
 
-	RecordToolSchemaDialect(ctx, "airtable-mcp-server", "outputSchema", "translated")
-	RecordToolSchemaDialect(ctx, "airtable-mcp-server", "inputSchema", "relayed")
+	RecordToolSchemaDialect(ctx, "example-mcp-server", "outputSchema", "translated")
+	RecordToolSchemaDialect(ctx, "example-mcp-server", "inputSchema", "relayed")
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, metricReader.Collect(ctx, &rm))
@@ -524,7 +524,7 @@ func TestRecordToolSchemaDialect(t *testing.T) {
 				assert.Equal(t, int64(1), point.Value)
 
 				server, _ := point.Attributes.Value(attribute.Key("mcp.server.origin"))
-				assert.Equal(t, "airtable-mcp-server", server.AsString())
+				assert.Equal(t, "example-mcp-server", server.AsString())
 
 				field, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_field"))
 				outcome, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_outcome"))

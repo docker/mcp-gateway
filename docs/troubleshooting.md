@@ -85,9 +85,12 @@ docker mcp tools ls --verbose 2>&1 | grep 'Relaying'
 ```
 
 ```
-- mcp-gateway:   > Relaying 3 schema(s) from some-server with the dialect declared, outputSchema: schema declares unevaluatedProperties, which the declared dialect ignores and 2020-12 enforces
+- mcp-gateway:   > Relaying 3 schema(s) from some-server with the dialect declared, outputSchema: schema declares unevaluatedProperties, which the declared dialect does not define and 2020-12 enforces
 ```
 
 Those tools still work; a 2020-12-only client will still reject them, and the fix has to
 happen in the server. The reasons are all cases where relabelling the dialect would change
-which inputs the schema accepts, so the gateway declines to guess.
+which inputs the schema accepts, so the gateway declines to guess. The commonest is a
+keyword the declared dialect does not define: `const` in a draft-04 schema, or
+`if`/`then`/`else` in a draft-06 one, are inert where they were written and become live
+assertions the moment the document claims 2020-12.

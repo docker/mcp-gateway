@@ -12,11 +12,12 @@ import (
 
 const draft7URI = "http://json-schema.org/draft-07/schema#"
 
-// airtableListBasesOutputSchema is the outputSchema the Airtable MCP server
-// advertises for list_bases, captured verbatim from a tools/list round trip
-// against @modelcontextprotocol/sdk 1.24.3 with zod 4. It is the schema in the
-// customer report that motivated this package.
-const airtableListBasesOutputSchema = `{
+// reportedOutputSchema is the outputSchema from the report that motivated this
+// package, captured verbatim from a tools/list round trip against
+// @modelcontextprotocol/sdk 1.24.3 with zod 4. It is the shape that SDK emits
+// for any zod-declared tool, so it stands in for a whole class of backend
+// rather than for one product.
+const reportedOutputSchema = `{
   "type": "object",
   "properties": {
     "bases": {
@@ -56,13 +57,13 @@ func normalized(t *testing.T, doc string) map[string]any {
 }
 
 func TestNormalizeRelabelsTheDialect(t *testing.T) {
-	out := normalized(t, airtableListBasesOutputSchema)
+	out := normalized(t, reportedOutputSchema)
 	require.Equal(t, Dialect202012, out["$schema"])
 
 	// Nothing but the dialect should move on a schema this plain: the body is
 	// already valid 2020-12 and only the declaration was making clients reject
 	// it. Compare with $schema removed from both sides.
-	in := parse(t, airtableListBasesOutputSchema)
+	in := parse(t, reportedOutputSchema)
 	delete(in, "$schema")
 	got := map[string]any{}
 	for k, v := range out {
@@ -205,16 +206,26 @@ func TestNormalizeConvertsDraft04ExclusiveBounds(t *testing.T) {
 	}`, mustJSON(t, out))
 }
 
-func TestNormalizeCarriesANumericDraft04ExclusiveBound(t *testing.T) {
-	// A schema declaring draft-04 but spelling the bound the later way is
-	// already in the 2020-12 form. Dropping it as "the boolean flag" would
-	// silently remove the constraint.
-	out := normalized(t, `{
+// TestNormalizeRefusesANumericDraft04ExclusiveBound. draft-04 defines these
+// keywords as BOOLEAN modifiers of minimum/maximum. A numeric value is the
+// draft-06+ spelling, which draft-04 does not define, so it asserted nothing
+// where the schema was written and would become a live bound the moment the
+// document claims 2020-12.
+//
+// An earlier version of this package carried it across, for exactly the wrong
+// reason: "it is already in the 2020-12 form". The form is right; the
+// ACTIVATION is the problem, and it is the same mistake as any other keyword
+// the source dialect does not define.
+func TestNormalizeRefusesANumericDraft04ExclusiveBound(t *testing.T) {
+	in := parse(t, `{
 	  "$schema": "http://json-schema.org/draft-04/schema#",
 	  "type": "number",
 	  "exclusiveMinimum": 5
 	}`)
-	require.JSONEq(t, `{"$schema": "`+Dialect202012+`", "type": "number", "exclusiveMinimum": 5}`, mustJSON(t, out))
+	out, res := Normalize(in)
+	require.True(t, res.Skipped)
+	require.Contains(t, res.Reason, "non-boolean")
+	require.Equal(t, in, out)
 }
 
 func TestNormalizeLeavesSchemasItCannotClaimAlone(t *testing.T) {
@@ -285,13 +296,15 @@ func TestNormalizeSkipsRatherThanGuessing(t *testing.T) {
 		// Rewriting it would have to repoint every $ref naming it.
 		"plain-name fragment $id": {
 			doc:    `{"$schema": "` + draft7URI + `", "definitions": {"row": {"$id": "#row", "type": "string"}}}`,
-			reason: "plain-name fragment",
+			reason: "URI fragment",
 		},
 		// Renaming id to $id would collide, and before this guard existed which
 		// value survived depended on Go map iteration order.
-		"draft-04 id and $id together": {
+		// draft-04 spells the identifier "id"; "$id" is an unknown keyword
+		// there, and becomes the live identifier under 2020-12.
+		"draft-04 $id": {
 			doc:    `{"$schema": "http://json-schema.org/draft-04/schema#", "id": "https://a.test/x", "$id": "https://a.test/y"}`,
-			reason: "both id and $id",
+			reason: "$id",
 		},
 		// draft-04 requires the bound the flag modifies. With none, there is no
 		// value to carry across and dropping the flag would widen the schema.
@@ -531,8 +544,8 @@ func TestNormalizePreservesWhatTheSchemaAccepts(t *testing.T) {
 				[]any{},
 			},
 		},
-		"airtable list_bases": {
-			doc: airtableListBasesOutputSchema,
+		"the reported schema": {
+			doc: reportedOutputSchema,
 			instances: []any{
 				map[string]any{"bases": []any{map[string]any{"id": "app1", "name": "N", "permissionLevel": "create"}}},
 				map[string]any{"bases": []any{map[string]any{"id": "app1"}}},
@@ -721,4 +734,121 @@ func TestNormalizeReportsADialectItCannotTranslate(t *testing.T) {
 	_, res := Normalize(parse(t, `{"type": "object"}`))
 	require.False(t, res.UnsupportedDialect)
 	require.False(t, res.Changed)
+}
+
+// TestNormalizeRefusesKeywordsTheSourceDialectDoesNotDefine is the case an
+// earlier shared blacklist could not express, and the reason the guard is now
+// keyed to the declared dialect.
+//
+// Each of these is a legal, inert, ignored extension in the dialect it is
+// written in, and an assertion under 2020-12. The draft-04 `const` row is the
+// sharpest: relabelling turns "accepts every instance" into "accepts only x".
+// The keyword sets come from each draft's own meta-schema, so this table is
+// also the regression test for getting one of those sets wrong.
+func TestNormalizeRefusesKeywordsTheSourceDialectDoesNotDefine(t *testing.T) {
+	const (
+		d4 = "http://json-schema.org/draft-04/schema#"
+		d6 = "http://json-schema.org/draft-06/schema#"
+		d7 = "http://json-schema.org/draft-07/schema#"
+	)
+
+	for name, tc := range map[string]struct {
+		dialect string
+		body    string
+		keyword string
+	}{
+		// draft-04 defines none of these; draft-06 added them.
+		"draft-04 const":         {dialect: d4, body: `"const": "x"`, keyword: "const"},
+		"draft-04 contains":      {dialect: d4, body: `"contains": {"type": "string"}`, keyword: "contains"},
+		"draft-04 propertyNames": {dialect: d4, body: `"propertyNames": {"maxLength": 2}`, keyword: "propertyNames"},
+		// draft-04 and draft-06 define none of these; draft-07 added them.
+		"draft-04 if":   {dialect: d4, body: `"if": {"type": "string"}`, keyword: "if"},
+		"draft-06 if":   {dialect: d6, body: `"if": {"type": "string"}`, keyword: "if"},
+		"draft-06 then": {dialect: d6, body: `"then": {"type": "string"}`, keyword: "then"},
+		"draft-06 else": {dialect: d6, body: `"else": {"type": "string"}`, keyword: "else"},
+		// 2019-09 and later.
+		"draft-07 unevaluatedProperties": {dialect: d7, body: `"unevaluatedProperties": false`, keyword: "unevaluatedProperties"},
+		"draft-07 contentSchema":         {dialect: d7, body: `"contentSchema": {"type": "string"}`, keyword: "contentSchema"},
+		"draft-07 $anchor":               {dialect: d7, body: `"$anchor": "row"`, keyword: "$anchor"},
+		"draft-06 $comment is not":       {dialect: d6, body: `"$comment": "inert either way"`, keyword: ""},
+		// Annotations cannot change an outcome, so they must NOT cost a bail.
+		"draft-04 readOnly is not":   {dialect: d4, body: `"readOnly": true`, keyword: ""},
+		"draft-04 examples is not":   {dialect: d4, body: `"examples": [1]`, keyword: ""},
+		"draft-04 $defs is not":      {dialect: d4, body: `"$defs": {"a": {"type": "string"}}`, keyword: ""},
+		"draft-06 deprecated is not": {dialect: d6, body: `"deprecated": true`, keyword: ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			in := parse(t, `{"$schema": "`+tc.dialect+`", "type": "object", `+tc.body+`}`)
+			out, res := Normalize(in)
+
+			if tc.keyword == "" {
+				require.False(t, res.Skipped,
+					"an annotation must not cost the schema its translation: %s", res.Reason)
+				require.True(t, res.Changed)
+				return
+			}
+			require.True(t, res.Skipped, "expected a refusal for %q", tc.keyword)
+			require.Contains(t, res.Reason, tc.keyword)
+			require.Equal(t, in, out)
+		})
+	}
+}
+
+// TestNormalizeTranslatesASchemaWhoseRootIsARef. The root dialect declaration
+// is not a $ref sibling in the sense that matters -- it is how the schema says
+// which dialect it is written in, and every schema this package acts on has
+// one. Treating it as an unsafe sibling made a root-$ref schema permanently
+// untranslatable, which is the opposite of the intent.
+func TestNormalizeTranslatesASchemaWhoseRootIsARef(t *testing.T) {
+	out := normalized(t, `{
+	  "$schema": "`+draft7URI+`",
+	  "$ref": "#/definitions/row",
+	  "definitions": {"row": {"type": "array", "items": [{"type": "string"}]}}
+	}`)
+
+	require.Equal(t, Dialect202012, out["$schema"])
+	require.Equal(t, "#/definitions/row", out["$ref"])
+	// And the subschema it points at was still translated.
+	row := out["definitions"].(map[string]any)["row"].(map[string]any)
+	require.Equal(t, []any{map[string]any{"type": "string"}}, row["prefixItems"])
+
+	// A NESTED $schema beside a $ref is still refused.
+	nested := parse(t, `{
+	  "$schema": "`+draft7URI+`",
+	  "properties": {"a": {"$schema": "`+draft7URI+`", "$ref": "#/definitions/row"}}
+	}`)
+	_, res := Normalize(nested)
+	require.True(t, res.Skipped)
+	require.Contains(t, res.Reason, "embedded subschema declares its own $schema")
+}
+
+// TestNormalizeRefusesEveryIdentifierFragmentForm. 2020-12 forbids any
+// non-empty fragment in an identifier. An earlier version checked only for a
+// leading "#name", which let "#/row" and an absolute URI ending in "#row"
+// through into a translated $id that 2020-12 rejects outright.
+func TestNormalizeRefusesEveryIdentifierFragmentForm(t *testing.T) {
+	for name, tc := range map[string]struct{ dialect, id string }{
+		"draft-07 plain name": {dialect: draft7URI, id: "#row"},
+		"draft-07 pointer":    {dialect: draft7URI, id: "#/row"},
+		"draft-07 absolute":   {dialect: draft7URI, id: "https://example.test/s#row"},
+		"draft-07 bare hash":  {dialect: draft7URI, id: "#"},
+		"draft-04 plain name": {dialect: "http://json-schema.org/draft-04/schema#", id: "#row"},
+		"draft-04 absolute":   {dialect: "http://json-schema.org/draft-04/schema#", id: "https://example.test/s#row"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			key := "$id"
+			if tc.dialect == "http://json-schema.org/draft-04/schema#" {
+				key = "id"
+			}
+			in := parse(t, `{"$schema": "`+tc.dialect+`", "`+key+`": "`+tc.id+`", "type": "object"}`)
+			out, res := Normalize(in)
+			require.True(t, res.Skipped, "identifier %q was not refused", tc.id)
+			require.Contains(t, res.Reason, "URI fragment")
+			require.Equal(t, in, out)
+		})
+	}
+
+	// An identifier with no fragment is fine and must still translate.
+	out := normalized(t, `{"$schema": "`+draft7URI+`", "$id": "https://example.test/s", "type": "object"}`)
+	require.Equal(t, "https://example.test/s", out["$id"])
 }
