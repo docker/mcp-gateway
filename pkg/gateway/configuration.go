@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/config"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/log"
 	"github.com/docker/mcp-gateway/pkg/oci"
@@ -312,7 +313,8 @@ type FileBasedConfiguration struct {
 	Watch              bool
 	McpOAuthDcrEnabled bool
 
-	docker docker.Client
+	docker     docker.Client
+	catalogDAO db.DAO // optional; tests inject a temp DB. production opens the default catalog DB.
 }
 
 func (c *FileBasedConfiguration) Read(ctx context.Context) (Configuration, chan Configuration, func() error, error) {
@@ -460,6 +462,14 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 	}
 
 	servers := mcpCatalog.Servers
+
+	// Servers from `docker mcp catalog pull` / `catalog create` live in the
+	// DB-backed store. `--servers` still goes through this file-based path,
+	// so without this merge a pulled catalog is invisible and the gateway
+	// starts zero backend tools.
+	if err := c.mergePulledCatalogServers(ctx, servers, serverCatalogs, serverSourceTypeOverrides); err != nil {
+		return Configuration{}, err
+	}
 
 	// Read servers from OCI references if any are provided
 	ociServers, ociCatalogRefs, err := c.readServersFromOci(ctx)
@@ -619,6 +629,67 @@ func (c *FileBasedConfiguration) readCatalog(ctx context.Context) (catalog.Catal
 	}
 
 	return catalog.Catalog{Servers: mergedServers}, serverCatalogs, nil
+}
+
+func (c *FileBasedConfiguration) pulledCatalogDAO() (db.DAO, func(), error) {
+	if c.catalogDAO != nil {
+		return c.catalogDAO, func() {}, nil
+	}
+	dao, err := db.New()
+	if err != nil {
+		return nil, nil, err
+	}
+	return dao, func() { _ = dao.Close() }, nil
+}
+
+func (c *FileBasedConfiguration) mergePulledCatalogServers(
+	ctx context.Context,
+	servers map[string]catalog.Server,
+	serverCatalogs map[string]string,
+	serverSourceTypeOverrides map[string]string,
+) error {
+	dao, closer, err := c.pulledCatalogDAO()
+	if err != nil {
+		if c.catalogDAO != nil {
+			return fmt.Errorf("opening pulled catalogs: %w", err)
+		}
+		log.Log("  - Skipping pulled catalogs:", err)
+		return nil
+	}
+	defer closer()
+
+	catalogs, err := dao.ListCatalogs(ctx)
+	if err != nil {
+		if c.catalogDAO != nil {
+			return fmt.Errorf("listing pulled catalogs: %w", err)
+		}
+		log.Log("  - Skipping pulled catalogs:", err)
+		return nil
+	}
+
+	added := 0
+	for _, cat := range catalogs {
+		for _, server := range cat.Servers {
+			if server.Snapshot == nil {
+				continue
+			}
+			name := server.Snapshot.Server.Name
+			if name == "" {
+				continue
+			}
+			if _, exists := servers[name]; exists {
+				continue
+			}
+			servers[name] = server.Snapshot.Server
+			serverCatalogs[name] = cat.Ref
+			serverSourceTypeOverrides[name] = "registry"
+			added++
+		}
+	}
+	if added > 0 {
+		log.Log(fmt.Sprintf("  - Added %d server(s) from pulled catalogs", added))
+	}
+	return nil
 }
 
 func (c *FileBasedConfiguration) readRegistry(ctx context.Context) (config.Registry, error) {
