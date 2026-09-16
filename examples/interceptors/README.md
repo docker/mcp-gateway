@@ -17,9 +17,19 @@ docker compose up --build
 
 There are three types of interceptors, `exec`, `docker` and `http`.
 Interceptors can run `before` a tool call or `after` a tool call`.
-Those which run run `before` have access to the full tool call request and
+Those which run run `before` receive the tool call's protocol payload and
 can either let the call go through or bypass the call and return a custom response.
 Those which run run `after` have access to the tool call response.
+
+The `before` payload uses `method` and `params` keys, for example:
+
+```json
+{"method":"tools/call","params":{"name":"search","arguments":{"query":"example"}}}
+```
+
+Request `_meta`, when present, is retained inside `params`. SDK session objects,
+HTTP headers and transport callbacks are not included. Interceptors reading the
+SDK's previous `Params` field should use the lowercase `params` key instead.
 
 ## `exec`
 
