@@ -163,6 +163,7 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 
 					// Determine the prefix to use for this server's tools
 					prefix := g.getToolNamePrefix(serverConfig)
+					relayedDialects := newRelayedDialects()
 
 					for _, tool := range tools.Tools {
 						if tool == nil {
@@ -173,8 +174,9 @@ func (g *Gateway) listCapabilities(ctx context.Context, serverNames []string, cl
 							continue
 						}
 
-						capabilities.Tools = append(capabilities.Tools, g.toolRegistration(ctx, serverConfig, tool, prefix))
+						capabilities.Tools = append(capabilities.Tools, g.toolRegistration(ctx, serverConfig, tool, prefix, relayedDialects))
 					}
+					relayedDialects.report(serverConfig.Name)
 				}
 
 				prompts, err := client.Session().ListPrompts(ctx, &mcp.ListPromptsParams{})

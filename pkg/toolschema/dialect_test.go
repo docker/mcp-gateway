@@ -2,6 +2,7 @@ package toolschema
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -133,25 +134,48 @@ func TestNormalizeSplitsDependencies(t *testing.T) {
 	require.NotContains(t, out, "dependencies")
 }
 
-func TestNormalizeRenamesDefinitionsAndRepointsRefs(t *testing.T) {
+// TestNormalizeKeepsDefinitionsAndRefsAsWritten pins a deliberate non-change.
+//
+// "definitions" was renamed to "$defs" in an earlier version of this package.
+// It is not a keyword in 2020-12, but $ref resolution is JSON Pointer over the
+// raw document and does not care, so both the section and pointers into it work
+// untouched under a 2020-12 validator -- measured against ajv 8's 2020-12
+// instance, in strict mode too. Renaming bought nothing and cost correctness:
+// any rewrite of pointer text corrupts a pointer that legitimately traverses a
+// property named "definitions", as the second assertion here shows.
+//
+// Subschemas inside the section are still translated, so the traversal has to
+// reach them.
+func TestNormalizeKeepsDefinitionsAndRefsAsWritten(t *testing.T) {
 	out := normalized(t, `{
 	  "$schema": "http://json-schema.org/draft-07/schema#",
 	  "type": "object",
-	  "definitions": {"row": {"type": "string"}},
+	  "definitions": {
+	    "row": {"type": "string"},
+	    "pair": {"type": "array", "items": [{"type": "string"}], "additionalItems": false}
+	  },
 	  "properties": {
+	    "definitions": {"type": "object"},
 	    "a": {"$ref": "#/definitions/row"},
-	    "b": {"$ref": "https://example.test/schema#/definitions/row"}
+	    "b": {"$ref": "#/properties/definitions"},
+	    "c": {"$ref": "#/properties/definitions/type"}
 	  }
 	}`)
 
-	require.Equal(t, map[string]any{"row": map[string]any{"type": "string"}}, out["$defs"])
-	require.NotContains(t, out, "definitions")
+	require.NotContains(t, out, "$defs")
+	defs := out["definitions"].(map[string]any)
+	require.Equal(t, map[string]any{"type": "string"}, defs["row"])
+	// A tuple inside the section is still converted.
+	require.Equal(t, []any{map[string]any{"type": "string"}}, defs["pair"].(map[string]any)["prefixItems"])
 
 	props := out["properties"].(map[string]any)
-	require.Equal(t, "#/$defs/row", props["a"].(map[string]any)["$ref"])
-	// An external pointer names a section of somebody else's document, which
-	// this package has not renamed, so it must be left alone.
-	require.Equal(t, "https://example.test/schema#/definitions/row", props["b"].(map[string]any)["$ref"])
+	for name, want := range map[string]string{
+		"a": "#/definitions/row",
+		"b": "#/properties/definitions",
+		"c": "#/properties/definitions/type",
+	} {
+		require.Equal(t, want, props[name].(map[string]any)["$ref"], "pointer %q was rewritten", name)
+	}
 }
 
 func TestNormalizeConvertsDraft04ExclusiveBounds(t *testing.T) {
@@ -220,24 +244,67 @@ func TestNormalizeSkipsRatherThanGuessing(t *testing.T) {
 		reason string
 	}{
 		"$ref with an assertion sibling": {
-			doc:    `{"$schema": "` + draft7URI + `", "properties": {"a": {"$ref": "#/$defs/x", "maxLength": 3}}}`,
+			doc:    `{"$schema": "` + draft7URI + `", "properties": {"a": {"$ref": "#/definitions/x", "maxLength": 3}}}`,
 			reason: "maxLength",
 		},
 		"$ref nested under allOf": {
-			doc:    `{"$schema": "` + draft7URI + `", "allOf": [{"$ref": "#/$defs/x", "minimum": 1}]}`,
+			doc:    `{"$schema": "` + draft7URI + `", "allOf": [{"$ref": "#/definitions/x", "minimum": 1}]}`,
 			reason: "minimum",
-		},
-		"definitions and $defs together": {
-			doc:    `{"$schema": "` + draft7URI + `", "definitions": {"a": {}}, "$defs": {"b": {}}}`,
-			reason: "both definitions and $defs",
 		},
 		"tuple items and prefixItems together": {
 			doc:    `{"$schema": "` + draft7URI + `", "items": [{}], "prefixItems": [{}]}`,
-			reason: "both a draft-07 tuple items and prefixItems",
+			reason: "prefixItems",
 		},
 		"dependencies and dependentRequired together": {
 			doc:    `{"$schema": "` + draft7URI + `", "dependencies": {"a": ["b"]}, "dependentRequired": {"c": ["d"]}}`,
-			reason: "both dependencies and dependentRequired",
+			reason: "dependentRequired",
+		},
+		// Inert where the schema was written, live the moment it claims
+		// 2020-12. Relabelling alone would start rejecting instances the
+		// server's own validator accepted.
+		"unevaluatedProperties": {
+			doc:    `{"$schema": "` + draft7URI + `", "properties": {"a": {}}, "unevaluatedProperties": false}`,
+			reason: "unevaluatedProperties",
+		},
+		"minContains": {
+			doc:    `{"$schema": "` + draft7URI + `", "type": "array", "contains": {"type": "string"}, "minContains": 2}`,
+			reason: "minContains",
+		},
+		"nested post-2020-12 keyword": {
+			doc:    `{"$schema": "` + draft7URI + `", "properties": {"a": {"unevaluatedItems": false}}}`,
+			reason: "unevaluatedItems",
+		},
+		// An embedded resource governed by its own declaration. Converting its
+		// body under the root's rules while leaving that declaration alone
+		// produces a document whose halves disagree.
+		"embedded subschema declaring its own dialect": {
+			doc:    `{"$schema": "` + draft7URI + `", "definitions": {"row": {"$schema": "` + draft7URI + `", "type": "array", "items": [{}]}}}`,
+			reason: "embedded subschema declares its own $schema",
+		},
+		// Legal draft-07, forbidden in 2020-12, which spells it $anchor.
+		// Rewriting it would have to repoint every $ref naming it.
+		"plain-name fragment $id": {
+			doc:    `{"$schema": "` + draft7URI + `", "definitions": {"row": {"$id": "#row", "type": "string"}}}`,
+			reason: "plain-name fragment",
+		},
+		// Renaming id to $id would collide, and before this guard existed which
+		// value survived depended on Go map iteration order.
+		"draft-04 id and $id together": {
+			doc:    `{"$schema": "http://json-schema.org/draft-04/schema#", "id": "https://a.test/x", "$id": "https://a.test/y"}`,
+			reason: "both id and $id",
+		},
+		// draft-04 requires the bound the flag modifies. With none, there is no
+		// value to carry across and dropping the flag would widen the schema.
+		"draft-04 exclusive flag with no bound": {
+			doc:    `{"$schema": "http://json-schema.org/draft-04/schema#", "type": "number", "exclusiveMinimum": true}`,
+			reason: "exclusiveMinimum with no minimum",
+		},
+		// Not the shape dependencies is defined to have, so it cannot be split
+		// into the two keywords that replaced it. Dropping the key silently,
+		// which is what an unguarded split did, is the worst available answer.
+		"dependencies that is not an object": {
+			doc:    `{"$schema": "` + draft7URI + `", "dependencies": "bogus"}`,
+			reason: "not an object",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -261,7 +328,7 @@ func TestNormalizeIgnoresAnnotationSiblingsOfARef(t *testing.T) {
 	  "properties": {"a": {"$ref": "#/definitions/row", "description": "a row", "title": "Row"}}
 	}`)
 	a := out["properties"].(map[string]any)["a"].(map[string]any)
-	require.Equal(t, "#/$defs/row", a["$ref"])
+	require.Equal(t, "#/definitions/row", a["$ref"])
 	require.Equal(t, "a row", a["description"])
 }
 
@@ -339,11 +406,23 @@ func TestNormalizeDoesNotMutateItsInput(t *testing.T) {
 	require.Equal(t, before, in)
 }
 
+// TestNormalizeReturnsATypedSchemaUnchanged covers the gateway-built (POCI)
+// shape, which is a *jsonschema.Schema rather than a decoded map and carries no
+// dialect declaration to act on. Same, not Equal: the claim is that the very
+// same value comes back, which an implementation returning an equal copy would
+// satisfy under Equal.
+func TestNormalizeReturnsATypedSchemaUnchanged(t *testing.T) {
+	in := &jsonschema.Schema{Type: "object"}
+	out, res := Normalize(in)
+	require.False(t, res.Changed)
+	require.False(t, res.Skipped)
+	require.Same(t, in, out)
+}
+
 func TestNormalizeIgnoresNonObjectSchemas(t *testing.T) {
 	for name, in := range map[string]any{
 		"nil":            nil,
 		"boolean schema": true,
-		"typed schema":   &jsonschema.Schema{Type: "object"},
 		"string":         "not a schema",
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -355,11 +434,20 @@ func TestNormalizeIgnoresNonObjectSchemas(t *testing.T) {
 	}
 }
 
-// TestNormalizePreservesWhatTheSchemaAccepts is the general property behind the
-// per-keyword tests: for each translatable construct, the translated schema
-// must reach the same verdict on the same instances as the original did. A
-// shape assertion alone would pass a translation that renamed keywords into
-// positions a validator ignores.
+// TestNormalizePreservesWhatTheSchemaAccepts checks the property behind the
+// per-keyword tests: for each construct it covers, the translated schema must
+// reach the same verdict on the same instances as the original did. A shape
+// assertion alone would pass a translation that renamed keywords into positions
+// a validator ignores.
+//
+// Its reach is limited by the oracle, and the limits are worth naming. It IS
+// dialect-aware where it matters most -- measured: google/jsonschema-go enforces
+// a draft-07 tuple items and dependencies, and ignores the byte-identical body
+// under 2020-12 -- so these cases are not f(x) == f(x). It is NOT dialect-aware
+// for keywords 2020-12 introduced (it enforces unevaluatedProperties even on a
+// draft-07 document), so it structurally cannot witness that class. Those are
+// refused outright instead, and pinned by TestNormalizeSkipsRatherThanGuessing.
+// draft-04 is absent because the oracle cannot parse it at all.
 func TestNormalizePreservesWhatTheSchemaAccepts(t *testing.T) {
 	for name, tc := range map[string]struct {
 		doc       string
@@ -401,6 +489,48 @@ func TestNormalizePreservesWhatTheSchemaAccepts(t *testing.T) {
 		// so it cannot parse the "before" side and there is no oracle in this
 		// repo to compare against. That translation is pinned by shape in
 		// TestNormalizeConvertsDraft04ExclusiveBounds instead.
+		"$ref with annotation siblings": {
+			doc: `{"$schema": "` + draft7URI + `", "type": "object",
+			       "definitions": {"row": {"type": "string"}},
+			       "properties": {"a": {"$ref": "#/definitions/row", "title": "Row", "description": "d"}},
+			       "required": ["a"]}`,
+			instances: []any{
+				map[string]any{"a": "ok"},
+				map[string]any{"a": 1.0},
+				map[string]any{},
+			},
+		},
+		"if then else": {
+			doc: `{"$schema": "` + draft7URI + `", "type": "object",
+			       "if": {"properties": {"kind": {"const": "a"}}, "required": ["kind"]},
+			       "then": {"required": ["extra"]},
+			       "else": {"required": ["other"]}}`,
+			instances: []any{
+				map[string]any{"kind": "a", "extra": 1.0},
+				map[string]any{"kind": "a"},
+				map[string]any{"kind": "b", "other": 1.0},
+				map[string]any{"kind": "b"},
+			},
+		},
+		"patternProperties and propertyNames": {
+			doc: `{"$schema": "` + draft7URI + `", "type": "object",
+			       "patternProperties": {"^x_": {"type": "number"}},
+			       "propertyNames": {"maxLength": 4}}`,
+			instances: []any{
+				map[string]any{"x_a": 1.0},
+				map[string]any{"x_a": "no"},
+				map[string]any{"toolongname": 1.0},
+			},
+		},
+		"boolean subschemas in a tuple": {
+			doc: `{"$schema": "` + draft7URI + `", "type": "array",
+			       "items": [true, false], "additionalItems": true}`,
+			instances: []any{
+				[]any{"anything"},
+				[]any{"anything", "rejected-by-false"},
+				[]any{},
+			},
+		},
 		"airtable list_bases": {
 			doc: airtableListBasesOutputSchema,
 			instances: []any{
@@ -448,4 +578,114 @@ func mustJSON(t *testing.T, value any) string {
 	encoded, err := json.Marshal(value)
 	require.NoError(t, err)
 	return string(encoded)
+}
+
+// TestNormalizeAcceptsEverySpellingOfEveryTranslatableDialect covers the
+// dialect table itself. Before this test only one of the twelve keys was ever
+// exercised: the http draft-07 spelling with a trailing "#". draft-06 support
+// is claimed by the package doc and had no test at all.
+func TestNormalizeAcceptsEverySpellingOfEveryTranslatableDialect(t *testing.T) {
+	require.Len(t, translatableDialects, 12, "a new dialect spelling needs a case here")
+
+	for declared := range translatableDialects {
+		t.Run(declared, func(t *testing.T) {
+			// A tuple, so the assertion needs the dialect to have been both
+			// recognised and converted, not merely relabelled.
+			out, res := Normalize(parse(t, `{
+			  "$schema": "`+declared+`",
+			  "type": "array",
+			  "items": [{"type": "string"}],
+			  "additionalItems": false
+			}`))
+			require.True(t, res.Changed, "dialect %q was not recognised", declared)
+			require.False(t, res.Skipped, "unexpected skip: %s", res.Reason)
+			require.JSONEq(t, `{
+			  "$schema": "`+Dialect202012+`",
+			  "type": "array",
+			  "prefixItems": [{"type": "string"}],
+			  "items": false
+			}`, mustJSON(t, out))
+		})
+	}
+}
+
+// TestNormalizeDraft04BoundRewriteKeepsTheBoundary is the one rewrite in this
+// package that silently changes the accept set if it is inverted, and
+// google/jsonschema-go cannot read draft-04 so the equivalence harness is blind
+// to it. The boundary value is the whole question: draft-04's
+// minimum:0 + exclusiveMinimum:true rejects 0, and so must the translation.
+func TestNormalizeDraft04BoundRewriteKeepsTheBoundary(t *testing.T) {
+	out := normalized(t, `{
+	  "$schema": "http://json-schema.org/draft-04/schema#",
+	  "type": "number",
+	  "minimum": 0,
+	  "exclusiveMinimum": true
+	}`)
+
+	for _, tc := range []struct {
+		instance float64
+		accepted bool
+	}{
+		{instance: -1, accepted: false},
+		{instance: 0, accepted: false}, // the boundary the exclusive flag excludes
+		{instance: 1, accepted: true},
+	} {
+		err := validate(t, out, tc.instance)
+		require.Equal(t, tc.accepted, err == nil, "instance %v: err=%v", tc.instance, err)
+	}
+}
+
+// TestNormalizeDropsAdditionalItemsWithNoItems pins the third additionalItems
+// case. draft-07 applies additionalItems only beside an array items, so with no
+// items at all it constrains nothing and carrying it into 2020-12 -- where the
+// keyword does not exist -- would be noise.
+func TestNormalizeDropsAdditionalItemsWithNoItems(t *testing.T) {
+	out := normalized(t, `{
+	  "$schema": "`+draft7URI+`",
+	  "type": "array",
+	  "additionalItems": {"type": "string"}
+	}`)
+	require.JSONEq(t, `{"$schema": "`+Dialect202012+`", "type": "array"}`, mustJSON(t, out))
+}
+
+func TestNormalizeRefusesSchemasBeyondItsWalkBudget(t *testing.T) {
+	// A tool schema is upstream-controlled input, so the traversal this package
+	// added is bounded. Beyond the bound the schema is relayed as declared,
+	// which is what the gateway did before this package existed.
+	deep := `{"type": "object"}`
+	for range maxSchemaDepth + 2 {
+		deep = `{"properties": {"a": ` + deep + `}}`
+	}
+	in := parse(t, `{"$schema": "`+draft7URI+`", "properties": {"deep": `+deep+`}}`)
+	out, res := Normalize(in)
+	require.True(t, res.Skipped)
+	require.Contains(t, res.Reason, "nests deeper")
+	require.Equal(t, in, out)
+
+	// Wide rather than deep, to show the node count is counted independently.
+	wide := map[string]any{"$schema": draft7URI, "type": "object"}
+	props := map[string]any{}
+	for i := range maxSchemaNodes + 1 {
+		props["p"+strconv.Itoa(i)] = map[string]any{"type": "string"}
+	}
+	wide["properties"] = props
+	_, wideRes := Normalize(wide)
+	require.True(t, wideRes.Skipped)
+	require.Contains(t, wideRes.Reason, "more values")
+}
+
+// TestNormalizeGuardsListsInSingleSchemaPositions pins that the bail-out
+// traversal dispatches on a value's type exactly as the converter does. A
+// single-schema keyword holding a list is still rewritten, so a guard that
+// stopped at the non-map would let a bail-out condition inside it through.
+func TestNormalizeGuardsListsInSingleSchemaPositions(t *testing.T) {
+	in := parse(t, `{
+	  "$schema": "`+draft7URI+`",
+	  "not": [{"$ref": "#/definitions/row", "maxLength": 3}],
+	  "definitions": {"row": {"type": "string"}}
+	}`)
+	out, res := Normalize(in)
+	require.True(t, res.Skipped, "a $ref sibling inside a list position was not guarded")
+	require.Contains(t, res.Reason, "maxLength")
+	require.Equal(t, in, out)
 }

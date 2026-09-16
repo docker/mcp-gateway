@@ -64,12 +64,16 @@ When the gateway connects to MCP servers, it discovers their capabilities:
 - **`mcp.resource_templates.discovered`** - Number of resource templates available per server
 
 #### Tool Schema Dialects
-Discovered tool schemas are translated into JSON Schema 2020-12, which is the only dialect MCP
-requires clients to support:
-- **`mcp.tool.schema.translations`** - Counter of tool schemas whose declared dialect was
-  translated to 2020-12, or relayed as declared because no faithful translation exists.
-  Attributes: `mcp.server.origin`, `mcp.tool.schema.field` (`inputSchema` or `outputSchema`),
-  `mcp.tool.schema.dialect.outcome` (`translated` or `relayed`)
+A discovered tool schema that declares JSON Schema draft-04, draft-06 or draft-07 is
+translated into 2020-12, the only dialect MCP requires clients to support:
+- **`mcp.tool.schema_dialects`** - Counter of tool schemas by what the gateway did with the
+  dialect they declared. Attributes: `mcp.server.origin`, `mcp.tool.schema_field`
+  (`inputSchema` or `outputSchema`), `mcp.tool.schema_outcome` (`translated`, or `relayed`
+  when no faithful translation exists and the schema was passed through as declared)
+
+This counter is not a census of discovered schemas. A schema that declares no dialect is
+already 2020-12 by default and is never counted, and nothing is recorded at all when the
+gateway runs with `--preserve-tool-schema-dialect`.
 
 ### Client Operations
 
@@ -128,6 +132,9 @@ All metrics include contextual attributes for filtering and aggregation:
 
 ### Common Attributes
 - **`mcp.server.name`** - Name of the MCP server handling the operation
+- **`mcp.server.origin`** - Name of the MCP server a capability was discovered on. This is
+  what discovery and listing metrics carry; `mcp.server.name` is used on the tool-error
+  path, paired with `mcp.server.type`
 - **`mcp.server.type`** - Type of server (docker, stdio, sse, unknown)
 
 ### Initialize Attributes
@@ -150,6 +157,11 @@ All metrics include contextual attributes for filtering and aggregation:
 - **`mcp.profile.operation`** - Type of profile operation (create, push, pull, remove)
 - **`mcp.profile.id`** - Profile identifier
 - **`mcp.profile.success`** - Boolean indicating operation success
+
+### Tool Schema Dialect Attributes
+- **`mcp.tool.schema_field`** - Which schema of the tool (`inputSchema`, `outputSchema`)
+- **`mcp.tool.schema_outcome`** - What the gateway did with the declared dialect
+  (`translated`, `relayed`)
 
 ## Distributed Tracing
 

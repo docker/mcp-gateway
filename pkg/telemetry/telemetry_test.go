@@ -515,7 +515,7 @@ func TestRecordToolSchemaDialect(t *testing.T) {
 	found := false
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
-			if m.Name != "mcp.tool.schema.translations" {
+			if m.Name != "mcp.tool.schema_dialects" {
 				continue
 			}
 			found = true
@@ -526,8 +526,8 @@ func TestRecordToolSchemaDialect(t *testing.T) {
 				server, _ := point.Attributes.Value(attribute.Key("mcp.server.origin"))
 				assert.Equal(t, "airtable-mcp-server", server.AsString())
 
-				field, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema.field"))
-				outcome, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema.dialect.outcome"))
+				field, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_field"))
+				outcome, _ := point.Attributes.Value(attribute.Key("mcp.tool.schema_outcome"))
 				outcomes[outcome.AsString()] = field.AsString()
 			}
 		}

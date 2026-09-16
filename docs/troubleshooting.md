@@ -49,7 +49,7 @@ docker mcp tools call --gateway-arg="--servers=duckduckgo" --verbose search quer
 ## A client rejects every tool of one server: "unsupported dialect"
 
 Some clients validate tool schemas with a validator configured for JSON Schema 2020-12
-only, and refuse a tool whose schema declares an older dialect. The error names the tool
+only, and refuse a tool whose schema declares an older dialect. The error names one tool
 but applies to every tool on that server:
 
 ```
@@ -57,12 +57,14 @@ Tool 'list_bases' has an invalid outputSchema: JSON Schema declares an unsupport
 dialect ("$schema": "http://json-schema.org/draft-07/schema#").
 ```
 
-This is not a broken or stale server image. MCP lets a schema declare any dialect and only
-requires clients to support 2020-12, and servers built on the MCP TypeScript SDK declare
-draft-07 for every tool because its zod converter defaults to that target.
+This is not a broken or stale server image, and rebuilding it will not help. MCP lets a
+schema declare any dialect and requires clients to support only 2020-12, so both sides are
+behaving correctly; servers built on the MCP TypeScript SDK declare draft-07 for every tool
+because its zod converter defaults to that target.
 
-The gateway translates such schemas into 2020-12 before advertising them, so an up to date
-gateway resolves this on its own. To see what a server actually declared, compare:
+The gateway translates draft-04, draft-06 and draft-07 tool schemas into 2020-12 before
+advertising them, so an up to date gateway resolves this on its own. To see what a server
+declared versus what clients are served, compare the two:
 
 ```console
 # what clients are served
@@ -72,9 +74,18 @@ docker mcp tools ls --format json | jq '.[] | {name, dialect: .inputSchema["$sch
 docker mcp tools ls --gateway-arg="--preserve-tool-schema-dialect" --format json | jq '.[] | {name, dialect: .inputSchema["$schema"]}'
 ```
 
-A schema the gateway cannot translate without changing what it accepts is relayed as the
-server declared it, and the reason is logged under `--verbose`:
+A schema the gateway cannot translate without changing what it accepts is relayed exactly
+as the server declared it. The gateway reports those once per server and reason on its
+stderr, which `docker mcp tools ls` surfaces under `--verbose`:
+
+```console
+docker mcp tools ls --verbose 2>&1 | grep 'Relaying'
+```
 
 ```
-> Relaying outputSchema of tool "x" from some-server with its declared dialect: ...
+- mcp-gateway:   > Relaying 3 schema(s) from some-server with the dialect declared, outputSchema: schema declares unevaluatedProperties, which the declared dialect ignores and 2020-12 enforces
 ```
+
+Those tools still work; a 2020-12-only client will still reject them, and the fix has to
+happen in the server. The reasons are all cases where relabelling the dialect would change
+which inputs the schema accepts, so the gateway declines to guess.

@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"sort"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -18,10 +19,16 @@ import (
 // and the schema maps reachable from it, are owned by the upstream client
 // session's cached tool list and are read concurrently across servers. Every
 // rewrite here lands on the local copy.
-func (g *Gateway) toolRegistration(ctx context.Context, serverConfig *catalog.ServerConfig, tool *mcp.Tool, prefix string) ToolRegistration {
+func (g *Gateway) toolRegistration(
+	ctx context.Context,
+	serverConfig *catalog.ServerConfig,
+	tool *mcp.Tool,
+	prefix string,
+	relayed *relayedDialects,
+) ToolRegistration {
 	prefixedTool := *tool
 	prefixedTool.Name = prefixToolName(prefix, tool.Name)
-	g.normalizeToolSchemaDialects(ctx, &prefixedTool, serverConfig.Name)
+	g.normalizeToolSchemaDialects(ctx, &prefixedTool, serverConfig.Name, relayed)
 
 	return ToolRegistration{
 		ServerName: serverConfig.Name,
@@ -48,24 +55,70 @@ func (g *Gateway) toolRegistration(ctx context.Context, serverConfig *catalog.Se
 // that have nothing to do with the gateway.
 //
 // tool must already be the gateway's own copy; see toolRegistration.
-func (g *Gateway) normalizeToolSchemaDialects(ctx context.Context, tool *mcp.Tool, serverName string) {
+func (g *Gateway) normalizeToolSchemaDialects(
+	ctx context.Context,
+	tool *mcp.Tool,
+	serverName string,
+	relayed *relayedDialects,
+) {
 	if g.PreserveToolSchemaDialect {
 		return
 	}
 
-	tool.InputSchema = normalizeSchemaDialect(ctx, tool.InputSchema, serverName, tool.Name, "inputSchema")
-	tool.OutputSchema = normalizeSchemaDialect(ctx, tool.OutputSchema, serverName, tool.Name, "outputSchema")
+	tool.InputSchema = g.normalizeSchemaDialect(ctx, tool.InputSchema, serverName, "inputSchema", relayed)
+	tool.OutputSchema = g.normalizeSchemaDialect(ctx, tool.OutputSchema, serverName, "outputSchema", relayed)
 }
 
-func normalizeSchemaDialect(ctx context.Context, schema any, serverName, toolName, field string) any {
+func (g *Gateway) normalizeSchemaDialect(
+	ctx context.Context,
+	schema any,
+	serverName, field string,
+	relayed *relayedDialects,
+) any {
 	normalized, result := toolschema.Normalize(schema)
 	switch {
 	case result.Skipped:
-		log.Logf("  > Relaying %s of tool %q from %s with its declared dialect: %s",
-			field, toolName, serverName, result.Reason)
+		relayed.record(field, result.Reason)
 		telemetry.RecordToolSchemaDialect(ctx, serverName, field, "relayed")
 	case result.Changed:
 		telemetry.RecordToolSchemaDialect(ctx, serverName, field, "translated")
 	}
 	return normalized
+}
+
+// relayedDialects collects the schemas one server's discovery pass could not
+// translate, so the reasons are reported once for the server rather than once
+// per tool. A server with a hundred affected tools would otherwise write two
+// hundred lines on every capability refresh, where every neighbouring
+// diagnostic in listCapabilities is per server.
+type relayedDialects struct {
+	counts map[string]int
+}
+
+func newRelayedDialects() *relayedDialects {
+	return &relayedDialects{counts: map[string]int{}}
+}
+
+func (r *relayedDialects) record(field, reason string) {
+	if r == nil {
+		return
+	}
+	r.counts[field+": "+reason]++
+}
+
+// report writes one line per distinct reason. Called after a server's tools are
+// registered, from the same goroutine that recorded them.
+func (r *relayedDialects) report(serverName string) {
+	if r == nil || len(r.counts) == 0 {
+		return
+	}
+	reasons := make([]string, 0, len(r.counts))
+	for reason := range r.counts {
+		reasons = append(reasons, reason)
+	}
+	sort.Strings(reasons)
+	for _, reason := range reasons {
+		log.Logf("  > Relaying %d schema(s) from %s with the dialect declared, %s",
+			r.counts[reason], serverName, reason)
+	}
 }

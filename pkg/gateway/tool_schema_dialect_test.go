@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/require"
 
@@ -52,7 +53,7 @@ func TestToolRegistrationTranslatesSchemaDialects(t *testing.T) {
 	before, err := json.Marshal(upstream)
 	require.NoError(t, err)
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "")
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "", newRelayedDialects())
 
 	require.Equal(t, toolschema.Dialect202012, dialectOf(t, registration.Tool.InputSchema))
 	require.Equal(t, toolschema.Dialect202012, dialectOf(t, registration.Tool.OutputSchema))
@@ -70,7 +71,7 @@ func TestToolRegistrationPreservesDialectsWhenAsked(t *testing.T) {
 	g := &Gateway{}
 	g.PreserveToolSchemaDialect = true
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), draft7Tool(), "")
+	registration := g.toolRegistration(t.Context(), testServerConfig(), draft7Tool(), "", newRelayedDialects())
 
 	require.Equal(t, draft7Dialect, dialectOf(t, registration.Tool.InputSchema))
 	require.Equal(t, draft7Dialect, dialectOf(t, registration.Tool.OutputSchema))
@@ -83,7 +84,7 @@ func TestToolRegistrationStillPrefixesNames(t *testing.T) {
 	g := &Gateway{}
 	upstream := draft7Tool()
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "airtable")
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "airtable", newRelayedDialects())
 
 	require.Equal(t, "airtable__list_bases", registration.Tool.Name)
 	require.Equal(t, "list_bases", upstream.Name, "the upstream tool was renamed in place")
@@ -100,13 +101,13 @@ func TestToolRegistrationRelaysSchemasItCannotTranslate(t *testing.T) {
 		"$schema": draft7Dialect,
 		"type":    "object",
 		"properties": map[string]any{
-			"a": map[string]any{"$ref": "#/$defs/x", "maxLength": float64(3)},
+			"a": map[string]any{"$ref": "#/definitions/x", "maxLength": float64(3)},
 		},
 	}
 	upstream := draft7Tool()
 	upstream.OutputSchema = untranslatable
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "")
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "", newRelayedDialects())
 
 	require.Equal(t, untranslatable, registration.Tool.OutputSchema)
 	// The input schema is independent and still translated.
@@ -115,13 +116,38 @@ func TestToolRegistrationRelaysSchemasItCannotTranslate(t *testing.T) {
 
 // TestToolRegistrationLeavesTypedSchemasAlone guards the catalog-defined (POCI)
 // tools, whose schemas the gateway builds itself as *jsonschema.Schema rather
-// than decoding from an upstream server.
+// than decoding from an upstream server. Same, not Equal: the claim is that the
+// gateway's own schema object reaches registration untouched.
 func TestToolRegistrationLeavesTypedSchemasAlone(t *testing.T) {
 	g := &Gateway{}
-	upstream := &mcp.Tool{Name: "curl", InputSchema: map[string]any{"type": "object"}}
+	built := &jsonschema.Schema{Type: "object"}
+	upstream := &mcp.Tool{Name: "curl", InputSchema: built}
 
-	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "")
+	registration := g.toolRegistration(t.Context(), testServerConfig(), upstream, "", newRelayedDialects())
 
-	require.Equal(t, map[string]any{"type": "object"}, registration.Tool.InputSchema)
+	require.Same(t, built, registration.Tool.InputSchema)
 	require.Nil(t, registration.Tool.OutputSchema)
+}
+
+// TestRelayedDialectsReportsOncePerReason pins the log volume. Normalization
+// runs per tool per schema field, so reporting there would write two lines per
+// affected tool on every capability refresh, where every neighbouring
+// diagnostic in listCapabilities is one line per server.
+func TestRelayedDialectsReportsOncePerReason(t *testing.T) {
+	relayed := newRelayedDialects()
+	for range 50 {
+		relayed.record("outputSchema", "some reason")
+	}
+	relayed.record("inputSchema", "some reason")
+	relayed.record("outputSchema", "another reason")
+
+	require.Len(t, relayed.counts, 3, "reasons must collapse per field and reason")
+	require.Equal(t, 50, relayed.counts["outputSchema: some reason"])
+
+	// A nil collector is the zero-work path for callers that do not want one.
+	var absent *relayedDialects
+	require.NotPanics(t, func() {
+		absent.record("outputSchema", "x")
+		absent.report("server")
+	})
 }

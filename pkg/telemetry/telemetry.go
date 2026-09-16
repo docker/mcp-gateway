@@ -60,9 +60,9 @@ var (
 	// Tool discovery metrics
 	ToolsDiscovered metric.Int64Gauge
 
-	// ToolSchemaTranslations tracks tool schemas whose JSON Schema dialect was
+	// ToolSchemaDialects tracks tool schemas whose JSON Schema dialect was
 	// translated to 2020-12, and those relayed as the server declared them.
-	ToolSchemaTranslations metric.Int64Counter
+	ToolSchemaDialects metric.Int64Counter
 
 	// Prompt operation metrics
 	PromptGetCounter   metric.Int64Counter
@@ -179,8 +179,8 @@ func Init() {
 		}
 	}
 
-	ToolSchemaTranslations, err = meter.Int64Counter("mcp.tool.schema.translations",
-		metric.WithDescription("Number of tool schemas whose JSON Schema dialect was translated or relayed as declared"),
+	ToolSchemaDialects, err = meter.Int64Counter("mcp.tool.schema_dialects",
+		metric.WithDescription("Tool schemas by what the gateway did with the JSON Schema dialect they declared"),
 		metric.WithUnit("1"))
 	if err != nil {
 		// Log error but don't fail
@@ -960,7 +960,7 @@ func RecordTemplateUsage(ctx context.Context, templateID string, source string) 
 // converted to 2020-12, or "relayed" when it was passed through as declared
 // because no faithful translation exists.
 func RecordToolSchemaDialect(ctx context.Context, serverName, field, outcome string) {
-	if ToolSchemaTranslations == nil {
+	if ToolSchemaDialects == nil {
 		return // Telemetry not initialized
 	}
 
@@ -969,10 +969,10 @@ func RecordToolSchemaDialect(ctx context.Context, serverName, field, outcome str
 			outcome, field, serverName)
 	}
 
-	ToolSchemaTranslations.Add(ctx, 1,
+	ToolSchemaDialects.Add(ctx, 1,
 		metric.WithAttributes(
 			attribute.String("mcp.server.origin", serverName),
-			attribute.String("mcp.tool.schema.field", field),
-			attribute.String("mcp.tool.schema.dialect.outcome", outcome),
+			attribute.String("mcp.tool.schema_field", field),
+			attribute.String("mcp.tool.schema_outcome", outcome),
 		))
 }
