@@ -44,7 +44,7 @@ func NewYamlEncoder() yqlib.Encoder {
 
 func NewJSONEncoder() yqlib.Encoder {
 	pref := yqlib.JsonPreferences{
-		Indent:        0,
+		Indent:        2,
 		ColorsEnabled: false,
 		UnwrapScalar:  true,
 	}
