@@ -83,6 +83,21 @@ func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clie
 	return serverConfig.Spec.LongLived || cp.LongLived
 }
 
+func (cp *clientPool) missingRequiredSecrets(serverConfig *catalog.ServerConfig, config *clientConfig) []string {
+	if serverConfig.IsRemote() || !cp.longLived(serverConfig, config) {
+		return nil
+	}
+
+	var missing []string
+	for _, secret := range serverConfig.Spec.Secrets {
+		if value, ok := serverConfig.Secrets[secret.Name]; !ok || value == "" {
+			missing = append(missing, secret.Name)
+		}
+	}
+
+	return missing
+}
+
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
 	var getter *clientGetter
 	c := ctx
@@ -101,6 +116,10 @@ func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.S
 
 	// No client found, create a new one
 	if getter == nil {
+		if missing := cp.missingRequiredSecrets(serverConfig, config); len(missing) > 0 {
+			return nil, fmt.Errorf("required secret(s) missing for long-lived server %q: %s", serverConfig.Name, strings.Join(missing, ", "))
+		}
+
 		// If the client is long running, save it for later
 		if cp.longLived(serverConfig, config) {
 			// Double-checked locking: re-check under write lock to avoid duplicate containers
