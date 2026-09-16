@@ -74,14 +74,19 @@ func List(ctx context.Context) ([]client.ID, error) {
 	return secrets, nil
 }
 
+func defaultSecretSetCommand(ctx context.Context, key client.ID, value string) *exec.Cmd {
+	c := cmd(ctx, "set", key.String(), "--force")
+	c.Stdin = strings.NewReader(value)
+	return c
+}
+
 // setDefaultSecret stores a secret in the default realm (docker/mcp/**).
 func setDefaultSecret(ctx context.Context, id client.ID, value string) error {
 	key, err := GetDefaultSecretKey(id)
 	if err != nil {
 		return err
 	}
-	c := cmd(ctx, "set", key.String())
-	c.Stdin = strings.NewReader(value)
+	c := defaultSecretSetCommand(ctx, key, value)
 	out, err := c.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("could not store secret: %s\n%s", bytes.TrimSpace(out), err)
