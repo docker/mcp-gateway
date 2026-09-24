@@ -84,6 +84,9 @@ func (cp *clientPool) longLived(serverConfig *catalog.ServerConfig, config *clie
 }
 
 func (cp *clientPool) AcquireClient(ctx context.Context, serverConfig *catalog.ServerConfig, config *clientConfig) (mcpclient.Client, error) {
+	if err := cp.validateServerResources(serverConfig); err != nil {
+		return nil, err
+	}
 	var getter *clientGetter
 	c := ctx
 
@@ -322,14 +325,18 @@ func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, p
 }
 
 func (cp *clientPool) baseArgs(name string) []string {
+	return containerBaseArgs(name, catalog.Resources{CPUs: globalCPUs(cp.Cpus), Memory: cp.Memory})
+}
+
+func containerBaseArgs(name string, limits catalog.Resources) []string {
 	args := []string{"run"}
 
 	args = append(args, "--rm", "-i", "--init", "--security-opt", "no-new-privileges")
-	if cp.Cpus > 0 {
-		args = append(args, "--cpus", fmt.Sprintf("%d", cp.Cpus))
+	if limits.CPUs != "" {
+		args = append(args, "--cpus", limits.CPUs)
 	}
-	if cp.Memory != "" {
-		args = append(args, "--memory", cp.Memory)
+	if limits.Memory != "" {
+		args = append(args, "--memory", limits.Memory)
 	}
 	args = append(args, "--pull", "never")
 
@@ -350,7 +357,11 @@ func (cp *clientPool) baseArgs(name string) []string {
 }
 
 func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string, error) {
-	args := cp.baseArgs(serverConfig.Name)
+	limits, err := cp.serverResources(serverConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	args := containerBaseArgs(serverConfig.Name, limits)
 	var env []string
 
 	// Security options
