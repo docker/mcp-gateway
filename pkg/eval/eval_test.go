@@ -89,6 +89,21 @@ func TestEvaluateOr(t *testing.T) {
 	assert.Equal(t, "v", Evaluate("{{k|or:v}}", map[string]any{"k": []string{}}))
 	assert.Equal(t, []string{}, Evaluate("{{k|or:[]}}", map[string]any{"k": []string{}}))
 	assert.Equal(t, []string{"default"}, Evaluate("{{k|or:[default]}}", map[string]any{"k": []string{}}))
+
+	// A list default also applies when the value is a missing or empty scalar.
+	assert.Equal(t, []string{}, Evaluate("{{k|or:[]}}", map[string]any{}))
+	assert.Equal(t, []string{}, Evaluate("{{k|or:[]}}", map[string]any{"k": ""}))
+	assert.Equal(t, []string{"a", "b"}, Evaluate("{{k|or:[a,b]}}", map[string]any{"k": nil}))
+	assert.Equal(t, "v", Evaluate("{{k|or:[]}}", map[string]any{"k": "v"}))
+}
+
+func TestEvaluateOrEmptyListVolume(t *testing.T) {
+	// The openapi-schema catalog entry uses this template for an optional path.
+	volumes := []string{"{{openapi-schema.SchemaPath|or:[]|volume|into}}"}
+
+	assert.Empty(t, EvaluateList(volumes, map[string]any{}))
+	assert.Empty(t, EvaluateList(volumes, map[string]any{"openapi-schema": map[string]any{"SchemaPath": ""}}))
+	assert.Equal(t, []string{"/specs/api.yaml:/specs/api.yaml"}, EvaluateList(volumes, map[string]any{"openapi-schema": map[string]any{"SchemaPath": "/specs/api.yaml"}}))
 }
 
 func TestEvaluateMountAs(t *testing.T) {
