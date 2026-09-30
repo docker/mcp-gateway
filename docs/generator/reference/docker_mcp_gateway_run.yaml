@@ -138,6 +138,15 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: gateway-name
+      value_type: string
+      description: 'Name advertised to MCP clients (default: Docker AI MCP Gateway)'
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: host
       value_type: string
       description: Host or IP address to bind TCP transports to
