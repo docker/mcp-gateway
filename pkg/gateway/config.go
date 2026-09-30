@@ -38,9 +38,12 @@ type Options struct {
 	DynamicTools            bool
 	ToolNamePrefix          bool
 	LogFilePath             string
-	UseEmbeddings           bool
-	UseProfiles             bool
-	AllowUnauthenticated    bool
+	// GatewayName is the MCP server name advertised to clients. Empty keeps
+	// the historical default so existing clients still see one identity.
+	GatewayName          string
+	UseEmbeddings        bool
+	UseProfiles          bool
+	AllowUnauthenticated bool
 	// PreserveToolSchemaDialect relays downstream tool schemas with the JSON
 	// Schema dialect they were declared in, instead of translating pre-2020-12
 	// dialects that 2020-12-only clients reject.
