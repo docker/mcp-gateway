@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -242,6 +243,7 @@ func TestCallbacksBlockSecretsRunsBeforeLogCalls(t *testing.T) {
 	assert.False(t, handlerCalled, "secret-containing calls should be blocked before reaching the tool")
 	assert.NotContains(t, buf.String(), secret)
 	assert.NotContains(t, buf.String(), "Calling tool dangerous")
+	assert.Contains(t, buf.String(), "Blocked tool dangerous: secret detected in arguments")
 }
 
 func TestLogCallsMiddlewareDoesNotLogRawArguments(t *testing.T) {
@@ -270,6 +272,52 @@ func TestLogCallsMiddlewareDoesNotLogRawArguments(t *testing.T) {
 	assert.Contains(t, buf.String(), "Calling tool metadata-only with arguments: object with 1 field(s)")
 	assert.NotContains(t, buf.String(), secret)
 	assert.NotContains(t, buf.String(), "token")
+}
+
+func TestLogCallsMiddlewareLogsRefusal(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetLogWriter(&buf)
+	defer log.SetLogWriter(os.Stderr)
+
+	req := &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{
+			Name: "convert_time",
+		},
+	}
+
+	handler := LogCallsMiddleware()(func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+		return nil, errors.New(`unknown tool "convert_time"`)
+	})
+
+	result, err := handler(context.Background(), "tools/call", req)
+	require.Error(t, err)
+	assert.Nil(t, result)
+	logged := buf.String()
+	assert.Contains(t, logged, `> Refused tool convert_time: unknown tool "convert_time"`)
+	assert.NotContains(t, logged, "took:")
+}
+
+func TestBlockSecretsLogsResponseBlock(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetLogWriter(&buf)
+	defer log.SetLogWriter(os.Stderr)
+
+	secret := "ghp_" + strings.Repeat("T", 36)
+	req := &mcp.CallToolRequest{
+		Params: &mcp.CallToolParamsRaw{Name: "get_current_time"},
+	}
+	handler := BlockSecretsMiddleware()(func(_ context.Context, _ string, _ mcp.Request) (mcp.Result, error) {
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: "leaked " + secret}},
+		}, nil
+	})
+
+	result, err := handler(context.Background(), "tools/call", req)
+	require.Error(t, err)
+	assert.Nil(t, result)
+	logged := buf.String()
+	assert.Contains(t, logged, "Blocked tool get_current_time: secret detected in response")
+	assert.NotContains(t, logged, secret)
 }
 
 func reverseMiddlewares(middlewares []mcp.Middleware) []mcp.Middleware {

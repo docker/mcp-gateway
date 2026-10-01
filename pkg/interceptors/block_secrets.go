@@ -33,6 +33,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 
 				argumentsStr := argumentsToString(arguments)
 				if secretsscan.ContainsSecrets(argumentsStr) {
+					log.Logf("  > Blocked tool %s: secret detected in arguments\n", toolName)
 					return nil, fmt.Errorf("a secret is being passed to tool %s", toolName)
 				}
 
@@ -63,6 +64,7 @@ func BlockSecretsMiddleware() mcp.Middleware {
 				}
 
 				if contents != "" && secretsscan.ContainsSecrets(contents) {
+					log.Logf("  > Blocked tool %s: secret detected in response\n", toolName)
 					return nil, fmt.Errorf("a secret is being returned by the %s tool", toolName)
 				}
 
