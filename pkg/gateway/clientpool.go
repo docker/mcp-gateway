@@ -245,10 +245,7 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 func (cp *clientPool) runToolContainer(ctx context.Context, tool catalog.Tool, params *mcp.CallToolParams) *mcp.CallToolResult {
 	args := cp.baseArgs(tool.Name)
 
-	// Attach the MCP servers to the same network as the gateway.
-	for _, network := range cp.networks {
-		args = append(args, "--network", network)
-	}
+	args = append(args, cp.networkArgs(false, proxies.TargetConfig{})...)
 
 	// Convert params.Arguments to map[string]any
 	arguments, ok := params.Arguments.(map[string]any)
@@ -349,15 +346,12 @@ func (cp *clientPool) baseArgs(name string) []string {
 	return args
 }
 
-func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string, error) {
-	args := cp.baseArgs(serverConfig.Name)
-	var env []string
-
-	// Security options
-	if serverConfig.Spec.DisableNetwork {
-		args = append(args, "--network", "none")
-	} else {
-		// Attach the MCP servers to the same network as the gateway.
+func (cp *clientPool) networkArgs(disableNetwork bool, targetConfig proxies.TargetConfig) []string {
+	if disableNetwork || cp.BlockNetwork && targetConfig.NetworkName == "" {
+		return []string{"--network", "none"}
+	}
+	var args []string
+	if !cp.BlockNetwork {
 		for _, network := range cp.networks {
 			args = append(args, "--network", network)
 		}
@@ -374,6 +368,15 @@ func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfi
 	if targetConfig.DNS != "" {
 		args = append(args, "--dns", targetConfig.DNS)
 	}
+
+	return args
+}
+
+func (cp *clientPool) argsAndEnv(serverConfig *catalog.ServerConfig, targetConfig proxies.TargetConfig) ([]string, []string, error) {
+	args := cp.baseArgs(serverConfig.Name)
+	var env []string
+
+	args = append(args, cp.networkArgs(serverConfig.Spec.DisableNetwork, targetConfig)...)
 
 	// Secrets
 	for _, s := range serverConfig.Spec.Secrets {
@@ -532,7 +535,7 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				client = mcpclient.NewStdioCmdClient(cg.serverConfig.Name, "socat", nil, "STDIO", fmt.Sprintf("TCP:mcp-%s:4444", cg.serverConfig.Name))
 			} else {
 				var targetConfig proxies.TargetConfig
-				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
+				if cg.cp.BlockNetwork && !cg.serverConfig.Spec.DisableNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
 					if targetConfig, cleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongLived); err != nil {
 						return nil, err
