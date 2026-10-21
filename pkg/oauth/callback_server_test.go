@@ -59,7 +59,7 @@ func TestCallbackServer_Success(t *testing.T) {
 	testCode := "test-auth-code-123"
 	testState := "test-state-456"
 
-	req := httptest.NewRequest(http.MethodGet, "/callback?code="+testCode+"&state="+testState, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/callback?code="+testCode+"&state="+testState, nil)
 	w := httptest.NewRecorder()
 
 	server.handleCallback(w, req)
@@ -88,7 +88,7 @@ func TestCallbackServer_MissingCode(t *testing.T) {
 	}()
 
 	// Make request with only state
-	req := httptest.NewRequest(http.MethodGet, "/callback?state=test-state", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/callback?state=test-state", nil)
 	w := httptest.NewRecorder()
 
 	server.handleCallback(w, req)
@@ -116,7 +116,7 @@ func TestCallbackServer_MissingState(t *testing.T) {
 	}()
 
 	// Make request with only code
-	req := httptest.NewRequest(http.MethodGet, "/callback?code=test-code", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/callback?code=test-code", nil)
 	w := httptest.NewRecorder()
 
 	server.handleCallback(w, req)
@@ -163,7 +163,7 @@ func TestCallbackServer_OAuthError(t *testing.T) {
 			}()
 
 			// Make request with error parameters
-			req := httptest.NewRequest(http.MethodGet, "/callback?"+tt.queryString, nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/callback?"+tt.queryString, nil)
 			w := httptest.NewRecorder()
 
 			server.handleCallback(w, req)

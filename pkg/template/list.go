@@ -39,8 +39,8 @@ func printHumanReadable() string {
 	sb.WriteString("ID\tTitle\tServers\tDescription\n")
 	sb.WriteString("----\t----\t----\t----\n")
 	for _, t := range Templates {
-		sb.WriteString(fmt.Sprintf("%s\t%s\t%s\t%s\n",
-			t.ID, t.Title, strings.Join(t.ServerNames, ", "), t.Description))
+		fmt.Fprintf(&sb, "%s\t%s\t%s\t%s\n",
+			t.ID, t.Title, strings.Join(t.ServerNames, ", "), t.Description)
 	}
 	return strings.TrimSuffix(sb.String(), "\n")
 }

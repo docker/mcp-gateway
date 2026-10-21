@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26.10-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN go mod tidy && \
 # Final stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add 'ca-certificates>=20261020-r0'
 
 WORKDIR /root/
 
