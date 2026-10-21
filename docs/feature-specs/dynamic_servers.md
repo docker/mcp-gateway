@@ -133,8 +133,7 @@ Deployments that need catalog-wide dynamic activation must configure governance 
 
 **Parameters**:
 - `server` (required): Name of the MCP server to configure
-- `key` (required): Configuration key to set
-- `value` (required): Configuration value to set (can be string, number, boolean, or object)
+- `config` (required): Complete configuration object for the server. The object is validated against the server's configuration schema.
 
 **Example Usage**:
 ```json
@@ -142,17 +141,17 @@ Deployments that need catalog-wide dynamic activation must configure governance 
   "name": "mcp-config-set",
   "arguments": {
     "server": "filesystem",
-    "key": "allowed_paths",
-    "value": ["/home/user/documents", "/tmp"]
+    "config": {
+      "allowed_paths": ["/home/user/documents", "/tmp"]
+    }
   }
 }
 ```
 
 **Behavior**:
 - Requires the server to be enabled already or explicitly allowed by an enforcing policy provider
-- Creates or updates server configuration
-- Reloads the gateway configuration to apply changes
-- Returns success message with old/new values
+- Replaces the server's configuration with the supplied object after validating it against the server's configuration schema
+- Returns the old and new configuration objects when prior configuration exists; otherwise, returns only the new configuration object
 
 ## Implementation Details
 
@@ -200,7 +199,7 @@ AI: Successfully imported 12 servers. I can now use them.
 ### 3. Server Configuration
 ```
 AI: I need to configure the filesystem server with specific paths.
-Tool: mcp-config-set -> server: "filesystem", key: "allowed_paths", value: ["/workspace"]
+Tool: mcp-config-set -> server: "filesystem", config: {"allowed_paths": ["/workspace"]}
 AI: Configuration updated. The server now has restricted access.
 ```
 
