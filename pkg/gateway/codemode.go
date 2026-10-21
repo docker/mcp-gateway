@@ -136,12 +136,12 @@ func addCodemodeHandler(g *Gateway) mcp.ToolHandler {
 
 		// Build detailed response with tool information
 		var responseText strings.Builder
-		responseText.WriteString(fmt.Sprintf("Successfully created code-mode tool '%s'\n\n", toolName))
+		fmt.Fprintf(&responseText, "Successfully created code-mode tool '%s'\n\n", toolName)
 
 		// Tool description
 		responseText.WriteString("## Tool Details\n")
-		responseText.WriteString(fmt.Sprintf("**Name:** %s\n", toolName))
-		responseText.WriteString(fmt.Sprintf("**Description:** %s\n\n", customTool.Tool.Description))
+		fmt.Fprintf(&responseText, "**Name:** %s\n", toolName)
+		fmt.Fprintf(&responseText, "**Description:** %s\n\n", customTool.Tool.Description)
 
 		// Input schema information
 		responseText.WriteString("## Input Schema\n")
@@ -156,14 +156,14 @@ func addCodemodeHandler(g *Gateway) mcp.ToolHandler {
 
 		// Available servers
 		responseText.WriteString("## Available Servers\n")
-		responseText.WriteString(fmt.Sprintf("This tool has access to tools from: %s\n\n", strings.Join(params.Servers, ", ")))
+		fmt.Fprintf(&responseText, "This tool has access to tools from: %s\n\n", strings.Join(params.Servers, ", "))
 
 		// Usage instructions
 		responseText.WriteString("## How to Use\n")
 		responseText.WriteString("You can call this tool using the **mcp-exec** tool:\n")
 		responseText.WriteString("```json\n")
 		responseText.WriteString("{\n")
-		responseText.WriteString(fmt.Sprintf("  \"name\": \"%s\",\n", toolName))
+		fmt.Fprintf(&responseText, "  \"name\": \"%s\",\n", toolName)
 		responseText.WriteString("  \"arguments\": {\n")
 		responseText.WriteString("    \"script\": \"<your JavaScript code here>\"\n")
 		responseText.WriteString("  }\n")

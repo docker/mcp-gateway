@@ -10,11 +10,11 @@ import (
 //nolint:unused
 func _intentButton(missingSecrets []string, serverName string) *mcp.CallToolResult {
 	var scriptContent strings.Builder
-	scriptContent.WriteString(fmt.Sprintf("// Configure secrets for server '%s'\n", serverName))
+	fmt.Fprintf(&scriptContent, "// Configure secrets for server '%s'\n", serverName)
 	for _, secretName := range missingSecrets {
 		// Replace dots with underscores for valid JavaScript variable names
 		safeSecretName := strings.ReplaceAll(secretName, ".", "_")
-		scriptContent.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&scriptContent, `
 const button_%s = document.createElement('ui-button');
 button_%s.setAttribute('label', 'Configure %s');
 button_%s.addEventListener('press', () => {
@@ -30,7 +30,7 @@ button_%s.addEventListener('press', () => {
     }, '*');
 });
 root.appendChild(button_%s);
-`, safeSecretName, safeSecretName, secretName, safeSecretName, secretName, safeSecretName))
+`, safeSecretName, safeSecretName, secretName, safeSecretName, secretName, safeSecretName)
 	}
 
 	return &mcp.CallToolResult{
@@ -51,7 +51,7 @@ func secretInput(missingSecrets []string, serverName string) *mcp.CallToolResult
 	htmlContent.WriteString("<!DOCTYPE html>\n<html>\n<head>\n")
 	htmlContent.WriteString("<meta charset=\"UTF-8\">\n")
 	htmlContent.WriteString("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n")
-	htmlContent.WriteString(fmt.Sprintf("<title>Configure Secrets for %s</title>\n", serverName))
+	fmt.Fprintf(&htmlContent, "<title>Configure Secrets for %s</title>\n", serverName)
 	htmlContent.WriteString(`<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
@@ -179,16 +179,16 @@ func secretInput(missingSecrets []string, serverName string) *mcp.CallToolResult
 <body>
   <div class="container">
 `)
-	htmlContent.WriteString(fmt.Sprintf("    <h2>Configure Secrets for %s</h2>\n", serverName))
+	fmt.Fprintf(&htmlContent, "    <h2>Configure Secrets for %s</h2>\n", serverName)
 	htmlContent.WriteString("    <div id=\"secretsForm\">\n")
 
 	for _, secretName := range missingSecrets {
 		// Use password input type to hide the secret values
-		htmlContent.WriteString(fmt.Sprintf(`      <div class="form-group">
+		fmt.Fprintf(&htmlContent, `      <div class="form-group">
         <label for="%s">%s</label>
         <input type="password" id="%s" name="%s" data-secret-name="%s" required>
       </div>
-`, secretName, secretName, secretName, secretName, secretName))
+`, secretName, secretName, secretName, secretName, secretName)
 	}
 
 	htmlContent.WriteString(`      <button type="button" onclick="submitSecrets()">Submit Secrets</button>

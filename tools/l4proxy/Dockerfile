@@ -1,7 +1,7 @@
 FROM haproxy:lts-alpine@sha256:ac79fe145f2bb6626ff26b584a2d0a34e791906c01015f2ae037aa3137b683d9
 
 USER 0
-RUN apk add --no-cache envsubst postgresql-client
+RUN apk add --no-cache envsubst postgresql-client 'ca-certificates>=20261020-r0'
 
 # Reset to original user
 USER haproxy

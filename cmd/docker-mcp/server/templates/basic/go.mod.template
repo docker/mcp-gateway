@@ -1,5 +1,5 @@
 module {{.ServerName}}
 
-go 1.24
+go 1.26.10
 
 require github.com/modelcontextprotocol/go-sdk v1.0.0

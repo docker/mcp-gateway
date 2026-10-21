@@ -1,6 +1,6 @@
 module otel-metric-example
 
-go 1.24.4
+go 1.26.10
 
 require (
 	go.opentelemetry.io/otel v1.36.0
