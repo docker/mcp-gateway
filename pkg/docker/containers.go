@@ -12,8 +12,12 @@ import (
 	"github.com/docker/docker/api/types/network"
 )
 
-func (c *dockerClient) ContainerExists(ctx context.Context, container string) (bool, container.InspectResponse, error) {
-	response, err := c.apiClient().ContainerInspect(ctx, container)
+func (c *dockerClient) ContainerExists(ctx context.Context, containerName string) (bool, container.InspectResponse, error) {
+	cli, err := c.client()
+	if err != nil {
+		return false, container.InspectResponse{}, err
+	}
+	response, err := cli.ContainerInspect(ctx, containerName)
 	if cerrdefs.IsNotFound(err) {
 		return false, response, nil
 	}
@@ -22,18 +26,27 @@ func (c *dockerClient) ContainerExists(ctx context.Context, container string) (b
 }
 
 func (c *dockerClient) RemoveContainer(ctx context.Context, containerID string, force bool) error {
-	return c.apiClient().ContainerRemove(ctx, containerID, container.RemoveOptions{
+	cli, err := c.client()
+	if err != nil {
+		return err
+	}
+	return cli.ContainerRemove(ctx, containerID, container.RemoveOptions{
 		Force: force,
 	})
 }
 
 func (c *dockerClient) StartContainer(ctx context.Context, containerID string, containerConfig container.Config, hostConfig container.HostConfig, networkingConfig network.NetworkingConfig) error {
-	resp, err := c.apiClient().ContainerCreate(ctx, &containerConfig, &hostConfig, &networkingConfig, nil, containerID)
+	cli, err := c.client()
+	if err != nil {
+		return err
+	}
+
+	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, &networkingConfig, nil, containerID)
 	if err != nil {
 		return fmt.Errorf("creating container: %w", err)
 	}
 
-	if err := c.apiClient().ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return fmt.Errorf("starting container: %w", err)
 	}
 
@@ -41,17 +54,29 @@ func (c *dockerClient) StartContainer(ctx context.Context, containerID string, c
 }
 
 func (c *dockerClient) StopContainer(ctx context.Context, containerID string, timeout int) error {
-	return c.apiClient().ContainerStop(ctx, containerID, container.StopOptions{
+	cli, err := c.client()
+	if err != nil {
+		return err
+	}
+	return cli.ContainerStop(ctx, containerID, container.StopOptions{
 		Timeout: &timeout,
 	})
 }
 
 func (c *dockerClient) InspectContainer(ctx context.Context, containerID string) (container.InspectResponse, error) {
-	return c.apiClient().ContainerInspect(ctx, containerID)
+	cli, err := c.client()
+	if err != nil {
+		return container.InspectResponse{}, err
+	}
+	return cli.ContainerInspect(ctx, containerID)
 }
 
 func (c *dockerClient) FindContainerByLabel(ctx context.Context, label string) (string, error) {
-	containers, err := c.apiClient().ContainerList(ctx, container.ListOptions{
+	cli, err := c.client()
+	if err != nil {
+		return "", err
+	}
+	containers, err := cli.ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", label)),
 	})
 	if err != nil {
@@ -66,7 +91,11 @@ func (c *dockerClient) FindContainerByLabel(ctx context.Context, label string) (
 }
 
 func (c *dockerClient) FindAllContainersByLabel(ctx context.Context, label string) ([]string, error) {
-	containers, err := c.apiClient().ContainerList(ctx, container.ListOptions{
+	cli, err := c.client()
+	if err != nil {
+		return nil, err
+	}
+	containers, err := cli.ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", label)),
 	})
 	if err != nil {
@@ -92,7 +121,12 @@ func (c *dockerClient) FindAllContainersByLabel(ctx context.Context, label strin
 func (c *dockerClient) ReadLogs(ctx context.Context, containerID string, options container.LogsOptions) (io.ReadCloser, error) {
 	const streamHeaderSize = 8
 
-	rc, err := c.apiClient().ContainerLogs(ctx, containerID, options)
+	cli, err := c.client()
+	if err != nil {
+		return nil, err
+	}
+
+	rc, err := cli.ContainerLogs(ctx, containerID, options)
 	if err != nil {
 		return nil, err
 	}
