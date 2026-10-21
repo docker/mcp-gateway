@@ -1,6 +1,6 @@
 module github.com/docker/mcp-gateway
 
-go 1.25.12
+go 1.26.10
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
