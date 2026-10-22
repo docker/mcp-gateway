@@ -342,69 +342,8 @@ func (g *Gateway) Run(ctx context.Context) error {
 		return fmt.Errorf("loading configuration: %w", err)
 	}
 
-	// When running in Container mode, disable OAuth notification monitoring.
-	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
-
-	if g.McpOAuthDcrEnabled && !inContainer {
-		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
-		// Skip in CE mode (no Desktop to connect to)
-		if !oauth.IsCEMode() {
-			// Verify Desktop backend is reachable before starting monitor
-			if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
-				return fmt.Errorf("docker Desktop is not running: %w", err)
-			}
-
-			log.Log("- Starting OAuth notification monitor")
-			monitor := oauth.NewNotificationMonitor()
-			monitor.OnOAuthEvent = func(event oauth.Event) {
-				// Route event to specific provider
-				g.routeEventToProvider(event)
-			}
-			monitor.Start(ctx)
-		}
-
-		// Start OAuth provider for each OAuth server.
-		// Each provider runs in its own goroutine with dynamic timing based on token expiry.
-		log.Log("- Starting OAuth provider loops...")
-
-		// Pre-flight check: verify docker pass availability once for all
-		// community servers that may need it. Avoids repeated shell-outs.
-		hasDockerPass := desktop.CheckHasDockerPass(ctx) == nil
-
-		for _, serverName := range configuration.ServerNames() {
-			serverConfig, _, found := configuration.Find(serverName)
-			if !found || serverConfig == nil {
-				continue
-			}
-
-			isCommunity := serverConfig.Spec.IsCommunity()
-			mode := oauth.DetermineMode(ctx, isCommunity)
-
-			// Community mode requires docker pass. If unavailable, fall
-			// back to Desktop mode so the server is not left unmanaged.
-			if mode == oauth.ModeCommunity && !hasDockerPass {
-				log.Logf("! docker pass unavailable -- falling back to Desktop OAuth for community server %s", serverName)
-				mode = oauth.ModeDesktop
-			}
-
-			credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
-
-			if serverConfig.Spec.HasExplicitOAuthProviders() {
-				g.startProvider(ctx, serverName, mode)
-			} else if serverConfig.IsRemote() {
-				// Community/remote servers: start provider if they have a stored OAuth token
-				// from dynamic discovery (DCR without explicit OAuth metadata)
-				serverID, parseErr := seclient.ParseID(serverName)
-				if parseErr != nil {
-					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, parseErr)
-				} else if exists, err := credHelper.TokenExists(ctx, serverID); err != nil {
-					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
-				} else if exists {
-					log.Logf("- Starting OAuth provider for remote server: %s (mode=%s)", serverName, mode)
-					g.startProvider(ctx, serverName, mode)
-				}
-			}
-		}
+	if err := g.startOAuthProviders(ctx, configuration); err != nil {
+		return err
 	}
 
 	// Optionally watch for configuration updates.
@@ -696,6 +635,76 @@ func (g *Gateway) periodicMetricExport(ctx context.Context) {
 			}
 		}
 	}
+}
+
+// startOAuthProviders starts refresh providers independently of Desktop notifications.
+func (g *Gateway) startOAuthProviders(ctx context.Context, configuration Configuration) error {
+	// Container CE mode still needs token refresh; only Desktop monitoring is skipped.
+	inContainer := os.Getenv("DOCKER_MCP_IN_CONTAINER") == "1"
+
+	if g.McpOAuthDcrEnabled && (!inContainer || oauth.IsCEMode()) {
+		// Start OAuth notification monitor to receive OAuth related events from Docker Desktop
+		// Skip in CE mode (no Desktop to connect to)
+		if !oauth.IsCEMode() {
+			// Verify Desktop backend is reachable before starting monitor
+			if err := desktop.CheckDesktopIsRunning(ctx); err != nil {
+				return fmt.Errorf("docker Desktop is not running: %w", err)
+			}
+
+			log.Log("- Starting OAuth notification monitor")
+			monitor := oauth.NewNotificationMonitor()
+			monitor.OnOAuthEvent = func(event oauth.Event) {
+				// Route event to specific provider
+				g.routeEventToProvider(event)
+			}
+			monitor.Start(ctx)
+		}
+
+		// Start OAuth provider for each OAuth server.
+		// Each provider runs in its own goroutine with dynamic timing based on token expiry.
+		log.Log("- Starting OAuth provider loops...")
+
+		// Pre-flight check: verify docker pass availability once for all
+		// community servers that may need it. Avoids repeated shell-outs.
+		hasDockerPass := desktop.CheckHasDockerPass(ctx) == nil
+
+		for _, serverName := range configuration.ServerNames() {
+			serverConfig, _, found := configuration.Find(serverName)
+			if !found || serverConfig == nil {
+				continue
+			}
+
+			isCommunity := serverConfig.Spec.IsCommunity()
+			mode := oauth.DetermineMode(ctx, isCommunity)
+
+			// Community mode requires docker pass. If unavailable, fall
+			// back to Desktop mode so the server is not left unmanaged.
+			if mode == oauth.ModeCommunity && !hasDockerPass {
+				log.Logf("! docker pass unavailable -- falling back to Desktop OAuth for community server %s", serverName)
+				mode = oauth.ModeDesktop
+			}
+
+			credHelper := oauth.NewOAuthCredentialHelperWithMode(mode)
+
+			if serverConfig.Spec.HasExplicitOAuthProviders() {
+				g.startProvider(ctx, serverName, mode)
+			} else if serverConfig.IsRemote() {
+				// Community/remote servers: start provider if they have a stored OAuth token
+				// from dynamic discovery (DCR without explicit OAuth metadata)
+				serverID, parseErr := seclient.ParseID(serverName)
+				if parseErr != nil {
+					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, parseErr)
+				} else if exists, err := credHelper.TokenExists(ctx, serverID); err != nil {
+					log.Logf("Warning: Failed to check OAuth token for %s: %v", serverName, err)
+				} else if exists {
+					log.Logf("- Starting OAuth provider for remote server: %s (mode=%s)", serverName, mode)
+					g.startProvider(ctx, serverName, mode)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // OAuth Provider Management Methods
