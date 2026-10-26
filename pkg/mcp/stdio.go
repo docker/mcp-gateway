@@ -64,15 +64,49 @@ func (c *stdioMCPClient) Initialize(ctx context.Context, _ *mcp.InitializeParams
 	return nil
 }
 
+// commandEnv builds the environment for the MCP server's `docker` subprocess.
+//
+// The subprocess must be able to resolve the *same* Docker endpoint the gateway
+// resolved. Forwarding only PATH happens to work on Linux/macOS (the default
+// unix:///var/run/docker.sock exists there), but on Windows the docker CLI
+// falls back to npipe:////./pipe/docker_engine -- a named pipe that only Docker
+// Desktop creates. So on Docker Engine for Windows (no Desktop) every server
+// fails with:
+//
+//	failed to connect to the docker API at npipe:////./pipe/docker_engine
+//
+// Forward the Docker client variables plus the OS essentials the CLI needs to
+// locate its configuration, then let the server's own env override them.
+var inheritedEnvKeys = []string{
+	"PATH",
+	// Docker endpoint / client configuration.
+	"DOCKER_HOST",
+	"DOCKER_CONTEXT",
+	"DOCKER_CONFIG",
+	"DOCKER_TLS_VERIFY",
+	"DOCKER_CERT_PATH",
+	// The CLI resolves its config directory from the user profile. On Windows
+	// that is USERPROFILE (HOME/HOMEDRIVE/HOMEPATH are the POSIX fallbacks).
+	"HOME",
+	"USERPROFILE",
+	"HOMEDRIVE",
+	"HOMEPATH",
+	"SystemRoot",
+	"APPDATA",
+	"LOCALAPPDATA",
+}
+
 func commandEnv(env []string) []string {
-	if envHasKey(env, "PATH") {
-		return env
+	merged := env
+	for _, key := range inheritedEnvKeys {
+		if envHasKey(merged, key) {
+			continue
+		}
+		if value := os.Getenv(key); value != "" {
+			merged = append(merged, key+"="+value)
+		}
 	}
-	path := os.Getenv("PATH")
-	if path == "" {
-		return env
-	}
-	return append([]string{"PATH=" + path}, env...)
+	return merged
 }
 
 func envHasKey(env []string, key string) bool {
