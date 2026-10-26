@@ -20,6 +20,7 @@ Run the gateway
 | `--debug-dns`                    | `bool`        |                     | Debug DNS resolution                                                                                                                          |
 | `--dry-run`                      | `bool`        |                     | Start the gateway but do not listen for connections (useful for testing the configuration)                                                    |
 | `--enable-all-servers`           | `bool`        |                     | Enable all servers in the catalog (instead of using individual --servers options)                                                             |
+| `--gateway-name`                 | `string`      |                     | Name advertised to MCP clients (default: Docker AI MCP Gateway)                                                                               |
 | `--host`                         | `string`      |                     | Host or IP address to bind TCP transports to                                                                                                  |
 | `--interceptor`                  | `stringArray` |                     | List of interceptors to use (format: when:type:path, e.g. 'before:exec:/bin/path')                                                            |
 | `--log-calls`                    | `bool`        | `true`              | Log calls to the tools                                                                                                                        |
