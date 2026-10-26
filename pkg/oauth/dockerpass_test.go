@@ -1,11 +1,13 @@
 package oauth
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"testing"
 	"time"
 
+	seclient "github.com/docker/secrets-engine/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -44,9 +46,7 @@ func TestEncodeDecodeToken(t *testing.T) {
 		"expiry mismatch: want %v, got %v", original.Expiry, restored.Expiry)
 }
 
-// TestEncodeDecodeDCRClient verifies the round-trip encoding of dcr.Client
-// used by SaveDCRClientToDockerPass and GetDCRClientFromDockerPass.
-func TestEncodeDecodeDCRClient(t *testing.T) {
+func TestGetDCRClientFromDockerPass(t *testing.T) {
 	original := dcr.Client{
 		ServerName:            "notion-remote",
 		ProviderName:          "notion-remote",
@@ -64,12 +64,15 @@ func TestEncodeDecodeDCRClient(t *testing.T) {
 	require.NoError(t, err)
 	encoded := base64.StdEncoding.EncodeToString(jsonData)
 
-	// Decode (same logic as GetDCRClientFromDockerPass)
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	require.NoError(t, err)
+	oldGetDockerPassDCRSecret := getDockerPassDCRSecret
+	t.Cleanup(func() { getDockerPassDCRSecret = oldGetDockerPassDCRSecret })
+	getDockerPassDCRSecret = func(_ context.Context, id seclient.ID) (*seclient.Envelope, error) {
+		assert.Equal(t, "docker/mcp/oauth-dcr/notion-remote", id.String())
+		return &seclient.Envelope{Provider: "docker-pass", Value: []byte(encoded)}, nil
+	}
 
-	var restored dcr.Client
-	require.NoError(t, json.Unmarshal(decoded, &restored))
+	restored, err := GetDCRClientFromDockerPass(t.Context(), "notion-remote")
+	require.NoError(t, err)
 
 	assert.Equal(t, original.ServerName, restored.ServerName)
 	assert.Equal(t, original.ProviderName, restored.ProviderName)
