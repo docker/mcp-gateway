@@ -310,6 +310,7 @@ type FileBasedConfiguration struct {
 	OciRef             []string         // OCI references to fetch server definitions from
 	MCPRegistryServers []catalog.Server // Servers fetched from MCP registries
 	Watch              bool
+	LongLived          bool
 	McpOAuthDcrEnabled bool
 
 	docker docker.Client
@@ -550,8 +551,9 @@ func (c *FileBasedConfiguration) readOnce(ctx context.Context) (Configuration, e
 		for _, serverName := range serverNames {
 			server := servers[serverName]
 			configs = append(configs, ServerSecretConfig{
-				Secrets: server.Secrets,
-				OAuth:   server.OAuth,
+				Secrets:                server.Secrets,
+				OAuth:                  server.OAuth,
+				RequireVerifiedSecrets: localLongLivedServer(server, c.LongLived),
 			})
 		}
 		return BuildSecretsURIs(ctx, configs)
