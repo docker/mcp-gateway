@@ -7,5 +7,9 @@ import (
 )
 
 func (c *dockerClient) InspectVolume(ctx context.Context, name string) (volume.Volume, error) {
-	return c.apiClient().VolumeInspect(ctx, name)
+	cli, err := c.client()
+	if err != nil {
+		return volume.Volume{}, err
+	}
+	return cli.VolumeInspect(ctx, name)
 }
