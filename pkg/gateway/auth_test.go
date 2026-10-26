@@ -129,11 +129,42 @@ func TestInitializeHTTPAuth_AllowUnauthenticatedSkipsAuth(t *testing.T) {
 	if !strings.Contains(logOutput, "ignoring MCP_GATEWAY_AUTH_TOKEN because --allow-unauthenticated is set") {
 		t.Errorf("expected log output to mention ignored auth token, got %q", logOutput)
 	}
-	if !strings.Contains(logOutput, "without authentication on all interfaces") {
+	if !strings.Contains(logOutput, "disabling authentication on all interfaces") {
 		t.Errorf("expected log output to mention unauthenticated all-interfaces listener, got %q", logOutput)
 	}
 	if !strings.Contains(logOutput, "execute configured MCP tools") {
 		t.Errorf("expected log output to mention tool execution risk, got %q", logOutput)
+	}
+	if strings.Contains(logOutput, "DNS rebinding") {
+		t.Errorf("did not expect the loopback DNS-rebinding warning for an all-interfaces listener, got %q", logOutput)
+	}
+}
+
+func TestInitializeHTTPAuth_AllowUnauthenticatedLoopbackWarnsRebinding(t *testing.T) {
+	var logs bytes.Buffer
+	log.SetLogWriter(&logs)
+	defer log.SetLogWriter(os.Stderr)
+
+	g := &Gateway{
+		Options: Options{
+			Transport:            "streaming",
+			Host:                 "127.0.0.1",
+			AllowUnauthenticated: true,
+		},
+	}
+
+	if err := g.initializeHTTPAuth(); err != nil {
+		t.Fatalf("initializeHTTPAuth() failed: %v", err)
+	}
+
+	logOutput := logs.String()
+	// The general "authentication disabled" warning must still fire on loopback.
+	if !strings.Contains(logOutput, "disabling authentication on 127.0.0.1") {
+		t.Errorf("expected log output to mention the unauthenticated loopback listener, got %q", logOutput)
+	}
+	// And loopback must additionally be flagged as no defense against DNS rebinding.
+	if !strings.Contains(logOutput, "DNS rebinding") {
+		t.Errorf("expected log output to warn that loopback is not a boundary against DNS rebinding, got %q", logOutput)
 	}
 }
 
