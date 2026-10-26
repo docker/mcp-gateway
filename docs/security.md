@@ -79,6 +79,15 @@ Third-party images outside Docker MCP's signing namespace are not verified with
 Docker MCP signatures. Their trust comes from the user's catalog, profile, or
 operator configuration choice.
 
+### Optional delivery evidence (TOA)
+
+Image signature verification proves who published a container image. Optional
+offline [Tool Outcome Attestation](https://github.com/Carmel-Labs-Inc/toa)
+(`toa/0.1`) prove graded tool delivery from a probe before enable/promote. TOA is
+not a substitute for signatures, and it is not the same as gateway audit
+attestation interceptors. See [Optional TOA lifecycle gate](toa-optional-lifecycle-gate.md).
+
+
 ### Container execution
 
 MCP server containers do not receive the user's host environment by default. The
