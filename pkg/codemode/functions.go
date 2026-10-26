@@ -37,9 +37,9 @@ func toolToJsDoc(tool *mcp.Tool) string {
 	}
 
 	if len(properties) == 0 {
-		doc.WriteString(fmt.Sprintf("%s(): string\n", tool.Name))
+		fmt.Fprintf(&doc, "%s(): string\n", tool.Name)
 	} else {
-		doc.WriteString(fmt.Sprintf("%s(args: ArgsObject): string\n", tool.Name))
+		fmt.Fprintf(&doc, "%s(args: ArgsObject): string\n", tool.Name)
 		doc.WriteString("\nwhere type ArgsObject = {\n")
 		for paramName, param := range properties {
 			pType := "Object"
@@ -74,9 +74,9 @@ func toolToJsDoc(tool *mcp.Tool) string {
 			}
 
 			if pEnum != "" {
-				doc.WriteString(fmt.Sprintf("  %s: %s // %s\n", paramName, pEnum, strings.TrimSpace(pDesc)))
+				fmt.Fprintf(&doc, "  %s: %s // %s\n", paramName, pEnum, strings.TrimSpace(pDesc))
 			} else {
-				doc.WriteString(fmt.Sprintf("  %s: %s // %s\n", paramName, pType, strings.TrimSpace(pDesc)))
+				fmt.Fprintf(&doc, "  %s: %s // %s\n", paramName, pType, strings.TrimSpace(pDesc))
 			}
 		}
 		doc.WriteString("};\n")

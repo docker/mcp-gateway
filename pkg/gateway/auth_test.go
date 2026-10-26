@@ -146,7 +146,7 @@ func TestAuthenticationMiddleware_HealthEndpoint(t *testing.T) {
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -165,7 +165,7 @@ func TestAuthenticationMiddleware_BearerAuth_Valid(t *testing.T) {
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sse", nil)
 	// Set Bearer token in Authorization header
 	req.Header.Set("Authorization", "Bearer "+authToken)
 	w := httptest.NewRecorder()
@@ -186,7 +186,7 @@ func TestAuthenticationMiddleware_BearerAuth_Invalid(t *testing.T) {
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sse", nil)
 	req.Header.Set("Authorization", "Bearer wrong-token")
 	w := httptest.NewRecorder()
 
@@ -206,7 +206,7 @@ func TestAuthenticationMiddleware_NoAuth(t *testing.T) {
 
 	middleware := authenticationMiddleware(authToken, handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/sse", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sse", nil)
 	w := httptest.NewRecorder()
 
 	middleware.ServeHTTP(w, req)
@@ -240,7 +240,7 @@ func TestAuthenticationMiddleware_BearerAuth_MalformedHeader(t *testing.T) {
 	}
 
 	for _, header := range malformedHeaders {
-		req := httptest.NewRequest(http.MethodGet, "/sse", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/sse", nil)
 		req.Header.Set("Authorization", header)
 		w := httptest.NewRecorder()
 

@@ -93,7 +93,7 @@ func configSetHandler(g *Gateway) mcp.ToolHandler {
 
 				// Add schema to info
 				schemaBytes, _ := json.MarshalIndent(schemaMap, "  ", "  ")
-				schemaInfo.WriteString(fmt.Sprintf("\n%s:\n  %s\n", configName, string(schemaBytes)))
+				fmt.Fprintf(&schemaInfo, "\n%s:\n  %s\n", configName, string(schemaBytes))
 
 				// Convert the schema map to a jsonschema.Schema for validation
 				schemaBytes, err := json.Marshal(schemaMap)

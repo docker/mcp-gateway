@@ -2,8 +2,7 @@
 
 ARG GO_VERSION=1.26.10
 ARG DOCS_FORMATS="md,yaml"
-
-FROM --platform=${BUILDPLATFORM} golangci/golangci-lint:v2.8.0-alpine AS lint-base
+ARG GOLANGCI_LINT_VERSION=v2.11.3
 
 FROM --platform=${BUILDPLATFORM} golang:${GO_VERSION}-alpine AS base
 RUN apk add --no-cache git
@@ -44,9 +43,12 @@ RUN --mount=type=bind,target=.,rw <<EOT
 EOT
 
 FROM base AS lint
-COPY --from=lint-base /usr/bin/golangci-lint /usr/bin/golangci-lint
+ARG GOLANGCI_LINT_VERSION
 ARG TARGETOS
 ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
 RUN --mount=target=. \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
