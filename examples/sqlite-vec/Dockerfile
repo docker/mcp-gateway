@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26.10-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev sqlite-dev
@@ -20,7 +20,7 @@ RUN CGO_ENABLED=1 go build -tags "sqlite_extensions" -o vector-server -ldflags="
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk add --no-cache sqlite-libs ca-certificates wget
+RUN apk add --no-cache sqlite-libs 'ca-certificates>=20261020-r0' wget
 
 # Download and install sqlite-vec extension (x86_64 only)
 WORKDIR /tmp

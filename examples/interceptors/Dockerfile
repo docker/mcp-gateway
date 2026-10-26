@@ -1,6 +1,7 @@
 FROM python:3.13-alpine@sha256:9b4929a72599b6c6389ece4ecbf415fd1355129f22bb92bb137eea098f05e975
 
-RUN pip install mcp[cli]
+RUN apk add --no-cache 'ca-certificates>=20261020-r0'
+RUN pip install 'certifi>=2026.10.19' mcp[cli]
 
 WORKDIR /app
 COPY main.py ./

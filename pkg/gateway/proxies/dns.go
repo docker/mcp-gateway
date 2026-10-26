@@ -16,7 +16,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/log"
 )
 
-const dnsImage = "docker/mcp-dns-forwarder:v1@sha256:a47b7362fdc78dd2cf8779c52ff782312a3758537e635b91529fddabaadbd4dd"
+const dnsImage = "docker/mcp-dns-forwarder:v1@sha256:6d6ec0484d7226135a0645a1620347dc801ebfcadd656c1f1d204ff48e8efb52"
 
 func runDNSForwarder(ctx context.Context, cli docker.Client, target *TargetConfig, extNwName string, keepCtrs bool) (_ string, _ io.ReadCloser, retErr error) {
 	log.Logf("Running dns forwarder...")

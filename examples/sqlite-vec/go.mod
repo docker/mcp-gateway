@@ -1,6 +1,6 @@
 module github.com/docker/mcp-gateway/examples/sqlite-vec
 
-go 1.24
+go 1.26.10
 
 require (
 	github.com/google/jsonschema-go v0.3.0

@@ -126,7 +126,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -trimpath -ldflags "-s -w" -o /docker-mcp-bridge .
 
 FROM alpine:3.23@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62 AS mcp-gateway
-RUN apk update && apk upgrade --no-cache && apk add --no-cache docker-cli socat jq
+RUN apk update && apk upgrade --no-cache && apk add --no-cache docker-cli socat jq 'ca-certificates>=20261020-r0'
 VOLUME /misc
 COPY --from=build-mcp-bridge /docker-mcp-bridge /misc/
 ENV DOCKER_MCP_IN_CONTAINER=1
@@ -140,8 +140,8 @@ RUN rm /usr/local/bin/docker-compose \
 
 FROM scratch AS mcp-gateway-dind
 COPY --from=dind / /
-RUN apk update && apk upgrade --no-cache && apk add --no-cache socat jq
-COPY --from=docker/mcp-gateway /docker-mcp /
+RUN apk update && apk upgrade --no-cache && apk add --no-cache socat jq 'ca-certificates>=20261020-r0'
+COPY --from=build-mcp-gateway /docker-mcp /
 RUN cat <<-'EOF' >/run.sh
 	#!/usr/bin/env sh
 	set -euxo pipefail
