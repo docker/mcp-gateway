@@ -30,6 +30,7 @@ func TestValidateExternalToolNameCollisionsRejectsDuplicateBaseServers(t *testin
 	assert.Contains(t, err.Error(), `server "alpha"`)
 	assert.Contains(t, err.Error(), `server "beta"`)
 	assert.Contains(t, err.Error(), `"search"`)
+	assert.Contains(t, err.Error(), `run "docker mcp feature enable tool-name-prefix"`)
 }
 
 func TestValidateExternalToolNameCollisionsAllowsPrefixedDuplicateRawNames(t *testing.T) {

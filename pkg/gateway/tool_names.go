@@ -14,6 +14,8 @@ var (
 	errCapabilityNameCollision = errors.New("capability name collision")
 )
 
+const toolNameCollisionRemediation = `run "docker mcp feature enable tool-name-prefix" or set unique catalog prefixes`
+
 type toolNameCollisionError struct {
 	message string
 }
@@ -79,17 +81,17 @@ func validateToolNameCollisions(registrations []ToolRegistration, existing map[s
 		if rejectReserved {
 			if reservedName, _, reserved := findEqualFoldMapEntry(reservedGatewayToolNames, toolName); reserved {
 				if reservedName == toolName {
-					return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes reserved gateway tool name %q; enable tool-name-prefix or set a unique catalog prefix", toolOwner(registration), toolName)}
+					return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes reserved gateway tool name %q; %s", toolOwner(registration), toolName, toolNameCollisionRemediation)}
 				}
-				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q, which differs only by case from reserved gateway tool name %q; enable tool-name-prefix or set a unique catalog prefix", toolOwner(registration), toolName, reservedName)}
+				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q, which differs only by case from reserved gateway tool name %q; %s", toolOwner(registration), toolName, reservedName, toolNameCollisionRemediation)}
 			}
 		}
 
 		if previousName, previous, ok := findEqualFoldMapEntry(seen, toolName); ok {
 			if previousName == toolName {
-				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s and %s both expose tool name %q; enable tool-name-prefix or set unique catalog prefixes", toolOwner(previous), toolOwner(registration), toolName)}
+				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s and %s both expose tool name %q; %s", toolOwner(previous), toolOwner(registration), toolName, toolNameCollisionRemediation)}
 			}
-			return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q and %s exposes case-variant tool name %q; enable tool-name-prefix or set unique catalog prefixes", toolOwner(previous), previousName, toolOwner(registration), toolName)}
+			return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q and %s exposes case-variant tool name %q; %s", toolOwner(previous), previousName, toolOwner(registration), toolName, toolNameCollisionRemediation)}
 		}
 		seen[toolName] = registration
 
@@ -98,9 +100,9 @@ func validateToolNameCollisions(registrations []ToolRegistration, existing map[s
 		}
 		if previousName, previous, ok := findEqualFoldMapEntry(existing, toolName); ok {
 			if previousName == toolName {
-				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s would shadow %s for tool name %q; enable tool-name-prefix or set a unique catalog prefix", toolOwner(registration), toolOwner(previous), toolName)}
+				return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s would shadow %s for tool name %q; %s", toolOwner(registration), toolOwner(previous), toolName, toolNameCollisionRemediation)}
 			}
-			return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q, which differs only by case from %s tool name %q; enable tool-name-prefix or set a unique catalog prefix", toolOwner(registration), toolName, toolOwner(previous), previousName)}
+			return toolNameCollisionError{message: fmt.Sprintf("tool name collision: %s exposes tool name %q, which differs only by case from %s tool name %q; %s", toolOwner(registration), toolName, toolOwner(previous), previousName, toolNameCollisionRemediation)}
 		}
 	}
 
