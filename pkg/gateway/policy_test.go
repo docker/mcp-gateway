@@ -362,8 +362,9 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 		require.NotNil(t, result)
 		assert.False(t, toolCalled, "tool should NOT have been called due to policy block")
 
-		// Check result contains policy block message
+		// Check result contains policy block message and is marked as an error
 		require.Len(t, result.Content, 1)
+		assert.True(t, result.IsError, "blocked tool call must set IsError so clients do not treat it as success")
 		textContent, ok := result.Content[0].(*mcp.TextContent)
 		require.True(t, ok)
 		assert.Contains(t, textContent.Text, "blocked by policy")
@@ -428,9 +429,120 @@ func TestMcpExec_PolicyEnforcement(t *testing.T) {
 		assert.False(t, toolCalled, "tool should NOT be called when policy check errors (fail-closed)")
 
 		require.Len(t, result.Content, 1)
+		assert.True(t, result.IsError, "policy-check failure must set IsError so clients do not treat it as success")
 		textContent, ok := result.Content[0].(*mcp.TextContent)
 		require.True(t, ok)
 		assert.Contains(t, textContent.Text, "policy")
+	})
+
+	t.Run("allows_permitted_tool", func(t *testing.T) {
+		// Default mock fallback allows; ensure success path keeps IsError unset and original content.
+		mock := newMockPolicyClient()
+
+		mcpServer := mcp.NewServer(&mcp.Implementation{
+			Name:    "test-gateway",
+			Version: "1.0.0",
+		}, nil)
+
+		toolCalled := false
+		mockToolHandler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			toolCalled = true
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: "executed-ok"}},
+			}, nil
+		}
+
+		g := &Gateway{
+			policyClient:      mock,
+			mcpServer:         mcpServer,
+			toolRegistrations: make(map[string]ToolRegistration),
+		}
+
+		g.toolRegistrations["safe-tool"] = ToolRegistration{
+			ServerName: "backend-server",
+			Tool:       &mcp.Tool{Name: "safe-tool"},
+			Handler:    g.withInvokePolicy("backend-server", "safe-tool", mockToolHandler),
+		}
+
+		mcpExecHandler := addMcpExecHandler(g)
+
+		execArgs := map[string]any{
+			"name":      "safe-tool",
+			"arguments": map[string]any{},
+		}
+		execArgsJSON, err := json.Marshal(execArgs)
+		require.NoError(t, err)
+
+		req := &mcp.CallToolRequest{
+			Params: &mcp.CallToolParamsRaw{
+				Name:      "mcp-exec",
+				Arguments: execArgsJSON,
+			},
+		}
+
+		result, err := mcpExecHandler(context.Background(), req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.True(t, toolCalled, "allowed tool should run")
+		assert.False(t, result.IsError, "allowed tool must not set IsError")
+		require.Len(t, result.Content, 1)
+		textContent, ok := result.Content[0].(*mcp.TextContent)
+		require.True(t, ok)
+		assert.Equal(t, "executed-ok", textContent.Text)
+	})
+
+	t.Run("preserves_tool_result_when_already_error", func(t *testing.T) {
+		// If the underlying tool returns IsError itself, mcp-exec must pass that through unchanged.
+		mock := newMockPolicyClient()
+
+		mcpServer := mcp.NewServer(&mcp.Implementation{
+			Name:    "test-gateway",
+			Version: "1.0.0",
+		}, nil)
+
+		mockToolHandler := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{&mcp.TextContent{Text: "tool-level failure"}},
+				IsError: true,
+			}, nil
+		}
+
+		g := &Gateway{
+			policyClient:      mock,
+			mcpServer:         mcpServer,
+			toolRegistrations: make(map[string]ToolRegistration),
+		}
+
+		g.toolRegistrations["failing-tool"] = ToolRegistration{
+			ServerName: "backend-server",
+			Tool:       &mcp.Tool{Name: "failing-tool"},
+			Handler:    g.withInvokePolicy("backend-server", "failing-tool", mockToolHandler),
+		}
+
+		mcpExecHandler := addMcpExecHandler(g)
+
+		execArgs := map[string]any{
+			"name":      "failing-tool",
+			"arguments": map[string]any{},
+		}
+		execArgsJSON, err := json.Marshal(execArgs)
+		require.NoError(t, err)
+
+		req := &mcp.CallToolRequest{
+			Params: &mcp.CallToolParamsRaw{
+				Name:      "mcp-exec",
+				Arguments: execArgsJSON,
+			},
+		}
+
+		result, err := mcpExecHandler(context.Background(), req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.True(t, result.IsError)
+		require.Len(t, result.Content, 1)
+		textContent, ok := result.Content[0].(*mcp.TextContent)
+		require.True(t, ok)
+		assert.Equal(t, "tool-level failure", textContent.Text)
 	})
 }
 
