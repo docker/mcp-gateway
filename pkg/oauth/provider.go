@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -74,19 +75,69 @@ func (p *DCRProvider) GeneratePKCE() string {
 //     credential helper, then reloads.
 //   - ModeCommunity: refreshes tokens directly via oauth2 library using
 //     docker pass for storage, then reloads.
+type CredentialStatusReader interface {
+	GetTokenStatus(ctx context.Context, serverID seclient.ID) (TokenStatus, error)
+}
+
 type Provider struct {
 	name              string
 	mode              Mode
 	lastRefreshExpiry time.Time
 	refreshRetryCount int
+	statusRetryCount  int
 	stopOnce          sync.Once
 	stopChan          chan struct{}
 	eventChan         chan Event
-	credHelper        *CredentialHelper
+	credHelper        CredentialStatusReader
 	reloadFn          func(ctx context.Context, serverName string) error
+	// retryDelay is statusRetryDelay in production; tests shrink it so a failing status
+	// read can be exercised without waiting out the real backoff.
+	retryDelay func(attempt int) time.Duration
 }
 
 const maxRefreshRetries = 7 // Max attempts to refresh when expiry hasn't changed
+
+// maxStatusRetries bounds the retries of a failed token-status read before the loop stops.
+// The delays are the same 30s-doubling schedule the refresh path uses, so both settle at
+// roughly the same time.
+const maxStatusRetries = 4
+
+func statusRetryDelay(attempt int) time.Duration {
+	return time.Duration(30*(1<<(attempt-1))) * time.Second
+}
+
+func (p *Provider) delayFor(attempt int) time.Duration {
+	if p.retryDelay != nil {
+		return p.retryDelay(attempt)
+	}
+	return statusRetryDelay(attempt)
+}
+
+// sleep waits for d, staying interruptible by a login event, the stop channel, and ctx.
+// It reports whether the loop should continue.
+func (p *Provider) sleep(ctx context.Context, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true
+	case event := <-p.eventChan:
+		log.Logf("- Provider %s received event: %s", p.name, event.Type)
+		if err := p.reloadFn(ctx, p.name); err != nil {
+			log.Logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
+		}
+		if event.Type == EventLoginSuccess {
+			p.refreshRetryCount = 0
+			p.statusRetryCount = 0
+			p.lastRefreshExpiry = time.Time{}
+		}
+		return true
+	case <-p.stopChan:
+		return false
+	case <-ctx.Done():
+		return false
+	}
+}
 
 // NewProvider creates a new OAuth provider for token refresh.
 // The mode parameter controls which credential storage backend is used.
@@ -99,6 +150,7 @@ func NewProvider(name string, mode Mode, reloadFn func(context.Context, string) 
 		eventChan:  make(chan Event),
 		credHelper: NewOAuthCredentialHelperWithMode(mode),
 		reloadFn:   reloadFn,
+		retryDelay: statusRetryDelay,
 	}
 }
 
@@ -117,10 +169,29 @@ func (p *Provider) Run(ctx context.Context) {
 		}
 		status, err := p.credHelper.GetTokenStatus(ctx, serverID)
 		if err != nil {
-			log.Logf("! Unable to get token status for %s: %v", p.name, err)
-			log.Logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)
-			return
+			if errors.Is(err, ErrNoOAuthToken) {
+				log.Logf("! %v", err)
+				log.Logf("! Run 'docker mcp oauth authorize %s' if not yet authorized", p.name)
+				return
+			}
+			// A failed status read is not proof that the credential is gone: a Secrets
+			// Engine read can time out while the token itself is still valid. Retry on the
+			// same backoff the refresh path uses so a transient blip does not end the loop.
+			p.statusRetryCount++
+			if p.statusRetryCount > maxStatusRetries {
+				log.Logf("! Unable to get token status for %s after %d attempts, stopping the refresh loop: %v",
+					p.name, maxStatusRetries, err)
+				return
+			}
+			waitDuration := p.delayFor(p.statusRetryCount)
+			log.Logf("! Unable to get token status for %s (attempt %d/%d), retrying in %v: %v",
+				p.name, p.statusRetryCount, maxStatusRetries, waitDuration, err)
+			if !p.sleep(ctx, waitDuration) {
+				return
+			}
+			continue
 		}
+		p.statusRetryCount = 0
 
 		// Calculate wait duration and whether to trigger refresh
 		var waitDuration time.Duration
@@ -209,25 +280,7 @@ func (p *Provider) Run(ctx context.Context) {
 
 		// Wait pattern - interruptible by login events
 		if waitDuration > 0 {
-			timer := time.NewTimer(waitDuration)
-			select {
-			case <-timer.C:
-				// Wait complete
-			case event := <-p.eventChan:
-				timer.Stop()
-				log.Logf("- Provider %s received event: %s", p.name, event.Type)
-				if err := p.reloadFn(ctx, p.name); err != nil {
-					log.Logf("- Failed to reload %s after %s: %v", p.name, event.Type, err)
-				}
-				if event.Type == EventLoginSuccess {
-					p.refreshRetryCount = 0
-					p.lastRefreshExpiry = time.Time{}
-				}
-			case <-p.stopChan:
-				timer.Stop()
-				return
-			case <-ctx.Done():
-				timer.Stop()
+			if !p.sleep(ctx, waitDuration) {
 				return
 			}
 		}
