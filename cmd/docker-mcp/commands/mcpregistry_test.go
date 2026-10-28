@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/remoteurl"
 )
 
@@ -80,6 +81,67 @@ func TestMcpregistryImportCommand(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
+}
+
+func TestMcpregistryImportCommand_RegistryCollection(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{
+  "servers": [
+    {
+      "server": {
+        "name": "io.github.example/first",
+        "description": "first server",
+        "version": "1.0.0",
+        "packages": [
+          {"registry_type": "oci", "identifier": "example/first", "version": "1.0.0"}
+        ]
+      },
+      "_meta": {"io.modelcontextprotocol.registry/official": {"isLatest": true}}
+    },
+    {
+      "server": {
+        "name": "io.github.example/second",
+        "description": "second server",
+        "packages": [
+          {"registry_type": "oci", "identifier": "example/second", "version": "latest"}
+        ]
+      }
+    }
+  ],
+  "metadata": {"count": 2}
+}`))
+		require.NoError(t, err)
+	}))
+	defer testServer.Close()
+
+	var servers []catalog.Server
+	require.NoError(t, runMcpregistryImport(context.Background(), testServer.URL, &servers))
+	require.Len(t, servers, 2)
+	assert.Equal(t, "io.github.example/first", servers[0].Name)
+	assert.Equal(t, "example/first:1.0.0", servers[0].Image)
+	assert.Equal(t, "io.github.example/second", servers[1].Name)
+	assert.Equal(t, "example/second:latest", servers[1].Image)
+}
+
+func TestMcpregistryImportCommand_EmptyRegistryCollection(t *testing.T) {
+	t.Setenv(remoteurl.AllowInsecureRemoteURLEnv, "1")
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte(`{"servers": [], "metadata": {"count": 0}}`))
+		require.NoError(t, err)
+	}))
+	defer testServer.Close()
+
+	var servers []catalog.Server
+	err := runMcpregistryImport(context.Background(), testServer.URL, &servers)
+	require.ErrorContains(t, err, "no servers found")
+	assert.Empty(t, servers)
 }
 
 func TestMcpregistryImportCommand_InvalidURL(t *testing.T) {
