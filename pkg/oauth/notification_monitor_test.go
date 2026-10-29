@@ -1,11 +1,29 @@
 package oauth
 
 import (
+	"context"
+	"errors"
+	"net"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNotificationMonitorDialsThroughBackend(t *testing.T) {
+	called := false
+	m := newNotificationMonitor(func(context.Context) (net.Conn, error) {
+		called = true
+		return nil, errors.New("dial stopped")
+	})
+
+	req, err := http.NewRequest(http.MethodGet, m.url, nil)
+	require.NoError(t, err)
+	_, err = m.client.Do(req)
+	require.Error(t, err)
+	assert.True(t, called)
+}
 
 // TestExtractProviderFromMessage tests provider name extraction from messages that Docker Desktop sends via SSE stream
 func TestExtractProviderFromMessage(t *testing.T) {
