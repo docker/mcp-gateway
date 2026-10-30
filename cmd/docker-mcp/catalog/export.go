@@ -41,14 +41,8 @@ func Export(_ context.Context, catalogName, outputPath string) error {
 		return fmt.Errorf("catalog '%s' not found in configured catalogs", catalogName)
 	}
 
-	// Read the catalog file
-	homeDir, err := user.HomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-
-	catalogPath := filepath.Join(homeDir, ".docker", "mcp", "catalogs", catalogFileName)
-	catalogData, err := os.ReadFile(catalogPath)
+	// Read the catalog using the same filename normalization as catalog writes.
+	catalogData, err := ReadCatalogFile(catalogName)
 	if err != nil {
 		return fmt.Errorf("failed to read catalog file: %w", err)
 	}
