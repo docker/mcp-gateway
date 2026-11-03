@@ -201,7 +201,11 @@ func isWindowsAbsPath(p string) bool {
 func cleanDockerHostPath(p string) (string, error) {
 	p = strings.TrimSpace(strings.ReplaceAll(p, "\\", "/"))
 	if isWindowsAbsPath(p) {
-		return strings.ToLower(path.Clean(p)), nil
+		cleaned := strings.ToLower(path.Clean(p))
+		if len(cleaned) == 2 && cleaned[1] == ':' {
+			cleaned += "/"
+		}
+		return cleaned, nil
 	}
 	if strings.HasPrefix(p, "//") {
 		return "//" + path.Clean(strings.TrimPrefix(p, "//")), nil
