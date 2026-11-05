@@ -2,14 +2,119 @@ package gateway
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/docker/mcp-gateway/pkg/catalog"
+	"github.com/docker/mcp-gateway/pkg/db"
 	"github.com/docker/mcp-gateway/pkg/docker"
 )
+
+func setupGatewayTestDB(t *testing.T) db.DAO {
+	t.Helper()
+	dao, err := db.New(db.WithDatabaseFile(filepath.Join(t.TempDir(), "test.db")))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, dao.Close())
+	})
+	return dao
+}
+
+func seedPulledCatalog(t *testing.T, dao db.DAO, ref, name, image string) {
+	t.Helper()
+	err := dao.UpsertCatalog(t.Context(), db.Catalog{
+		Ref:    ref,
+		Digest: "d-" + name,
+		Title:  "pulled",
+		Servers: []db.CatalogServer{{
+			ServerType: "image",
+			Image:      image,
+			Snapshot: &db.ServerSnapshot{
+				Server: catalog.Server{
+					Name:  name,
+					Type:  "server",
+					Image: image,
+				},
+			},
+		}},
+	})
+	require.NoError(t, err)
+}
+
+func TestReadOnceUsesPulledCatalogsForServers(t *testing.T) {
+	dao := setupGatewayTestDB(t)
+	seedPulledCatalog(t, dao, "docker.io/test/pulled:latest", "fetch", "mcp/fetch:pulled")
+	seedPulledCatalog(t, dao, "docker.io/test/other:latest", "unused", "mcp/unused:latest")
+
+	cfg := &FileBasedConfiguration{
+		ServerNames: []string{"fetch"},
+		catalogDAO:  dao,
+	}
+	got, err := cfg.readOnce(t.Context())
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"fetch"}, got.ServerNames())
+	server, _, found := got.Find("fetch")
+	require.True(t, found)
+	require.NotNil(t, server)
+	assert.Equal(t, "mcp/fetch:pulled", server.Spec.Image)
+	_, _, unusedFound := got.Find("unused")
+	assert.True(t, unusedFound, "pulled catalogs should be available for lookup")
+}
+
+func TestReadOnceFileCatalogWinsOverPulledCatalog(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	catalogsDir := filepath.Join(home, ".docker", "mcp", "catalogs")
+	require.NoError(t, os.MkdirAll(catalogsDir, 0o755))
+	err := os.WriteFile(filepath.Join(catalogsDir, "local.yaml"), []byte(`registry:
+  fetch:
+    type: server
+    image: mcp/fetch:file
+`), 0o644)
+	require.NoError(t, err)
+
+	dao := setupGatewayTestDB(t)
+	seedPulledCatalog(t, dao, "docker.io/test/pulled:latest", "fetch", "mcp/fetch:pulled")
+
+	cfg := &FileBasedConfiguration{
+		CatalogPath: []string{"local.yaml"},
+		ServerNames: []string{"fetch"},
+		catalogDAO:  dao,
+	}
+	got, err := cfg.readOnce(t.Context())
+	require.NoError(t, err)
+
+	server, _, found := got.Find("fetch")
+	require.True(t, found)
+	require.NotNil(t, server)
+	assert.Equal(t, "mcp/fetch:file", server.Spec.Image)
+}
+
+func TestMergePulledCatalogServersSkipsEmptySnapshots(t *testing.T) {
+	dao := setupGatewayTestDB(t)
+	err := dao.UpsertCatalog(t.Context(), db.Catalog{
+		Ref:    "docker.io/test/empty:latest",
+		Digest: "empty",
+		Title:  "empty",
+		Servers: []db.CatalogServer{{
+			ServerType: "image",
+			Image:      "mcp/orphan:latest",
+		}},
+	})
+	require.NoError(t, err)
+
+	servers := map[string]catalog.Server{}
+	catalogs := map[string]string{}
+	overrides := map[string]string{}
+	cfg := &FileBasedConfiguration{catalogDAO: dao}
+	require.NoError(t, cfg.mergePulledCatalogServers(t.Context(), servers, catalogs, overrides))
+	assert.Empty(t, servers)
+}
 
 func TestReadServersFromOci(t *testing.T) {
 	tests := []struct {
