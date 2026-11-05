@@ -55,6 +55,18 @@ func (c *Configuration) AddSecrets(secrets map[string]string) {
 	}
 }
 
+// mergeResolvedSecrets merges secret references (se:// URIs) into the
+// configuration without overwriting a concrete value already present
+// (e.g. one provided via --secrets).
+func (c *Configuration) mergeResolvedSecrets(secrets map[string]string) {
+	for name, uri := range secrets {
+		if v, ok := c.secrets[name]; ok && v != "" && !strings.HasPrefix(v, "se://") {
+			continue
+		}
+		c.AddSecrets(map[string]string{name: uri})
+	}
+}
+
 func (c *Configuration) DockerImages() []string {
 	uniqueDockerImages := map[string]bool{}
 
