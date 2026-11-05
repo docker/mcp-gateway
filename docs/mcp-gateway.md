@@ -91,4 +91,9 @@ a pasted `--help` dump it cannot drift.
 
 ## Troubleshooting
 
-Look at our [Troubleshooting Guide](/docs/troubleshooting.md)
+Look at our [Troubleshooting Guide](/docs/troubleshooting.md)\n\n## Per-server resource limits
+
+Set CPU and memory limits for individual containerized MCP servers with catalog
+`resources` entries or explicit `--server-cpus` / `--server-memory` overrides.
+See [Per-server container resource limits](server-resources.md) for precedence,
+validation, and examples.
