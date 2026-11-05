@@ -1,0 +1,450 @@
+{
+  "format_version": "1.0.0",
+  "implementation": "mcp-audit-gateway",
+  "description": "Conformance vectors for checkpoint records. Checkpoints enable truncation detection by providing externally-anchorable chain state. The completeness guarantee requires the consumer to externalize at least one checkpoint somewhere the gateway cannot rewrite.",
+  "canonical_form": "tuple-array",
+  "checkpoint_field_order": [
+    "id",
+    "type",
+    "timestamp",
+    "sequence",
+    "recordCount",
+    "previousHash"
+  ],
+  "conditional_fields": {
+    "parties": "Appended at position 6 when present and non-null."
+  },
+  "design_notes": {
+    "self_sufficiency": "Checkpoints alone do NOT solve truncation. An attacker with log access can drop checkpoints along with the records they cover. The detection guarantee comes from the consumer externalizing the checkpoint (storing previousHash + sequence + recordCount) somewhere the adversary cannot rewrite.",
+    "detection_vs_attribution": "A missing checkpoint tells the consumer something was dropped, but cannot distinguish malicious truncation from legitimate gateway downtime or crash.",
+    "no_chainHead_field": "No separate chainHead field exists. The checkpoint's previousHash IS the chain head at checkpoint time. A separate field would be redundant and introduce ambiguity about whether it means head-before or head-after the checkpoint."
+  },
+  "checkpoint_canonicalization": [
+    {
+      "name": "checkpoint_basic",
+      "description": "Basic checkpoint record without parties. Canonical form includes the type field at position 1.",
+      "record": {
+        "id": "ckpt_990e8400-e29b-41d4-a716-446655440001",
+        "type": "checkpoint",
+        "timestamp": "2026-08-22T20:00:00.000Z",
+        "sequence": 1,
+        "recordCount": 5,
+        "previousHash": "4e9c29d6e22fc2ef1f931994997b01f48f054c1294a7c287bfeece79417e5d43"
+      },
+      "canonical": "[[\"id\",\"ckpt_990e8400-e29b-41d4-a716-446655440001\"],[\"type\",\"checkpoint\"],[\"timestamp\",\"2026-08-22T20:00:00.000Z\"],[\"sequence\",1],[\"recordCount\",5],[\"previousHash\",\"4e9c29d6e22fc2ef1f931994997b01f48f054c1294a7c287bfeece79417e5d43\"]]",
+      "sha256_canonical": "29fcb385d7306fe136b50eb46fd55731ff3c2aadbecb18554267890c3b625794"
+    },
+    {
+      "name": "checkpoint_with_parties",
+      "description": "Checkpoint with gateway witness party declaring which fields it attests to. Parties array appended at end of tuple-array.",
+      "record": {
+        "id": "ckpt_990e8400-e29b-41d4-a716-446655440002",
+        "type": "checkpoint",
+        "timestamp": "2026-08-22T20:01:00.000Z",
+        "sequence": 2,
+        "recordCount": 10,
+        "previousHash": "abc123def456789",
+        "parties": [
+          {
+            "party": "gateway",
+            "role": "witness",
+            "scope": ["sequence", "recordCount", "previousHash"]
+          }
+        ]
+      },
+      "canonical": "[[\"id\",\"ckpt_990e8400-e29b-41d4-a716-446655440002\"],[\"type\",\"checkpoint\"],[\"timestamp\",\"2026-08-22T20:01:00.000Z\"],[\"sequence\",2],[\"recordCount\",10],[\"previousHash\",\"abc123def456789\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"sequence\",\"recordCount\",\"previousHash\"]}]]]",
+      "sha256_canonical": "0b23e3a13467b142f6baaa206450428c03c9757889753d91e496f02c4b1c9d0f"
+    }
+  ],
+  "checkpoint_chain": {
+    "description": "Three-record chain with a checkpoint in the middle. Proves checkpoints participate in hash chain identically to tool_call records. The checkpoint's previousHash equals the hash of the preceding tool_call record. The subsequent tool_call record's previousHash equals the hash of the checkpoint (including its attestation field).",
+    "records": [
+      {
+        "record": {
+          "id": "990e8400-e29b-41d4-a716-446655440010",
+          "timestamp": "2026-08-22T20:10:00.000Z",
+          "method": "tools/call",
+          "toolName": "read_file",
+          "namespace": "fs",
+          "upstream": "fs-server",
+          "principal": "user:bob@example.com",
+          "durationMs": 25,
+          "success": true,
+          "previousHash": "genesis",
+          "attestation": "sig_chain_rec1"
+        },
+        "record_hash": "336524ce7dd7e651e7ef8774be253808fe5e1f8d3e4f62889e9bcc18390c7e89"
+      },
+      {
+        "record": {
+          "id": "ckpt_990e8400-e29b-41d4-a716-446655440011",
+          "type": "checkpoint",
+          "timestamp": "2026-08-22T20:10:01.000Z",
+          "sequence": 1,
+          "recordCount": 1,
+          "previousHash": "336524ce7dd7e651e7ef8774be253808fe5e1f8d3e4f62889e9bcc18390c7e89",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": ["sequence", "recordCount", "previousHash"]
+            }
+          ],
+          "attestation": "sig_chain_ckpt"
+        },
+        "record_hash": "f92d28a4494bd9700aa5b903acf4a538fca66f1971d772c8cf996ea925d12ef0",
+        "previous_record_hash": "336524ce7dd7e651e7ef8774be253808fe5e1f8d3e4f62889e9bcc18390c7e89"
+      },
+      {
+        "record": {
+          "id": "990e8400-e29b-41d4-a716-446655440012",
+          "timestamp": "2026-08-22T20:10:02.000Z",
+          "method": "tools/call",
+          "toolName": "write_file",
+          "namespace": "fs",
+          "upstream": "fs-server",
+          "principal": "user:bob@example.com",
+          "durationMs": 42,
+          "success": true,
+          "previousHash": "f92d28a4494bd9700aa5b903acf4a538fca66f1971d772c8cf996ea925d12ef0",
+          "attestation": "sig_chain_rec2"
+        },
+        "record_hash": "48838c2d0c0f389c3c45bde0f5d8d4ee58d07ab8d9948889000e2295f0f2b118",
+        "previous_record_hash": "f92d28a4494bd9700aa5b903acf4a538fca66f1971d772c8cf996ea925d12ef0"
+      }
+    ]
+  },
+  "truncation_detection": {
+    "description": "Demonstrates completeness verification using externalized checkpoints. The consumer stores one checkpoint (previousHash + sequence + recordCount) in a location the gateway cannot reach. During verification, the consumer checks that the delivered chain contains that checkpoint or a descendant. If neither is found, records were dropped.",
+    "external_checkpoint": {
+      "previousHash": "336524ce7dd7e651e7ef8774be253808fe5e1f8d3e4f62889e9bcc18390c7e89",
+      "sequence": 1,
+      "recordCount": 1
+    },
+    "complete_chain_result": {
+      "truncated": false,
+      "reason": "checkpoint found in delivered chain"
+    },
+    "truncated_chain": {
+      "description": "If only rec1 is delivered (checkpoint and rec2 dropped from tail), the external checkpoint cannot be matched. The remaining prefix verifies its own integrity (signatures valid, chain hashes correct) but the consumer knows records are missing because no checkpoint matches or descends from the externalized one.",
+      "records_delivered": [
+        {
+          "id": "990e8400-e29b-41d4-a716-446655440010",
+          "timestamp": "2026-08-22T20:10:00.000Z",
+          "method": "tools/call",
+          "toolName": "read_file",
+          "namespace": "fs",
+          "upstream": "fs-server",
+          "principal": "user:bob@example.com",
+          "durationMs": 25,
+          "success": true,
+          "previousHash": "genesis",
+          "attestation": "sig_chain_rec1"
+        }
+      ],
+      "detection_result": "truncated",
+      "reason": "externalized checkpoint not found in chain and no descendant checkpoint exists",
+      "failureCode": "head_missing"
+    }
+  },
+  "canonicalize_value": {
+    "description": "canonicalizeValue() recursively converts values to an injective canonical form using type tags. Objects become [\"M\", [[k,v],...]] with sorted keys. Arrays become [\"L\", [...]]. Type tags ensure {a:1} and [[\"a\",1]] produce distinct digests (no type-confusion collisions). Numbers must be safe integers (Number.isSafeInteger); floats and unsafe integers throw. Strings, booleans, and null pass through as scalars. Keys with undefined values are dropped.",
+    "constraints": {
+      "numbers": "Safe integers only (-(2^53-1) to 2^53-1). Floats, Infinity, NaN, and integers outside safe range must be pre-encoded as strings by the caller.",
+      "objects": "Recursively converted to [\"M\", sorted-pairs] at all depths. Type tag \"M\" ensures injectivity.",
+      "arrays": "[\"L\", elements] — element order preserved; each element recursively canonicalized. Type tag \"L\" ensures injectivity.",
+      "null_undefined": "Both canonicalize to JSON null.",
+      "undefined_keys": "Object keys whose value is undefined are dropped (matches JSON.stringify behavior)."
+    },
+    "vectors": [
+      {
+        "name": "nested_same_content_different_order",
+        "description": "Same logical content with different key insertion order produces identical canonical form and digest.",
+        "input_a": { "z": 1, "a": { "y": 2, "b": 3 } },
+        "input_b": { "a": { "b": 3, "y": 2 }, "z": 1 },
+        "canonical_form": "[\"M\",[[\"a\",[\"M\",[[\"b\",3],[\"y\",2]]]],[\"z\",1]]]",
+        "digest": "780dbde7596450dde10d8362bc4590826315109f85a55a2349f13539f023a07c"
+      },
+      {
+        "name": "array_order_matters",
+        "description": "Array element order is preserved — [1,2,3] and [3,2,1] produce different digests.",
+        "input_a": { "items": [1, 2, 3] },
+        "input_b": { "items": [3, 2, 1] },
+        "canonical_a": "[\"M\",[[\"items\",[\"L\",[1,2,3]]]]]",
+        "digest_a": "84a9ff2d4ccb26df641e5c01e9894a6b301d939f7f093f3acb76565018e50c94",
+        "canonical_b": "[\"M\",[[\"items\",[\"L\",[3,2,1]]]]]",
+        "digest_b": "24ec68e95f9bb0b135d4a8dd89b5939ac05fd7d4d43b2a7c85d800151441f2e9"
+      },
+      {
+        "name": "unicode_keys_sorted",
+        "description": "Unicode keys sorted by JS default string comparison (UTF-16 code unit order).",
+        "input": { "ñ": 1, "a": 2, "z": 3, "à": 4 },
+        "canonical_form": "[\"M\",[[\"a\",2],[\"z\",3],[\"à\",4],[\"ñ\",1]]]",
+        "digest": "6f8e940801e3f524e3f0db529e705583a0ab57c5ad5966cb29d6808fd064bc49"
+      },
+      {
+        "name": "astral_plane_keys_utf16_order",
+        "description": "Keys containing astral-plane characters (above BMP) must sort by UTF-16 code-unit order, not code-point order. U+10000 (surrogate pair D800 DC00, first code unit 0xD800=55296) sorts BEFORE U+FF61 (code unit 0xFF61=65377). Python's default sorted() uses code-point order and gets this wrong — must sort by key.encode('utf-16-be').",
+        "input": { "｡": 1, "𐀀": 2 },
+        "canonical_form": "[\"M\",[[\"𐀀\",2],[\"｡\",1]]]",
+        "digest": "17e0391b630e2a8ba408b2d47f689fbb6c4fd4e63c606691d3eca219d1843495",
+        "note": "If your implementation sorts U+FF61 before U+10000, you are using code-point order (wrong). UTF-16 code-unit order puts U+10000 first because its first code unit (0xD800) is numerically less than 0xFF61."
+      },
+      {
+        "name": "lone_surrogate_throws",
+        "description": "Strings containing unpaired surrogates must throw. This eliminates cross-language divergence in JSON serialization of lone surrogates. Test this by constructing a string with charCodeAt(0)===0xD800 in JS or chr(0xD800) in Python — do NOT rely on JSON parsing behavior for lone surrogates.",
+        "construct": "String.fromCharCode(0xD800) in JS; chr(0xD800) in Python",
+        "expected_error": "unpaired surrogate"
+      },
+      {
+        "name": "float_throws",
+        "description": "Non-integer numbers must throw. Callers encode floats as strings.",
+        "input": 0.1,
+        "expected_error": "unsafe number"
+      }
+    ]
+  },
+  "extensions_digest": {
+    "description": "extensionsDigest binds an extension map into the signed canonical form via canonicalizeValue(). The digest is SHA-256 of the injective type-tagged canonicalization ([\"M\",...] for objects, [\"L\",...] for arrays). Numbers must be safe integers; floats must be pre-encoded as strings. When extensionsDigest is absent/undefined, it is omitted from the record canonical form entirely (backward compatible).",
+    "vectors": [
+      {
+        "name": "simple_integer_map",
+        "description": "Extension map with string and integer values (integers are safe).",
+        "extensions": { "model": "gpt-4", "max_tokens": 1024 },
+        "canonical_form": "[\"M\",[[\"max_tokens\",1024],[\"model\",\"gpt-4\"]]]",
+        "digest": "bae5f878e0a23ed1918f2cb454e70d1306a862aa9bdc96117bbdc7d5b25b0d02"
+      },
+      {
+        "name": "empty_extension_map",
+        "description": "An empty object still produces a digest ([\"M\",[]]). Absent extensions (undefined) should NOT call computeExtensionsDigest at all.",
+        "extensions": {},
+        "canonical_form": "[\"M\",[]]",
+        "digest": "f262a0065c4f9cd6c0d849d4b5b291f7243748ddca5525ce54c6390ee07f126f"
+      },
+      {
+        "name": "nested_recursive_sort",
+        "description": "Keys sorted at every depth. Nested object {version: 2} becomes [\"M\",[[\"version\",2]]].",
+        "extensions": { "z_trace_id": "abc123", "a_deployment": "prod", "metadata": { "version": 2 } },
+        "canonical_form": "[\"M\",[[\"a_deployment\",\"prod\"],[\"metadata\",[\"M\",[[\"version\",2]]]],[\"z_trace_id\",\"abc123\"]]]",
+        "digest": "34fa7aa32aeda878bd56d0283d028dcd5bea5be5630dd7b3d15acdddd033a555"
+      },
+      {
+        "name": "float_as_string",
+        "description": "Floats must be pre-encoded as strings by the caller. This is the correct way to include non-integer numbers.",
+        "extensions": { "model": "gpt-4", "temperature": "0.7" },
+        "canonical_form": "[\"M\",[[\"model\",\"gpt-4\"],[\"temperature\",\"0.7\"]]]",
+        "digest": "83565ba3212a9bd8ebd3926fc2a1e7eb4c410804a8dbf2a564a2468fcc44f37c"
+      }
+    ],
+    "record_canonicalization": {
+      "description": "extensionsDigest appears after previousHash (or after decisionContextDigest if present) in the AuditRecord canonical form. When absent, the field is simply not included (backward compatible with pre-v0.3.0 records).",
+      "with_extensions_digest": {
+        "record": {
+          "id": "550e8400-e29b-41d4-a716-446655440099",
+          "timestamp": "2026-08-22T21:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "query_db",
+          "namespace": "data",
+          "upstream": "data-server",
+          "principal": "user:alice@example.com",
+          "durationMs": 150,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "extensionsDigest": "bae5f878e0a23ed1918f2cb454e70d1306a862aa9bdc96117bbdc7d5b25b0d02"
+        },
+        "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440099\"],[\"timestamp\",\"2026-08-22T21:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"query_db\"],[\"namespace\",\"data\"],[\"upstream\",\"data-server\"],[\"principal\",\"user:alice@example.com\"],[\"durationMs\",150],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"extensionsDigest\",\"bae5f878e0a23ed1918f2cb454e70d1306a862aa9bdc96117bbdc7d5b25b0d02\"]]",
+        "sha256_canonical": "f5aa5b0cfbfcfd141c3e70a5ad2b4bee51ec170bdc88391829d1c05230550967"
+      },
+      "without_extensions_digest": {
+        "description": "Same record without extensionsDigest. Canonical form is identical to pre-v0.3.0 format.",
+        "record": {
+          "id": "550e8400-e29b-41d4-a716-446655440099",
+          "timestamp": "2026-08-22T21:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "query_db",
+          "namespace": "data",
+          "upstream": "data-server",
+          "principal": "user:alice@example.com",
+          "durationMs": 150,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis"
+        },
+        "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440099\"],[\"timestamp\",\"2026-08-22T21:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"query_db\"],[\"namespace\",\"data\"],[\"upstream\",\"data-server\"],[\"principal\",\"user:alice@example.com\"],[\"durationMs\",150],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+        "sha256_canonical": "9b7aa85506cfe76fd53b11425c206b32a5d3d2c1423d7e00686a201798475e54"
+      }
+    }
+  },
+  "rotation_boundary": {
+    "description": "Chain continuity across log rotation. The chain-global sequence (lastHash, checkpointSequence, totalRecordCount) persists via .state.json sidecar file. A rotation does NOT reset previousHash to 'genesis'. The first record in the new file chains to the last hash of the previous file.",
+    "file_1_records": [
+      {
+        "record": {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "timestamp": "2026-08-22T22:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "list_files",
+          "namespace": "fs",
+          "upstream": "fs-server",
+          "principal": "user:charlie@example.com",
+          "durationMs": 12,
+          "success": true,
+          "previousHash": "genesis",
+          "attestation": "sig_rotation_rec1"
+        },
+        "record_hash": "ebed26d3fd72ead1ee70a6dd676720fc0c987d76b4d0454ee769abfd8c1634e6"
+      },
+      {
+        "record": {
+          "id": "ckpt_660e8400-e29b-41d4-a716-446655440002",
+          "type": "checkpoint",
+          "timestamp": "2026-08-22T22:00:01.000Z",
+          "sequence": 5,
+          "recordCount": 1,
+          "previousHash": "ebed26d3fd72ead1ee70a6dd676720fc0c987d76b4d0454ee769abfd8c1634e6",
+          "parties": [{ "party": "gateway", "role": "witness", "scope": ["sequence", "recordCount", "previousHash"] }],
+          "attestation": "sig_rotation_ckpt"
+        },
+        "record_hash": "9876964114ee76158f4551f0802c80d9a8869ef79f851e7524602861f1af0cc4"
+      }
+    ],
+    "rotation_note": "Log rotation happens here. State persisted: {lastHash: '9876964114ee76158f4551f0802c80d9a8869ef79f851e7524602861f1af0cc4', checkpointSequence: 5, totalRecordCount: 1}",
+    "file_2_records": [
+      {
+        "record": {
+          "id": "660e8400-e29b-41d4-a716-446655440003",
+          "timestamp": "2026-08-22T22:01:00.000Z",
+          "method": "tools/call",
+          "toolName": "read_file",
+          "namespace": "fs",
+          "upstream": "fs-server",
+          "principal": "user:charlie@example.com",
+          "durationMs": 35,
+          "success": true,
+          "previousHash": "9876964114ee76158f4551f0802c80d9a8869ef79f851e7524602861f1af0cc4",
+          "attestation": "sig_rotation_rec2"
+        },
+        "record_hash": "defa22cefc1c4fd457aff29b0c282e13b0d9d1faaaebb40c581802b99ae9a151",
+        "previous_record_hash": "9876964114ee76158f4551f0802c80d9a8869ef79f851e7524602861f1af0cc4",
+        "note": "This record's previousHash matches the checkpoint from file 1, proving chain survived rotation"
+      }
+    ],
+    "verification": {
+      "chain_valid": true,
+      "reason": "rec2.previousHash matches hash(checkpoint) from previous file. Chain is continuous across rotation boundary."
+    }
+  },
+  "sequence_regression": {
+    "description": "Detects rotation laundering or replay attacks where checkpoint sequence numbers go backward. If checkpoint N has sequence <= checkpoint N-1's sequence, the chain is compromised. This catches an attacker who rotates the log, resets state, and replays old records to hide the gap.",
+    "failure_code": "sequence_regression",
+    "chain": [
+      {
+        "record": {
+          "id": "770e8400-e29b-41d4-a716-446655440000",
+          "timestamp": "2026-08-22T22:59:00.000Z",
+          "method": "tools/call",
+          "toolName": "exec",
+          "namespace": "shell",
+          "upstream": "shell-server",
+          "principal": "user:dave@example.com",
+          "durationMs": 100,
+          "success": true,
+          "previousHash": "genesis",
+          "attestation": "sig_seqreg_rec0"
+        }
+      },
+      {
+        "record": {
+          "id": "ckpt_770e8400-e29b-41d4-a716-446655440001",
+          "type": "checkpoint",
+          "timestamp": "2026-08-22T23:00:00.000Z",
+          "sequence": 3,
+          "recordCount": 15,
+          "previousHash": "aaa111",
+          "parties": [{ "party": "gateway", "role": "witness", "scope": ["sequence", "recordCount", "previousHash"] }],
+          "attestation": "sig_seqreg_ckpt1"
+        },
+        "note": "Valid checkpoint at sequence 3"
+      },
+      {
+        "record": {
+          "id": "ckpt_770e8400-e29b-41d4-a716-446655440002",
+          "type": "checkpoint",
+          "timestamp": "2026-08-22T23:01:00.000Z",
+          "sequence": 2,
+          "recordCount": 20,
+          "previousHash": "bbb222",
+          "parties": [{ "party": "gateway", "role": "witness", "scope": ["sequence", "recordCount", "previousHash"] }],
+          "attestation": "sig_seqreg_ckpt2"
+        },
+        "note": "INVALID: sequence 2 <= previous sequence 3 (regression)"
+      }
+    ],
+    "detection_result": {
+      "truncated": true,
+      "failureCode": "sequence_regression",
+      "reason": "checkpoint sequence regressed: 2 <= 3"
+    }
+  },
+  "chain_break": {
+    "description": "A chain_break record is emitted when the operator forces a new chain (e.g. after a corrupt state file). It carries recoverable state from the prior chain as evidence of the discontinuity. The chain_break record is a valid chain start — subsequent records chain from its hash. This converts 'gap in evidence' into 'signed evidence of a gap'.",
+    "canonical_field_order": ["id", "type", "timestamp", "reason", "priorHead", "priorSequence", "priorRecordCount"],
+    "records": [
+      {
+        "record": {
+          "id": "break_880e8400-e29b-41d4-a716-446655440001",
+          "type": "chain_break",
+          "timestamp": "2026-08-22T23:30:00.000Z",
+          "reason": "state_file_corrupt",
+          "priorHead": "deadbeef1234567890abcdef",
+          "priorSequence": 10,
+          "priorRecordCount": 500,
+          "attestation": "sig_chain_break_1"
+        },
+        "record_hash": "3339fda07ff6daa328aa601cd61012b88ceb00ec1617357368692790ab7f31b2"
+      },
+      {
+        "record": {
+          "id": "880e8400-e29b-41d4-a716-446655440002",
+          "timestamp": "2026-08-22T23:30:01.000Z",
+          "method": "tools/call",
+          "toolName": "exec",
+          "namespace": "shell",
+          "upstream": "shell-server",
+          "principal": "user:eve@example.com",
+          "durationMs": 50,
+          "success": true,
+          "previousHash": "3339fda07ff6daa328aa601cd61012b88ceb00ec1617357368692790ab7f31b2",
+          "attestation": "sig_after_break"
+        },
+        "record_hash": "43701b65dbd89b8e22c34c9e2c75784749c42700925b5d27703b5b98c0832c23",
+        "note": "First record after chain_break chains from the break record's hash, proving continuity from the signed gap marker"
+      }
+    ]
+  },
+  "verification_modes": {
+    "description": "verifyCompleteness supports two explicit modes. Strict: full chain required, absolute counts verified, adjacent-pair deltas checked. Relative (suffix): descendant match acceptable, deltas checked, absolute counts marked unverified. This prevents a verifier from silently claiming full verification on a suffix.",
+    "modes": {
+      "strict": "Full chain from genesis (or chain_break). Absolute recordCount checked against prefix. Adjacent checkpoint deltas validated. absoluteCountVerified=true on success.",
+      "relative": "Suffix delivery acceptable. Descendant checkpoint match accepted. Deltas between adjacent checkpoints in the suffix are validated. absoluteCountVerified=false (honest downgrade). Result explicitly states verificationMode='relative'."
+    },
+    "adjacent_delta_check": {
+      "description": "Between every pair of adjacent checkpoints, the number of non-checkpoint records must equal the recordCount delta. This catches interior splices that absolute-count-only verification misses.",
+      "example": {
+        "checkpoint_a": { "sequence": 1, "recordCount": 5 },
+        "checkpoint_b": { "sequence": 2, "recordCount": 10 },
+        "expected_delta": 5,
+        "note": "If only 3 non-checkpoint records exist between checkpoint_a and checkpoint_b, failureCode is count_mismatch with reason mentioning 'adjacent checkpoint delta mismatch'."
+      }
+    }
+  },
+  "failure_codes": {
+    "description": "verifyCompleteness returns distinct failure codes to aid consumer diagnostics and automated response. Each code indicates a different class of tampering or failure.",
+    "codes": {
+      "head_missing": "The externalized checkpoint was not found in the delivered chain and no descendant checkpoint exists. Indicates tail truncation: records after the last externalized checkpoint were dropped.",
+      "count_mismatch": "The checkpoint exists in the chain but the number of non-checkpoint records preceding it does not match its recordCount claim, OR the delta between adjacent checkpoints doesn't match. Indicates a splice attack: valid checkpoint presented with a fabricated prefix or interior.",
+      "sequence_regression": "Two checkpoints in the chain have non-monotonic sequence numbers. Indicates rotation laundering: the chain was reset and old records replayed to hide the gap."
+    }
+  }
+}
