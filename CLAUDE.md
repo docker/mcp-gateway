@@ -13,7 +13,7 @@ The codebase follows a gateway pattern where:
 - **MCP Gateway** (this CLI) manages multiple **MCP Servers** running in Docker containers
 
 Key architectural components:
-- **Gateway**: Core routing and protocol translation (`cmd/docker-mcp/internal/gateway/`)
+- **Gateway**: Core routing and protocol translation (`pkg/gateway/`)
 - **Client Management**: Handles connections to AI clients (`cmd/docker-mcp/client/`)
 - **Server Management**: Manages MCP server lifecycle (`cmd/docker-mcp/server/`)
 - **Catalog System**: Manages available MCP servers (`cmd/docker-mcp/catalog/`)
@@ -73,10 +73,10 @@ go mod tidy
 ## Project Structure
 
 - `cmd/docker-mcp/` - Main CLI application entry point
-- `cmd/docker-mcp/internal/gateway/` - Core gateway implementation with client pooling, proxy management, and transport handling
-- `cmd/docker-mcp/internal/docker/` - Docker integration for container management
-- `cmd/docker-mcp/internal/mcp/` - MCP protocol implementations (stdio, SSE)
-- `cmd/docker-mcp/internal/desktop/` - Docker Desktop integration and authentication
+- `pkg/gateway/` - Core gateway implementation with client pooling, proxy management, and transport handling
+- `pkg/docker/` - Docker integration for container management
+- `pkg/mcp/` - MCP protocol implementations (stdio, SSE)
+- `pkg/desktop/` - Docker Desktop integration and authentication
 - `cmd/docker-mcp/catalog/` - Server catalog management commands
 - `cmd/docker-mcp/client/` - Client configuration and connection management
 - `cmd/docker-mcp/server/` - Server lifecycle management commands  
@@ -113,7 +113,7 @@ The system integrates with various AI clients:
 - Continue Dev
 - Custom MCP clients
 
-Configuration files for different clients are automatically managed in `cmd/docker-mcp/client/testdata/`.
+Configuration files for different clients are automatically managed in `pkg/client/testdata/`.
 
 ## CLI Plugin Development
 
