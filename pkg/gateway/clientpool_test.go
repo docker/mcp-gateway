@@ -19,6 +19,7 @@ import (
 	"github.com/docker/mcp-gateway/pkg/catalog"
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/proxies"
+	mcpclient "github.com/docker/mcp-gateway/pkg/mcp"
 )
 
 func TestApplyConfigGrafana(t *testing.T) {
@@ -911,4 +912,73 @@ func TestStdioClientInitialization(t *testing.T) {
 	assert.NotNil(t, tools.Tools)
 
 	t.Logf("Successfully initialized stdio client and retrieved %d tools", len(tools.Tools))
+}
+
+type noopMCPClient struct{}
+
+func (noopMCPClient) Initialize(context.Context, *mcp.InitializeParams, bool, *mcp.ServerSession, *mcp.Server, mcpclient.CapabilityRefresher) error {
+	return nil
+}
+
+func (noopMCPClient) Session() *mcp.ClientSession { return nil }
+func (noopMCPClient) GetClient() *mcp.Client      { return nil }
+func (noopMCPClient) AddRoots([]*mcp.Root)        {}
+
+func TestReleaseClientRunsProxyCleanupOnce(t *testing.T) {
+	var n int
+	client := newClientWithCleanup(noopMCPClient{}, func(context.Context) error {
+		n++
+		return nil
+	})
+	cp := newClientPool(Options{}, nil, nil)
+	cp.ReleaseClient(client)
+	cp.ReleaseClient(client)
+	require.Equal(t, 1, n)
+}
+
+func TestReleaseKeptClientLeavesProxies(t *testing.T) {
+	var n int
+	client := newClientWithCleanup(noopMCPClient{}, func(context.Context) error {
+		n++
+		return nil
+	})
+	cp := newClientPool(Options{}, nil, nil)
+	getter := newClientGetter(&catalog.ServerConfig{Name: "fetch"}, cp, nil)
+	getter.client = client
+	cp.keptClients[clientKey{serverName: "fetch"}] = keptClient{Getter: getter}
+	cp.ReleaseClient(client)
+	require.Zero(t, n)
+}
+
+func TestPoolCloseRunsProxyCleanup(t *testing.T) {
+	var n int
+	client := newClientWithCleanup(noopMCPClient{}, func(context.Context) error {
+		n++
+		return nil
+	})
+	cp := newClientPool(Options{}, nil, nil)
+	getter := newClientGetter(&catalog.ServerConfig{Name: "fetch"}, cp, nil)
+	getter.once.Do(func() { getter.client = client })
+	cp.keptClients[clientKey{serverName: "fetch"}] = keptClient{
+		Getter: getter,
+		Config: &catalog.ServerConfig{Name: "fetch"},
+	}
+	cp.Close()
+	require.Equal(t, 1, n)
+}
+
+func TestReleaseClientsForSessionRunsProxyCleanup(t *testing.T) {
+	var n int
+	client := newClientWithCleanup(noopMCPClient{}, func(context.Context) error {
+		n++
+		return nil
+	})
+	cp := newClientPool(Options{}, nil, nil)
+	getter := newClientGetter(&catalog.ServerConfig{Name: "fetch"}, cp, nil)
+	getter.started.Store(true)
+	getter.once.Do(func() { getter.client = client })
+	sess := &mcp.ServerSession{}
+	cp.keptClients[clientKey{serverName: "fetch", session: sess}] = keptClient{Getter: getter}
+	cp.ReleaseClientsForSession(sess)
+	require.Equal(t, 1, n)
 }

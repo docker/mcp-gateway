@@ -39,9 +39,11 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Create a network for connecting the MCP tool with proxies.
+	// One network pair per client. A shared name lets one client's cleanup
+	// delete the network while another client is still attaching to it.
+	id := randString()
 	target := TargetConfig{
-		NetworkName: "docker-mcp-proxies-int",
+		NetworkName: "docker-mcp-proxies-int-" + id,
 	}
 	if err := cli.CreateNetwork(ctx, target.NetworkName, true, map[string]string{"docker-mcp": "true"}); err != nil {
 		if !cerrdefs.IsConflict(err) {
@@ -57,7 +59,7 @@ func RunNetworkProxies(ctx context.Context, cli docker.Client, proxies []Proxy, 
 	}()
 
 	// Create a network for proxies to connect to external services.
-	extNwName := "docker-mcp-proxies-ext"
+	extNwName := "docker-mcp-proxies-ext-" + id
 	if err := cli.CreateNetwork(ctx, extNwName, false, map[string]string{"docker-mcp": "true"}); err != nil {
 		if !cerrdefs.IsConflict(err) {
 			return TargetConfig{}, nil, fmt.Errorf("creating external network: %w", err)

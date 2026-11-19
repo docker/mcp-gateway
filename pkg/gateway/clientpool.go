@@ -151,9 +151,9 @@ func (cp *clientPool) ReleaseClient(client mcpclient.Client) {
 	}
 	cp.clientLock.RUnlock()
 
-	// Client was not kept, close it
+	// Client was not kept, close it (session and any proxy sidecars).
 	if !foundKept {
-		client.Session().Close()
+		closeClient(client)
 		return
 	}
 }
@@ -168,7 +168,7 @@ func (cp *clientPool) Close() {
 	for _, keptClient := range existingMap {
 		client, err := keptClient.Getter.GetClient(context.TODO()) // should be cached
 		if err == nil {
-			client.Session().Close()
+			closeClient(client)
 		}
 	}
 }
@@ -195,7 +195,7 @@ func (cp *clientPool) ReleaseClientsForSession(session *mcp.ServerSession) {
 		}
 		client, err := kc.Getter.GetClient(context.Background()) // should be cached
 		if err == nil {
-			client.Session().Close()
+			closeClient(client)
 		}
 	}
 }
@@ -219,7 +219,7 @@ func (cp *clientPool) InvalidateOAuthClients(provider string) {
 			// Close the connection
 			client, err := keptClient.Getter.GetClient(context.TODO())
 			if err == nil {
-				client.Session().Close()
+				closeClient(client)
 				log.Log(fmt.Sprintf("ClientPool: Successfully closed connection for %s", keptClient.Config.Name))
 			} else {
 				log.Log(fmt.Sprintf("ClientPool: Warning - failed to get client for %s during invalidation: %v", keptClient.Config.Name, err))
@@ -515,11 +515,32 @@ func (cg *clientGetter) IsClient(client mcpclient.Client) bool {
 	return cg.client == client
 }
 
+// closeClient closes the MCP session and, when the client owns proxy
+// sidecars, removes those too. Session().Close alone leaves them running.
+func closeClient(client mcpclient.Client) {
+	if client == nil {
+		return
+	}
+	if closer, ok := client.(interface{ Close() error }); ok {
+		_ = closer.Close()
+		return
+	}
+	if session := client.Session(); session != nil {
+		_ = session.Close()
+	}
+}
+
 func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error) {
 	cg.started.Store(true)
 	cg.once.Do(func() {
 		createClient := func() (mcpclient.Client, error) {
 			cleanup := func(context.Context) error { return nil }
+			handedOff := false
+			defer func() {
+				if !handedOff {
+					_ = cleanup(context.Background())
+				}
+			}()
 
 			var client mcpclient.Client
 
@@ -534,8 +555,12 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 				var targetConfig proxies.TargetConfig
 				if cg.cp.BlockNetwork && len(cg.serverConfig.Spec.AllowHosts) > 0 {
 					var err error
-					if targetConfig, cleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongLived); err != nil {
+					var proxyCleanup func(context.Context) error
+					if targetConfig, proxyCleanup, err = cg.cp.runProxies(ctx, cg.serverConfig.Spec.AllowHosts, cg.serverConfig.Spec.LongLived); err != nil {
 						return nil, err
+					}
+					if proxyCleanup != nil {
+						cleanup = proxyCleanup
 					}
 				}
 
@@ -579,9 +604,13 @@ func (cg *clientGetter) GetClient(ctx context.Context) (mcpclient.Client, error)
 
 			// TODO add initial roots
 			if err := client.Initialize(ctx, initParams, cg.cp.Verbose, ss, server, cg.cp.gateway); err != nil {
+				if client != nil && client.Session() != nil {
+					_ = client.Session().Close()
+				}
 				return nil, err
 			}
 
+			handedOff = true
 			return newClientWithCleanup(client, cleanup), nil
 		}
 

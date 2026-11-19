@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/docker/mcp-gateway/pkg/gateway/proxies"
 	"github.com/docker/mcp-gateway/pkg/mcp"
@@ -30,10 +31,24 @@ func newClientWithCleanup(client mcp.Client, cleanup func(context.Context) error
 }
 
 func (c *clientWithCleanup) Close() error {
-	return errors.Join(c.Client.Session().Close(), c.cleanup(context.TODO()))
+	c.once.Do(func() {
+		var err error
+		if c.Client != nil {
+			if session := c.Client.Session(); session != nil {
+				err = session.Close()
+			}
+		}
+		if c.cleanup != nil {
+			err = errors.Join(err, c.cleanup(context.TODO()))
+		}
+		c.err = err
+	})
+	return c.err
 }
 
 type clientWithCleanup struct {
 	mcp.Client
 	cleanup func(context.Context) error
+	once    sync.Once
+	err     error
 }
