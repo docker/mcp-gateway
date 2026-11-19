@@ -37,6 +37,11 @@ func LogCallsMiddleware() mcp.Middleware {
 
 			result, err := next(ctx, method, req)
 			if err != nil {
+				name := toolName
+				if name == "" {
+					name = "(unknown)"
+				}
+				log.Logf("  > Refused tool %s: %s\n", name, err)
 				return result, err
 			}
 
