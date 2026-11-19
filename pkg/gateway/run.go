@@ -254,10 +254,7 @@ func (g *Gateway) Run(ctx context.Context) error {
 		log.Log("- Interceptors enabled:", strings.Join(g.Interceptors, ", "))
 	}
 
-	g.mcpServer = mcp.NewServer(&mcp.Implementation{
-		Name:    "Docker AI MCP Gateway",
-		Version: "2.0.1",
-	}, &mcp.ServerOptions{
+	g.mcpServer = mcp.NewServer(g.serverImplementation(), &mcp.ServerOptions{
 		SubscribeHandler: func(_ context.Context, req *mcp.SubscribeRequest) error {
 			log.Log("- Client subscribed to URI:", req.Params.URI)
 			// The MCP SDK doesn't provide ServerSession in SubscribeHandler because it already

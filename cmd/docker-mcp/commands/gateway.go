@@ -206,6 +206,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().StringSliceVar(&mcpRegistryUrls, "mcp-registry", nil, "MCP registry URLs to fetch servers from (can be repeated)")
 	runCmd.Flags().IntVar(&options.Port, "port", options.Port, "TCP port to listen on (default is to listen on stdio)")
 	runCmd.Flags().StringVar(&options.Host, "host", options.Host, "Host or IP address to bind TCP transports to")
+	runCmd.Flags().StringVar(&options.GatewayName, "gateway-name", options.GatewayName, "Name advertised to MCP clients (default: Docker AI MCP Gateway)")
 	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming. Uses MCP_GATEWAY_AUTH_TOKEN environment variable for localhost authentication to prevent dns rebinding attacks.")
 	runCmd.Flags().BoolVar(&options.AllowUnauthenticated, "allow-unauthenticated", options.AllowUnauthenticated, "Allow unauthenticated HTTP/SSE gateway requests")
 	runCmd.Flags().BoolVar(&options.PreserveToolSchemaDialect, "preserve-tool-schema-dialect", options.PreserveToolSchemaDialect, "Relay tool schemas with the JSON Schema dialect the server declared, instead of translating pre-2020-12 dialects")
