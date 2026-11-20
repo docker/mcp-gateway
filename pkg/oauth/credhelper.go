@@ -386,6 +386,10 @@ func (h *readWriteHelper) Add(creds *credentials.Credentials) error {
 }
 
 func (h *readWriteHelper) Delete(serverURL string) error {
+	// Get preserves the typed not-found error; Erase wraps helper failures.
+	if _, err := client.Get(h.program, serverURL); err != nil {
+		return err
+	}
 	return client.Erase(h.program, serverURL)
 }
 
