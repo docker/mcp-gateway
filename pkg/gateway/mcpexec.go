@@ -86,13 +86,19 @@ func addMcpExecHandler(g *Gateway) mcp.ToolHandler {
 			if errors.As(err, &policyErr) {
 				if policyErr.cause != nil {
 					log.Logf("policy check failed for mcp-exec %s: %v (denying)", toolName, policyErr.cause)
-					return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{
-						Text: fmt.Sprintf("Error: Tool '%s' blocked due to policy check error: %v", toolName, policyErr.cause),
-					}}}, nil
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{&mcp.TextContent{
+							Text: fmt.Sprintf("Error: Tool '%s' blocked due to policy check error: %v", toolName, policyErr.cause),
+						}},
+						IsError: true,
+					}, nil
 				}
-				return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{
-					Text: fmt.Sprintf("Error: Tool '%s' blocked by policy: %s", toolName, policyErr.reason),
-				}}}, nil
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{&mcp.TextContent{
+						Text: fmt.Sprintf("Error: Tool '%s' blocked by policy: %s", toolName, policyErr.reason),
+					}},
+					IsError: true,
+				}, nil
 			}
 			return nil, fmt.Errorf("tool execution failed: %w", err)
 		}
