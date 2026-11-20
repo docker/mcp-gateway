@@ -72,6 +72,10 @@ type TokenStatus struct {
 	NeedsRefresh bool
 }
 
+// ErrNoOAuthToken means the server has no stored credential. Waiting cannot fix it, so a
+// caller driving a refresh loop can stop on it instead of retrying.
+var ErrNoOAuthToken = errors.New("no OAuth token stored")
+
 // GetOAuthToken retrieves an OAuth token for the specified server.
 // Routes to the appropriate storage backend based on the resolved mode:
 //   - CE: credential helper (base64-encoded JSON)
@@ -205,6 +209,9 @@ func (h *CredentialHelper) tokenExistsDesktop(ctx context.Context, serverID secl
 //   - CE: reads token JSON from credential helper, parses expiry
 //   - Desktop: queries Secrets Engine, reads ExpiryAt from response metadata
 //   - Community: reads token JSON from docker pass via Secrets Engine, parses expiry
+//
+// A missing credential wraps ErrNoOAuthToken; every other error is reported unchanged and
+// may be transient (a Secrets Engine timeout, for example).
 func (h *CredentialHelper) GetTokenStatus(ctx context.Context, serverID seclient.ID) (TokenStatus, error) {
 	switch h.resolveMode() {
 	case ModeCE:
@@ -227,14 +234,14 @@ func (h *CredentialHelper) getTokenStatusDesktop(ctx context.Context, serverID s
 	}
 	env, err := secret.GetSecret(ctx, oauthID)
 	if errors.Is(err, secret.ErrSecretNotFound) {
-		return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
+		return TokenStatus{Valid: false}, fmt.Errorf("%w for %s", ErrNoOAuthToken, serverName)
 	}
 	if err != nil {
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to query Secrets Engine for %s: %w", serverName, err)
 	}
 
 	if string(env.Value) == "" {
-		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
+		return TokenStatus{Valid: false}, fmt.Errorf("%w for %s", ErrNoOAuthToken, serverName)
 	}
 
 	// Read ExpiryAt from Secrets Engine response metadata
@@ -281,13 +288,13 @@ func (h *CredentialHelper) getTokenStatusCE(serverID seclient.ID) (TokenStatus, 
 	tokenSecret, err := getTokenCredential(h.credentialHelper, client, false)
 	if err != nil {
 		if credentials.IsErrCredentialsNotFound(err) {
-			return TokenStatus{Valid: false}, fmt.Errorf("OAuth token not found for %s", serverName)
+			return TokenStatus{Valid: false}, fmt.Errorf("%w for %s", ErrNoOAuthToken, serverName)
 		}
 		return TokenStatus{Valid: false}, fmt.Errorf("failed to retrieve OAuth token for %s: %w", serverName, err)
 	}
 
 	if tokenSecret == "" {
-		return TokenStatus{Valid: false}, fmt.Errorf("empty OAuth token found for %s", serverName)
+		return TokenStatus{Valid: false}, fmt.Errorf("%w for %s", ErrNoOAuthToken, serverName)
 	}
 
 	// CE mode: credential helper returns base64-encoded JSON with expiry
