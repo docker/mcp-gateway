@@ -16,10 +16,16 @@ import (
 	"github.com/docker/mcp-gateway/pkg/oauth/dcr"
 )
 
+var getDockerPassDCRSecret = func(ctx context.Context, id seclient.ID) (*seclient.Envelope, error) {
+	return secret.GetSecretFromProvider(ctx, id, "docker-pass")
+}
+
 // Docker pass stores tokens and DCR clients in the OS Keychain at well-known
 // key paths. Writes use the `docker pass set` CLI command (via the secret
 // package). Reads go through the Secrets Engine API, which aggregates all
-// providers including the docker-pass plugin.
+// providers including the docker-pass plugin. DCR reads select that provider
+// explicitly because a stale Desktop OAuth provider entry can otherwise shadow
+// the community-server DCR client.
 //
 // Plugin resolution: both the docker-pass plugin (pattern `**`) and the
 // docker-desktop-mcp-oauth plugin (pattern `docker/mcp/oauth/**`) match the
@@ -242,10 +248,7 @@ func GetDCRClientFromDockerPass(ctx context.Context, serverName string) (dcr.Cli
 	if err != nil {
 		return dcr.Client{}, err
 	}
-	env, err := secret.GetSecret(ctx, dcrID)
-	if errors.Is(err, secret.ErrSecretNotFound) {
-		return dcr.Client{}, fmt.Errorf("DCR client not found for %s: %w", serverName, secret.ErrSecretNotFound)
-	}
+	env, err := getDockerPassDCRSecret(ctx, dcrID)
 	if err != nil {
 		return dcr.Client{}, fmt.Errorf("failed to query Secrets Engine for DCR client %s: %w", serverName, err)
 	}

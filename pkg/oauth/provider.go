@@ -1,8 +1,12 @@
 package oauth
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -61,6 +65,52 @@ func (p *DCRProvider) ResourceURL() string {
 // The challenge is automatically computed by oauth2 library when using S256ChallengeOption
 func (p *DCRProvider) GeneratePKCE() string {
 	return oauth2.GenerateVerifier()
+}
+
+// refreshResourceRoundTripper adds RFC 8707's resource parameter to refresh
+// token grants. x/oauth2 supports additional parameters during the initial
+// code exchange, but not when its TokenSource performs a refresh.
+type refreshResourceRoundTripper struct {
+	base     http.RoundTripper
+	resource string
+}
+
+func (t *refreshResourceRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Body == nil || t.resource == "" || req.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return t.base.RoundTrip(req)
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	req.Body.Close()
+	req.Body = io.NopCloser(bytes.NewReader(body))
+
+	values, err := url.ParseQuery(string(body))
+	if err != nil || values.Get("grant_type") != "refresh_token" {
+		return t.base.RoundTrip(req)
+	}
+
+	values.Set("resource", t.resource)
+	encoded := values.Encode()
+	cloned := req.Clone(req.Context())
+	cloned.Body = io.NopCloser(bytes.NewBufferString(encoded))
+	cloned.ContentLength = int64(len(encoded))
+	cloned.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewBufferString(encoded)), nil
+	}
+	return t.base.RoundTrip(cloned)
+}
+
+func newRefreshHTTPClient(ctx context.Context, resource string) *http.Client {
+	client := NewCredentialHTTPClient(ctx, 0)
+	base := client.Transport
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	client.Transport = &refreshResourceRoundTripper{base: base, resource: resource}
+	return client
 }
 
 // Provider manages OAuth token lifecycle for a single MCP server.
@@ -289,7 +339,7 @@ func (p *Provider) refreshTokenCommunity(ctx context.Context) error {
 	// Inject proxy transport so the token endpoint is reachable through
 	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
 	// derived OAuth endpoints.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, NewCredentialHTTPClient(ctx, 0))
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, newRefreshHTTPClient(ctx, provider.ResourceURL()))
 
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
 	if err != nil {
@@ -335,7 +385,7 @@ func (p *Provider) refreshTokenCE(ctx context.Context) error {
 	// Inject proxy transport so the token endpoint is reachable through
 	// Docker Desktop's HTTP proxy when applicable, while blocking unsafe
 	// derived OAuth endpoints.
-	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, NewCredentialHTTPClient(ctx, 0))
+	proxyCtx := context.WithValue(ctx, oauth2.HTTPClient, newRefreshHTTPClient(ctx, provider.ResourceURL()))
 
 	// TokenSource automatically refreshes using refresh_token
 	refreshedToken, err := config.TokenSource(proxyCtx, token).Token()
