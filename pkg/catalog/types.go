@@ -22,6 +22,13 @@ type topLevel struct {
 
 // MCP Servers
 
+// Resources declares per-server container limits. The gateway bounds catalog
+// limits by operator configuration; these values do not grant extra resources.
+type Resources struct {
+	CPUs   string `yaml:"cpus,omitempty" json:"cpus,omitempty"`
+	Memory string `yaml:"memory,omitempty" json:"memory,omitempty"`
+}
+
 type Server struct {
 	Name           string    `yaml:"name,omitempty" json:"name,omitempty" validate:"required,min=1"`
 	Type           string    `yaml:"type" json:"type" validate:"required,oneof=server remote poci"`
@@ -46,6 +53,9 @@ type Server struct {
 	Config         []any     `yaml:"config,omitempty" json:"config,omitempty"`
 	Prefix         string    `yaml:"prefix,omitempty" json:"prefix,omitempty"`
 	Metadata       *Metadata `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+
+	Resources *Resources `yaml:"resources,omitempty" json:"resources,omitempty"`
+
 	// Policy describes the policy decision for this server.
 	Policy *policy.Decision `yaml:"policy,omitempty" json:"policy,omitempty"`
 }

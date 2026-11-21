@@ -139,6 +139,9 @@ func (g *Gateway) filterByPolicy(ctx context.Context, cfg *Configuration) {
 }
 
 func (g *Gateway) Run(ctx context.Context) error {
+	if err := g.ValidateResourceOverrides(); err != nil {
+		return err
+	}
 	// Initialize telemetry
 	telemetry.Init()
 

@@ -291,3 +291,28 @@ func TestConditionalConfiguredCatalogPaths(t *testing.T) {
 		assert.False(t, shouldExclude, "should include configured catalogs when single non-Docker catalog")
 	})
 }
+
+func TestGatewayResourceFlags(t *testing.T) {
+	cmd := gatewayCommand(nil, nil, features.AllDisabled())
+	run, _, err := cmd.Find([]string{"run"})
+	require.NoError(t, err)
+	require.NoError(t, run.ParseFlags([]string{"--server-cpus", "heavy=2.5", "--server-cpus", "light=0.25", "--server-memory", "heavy=4g,light=128m"}))
+	cpus, err := run.Flags().GetStringToString("server-cpus")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"heavy": "2.5", "light": "0.25"}, cpus)
+	memory, err := run.Flags().GetStringToString("server-memory")
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"heavy": "4g", "light": "128m"}, memory)
+}
+
+func TestGatewayRejectsInvalidResourceFlagsBeforeIO(t *testing.T) {
+	for _, args := range [][]string{{"--server-cpus", "worker=0"}, {"--server-memory", "worker=bad"}, {"--server-cpus", "=1"}} {
+		t.Run(args[1], func(t *testing.T) {
+			cmd := gatewayCommand(nil, nil, features.AllDisabled())
+			run, _, err := cmd.Find([]string{"run"})
+			require.NoError(t, err)
+			require.NoError(t, run.ParseFlags(args))
+			require.ErrorContains(t, run.RunE(run, nil), args[0])
+		})
+	}
+}

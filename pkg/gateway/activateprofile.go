@@ -135,6 +135,13 @@ func (g *Gateway) ActivateProfile(ctx context.Context, ws workingset.WorkingSet)
 			return err
 		}
 		serverConfig := profileConfig.servers[serverName]
+		if err := g.validateServerResources(&catalog.ServerConfig{Name: serverName, Spec: serverConfig}); err != nil {
+			return err
+		}
+	}
+
+	for _, serverName := range serversToActivate {
+		serverConfig := profileConfig.servers[serverName]
 		validation := serverValidation{serverName: serverName}
 
 		// Check if all required secrets are set
