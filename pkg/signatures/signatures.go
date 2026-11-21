@@ -43,7 +43,7 @@ func Verify(ctx context.Context, images []string) error {
 		return err
 	}
 
-	rekor, err := cosign.GetRekorPubs(ctx)
+	rekor, err := getRekorPublicKeysWithRetry(ctx)
 	if err != nil {
 		return fmt.Errorf("getting Rekor public keys: %w", err)
 	}
