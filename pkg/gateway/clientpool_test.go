@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -20,6 +21,70 @@ import (
 	"github.com/docker/mcp-gateway/pkg/docker"
 	"github.com/docker/mcp-gateway/pkg/gateway/proxies"
 )
+
+func TestContainerNetworkPolicy(t *testing.T) {
+	proxy := proxies.TargetConfig{
+		NetworkName: "proxy", Links: []string{"proxy-sidecar"},
+		Env: []string{"HTTP_PROXY=http://proxy-sidecar"}, DNS: "127.0.0.2",
+	}
+	proxyArgs := []string{"--network", "proxy", "--link", "proxy-sidecar", "-e", "HTTP_PROXY=http://proxy-sidecar", "--dns", "127.0.0.2"}
+	for _, tc := range []struct {
+		name     string
+		blocked  bool
+		disabled bool
+		networks []string
+		target   proxies.TargetConfig
+		want     []string
+	}{
+		{name: "default"},
+		{name: "inherited", networks: []string{"one", "two"}, want: []string{"--network", "one", "--network", "two"}},
+		{name: "unblocked proxy", networks: []string{"one"}, target: proxy, want: append([]string{"--network", "one"}, proxyArgs...)},
+		{name: "blocked default", blocked: true, want: []string{"--network", "none"}},
+		{name: "blocked inherited", blocked: true, networks: []string{"one", "two"}, want: []string{"--network", "none"}},
+		{name: "blocked proxy", blocked: true, networks: []string{"one", "two"}, target: proxy, want: proxyArgs},
+		{name: "disabled proxy", disabled: true, networks: []string{"one"}, target: proxy, want: []string{"--network", "none"}},
+		{name: "disabled blocked proxy", blocked: true, disabled: true, networks: []string{"one"}, target: proxy, want: []string{"--network", "none"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cp := &clientPool{Options: Options{BlockNetwork: tc.blocked}, networks: tc.networks}
+			args, env, err := cp.argsAndEnv(&catalog.ServerConfig{
+				Name: "server", Spec: catalog.Server{DisableNetwork: tc.disabled},
+			}, tc.target)
+			require.NoError(t, err)
+			require.Empty(t, env)
+			require.Equal(t, append(cp.baseArgs("server"), tc.want...), args)
+		})
+	}
+}
+
+func TestToolContainerNetworkPolicy(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Docker argv fixture requires a POSIX shell")
+	}
+	bin := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "docker"), []byte("#!/bin/sh\nprintf '%s\\n' \"$@\"\n"), 0o700))
+	t.Setenv("PATH", bin)
+	for _, blocked := range []bool{false, true} {
+		t.Run(fmt.Sprintf("blocked=%t", blocked), func(t *testing.T) {
+			cp := &clientPool{Options: Options{BlockNetwork: blocked}, networks: []string{"one", "two"}}
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			result := cp.runToolContainer(ctx, catalog.Tool{
+				Name: "tool", Container: catalog.Container{Image: "fixture"},
+			}, &mcp.CallToolParams{})
+			require.False(t, result.IsError)
+			require.Len(t, result.Content, 1)
+			want := []string{"--network", "one", "--network", "two"}
+			if blocked {
+				want = []string{"--network", "none"}
+			}
+			want = append(append(cp.baseArgs("tool"), want...), "fixture")
+			text, ok := result.Content[0].(*mcp.TextContent)
+			require.True(t, ok)
+			require.Equal(t, want, strings.Split(strings.TrimSuffix(text.Text, "\n"), "\n"))
+		})
+	}
+}
 
 func TestApplyConfigGrafana(t *testing.T) {
 	catalogYAML := `
