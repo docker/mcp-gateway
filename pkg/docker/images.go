@@ -55,7 +55,7 @@ func (c *dockerClient) InspectImage(ctx context.Context, name string) (image.Ins
 func (c *dockerClient) pullImage(ctx context.Context, imageName string, registryAuthFn func() string) error {
 	inspect, err := c.apiClient().ImageInspect(ctx, imageName)
 	if err != nil && !cerrdefs.IsNotFound(err) {
-		return fmt.Errorf("inspecting docker image %s: %w", imageName, err)
+		fmt.Fprintf(os.Stderr, "  - warning: inspecting docker image %s: %v", imageName, err)
 	}
 
 	if len(inspect.RepoDigests) > 0 {
