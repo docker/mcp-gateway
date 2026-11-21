@@ -96,7 +96,12 @@ func (i *Interceptor) ToMiddleware() mcp.Middleware {
 			}
 
 			if i.When == "before" {
-				message, err := json.Marshal(req)
+				// Serialize the protocol payload, not SDK session/transport state.
+				// RequestExtra can contain callbacks that JSON cannot encode.
+				message, err := json.Marshal(struct {
+					Method string     `json:"method"`
+					Params mcp.Params `json:"params"`
+				}{Method: method, Params: req.GetParams()})
 				if err != nil {
 					return nil, fmt.Errorf("marshalling request: %w", err)
 				}
