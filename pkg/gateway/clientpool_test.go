@@ -120,6 +120,20 @@ secrets:
 	assert.Equal(t, []string{"DB_PASSWORD=my-actual-db-password", "API_KEY=my-actual-api-key"}, env)
 }
 
+func TestApplyConfigShortLivedMissingSecretKeepsPlaceholder(t *testing.T) {
+	catalogYAML := `
+secrets:
+  - name: short.api_key
+    env: API_KEY
+`
+
+	args, env := argsAndEnv(t, "short", catalogYAML, "", nil)
+
+	assert.Contains(t, args, "-e")
+	assert.Contains(t, args, "API_KEY")
+	assert.Equal(t, []string{"API_KEY=<UNKNOWN>"}, env)
+}
+
 func TestApplyConfigMountAs(t *testing.T) {
 	hostPath := t.TempDir()
 	expectedHostPath, err := cleanDockerHostPath(hostPath)
@@ -784,6 +798,104 @@ func TestLongLivedRemoteServer(t *testing.T) {
 	cfg := &clientConfig{serverSession: session}
 
 	assert.True(t, cp.longLived(remoteServer, cfg), "Remote server must always be long-lived")
+}
+
+func TestAcquireClientRefusesLongLivedServerWithMissingSecrets(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	session := &mcp.ServerSession{}
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	server := &catalog.ServerConfig{
+		Name: "apify-mcp-server",
+		Spec: catalog.Server{
+			Type:      "server",
+			Image:     "mcp/apify:latest",
+			LongLived: true,
+			Secrets: []catalog.Secret{
+				{Name: "apify-mcp-server.apify_token", Env: "APIFY_TOKEN"},
+			},
+		},
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	client, err := cp.AcquireClient(context.Background(), server, cfg)
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "required secret")
+	assert.Contains(t, err.Error(), "apify-mcp-server.apify_token")
+	assert.Empty(t, cp.keptClients)
+}
+
+func TestAcquireClientRefusesLongLivedServerWithEmptySecretValue(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	session := &mcp.ServerSession{}
+	cp := &clientPool{
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	server := &catalog.ServerConfig{
+		Name: "apify-mcp-server",
+		Spec: catalog.Server{
+			Type:      "server",
+			Image:     "mcp/apify:latest",
+			LongLived: true,
+			Secrets: []catalog.Secret{
+				{Name: "apify-mcp-server.apify_token", Env: "APIFY_TOKEN"},
+			},
+		},
+		Config: map[string]any{},
+		Secrets: map[string]string{
+			"apify-mcp-server.apify_token": "",
+		},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	client, err := cp.AcquireClient(context.Background(), server, cfg)
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "required secret")
+	assert.Contains(t, err.Error(), "apify-mcp-server.apify_token")
+	assert.Empty(t, cp.keptClients)
+}
+
+func TestAcquireClientRefusesGlobalLongLivedServerWithMissingSecrets(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	session := &mcp.ServerSession{}
+	cp := &clientPool{
+		Options:     Options{LongLived: true},
+		keptClients: make(map[clientKey]keptClient),
+	}
+
+	server := &catalog.ServerConfig{
+		Name: "apify-mcp-server",
+		Spec: catalog.Server{
+			Type:  "server",
+			Image: "mcp/apify:latest",
+			Secrets: []catalog.Secret{
+				{Name: "apify-mcp-server.apify_token", Env: "APIFY_TOKEN"},
+			},
+		},
+		Config:  map[string]any{},
+		Secrets: map[string]string{},
+	}
+	cfg := &clientConfig{serverSession: session}
+
+	client, err := cp.AcquireClient(context.Background(), server, cfg)
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "required secret")
+	assert.Contains(t, err.Error(), "apify-mcp-server.apify_token")
+	assert.Empty(t, cp.keptClients)
 }
 
 func TestReleaseClientsForSession(t *testing.T) {
