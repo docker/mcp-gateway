@@ -1,0 +1,764 @@
+{
+  "format_version": "1.1.0",
+  "implementation": "mcp-audit-gateway",
+  "canonical_form": "tuple-array",
+  "description": "Conformance vectors for mcp-audit-gateway's tuple-array canonicalization and SHA-256 hash chain.",
+  "encoding": "utf-8",
+  "hash_algorithm": "sha256",
+  "hash_output": "hex-lowercase",
+  "null_rule": "Fields listed in field_order that are absent or undefined in the source record MUST be serialized as JSON null in the tuple-array canonical form.",
+  "signing_exclusions": [
+    "attestation"
+  ],
+  "signing_note": "The attestation field is excluded from the canonical form used for signing. It cannot be included because the signature IS the attestation value (including it would be circular). The canonical form contains exactly the 11 fields listed in field_order.",
+  "chain_hash_note": "The chain hash (record_hash) uses JSON.stringify(fullRecord) which INCLUDES the attestation field. This binds the signature into the chain sequence, preventing attestation stripping without breaking the chain. The chain hash depends on JavaScript insertion order; verifiers must serialize keys in the order specified by chain.chain_key_order.",
+  "field_order": [
+    "id",
+    "timestamp",
+    "method",
+    "toolName",
+    "namespace",
+    "upstream",
+    "principal",
+    "durationMs",
+    "success",
+    "errorCode",
+    "previousHash"
+  ],
+  "conditional_fields": {
+    "decisionContextDigest": "Included at position 10 (before previousHash) when present and non-null.",
+    "parties": "Included after previousHash (or after decisionContextDigest if present) when present and non-null. The value is a JSON array of party objects serialized inline."
+  },
+  "canonicalization": [
+    {
+      "name": "genesis_all_fields",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "timestamp": "2026-08-21T12:00:00.000Z",
+        "method": "tools/call",
+        "toolName": "weather_lookup",
+        "namespace": "external-apis",
+        "upstream": "weather-server",
+        "principal": "user:alice@example.com",
+        "durationMs": 142,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440001\"],[\"timestamp\",\"2026-08-21T12:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"weather_lookup\"],[\"namespace\",\"external-apis\"],[\"upstream\",\"weather-server\"],[\"principal\",\"user:alice@example.com\"],[\"durationMs\",142],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "4e9c29d6e22fc2ef1f931994997b01f48f054c1294a7c287bfeece79417e5d43"
+    },
+    {
+      "name": "genesis_null_optionals",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440002",
+        "timestamp": "2026-08-21T12:00:01.000Z",
+        "method": "tools/list",
+        "durationMs": 3,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440002\"],[\"timestamp\",\"2026-08-21T12:00:01.000Z\"],[\"method\",\"tools/list\"],[\"toolName\",null],[\"namespace\",null],[\"upstream\",null],[\"principal\",null],[\"durationMs\",3],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "e6d9cb79804d69a479c59e2c4e162e90a505ee3cc311d68f6225332764b417c0"
+    },
+    {
+      "name": "error_with_code",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440003",
+        "timestamp": "2026-08-21T12:00:02.500Z",
+        "method": "tools/call",
+        "toolName": "database_query",
+        "namespace": "internal",
+        "upstream": "db-server",
+        "principal": "service:backend-agent",
+        "durationMs": 5021,
+        "success": false,
+        "errorCode": -32603,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440003\"],[\"timestamp\",\"2026-08-21T12:00:02.500Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"database_query\"],[\"namespace\",\"internal\"],[\"upstream\",\"db-server\"],[\"principal\",\"service:backend-agent\"],[\"durationMs\",5021],[\"success\",false],[\"errorCode\",-32603],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "01f4d49a71137289af02111ca6a6b2d7568a7ab4d28aefcfaa17a679bcda90b6"
+    },
+    {
+      "name": "zero_duration",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440004",
+        "timestamp": "2026-08-21T12:00:03.000Z",
+        "method": "tools/call",
+        "toolName": "cache_get",
+        "namespace": "infra",
+        "upstream": "cache-server",
+        "durationMs": 0,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440004\"],[\"timestamp\",\"2026-08-21T12:00:03.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"cache_get\"],[\"namespace\",\"infra\"],[\"upstream\",\"cache-server\"],[\"principal\",null],[\"durationMs\",0],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "e67ed42f822a66e7851de0044e7a02b9e66a525419c78166966fa88cca5c325e"
+    },
+    {
+      "name": "invalid_params_error",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440005",
+        "timestamp": "2026-08-21T12:00:04.000Z",
+        "method": "tools/call",
+        "toolName": "send_email",
+        "namespace": "comms",
+        "upstream": "email-server",
+        "principal": "user:bob@example.com",
+        "durationMs": 12,
+        "success": false,
+        "errorCode": -32602,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440005\"],[\"timestamp\",\"2026-08-21T12:00:04.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"send_email\"],[\"namespace\",\"comms\"],[\"upstream\",\"email-server\"],[\"principal\",\"user:bob@example.com\"],[\"durationMs\",12],[\"success\",false],[\"errorCode\",-32602],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "a67508503e33af3fcf179c34f3ff4e6a0c066870e481fb999f9d03e128f3af3b"
+    },
+    {
+      "name": "unicode_in_fields",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440006",
+        "timestamp": "2026-08-21T12:00:05.000Z",
+        "method": "tools/call",
+        "toolName": "天気検索",
+        "namespace": "external-apis",
+        "upstream": "weather-server-⚡",
+        "principal": "user:tanaka.太郎@example.jp",
+        "durationMs": 88,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440006\"],[\"timestamp\",\"2026-08-21T12:00:05.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"天気検索\"],[\"namespace\",\"external-apis\"],[\"upstream\",\"weather-server-⚡\"],[\"principal\",\"user:tanaka.太郎@example.jp\"],[\"durationMs\",88],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "715926536f94e0a05f59613c9b41a7be103df413202fb9bcdefee2a402697a4e"
+    },
+    {
+      "name": "max_safe_integer_duration",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440007",
+        "timestamp": "2026-08-21T12:00:06.000Z",
+        "method": "tools/call",
+        "toolName": "long_running_task",
+        "namespace": "compute",
+        "upstream": "batch-server",
+        "principal": "service:scheduler",
+        "durationMs": 9007199254740991,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440007\"],[\"timestamp\",\"2026-08-21T12:00:06.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"long_running_task\"],[\"namespace\",\"compute\"],[\"upstream\",\"batch-server\"],[\"principal\",\"service:scheduler\"],[\"durationMs\",9007199254740991],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "75c90c99a36a895d1ba5acdb05167443e0fd1a1b3bf2a305d4cefdcac024511a"
+    },
+    {
+      "name": "empty_string_tool_name",
+      "record": {
+        "id": "550e8400-e29b-41d4-a716-446655440008",
+        "timestamp": "2026-08-21T12:00:07.000Z",
+        "method": "tools/call",
+        "toolName": "",
+        "namespace": "",
+        "upstream": "legacy-server",
+        "principal": "user:admin",
+        "durationMs": 1,
+        "success": true,
+        "previousHash": "genesis"
+      },
+      "canonical": "[[\"id\",\"550e8400-e29b-41d4-a716-446655440008\"],[\"timestamp\",\"2026-08-21T12:00:07.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"\"],[\"namespace\",\"\"],[\"upstream\",\"legacy-server\"],[\"principal\",\"user:admin\"],[\"durationMs\",1],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "2343460398a9d803ccedd27d8cc1d9693897e58e0c4d8985e2e88ba60170835c"
+    }
+  ],
+  "chain": {
+    "description": "Three linked records demonstrating hash chain verification. The chain hash covers the FULL record including the attestation field. This means the attestation (signature) is bound into the chain sequence.",
+    "chain_algorithm": "sha256(JSON.stringify(fullRecord))",
+    "chain_key_order": [
+      "id",
+      "timestamp",
+      "method",
+      "toolName",
+      "namespace",
+      "upstream",
+      "principal",
+      "durationMs",
+      "success",
+      "previousHash",
+      "attestation"
+    ],
+    "chain_key_order_note": "The chain hash uses JSON.stringify which preserves JavaScript insertion order. Verifiers in languages without ordered maps MUST serialize keys in this exact order to reproduce chain hashes. The canonical form (tuple-array) does NOT have this limitation.",
+    "genesis_seed": "genesis",
+    "records": [
+      {
+        "record": {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "timestamp": "2026-08-21T13:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "search",
+          "namespace": "research",
+          "upstream": "search-server",
+          "principal": "user:carol@example.com",
+          "durationMs": 230,
+          "success": true,
+          "previousHash": "genesis",
+          "attestation": "abc123deadbeef"
+        },
+        "full_record_json": "{\"id\":\"660e8400-e29b-41d4-a716-446655440001\",\"timestamp\":\"2026-08-21T13:00:00.000Z\",\"method\":\"tools/call\",\"toolName\":\"search\",\"namespace\":\"research\",\"upstream\":\"search-server\",\"principal\":\"user:carol@example.com\",\"durationMs\":230,\"success\":true,\"previousHash\":\"genesis\",\"attestation\":\"abc123deadbeef\"}",
+        "record_hash": "bcb759bae3e453c133cae1dd026b477522bc493084be15a84686d7b819eb2b99",
+        "canonical": "[[\"id\",\"660e8400-e29b-41d4-a716-446655440001\"],[\"timestamp\",\"2026-08-21T13:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"search\"],[\"namespace\",\"research\"],[\"upstream\",\"search-server\"],[\"principal\",\"user:carol@example.com\"],[\"durationMs\",230],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+        "sha256_canonical": "2779a8c2eee23f409039929b49b7dd6df30e95ba9a3d83e6443d16c13ba5306a"
+      },
+      {
+        "record": {
+          "id": "660e8400-e29b-41d4-a716-446655440002",
+          "timestamp": "2026-08-21T13:00:01.500Z",
+          "method": "tools/call",
+          "toolName": "summarize",
+          "namespace": "research",
+          "upstream": "llm-server",
+          "principal": "user:carol@example.com",
+          "durationMs": 1840,
+          "success": true,
+          "previousHash": "bcb759bae3e453c133cae1dd026b477522bc493084be15a84686d7b819eb2b99",
+          "attestation": "def456cafebabe"
+        },
+        "full_record_json": "{\"id\":\"660e8400-e29b-41d4-a716-446655440002\",\"timestamp\":\"2026-08-21T13:00:01.500Z\",\"method\":\"tools/call\",\"toolName\":\"summarize\",\"namespace\":\"research\",\"upstream\":\"llm-server\",\"principal\":\"user:carol@example.com\",\"durationMs\":1840,\"success\":true,\"previousHash\":\"bcb759bae3e453c133cae1dd026b477522bc493084be15a84686d7b819eb2b99\",\"attestation\":\"def456cafebabe\"}",
+        "record_hash": "8890ec9936274006781013783a3e4b319ae4e912bb14a597800efc9347a29abe",
+        "canonical": "[[\"id\",\"660e8400-e29b-41d4-a716-446655440002\"],[\"timestamp\",\"2026-08-21T13:00:01.500Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"summarize\"],[\"namespace\",\"research\"],[\"upstream\",\"llm-server\"],[\"principal\",\"user:carol@example.com\"],[\"durationMs\",1840],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"bcb759bae3e453c133cae1dd026b477522bc493084be15a84686d7b819eb2b99\"]]",
+        "sha256_canonical": "89bf2344f791f6f20bbb74fc8dfffeca1c1a3877cf60fa225c5d7292e8189bb9",
+        "previous_record_hash": "bcb759bae3e453c133cae1dd026b477522bc493084be15a84686d7b819eb2b99"
+      },
+      {
+        "record": {
+          "id": "660e8400-e29b-41d4-a716-446655440003",
+          "timestamp": "2026-08-21T13:00:05.000Z",
+          "method": "tools/call",
+          "toolName": "store_result",
+          "namespace": "research",
+          "upstream": "storage-server",
+          "principal": "user:carol@example.com",
+          "durationMs": 45,
+          "success": true,
+          "previousHash": "8890ec9936274006781013783a3e4b319ae4e912bb14a597800efc9347a29abe",
+          "attestation": "789abcfeedface"
+        },
+        "full_record_json": "{\"id\":\"660e8400-e29b-41d4-a716-446655440003\",\"timestamp\":\"2026-08-21T13:00:05.000Z\",\"method\":\"tools/call\",\"toolName\":\"store_result\",\"namespace\":\"research\",\"upstream\":\"storage-server\",\"principal\":\"user:carol@example.com\",\"durationMs\":45,\"success\":true,\"previousHash\":\"8890ec9936274006781013783a3e4b319ae4e912bb14a597800efc9347a29abe\",\"attestation\":\"789abcfeedface\"}",
+        "record_hash": "287b9307278203eab4429fea6636492044f428b96ade97910aa7ad86303ffc16",
+        "canonical": "[[\"id\",\"660e8400-e29b-41d4-a716-446655440003\"],[\"timestamp\",\"2026-08-21T13:00:05.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"store_result\"],[\"namespace\",\"research\"],[\"upstream\",\"storage-server\"],[\"principal\",\"user:carol@example.com\"],[\"durationMs\",45],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"8890ec9936274006781013783a3e4b319ae4e912bb14a597800efc9347a29abe\"]]",
+        "sha256_canonical": "d049da892b814c95c3e5c31e4756c5db26023a85e6f41e2c38984146b3fb2597",
+        "previous_record_hash": "8890ec9936274006781013783a3e4b319ae4e912bb14a597800efc9347a29abe"
+      }
+    ]
+  },
+  "dual_hash_demo": {
+    "description": "Two records with identical auditable fields but different attestation values. They produce the SAME canonical hash (attestation is excluded from signing) but DIFFERENT chain hashes (attestation is included in chain). This demonstrates the dual-hash design.",
+    "record_a": {
+      "record": {
+        "id": "770e8400-e29b-41d4-a716-446655440001",
+        "timestamp": "2026-08-21T14:00:00.000Z",
+        "method": "tools/call",
+        "toolName": "verify_identity",
+        "namespace": "auth",
+        "upstream": "identity-server",
+        "principal": "user:dave@example.com",
+        "durationMs": 55,
+        "success": true,
+        "previousHash": "genesis",
+        "attestation": "sig_aaa111"
+      },
+      "canonical": "[[\"id\",\"770e8400-e29b-41d4-a716-446655440001\"],[\"timestamp\",\"2026-08-21T14:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"verify_identity\"],[\"namespace\",\"auth\"],[\"upstream\",\"identity-server\"],[\"principal\",\"user:dave@example.com\"],[\"durationMs\",55],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "0443b29e0a27962c296cd4e854f954491213515426eb0d25adc773c463e02e00",
+      "full_record_json": "{\"id\":\"770e8400-e29b-41d4-a716-446655440001\",\"timestamp\":\"2026-08-21T14:00:00.000Z\",\"method\":\"tools/call\",\"toolName\":\"verify_identity\",\"namespace\":\"auth\",\"upstream\":\"identity-server\",\"principal\":\"user:dave@example.com\",\"durationMs\":55,\"success\":true,\"previousHash\":\"genesis\",\"attestation\":\"sig_aaa111\"}",
+      "record_hash": "16943a93113fe9895979585a6a972a12eca7d94a67370a8abd8eefa52deafdac"
+    },
+    "record_b": {
+      "record": {
+        "id": "770e8400-e29b-41d4-a716-446655440001",
+        "timestamp": "2026-08-21T14:00:00.000Z",
+        "method": "tools/call",
+        "toolName": "verify_identity",
+        "namespace": "auth",
+        "upstream": "identity-server",
+        "principal": "user:dave@example.com",
+        "durationMs": 55,
+        "success": true,
+        "previousHash": "genesis",
+        "attestation": "sig_bbb222"
+      },
+      "canonical": "[[\"id\",\"770e8400-e29b-41d4-a716-446655440001\"],[\"timestamp\",\"2026-08-21T14:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"verify_identity\"],[\"namespace\",\"auth\"],[\"upstream\",\"identity-server\"],[\"principal\",\"user:dave@example.com\"],[\"durationMs\",55],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+      "sha256_canonical": "0443b29e0a27962c296cd4e854f954491213515426eb0d25adc773c463e02e00",
+      "full_record_json": "{\"id\":\"770e8400-e29b-41d4-a716-446655440001\",\"timestamp\":\"2026-08-21T14:00:00.000Z\",\"method\":\"tools/call\",\"toolName\":\"verify_identity\",\"namespace\":\"auth\",\"upstream\":\"identity-server\",\"principal\":\"user:dave@example.com\",\"durationMs\":55,\"success\":true,\"previousHash\":\"genesis\",\"attestation\":\"sig_bbb222\"}",
+      "record_hash": "770efbb50562d529f271f94b26f373749ddfda9936f4305a5ec2c4a256bf24b7"
+    },
+    "assertions": {
+      "canonical_hashes_match": true,
+      "chain_hashes_differ": true
+    }
+  },
+  "party_attribution": {
+    "description": "Vectors demonstrating multi-party attribution in the canonical form. The parties field is an array of {party, role, scope} objects that declares which entity asserted which fields. It appears at the end of the tuple-array (after previousHash, or after decisionContextDigest if present). Records without parties omit the field entirely from the canonical form. Includes edge cases: empty array vs null, scope ordering significance, and chain continuity with parties.",
+    "vectors": [
+      {
+        "name": "parties_gateway_only",
+        "description": "Single-party record: gateway witnesses all 11 base fields.",
+        "record": {
+          "id": "880e8400-e29b-41d4-a716-446655440001",
+          "timestamp": "2026-08-22T10:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "read_file",
+          "namespace": "filesystem",
+          "upstream": "fs-server",
+          "principal": "user:eve@example.com",
+          "durationMs": 34,
+          "success": true,
+          "previousHash": "genesis",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "id",
+                "timestamp",
+                "method",
+                "toolName",
+                "namespace",
+                "upstream",
+                "principal",
+                "durationMs",
+                "success",
+                "errorCode",
+                "previousHash"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"880e8400-e29b-41d4-a716-446655440001\"],[\"timestamp\",\"2026-08-22T10:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"read_file\"],[\"namespace\",\"filesystem\"],[\"upstream\",\"fs-server\"],[\"principal\",\"user:eve@example.com\"],[\"durationMs\",34],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]}]]]",
+        "sha256_canonical": "57cecd4f1d3f7f3f745a1e8cf1188f9a2d019cfe992edfebb506c4f3cd000231"
+      },
+      {
+        "name": "parties_dual_attribution",
+        "description": "Dual-party record: gateway witnesses base fields, policy-engine asserts decisionContextDigest. Demonstrates the 11:1 field split.",
+        "record": {
+          "id": "880e8400-e29b-41d4-a716-446655440002",
+          "timestamp": "2026-08-22T10:00:01.000Z",
+          "method": "tools/call",
+          "toolName": "execute_query",
+          "namespace": "database",
+          "upstream": "db-server",
+          "principal": "service:data-agent",
+          "durationMs": 412,
+          "success": true,
+          "decisionContextDigest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+          "previousHash": "genesis",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "id",
+                "timestamp",
+                "method",
+                "toolName",
+                "namespace",
+                "upstream",
+                "principal",
+                "durationMs",
+                "success",
+                "errorCode",
+                "previousHash"
+              ]
+            },
+            {
+              "party": "policy-engine",
+              "role": "asserter",
+              "scope": [
+                "decisionContextDigest"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"880e8400-e29b-41d4-a716-446655440002\"],[\"timestamp\",\"2026-08-22T10:00:01.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"execute_query\"],[\"namespace\",\"database\"],[\"upstream\",\"db-server\"],[\"principal\",\"service:data-agent\"],[\"durationMs\",412],[\"success\",true],[\"errorCode\",null],[\"decisionContextDigest\",\"sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"],[\"previousHash\",\"genesis\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"policy-engine\",\"role\":\"asserter\",\"scope\":[\"decisionContextDigest\"]}]]]",
+        "sha256_canonical": "bd81a3ab5c5e0b8bc910348ddbd77d274a2f3664260c96023df0a6e4ac2bc741"
+      },
+      {
+        "name": "no_parties_backward_compat",
+        "description": "Record without parties field — canonical form identical to pre-parties vectors. Proves backward compatibility.",
+        "record": {
+          "id": "880e8400-e29b-41d4-a716-446655440003",
+          "timestamp": "2026-08-22T10:00:02.000Z",
+          "method": "tools/list",
+          "durationMs": 2,
+          "success": true,
+          "previousHash": "genesis"
+        },
+        "canonical": "[[\"id\",\"880e8400-e29b-41d4-a716-446655440003\"],[\"timestamp\",\"2026-08-22T10:00:02.000Z\"],[\"method\",\"tools/list\"],[\"toolName\",null],[\"namespace\",null],[\"upstream\",null],[\"principal\",null],[\"durationMs\",2],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"]]",
+        "sha256_canonical": "e6468120453a560a5d55c6b37fdc0df35213f9ffa3f93042d1583341ab530621"
+      },
+      {
+        "name": "parties_empty_array",
+        "description": "An empty parties array ([]) is NOT null and MUST be included in the canonical form. Distinguishes \"no attribution declared\" (null/absent = excluded) from \"parties explicitly empty\" ([] = included).",
+        "record": {
+          "id": "rec_empty_parties_001",
+          "timestamp": "2026-08-22T10:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "validate",
+          "inputHash": "sha256:abc123",
+          "outputHash": "sha256:def456",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "namespace": "test",
+          "upstream": null,
+          "principal": "user:tester",
+          "parties": []
+        },
+        "canonical": "[[\"id\",\"rec_empty_parties_001\"],[\"timestamp\",\"2026-08-22T10:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"validate\"],[\"namespace\",\"test\"],[\"upstream\",null],[\"principal\",\"user:tester\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"sha256:0000000000000000000000000000000000000000000000000000000000000000\"],[\"parties\",[]]]",
+        "sha256_canonical": "14b5da4505f02cd8414f24556e19b787fa7d9fc0fb033778f9ed512f9a265a16"
+      },
+      {
+        "name": "scope_order_original",
+        "description": "Scope array order is significant. [\"toolName\", \"id\", \"timestamp\"] produces a DIFFERENT hash than alphabetically sorted. Implementations MUST NOT sort scope arrays.",
+        "record": {
+          "id": "rec_scope_order_001",
+          "timestamp": "2026-08-22T11:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "execute",
+          "inputHash": "sha256:aaa111",
+          "outputHash": "sha256:bbb222",
+          "durationMs": 100,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "namespace": "ordering-test",
+          "upstream": null,
+          "principal": "user:verifier",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "toolName",
+                "id",
+                "timestamp"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"rec_scope_order_001\"],[\"timestamp\",\"2026-08-22T11:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"execute\"],[\"namespace\",\"ordering-test\"],[\"upstream\",null],[\"principal\",\"user:verifier\"],[\"durationMs\",100],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"toolName\",\"id\",\"timestamp\"]}]]]",
+        "sha256_canonical": "ae6803d101ac18ec66d883c15ca20b3ace811fc1f1d77938b653ff7e5066b3e0"
+      },
+      {
+        "name": "scope_order_sorted",
+        "description": "Same record as scope_order_original but with scope alphabetically sorted. Hash MUST differ, proving scope order is normative.",
+        "record": {
+          "id": "rec_scope_order_001",
+          "timestamp": "2026-08-22T11:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "execute",
+          "inputHash": "sha256:aaa111",
+          "outputHash": "sha256:bbb222",
+          "durationMs": 100,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "namespace": "ordering-test",
+          "upstream": null,
+          "principal": "user:verifier",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "id",
+                "timestamp",
+                "toolName"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"rec_scope_order_001\"],[\"timestamp\",\"2026-08-22T11:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"execute\"],[\"namespace\",\"ordering-test\"],[\"upstream\",null],[\"principal\",\"user:verifier\"],[\"durationMs\",100],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"toolName\"]}]]]",
+        "sha256_canonical": "ab3287cabbfc2970ae5c1111a8fb32c9ab5b8d0382488a693229a68527ff8289"
+      }
+    ],
+    "chain_with_parties": {
+      "description": "Two-record chain where both records carry party attribution. Proves parties are included in record_hash used for chain linkage.",
+      "genesis_seed": "sha256:chain_parties_genesis_0000000000000000000000000000000000000000",
+      "records": [
+        {
+          "record": {
+            "id": "rec_chain_pa_001",
+            "timestamp": "2026-08-22T12:00:00.000Z",
+            "method": "tools/call",
+            "toolName": "fetch_data",
+            "inputHash": "sha256:input_fetch",
+            "outputHash": "sha256:output_fetch",
+            "durationMs": 230,
+            "success": true,
+            "errorCode": null,
+            "previousHash": "sha256:chain_parties_genesis_0000000000000000000000000000000000000000",
+            "namespace": "chain-party-test",
+            "upstream": "https://api.example.com",
+            "principal": "user:chain-tester",
+            "decisionContextDigest": "sha256:policy_eval_001",
+            "parties": [
+              {
+                "party": "gateway",
+                "role": "witness",
+                "scope": [
+                  "id",
+                  "timestamp",
+                  "method",
+                  "toolName",
+                  "namespace",
+                  "upstream",
+                  "principal",
+                  "durationMs",
+                  "success",
+                  "errorCode",
+                  "previousHash"
+                ]
+              },
+              {
+                "party": "policy-engine",
+                "role": "asserter",
+                "scope": [
+                  "decisionContextDigest"
+                ]
+              }
+            ]
+          },
+          "canonical": "[[\"id\",\"rec_chain_pa_001\"],[\"timestamp\",\"2026-08-22T12:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"fetch_data\"],[\"namespace\",\"chain-party-test\"],[\"upstream\",\"https://api.example.com\"],[\"principal\",\"user:chain-tester\"],[\"durationMs\",230],[\"success\",true],[\"errorCode\",null],[\"decisionContextDigest\",\"sha256:policy_eval_001\"],[\"previousHash\",\"sha256:chain_parties_genesis_0000000000000000000000000000000000000000\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"policy-engine\",\"role\":\"asserter\",\"scope\":[\"decisionContextDigest\"]}]]]",
+          "sha256_canonical": "5ff1b9a27985dbd920a44a81661e134a8f1b6968c0f30ac4fb027c5cb62fc10e",
+          "full_record_json": "{\"id\":\"rec_chain_pa_001\",\"timestamp\":\"2026-08-22T12:00:00.000Z\",\"method\":\"tools/call\",\"toolName\":\"fetch_data\",\"inputHash\":\"sha256:input_fetch\",\"outputHash\":\"sha256:output_fetch\",\"durationMs\":230,\"success\":true,\"errorCode\":null,\"previousHash\":\"sha256:chain_parties_genesis_0000000000000000000000000000000000000000\",\"namespace\":\"chain-party-test\",\"upstream\":\"https://api.example.com\",\"principal\":\"user:chain-tester\",\"decisionContextDigest\":\"sha256:policy_eval_001\",\"parties\":[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"policy-engine\",\"role\":\"asserter\",\"scope\":[\"decisionContextDigest\"]}]}",
+          "record_hash": "f154e23342cd33318799c1edc23507437d17a04451aad1a89f733afd3b74c195"
+        },
+        {
+          "record": {
+            "id": "rec_chain_pa_002",
+            "timestamp": "2026-08-22T12:00:01.500Z",
+            "method": "tools/call",
+            "toolName": "transform_data",
+            "inputHash": "sha256:input_transform",
+            "outputHash": "sha256:output_transform",
+            "durationMs": 85,
+            "success": true,
+            "errorCode": null,
+            "previousHash": "f154e23342cd33318799c1edc23507437d17a04451aad1a89f733afd3b74c195",
+            "namespace": "chain-party-test",
+            "upstream": null,
+            "principal": "user:chain-tester",
+            "decisionContextDigest": "sha256:policy_eval_002",
+            "parties": [
+              {
+                "party": "gateway",
+                "role": "witness",
+                "scope": [
+                  "id",
+                  "timestamp",
+                  "method",
+                  "toolName",
+                  "namespace",
+                  "upstream",
+                  "principal",
+                  "durationMs",
+                  "success",
+                  "errorCode",
+                  "previousHash"
+                ]
+              },
+              {
+                "party": "policy-engine",
+                "role": "asserter",
+                "scope": [
+                  "decisionContextDigest"
+                ]
+              }
+            ]
+          },
+          "canonical": "[[\"id\",\"rec_chain_pa_002\"],[\"timestamp\",\"2026-08-22T12:00:01.500Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"transform_data\"],[\"namespace\",\"chain-party-test\"],[\"upstream\",null],[\"principal\",\"user:chain-tester\"],[\"durationMs\",85],[\"success\",true],[\"errorCode\",null],[\"decisionContextDigest\",\"sha256:policy_eval_002\"],[\"previousHash\",\"f154e23342cd33318799c1edc23507437d17a04451aad1a89f733afd3b74c195\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"policy-engine\",\"role\":\"asserter\",\"scope\":[\"decisionContextDigest\"]}]]]",
+          "sha256_canonical": "7583bd43ae7ca4eefb9bf143af5c3d77a79fde96bb0d98d1fdb68c94d6246c7b",
+          "full_record_json": "{\"id\":\"rec_chain_pa_002\",\"timestamp\":\"2026-08-22T12:00:01.500Z\",\"method\":\"tools/call\",\"toolName\":\"transform_data\",\"inputHash\":\"sha256:input_transform\",\"outputHash\":\"sha256:output_transform\",\"durationMs\":85,\"success\":true,\"errorCode\":null,\"previousHash\":\"f154e23342cd33318799c1edc23507437d17a04451aad1a89f733afd3b74c195\",\"namespace\":\"chain-party-test\",\"upstream\":null,\"principal\":\"user:chain-tester\",\"decisionContextDigest\":\"sha256:policy_eval_002\",\"parties\":[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"policy-engine\",\"role\":\"asserter\",\"scope\":[\"decisionContextDigest\"]}]}",
+          "record_hash": "592254c9851b3a7fad4c17bef66f73d8b4bc58ea58d041c08e0ceff27f9d98c8",
+          "previous_record_hash": "f154e23342cd33318799c1edc23507437d17a04451aad1a89f733afd3b74c195"
+        }
+      ]
+    }
+  },
+  "ai_invocation_signing": {
+    "description": "aiInvocation is signature-covered: inserted after extensionsDigest, before parties, as its canonicalizeValue (M/L-tagged) form. Keys sort by UTF-16 code units.",
+    "vectors": [
+      {
+        "name": "ai_invocation_full",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "aiInvocation": {
+            "turnId": "t1",
+            "invocationReason": "user asked",
+            "model": "claude-4"
+          }
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"aiInvocation\",[\"M\",[[\"invocationReason\",\"user asked\"],[\"model\",\"claude-4\"],[\"turnId\",\"t1\"]]]]]",
+        "sha256_canonical": "fddd4a4043f5403a731c116051fb182018176618edb17d3e5d020083e8ff33cf"
+      },
+      {
+        "name": "ai_invocation_partial_turnid_only",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "aiInvocation": {
+            "turnId": "t1"
+          }
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"aiInvocation\",[\"M\",[[\"turnId\",\"t1\"]]]]]",
+        "sha256_canonical": "7e8627013a6a2430b0fb308fa493e3f6a7b552385734621bb1b8cb4587d4d1f3"
+      },
+      {
+        "name": "ai_invocation_with_all_optionals",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "decisionContextDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "extensionsDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "aiInvocation": {
+            "turnId": "t1",
+            "model": "claude-4"
+          },
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "id",
+                "timestamp",
+                "method",
+                "toolName",
+                "namespace",
+                "upstream",
+                "principal",
+                "durationMs",
+                "success",
+                "errorCode",
+                "previousHash"
+              ]
+            },
+            {
+              "party": "client",
+              "role": "asserter",
+              "scope": [
+                "aiInvocation"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"decisionContextDigest\",\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],[\"previousHash\",\"genesis\"],[\"extensionsDigest\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"aiInvocation\",[\"M\",[[\"model\",\"claude-4\"],[\"turnId\",\"t1\"]]]],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\",\"timestamp\",\"method\",\"toolName\",\"namespace\",\"upstream\",\"principal\",\"durationMs\",\"success\",\"errorCode\",\"previousHash\"]},{\"party\":\"client\",\"role\":\"asserter\",\"scope\":[\"aiInvocation\"]}]]]",
+        "sha256_canonical": "cc6cc5a9146f4c5cf5952e354288705cb67a642f5790fc2fec7acd6bb3c5e682"
+      }
+    ],
+    "mutation_negative": {
+      "description": "Mutating any aiInvocation field changes the signing digest; a signature over the original record must fail against the mutated record.",
+      "original": {
+        "name": "original",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "aiInvocation": {
+            "turnId": "t1",
+            "invocationReason": "user asked",
+            "model": "claude-4"
+          }
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"aiInvocation\",[\"M\",[[\"invocationReason\",\"user asked\"],[\"model\",\"claude-4\"],[\"turnId\",\"t1\"]]]]]",
+        "sha256_canonical": "fddd4a4043f5403a731c116051fb182018176618edb17d3e5d020083e8ff33cf"
+      },
+      "mutated": {
+        "name": "mutated_turnId",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "aiInvocation": {
+            "turnId": "t2",
+            "invocationReason": "user asked",
+            "model": "claude-4"
+          }
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"aiInvocation\",[\"M\",[[\"invocationReason\",\"user asked\"],[\"model\",\"claude-4\"],[\"turnId\",\"t2\"]]]]]",
+        "sha256_canonical": "960ffc250afd098da527c99dd932fd6d4cc3c1c51283c69861facda20db7f438"
+      },
+      "digests_differ": true
+    }
+  },
+  "extensions_digest_base": {
+    "description": "Base-suite exercise of extensionsDigest insertion order (between decisionContextDigest slot and parties).",
+    "vectors": [
+      {
+        "name": "extensions_digest_with_parties",
+        "record": {
+          "id": "aivec-0001",
+          "timestamp": "2026-08-23T00:00:00.000Z",
+          "method": "tools/call",
+          "toolName": "github/create_pr",
+          "namespace": "github",
+          "upstream": "gh",
+          "principal": "user-1",
+          "durationMs": 42,
+          "success": true,
+          "errorCode": null,
+          "previousHash": "genesis",
+          "extensionsDigest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "parties": [
+            {
+              "party": "gateway",
+              "role": "witness",
+              "scope": [
+                "id"
+              ]
+            }
+          ]
+        },
+        "canonical": "[[\"id\",\"aivec-0001\"],[\"timestamp\",\"2026-08-23T00:00:00.000Z\"],[\"method\",\"tools/call\"],[\"toolName\",\"github/create_pr\"],[\"namespace\",\"github\"],[\"upstream\",\"gh\"],[\"principal\",\"user-1\"],[\"durationMs\",42],[\"success\",true],[\"errorCode\",null],[\"previousHash\",\"genesis\"],[\"extensionsDigest\",\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],[\"parties\",[{\"party\":\"gateway\",\"role\":\"witness\",\"scope\":[\"id\"]}]]]",
+        "sha256_canonical": "0fb68b55f31aabe40cea3ab15962aa4ea348c148b9c85ed6cad5a522e7ac1b34"
+      }
+    ]
+  }
+}
