@@ -272,6 +272,17 @@ options:
       experimentalcli: false
       kubernetes: false
       swarm: false
+    - option: session-timeout
+      value_type: duration
+      default_value: 30m0s
+      description: |
+        Close an idle streaming client session after this long and release its upstream connections (0 disables the timeout)
+      deprecated: false
+      hidden: false
+      experimental: false
+      experimentalcli: false
+      kubernetes: false
+      swarm: false
     - option: static
       value_type: bool
       default_value: "false"
