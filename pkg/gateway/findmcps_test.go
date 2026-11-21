@@ -46,6 +46,36 @@ func TestTokenize(t *testing.T) {
 			input:    "!@#$%",
 			expected: []string{},
 		},
+		{
+			name:     "cyrillic words",
+			input:    "База данных",
+			expected: []string{"база", "данных"},
+		},
+		{
+			name:     "cjk without spaces",
+			input:    "数据库",
+			expected: []string{"数据库"},
+		},
+		{
+			name:     "non-ascii separators",
+			input:    "支持 PostgreSQL、MySQL 和 SQLite",
+			expected: []string{"支持", "postgresql", "mysql", "和", "sqlite"},
+		},
+		{
+			name:     "accented latin",
+			input:    "Base de données",
+			expected: []string{"base", "de", "données"},
+		},
+		{
+			name:     "decomposed accent stays one token",
+			input:    "donne\u0301es",
+			expected: []string{"donne\u0301es"},
+		},
+		{
+			name:     "stray combining mark starts no token",
+			input:    "\u0301users",
+			expected: []string{"users"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -272,6 +302,103 @@ func TestBM25Strategy(t *testing.T) {
 					if !serverNames[expected] {
 						t.Errorf("expected results to contain %q, but it was not found", expected)
 					}
+				}
+			}
+		})
+	}
+}
+
+func TestBM25StrategyUnicodeQuery(t *testing.T) {
+	// Servers whose titles and descriptions are not ASCII. Before the tokenizer
+	// kept only ASCII letters, every one of these queries produced no tokens and
+	// the handler answered total_matches: 0, which is indistinguishable from
+	// "the catalog has nothing like this". CJK is not segmented: an unbroken run
+	// of ideographs is one token, so it matches that same run and nothing
+	// shorter.
+	config := Configuration{
+		serverNames: []string{"postgres-cn", "files-fr", "files-ru"},
+		servers: map[string]catalog.Server{
+			"postgres-cn": {
+				Name:        "postgres-cn",
+				Title:       "数据库助手",
+				Description: "支持 PostgreSQL、MySQL 和 SQLite",
+			},
+			"files-fr": {
+				Name:        "files-fr",
+				Title:       "Fichiers",
+				Description: "Base de données de fichiers locaux",
+			},
+			"files-ru": {
+				Name:        "files-ru",
+				Title:       "Файлы",
+				Description: "База данных локальных файлов",
+			},
+		},
+	}
+
+	handler := bm25Strategy(&Gateway{configuration: config})
+
+	tests := []struct {
+		name          string
+		query         string
+		expectedCount int
+		expectedFirst string
+	}{
+		{name: "cjk run", query: "数据库助手", expectedCount: 1, expectedFirst: "postgres-cn"},
+		{name: "cjk shorter than the run", query: "数据库", expectedCount: 0},
+		{name: "cyrillic query", query: "данных", expectedCount: 1, expectedFirst: "files-ru"},
+		{name: "accented latin query", query: "données", expectedCount: 1, expectedFirst: "files-fr"},
+		{name: "mixed script query", query: "支持 sqlite", expectedCount: 1, expectedFirst: "postgres-cn"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			argsBytes, err := json.Marshal(map[string]any{"query": tt.query, "limit": 10})
+			if err != nil {
+				t.Fatalf("failed to marshal args: %v", err)
+			}
+
+			result, err := handler(context.Background(), &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{Arguments: argsBytes},
+			})
+			if err != nil {
+				t.Fatalf("handler returned error: %v", err)
+			}
+			if len(result.Content) != 1 {
+				t.Fatalf("expected 1 content item, got %d", len(result.Content))
+			}
+			textContent, ok := result.Content[0].(*mcp.TextContent)
+			if !ok {
+				t.Fatalf("expected TextContent, got %T", result.Content[0])
+			}
+
+			var response map[string]any
+			if err := json.Unmarshal([]byte(textContent.Text), &response); err != nil {
+				t.Fatalf("failed to unmarshal response: %v", err)
+			}
+
+			totalMatches, ok := response["total_matches"].(float64)
+			if !ok {
+				t.Fatalf("total_matches not found or wrong type")
+			}
+			if int(totalMatches) != tt.expectedCount {
+				t.Errorf("query %q: expected %d matches, got %d", tt.query, tt.expectedCount, int(totalMatches))
+			}
+
+			servers, ok := response["servers"].([]any)
+			if !ok {
+				t.Fatalf("servers not found or wrong type: got %T", response["servers"])
+			}
+			if tt.expectedFirst != "" {
+				if len(servers) == 0 {
+					t.Fatalf("query %q: expected first result %q, got no results", tt.query, tt.expectedFirst)
+				}
+				firstServer, ok := servers[0].(map[string]any)
+				if !ok {
+					t.Fatalf("first server is not a map")
+				}
+				if firstName, _ := firstServer["name"].(string); firstName != tt.expectedFirst {
+					t.Errorf("query %q: expected first result %q, got %q", tt.query, tt.expectedFirst, firstName)
 				}
 			}
 		})

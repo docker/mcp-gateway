@@ -7,6 +7,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -22,16 +23,20 @@ type ServerMatch struct {
 	Score  int
 }
 
-// tokenize splits text into tokens (lowercase alphanumeric words)
+// tokenize splits text into tokens (lowercase words)
 // Example: "github-api" → ["github", "api"]
+// Letters and digits from any script are kept, so a query or description that
+// is not ASCII still produces tokens instead of collapsing to nothing.
+// Combining marks continue the token they decorate, so decomposed text is one
+// word rather than a word plus fragments; a mark on its own starts nothing.
 func tokenize(text string) []string {
 	text = strings.ToLower(text)
 	var tokens []string
 	start := -1
 
 	for i, r := range text {
-		isAlnum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
-		if isAlnum {
+		isTokenRune := unicode.IsLetter(r) || unicode.IsDigit(r) || (start != -1 && unicode.IsMark(r))
+		if isTokenRune {
 			if start == -1 {
 				start = i
 			}
