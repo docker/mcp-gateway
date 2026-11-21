@@ -124,6 +124,10 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 				options.Port = 8811
 			}
 
+			if options.SessionTimeout < 0 {
+				return errors.New("cannot use a negative --session-timeout")
+			}
+
 			// Build catalog path list with proper precedence order and no duplicates
 			defaultPaths := convertCatalogNamesToPaths(options.CatalogPath) // Convert any catalog names to paths
 
@@ -208,6 +212,7 @@ func gatewayCommand(docker docker.Client, dockerCli command.Cli, features featur
 	runCmd.Flags().StringVar(&options.Host, "host", options.Host, "Host or IP address to bind TCP transports to")
 	runCmd.Flags().StringVar(&options.Transport, "transport", options.Transport, "stdio, sse or streaming. Uses MCP_GATEWAY_AUTH_TOKEN environment variable for localhost authentication to prevent dns rebinding attacks.")
 	runCmd.Flags().BoolVar(&options.AllowUnauthenticated, "allow-unauthenticated", options.AllowUnauthenticated, "Allow unauthenticated HTTP/SSE gateway requests")
+	runCmd.Flags().DurationVar(&options.SessionTimeout, "session-timeout", gateway.DefaultSessionTimeout, "Close an idle streaming client session after this long and release its upstream connections (0 disables the timeout)")
 	runCmd.Flags().BoolVar(&options.PreserveToolSchemaDialect, "preserve-tool-schema-dialect", options.PreserveToolSchemaDialect, "Relay tool schemas with the JSON Schema dialect the server declared, instead of translating pre-2020-12 dialects")
 	runCmd.Flags().BoolVar(&options.LogCalls, "log-calls", options.LogCalls, "Log calls to the tools")
 	runCmd.Flags().BoolVar(&options.BlockSecrets, "block-secrets", options.BlockSecrets, "Block secrets from being/received sent to/from tools")

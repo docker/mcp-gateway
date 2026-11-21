@@ -32,6 +32,7 @@ Run the gateway
 | `--registry`                     | `stringSlice` | `[registry.yaml]`   | Paths to the registry files (absolute or relative to ~/.docker/mcp/)                                                                          |
 | `--secrets`                      | `string`      | `docker-desktop`    | Colon separated paths to search for secrets. Can be `docker-desktop` or a path to a .env file (default to using Docker Desktop's secrets API) |
 | `--servers`                      | `stringSlice` |                     | Names of the servers to enable (if non empty, ignore --registry flag)                                                                         |
+| `--session-timeout`              | `duration`    | `30m0s`             | Close an idle streaming client session after this long and release its upstream connections (0 disables the timeout)                          |
 | `--static`                       | `bool`        |                     | Enable static mode (aka pre-started servers)                                                                                                  |
 | `--tools`                        | `stringSlice` |                     | List of tools to enable                                                                                                                       |
 | `--tools-config`                 | `stringSlice` | `[tools.yaml]`      | Paths to the tools files (absolute or relative to ~/.docker/mcp/)                                                                             |

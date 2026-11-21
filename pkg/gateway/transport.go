@@ -58,7 +58,13 @@ func (g *Gateway) startStreamingServer(ctx context.Context, ln net.Listener) err
 	mux.Handle("/", redirectHandler("/mcp"))
 	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
 		return g.mcpServer
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{
+		// A client that abandons its session without a DELETE never tells the
+		// gateway, so the remote MCP connections cached for that session stay
+		// open forever. Closing idle sessions lets ReleaseClientsForSession
+		// run and release them.
+		SessionTimeout: g.SessionTimeout,
+	})
 	mux.Handle("/mcp", originSecurityHandler(streamHandler))
 
 	// Wrap with authentication middleware
