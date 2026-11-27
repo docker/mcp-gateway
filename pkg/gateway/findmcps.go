@@ -301,33 +301,9 @@ func bm25Strategy(g *Gateway) mcp.ToolHandler {
 			}
 		}
 
-		// Format results (same format as keywordStrategy)
 		results := make([]map[string]any, 0, len(scored))
 		for _, s := range scored {
-			serverInfo := map[string]any{
-				"name": s.doc.serverName,
-			}
-			g.addCatalogToolNameDiagnostics(serverInfo, s.doc.serverName, s.doc.server)
-
-			if s.doc.server.Description != "" {
-				serverInfo["description"] = s.doc.server.Description
-			}
-
-			if len(s.doc.server.Secrets) > 0 {
-				var secrets []string
-				for _, secret := range s.doc.server.Secrets {
-					secrets = append(secrets, secret.Name)
-				}
-				serverInfo["required_secrets"] = secrets
-			}
-
-			if len(s.doc.server.Config) > 0 {
-				serverInfo["config_schema"] = s.doc.server.Config
-			}
-
-			serverInfo["long_lived"] = s.doc.server.LongLived
-
-			results = append(results, serverInfo)
+			results = append(results, g.findServerInfo(s.doc.serverName, s.doc.server))
 		}
 
 		response := map[string]any{
@@ -446,32 +422,38 @@ func (g *Gateway) findServersByEmbedding(ctx context.Context, query string, limi
 			continue
 		}
 
-		// Build server info map (same format as mcp-find)
-		serverInfo := map[string]any{
-			"name": serverName,
-		}
-		g.addCatalogToolNameDiagnostics(serverInfo, serverName, server.Spec)
-
-		if server.Spec.Description != "" {
-			serverInfo["description"] = server.Spec.Description
-		}
-
-		if len(server.Spec.Secrets) > 0 {
-			var secrets []string
-			for _, secret := range server.Spec.Secrets {
-				secrets = append(secrets, secret.Name)
-			}
-			serverInfo["required_secrets"] = secrets
-		}
-
-		if len(server.Spec.Config) > 0 {
-			serverInfo["config_schema"] = server.Spec.Config
-		}
-
-		serverInfo["long_lived"] = server.Spec.LongLived
-
-		servers = append(servers, serverInfo)
+		servers = append(servers, g.findServerInfo(serverName, server.Spec))
 	}
 
 	return servers, nil
+}
+
+func (g *Gateway) findServerInfo(name string, server catalog.Server) map[string]any {
+	info := map[string]any{"name": name, "long_lived": server.LongLived}
+	g.addCatalogToolNameDiagnostics(info, name, server)
+	if server.Description != "" {
+		info["description"] = server.Description
+	}
+	if len(server.Config) > 0 {
+		info["config_schema"] = server.Config
+	}
+	if len(server.Secrets) > 0 {
+		var secrets []string
+		for _, secret := range server.Secrets {
+			secrets = append(secrets, secret.Name)
+		}
+		info["required_secrets"] = secrets
+	}
+	if server.HasExplicitOAuthProviders() {
+		var providers []string
+		for _, provider := range server.OAuth.Providers {
+			providers = append(providers, provider.Provider)
+		}
+		oauth := map[string]any{"providers": providers}
+		if len(server.OAuth.Scopes) > 0 {
+			oauth["scopes"] = server.OAuth.Scopes
+		}
+		info["required_oauth"] = oauth
+	}
+	return info
 }

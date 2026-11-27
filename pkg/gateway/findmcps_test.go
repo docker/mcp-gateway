@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -58,6 +59,48 @@ func TestTokenize(t *testing.T) {
 			for i := range result {
 				if result[i] != tt.expected[i] {
 					t.Errorf("tokenize(%q)[%d] = %q, want %q", tt.input, i, result[i], tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
+func TestFindAuthRequirements(t *testing.T) {
+	oauth := &catalog.OAuth{
+		Providers: []catalog.OAuthProvider{{Provider: "example", Secret: "example.token", Env: "EXAMPLE_TOKEN"}},
+		Scopes:    []string{"read", "write"},
+	}
+	secrets := []catalog.Secret{{Name: "user.key"}}
+	wantOAuth := map[string]any{"providers": []any{"example"}, "scopes": []any{"read", "write"}}
+	for _, tc := range []struct {
+		name                   string
+		server                 catalog.Server
+		wantSecrets, wantOAuth any
+	}{
+		{"no auth", catalog.Server{}, nil, nil},
+		{"user secret", catalog.Server{Secrets: secrets}, []any{"user.key"}, nil},
+		{"oauth", catalog.Server{Type: "remote", OAuth: oauth}, nil, wantOAuth},
+		{"both", catalog.Server{Type: "remote", OAuth: oauth, Secrets: secrets}, []any{"user.key"}, wantOAuth},
+		{"no explicit provider", catalog.Server{Type: "remote", OAuth: &catalog.OAuth{}}, nil, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := &Gateway{configuration: Configuration{servers: map[string]catalog.Server{"example": tc.server}}}
+			result, err := bm25Strategy(g)(context.Background(), &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{"query":"example"}`)}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var response struct {
+				Servers []map[string]any `json:"servers"`
+			}
+			if err := json.Unmarshal([]byte(result.Content[0].(*mcp.TextContent).Text), &response); err != nil {
+				t.Fatal(err)
+			}
+			if len(response.Servers) != 1 {
+				t.Fatalf("got %d servers, want 1", len(response.Servers))
+			}
+			for key, want := range map[string]any{"required_secrets": tc.wantSecrets, "required_oauth": tc.wantOAuth} {
+				if got, ok := response.Servers[0][key]; ok != (want != nil) || !reflect.DeepEqual(got, want) {
+					t.Errorf("%s = %#v (present %t), want %#v", key, got, ok, want)
 				}
 			}
 		})
